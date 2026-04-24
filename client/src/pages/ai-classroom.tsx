@@ -214,12 +214,22 @@ function ClassroomPlayer({
                 </div>
 
                 {/* Scene Content Renderer */}
-                <Card className="border-none shadow-xl">
-                  <CardContent className="p-6 md:p-8">
+                <Card className="overflow-hidden border-none shadow-xl ring-1 ring-violet-200/50 dark:ring-violet-800/30">
+                  <CardContent className="p-0">
                     {currentScene.type === "quiz" ? (
-                      <QuizRenderer content={currentScene.content} />
+                      <div className="p-6 md:p-8">
+                        <QuizRenderer content={currentScene.content} />
+                      </div>
+                    ) : currentScene.type === "simulation" || currentScene.type === "interactive" ? (
+                      <SimulationRenderer content={currentScene.content} />
+                    ) : currentScene.type === "pbl" ? (
+                      <div className="p-6 md:p-8">
+                        <PBLRenderer content={currentScene.content} />
+                      </div>
                     ) : (
-                      <SlideRenderer content={currentScene.content} />
+                      <div className="p-6 md:p-8">
+                        <SlideRenderer content={currentScene.content} />
+                      </div>
                     )}
                   </CardContent>
                 </Card>
@@ -416,6 +426,71 @@ function QuizRenderer({ content }: { content: any }) {
       >
         {showResults ? "Hide Answers" : "Check Answers"}
       </Button>
+    </div>
+  );
+}
+
+function SimulationRenderer({ content }: { content: any }) {
+  if (!content?.html) return <div className="p-8 text-center text-muted-foreground">No simulation available.</div>;
+
+  return (
+    <div className="relative aspect-video w-full bg-white dark:bg-zinc-950">
+      <iframe
+        srcDoc={content.html}
+        className="h-full w-full border-0"
+        sandbox="allow-scripts allow-popups allow-forms allow-modals"
+        title="Interactive Simulation"
+      />
+    </div>
+  );
+}
+
+function PBLRenderer({ content }: { content: any }) {
+  const config = content?.projectConfig;
+  if (!config) return <div className="text-muted-foreground">Project details not generated.</div>;
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-xl bg-violet-50/50 p-4 dark:bg-violet-900/10">
+        <h4 className="flex items-center gap-2 font-bold text-violet-600 dark:text-violet-400">
+          <BookOpen className="h-4 w-4" />
+          {config.projectInfo?.title || "Project Brief"}
+        </h4>
+        <p className="mt-2 text-sm leading-relaxed opacity-80">{config.projectInfo?.description}</p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-3">
+          <h5 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Issues Board</h5>
+          <div className="space-y-2">
+            {config.issueboard?.issues?.map((issue: any, i: number) => (
+              <div key={i} className="flex gap-3 rounded-lg border bg-card p-3 shadow-sm ring-1 ring-black/5 dark:ring-white/5">
+                <div className={`mt-1 h-2 w-2 rounded-full ${issue.is_done ? "bg-green-500" : "bg-yellow-500"}`} />
+                <div>
+                  <p className="text-sm font-medium">{issue.title}</p>
+                  <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{issue.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-3">
+          <h5 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Team</h5>
+          <div className="grid grid-cols-1 gap-2">
+            {config.agents?.map((agent: any, i: number) => (
+              <div key={i} className="flex items-center gap-3 rounded-lg border bg-card p-2 shadow-sm">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-100 text-sm dark:bg-violet-900/30">
+                  👤
+                </div>
+                <div>
+                  <p className="text-sm font-medium">{agent.name}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase">{agent.actor_role}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -631,16 +706,26 @@ export default function AIClassroom() {
   // ── Main Dashboard View ────────────────────────────────────────────────────
 
   return (
-    <div className="container mx-auto space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="flex items-center gap-2 text-3xl font-bold">
-            <Sparkles className="h-8 w-8 text-violet-500" />
-            Study Arena
-          </h1>
-          <p className="mt-1 text-muted-foreground">
-            Create interactive AI-powered learning experiences with multi-agent classrooms
-          </p>
+    <div className="container mx-auto space-y-6 p-4 md:p-10">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => (window.location.href = "/dashboard")}
+            className="rounded-full"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="flex items-center gap-2 text-2xl font-bold md:text-3xl">
+              <Sparkles className="h-6 w-6 text-violet-500 md:h-8 md:w-8" />
+              Study Arena
+            </h1>
+            <p className="hidden text-sm text-muted-foreground md:block">
+              Create interactive AI-powered learning experiences with multi-agent classrooms
+            </p>
+          </div>
         </div>
       </div>
 
