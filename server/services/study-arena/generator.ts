@@ -135,7 +135,7 @@ Return a JSON object with this exact structure:
     return parsed.agents.map((a, i) => ({
       id: `gen-${i}`,
       name: a.name,
-      role: a.role,
+      role: a.role as 'teacher' | 'assistant' | 'student',
       persona: a.persona,
     }));
   } catch (err) {

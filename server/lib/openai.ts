@@ -258,3 +258,34 @@ export async function analyzeTestPerformance(
     };
   }
 }
+export async function* streamAIChat(
+  messages: ChatMessage[],
+  systemPrompt?: string
+): AsyncGenerator<string> {
+  try {
+    if (systemPrompt) {
+      const existingSystemIndex = messages.findIndex((msg) => msg.role === "system");
+      if (existingSystemIndex !== -1) {
+        messages[existingSystemIndex].content = systemPrompt;
+      } else {
+        messages.unshift({ role: "system", content: systemPrompt });
+      }
+    }
+
+    const stream = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: messages,
+      stream: true,
+    });
+
+    for await (const chunk of stream) {
+      const content = chunk.choices[0]?.delta?.content || "";
+      if (content) {
+        yield content;
+      }
+    }
+  } catch (error) {
+    logger.error("AI stream chat error:", error);
+    handleOpenAIError(error);
+  }
+}

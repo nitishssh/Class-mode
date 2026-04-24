@@ -8,17 +8,108 @@
 export type SceneType = 'slide' | 'quiz' | 'simulation' | 'pbl' | 'interactive';
 
 /** Lightweight agent info passed to the generation pipeline */
+// ── Orchestration Types ───────────────────────────────────────────────────
+
+export interface WhiteboardActionRecord {
+  actionName: string;
+  agentId: string;
+  agentName: string;
+  params: Record<string, any>;
+}
+
+export interface AgentTurnSummary {
+  agentId: string;
+  agentName: string;
+  contentPreview: string;
+  actionCount: number;
+  whiteboardActions: WhiteboardActionRecord[];
+}
+
+export interface DirectorState {
+  turnCount: number;
+  agentResponses: AgentTurnSummary[];
+  whiteboardLedger: WhiteboardActionRecord[];
+}
+
+export interface StatelessChatRequest {
+  messages: any[];
+  storeState: {
+    stage: any | null;
+    scenes: any[];
+    currentSceneId: string | null;
+    mode: string;
+    whiteboardOpen: boolean;
+  };
+  config: {
+    agentIds: string[];
+    sessionType?: 'qa' | 'discussion';
+    discussionTopic?: string;
+    discussionPrompt?: string;
+    triggerAgentId?: string;
+    agentConfigs?: AgentInfo[];
+  };
+  directorState?: DirectorState;
+  userProfile?: {
+    nickname?: string;
+    bio?: string;
+  };
+}
+
+export type StatelessEvent =
+  | {
+      type: 'agent_start';
+      data: {
+        messageId: string;
+        agentId: string;
+        agentName: string;
+        agentAvatar?: string;
+        agentColor?: string;
+      };
+    }
+  | { type: 'agent_end'; data: { messageId: string; agentId: string } }
+  | { type: 'text_delta'; data: { content: string; messageId?: string } }
+  | {
+      type: 'action';
+      data: {
+        actionId: string;
+        actionName: string;
+        params: Record<string, any>;
+        agentId: string;
+        messageId?: string;
+      };
+    }
+  | {
+      type: 'thinking';
+      data: { stage: 'director' | 'agent_loading'; agentId?: string };
+    }
+  | { type: 'cue_user'; data: { fromAgentId?: string; prompt?: string } }
+  | {
+      type: 'done';
+      data: {
+        totalActions: number;
+        totalAgents: number;
+        agentHadContent?: boolean;
+        directorState?: DirectorState;
+      };
+    }
+  | { type: 'error'; data: { message: string } };
+
 export interface AgentInfo {
   id: string;
   name: string;
-  role: string;
-  persona?: string;
+  role: 'teacher' | 'assistant' | 'student';
+  persona: string;
+  avatar?: string;
+  color?: string;
+  priority?: number;
+  allowedActions?: string[];
 }
 
 export interface SceneOutline {
   id: string;
   type: SceneType;
   title: string;
+  pblConfig?: any;
   description: string;
   keyPoints?: string[];
   order: number;

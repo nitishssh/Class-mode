@@ -2,6 +2,9 @@ import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { studyArenaInternalService } from "../services/study-arena/internal-service";
 import { MongoAIClassroom, getNextSequenceValue } from "../../shared/mongo-schema";
+import { orchestrateChat } from '../services/study-arena/orchestrator';
+import { StatelessChatRequest } from '../services/study-arena/types';
+import { logger } from '../lib/logger';
 
 const router = Router();
 
@@ -75,7 +78,7 @@ router.get("/my-classrooms", async (req: Request, res: Response) => {
   }
 });
 
-router.get("/:classroomId", async (req, res) => {
+router.get("/classroom/:classroomId", async (req, res) => {
   try {
     const { classroomId } = req.params;
     const classroom = await studyArenaInternalService.getClassroom(parseInt(classroomId));
@@ -90,6 +93,35 @@ router.get("/:classroomId", async (req, res) => {
     res.status(500).json({
       error: (error as Error).message || "Failed to fetch classroom",
     });
+  }
+});
+
+// ── Stateless Multi-Agent Chat ──────────────────────────────────────────
+
+router.post('/chat', async (req, res) => {
+  const request = req.body as StatelessChatRequest;
+  
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  const abortController = new AbortController();
+  req.on('close', () => {
+    abortController.abort();
+  });
+
+  try {
+    const stream = orchestrateChat(request, abortController.signal);
+    
+    for await (const event of stream) {
+      res.write(`data: ${JSON.stringify(event)}\n\n`);
+    }
+    
+    res.end();
+  } catch (error) {
+    logger.error('Chat orchestration error:', error);
+    res.write(`data: ${JSON.stringify({ type: 'error', data: { message: String(error) } })}\n\n`);
+    res.end();
   }
 });
 
