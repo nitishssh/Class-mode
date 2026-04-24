@@ -10,7 +10,12 @@ import { createLogger } from '@/lib/logger';
 import { PROVIDERS } from './providers';
 import { thinkingContext } from './thinking-context';
 import type { ProviderType, ThinkingCapability, ThinkingConfig } from '@/lib/types/provider';
-import { withFridayLearningGatewayOrFallback } from '@/lib/friday-learning-gateway-adapter';
+import {
+  generateClassroomViaSandbox,
+  generateQuizViaSandbox,
+  chatWithTutorViaSandbox,
+  withFridayLearningGatewayOrFallback,
+} from '@/lib/friday-learning-gateway-adapter';
 const log = createLogger('LLM');
 
 // Re-export for external use
@@ -276,6 +281,26 @@ export interface LLMRetryOptions {
 const DEFAULT_VALIDATE = (text: string) => text.trim().length > 0;
 
 /**
+ * Route a callLLM source label to the correct sandboxed gateway function.
+ *
+ * Source label conventions:
+ *   quiz / grade     → /classroom/quiz  (120 s timeout)
+ *   pbl / chat / tutor → /tutor/chat    (60 s timeout)
+ *   everything else (classroom, scene, outline, agent, slide, generate)
+ *                    → /classroom/generate (300 s timeout)
+ *
+ * Falls back to the legacy /generate route for unknown labels so existing
+ * callers are never broken.
+ */
+function resolveGatewayFn(source: string) {
+  if (/quiz|grade/i.test(source)) return generateQuizViaSandbox;
+  if (/pbl|chat|tutor/i.test(source)) return chatWithTutorViaSandbox;
+  if (/classroom|scene|outline|agent|slide|generate/i.test(source))
+    return generateClassroomViaSandbox;
+  return withFridayLearningGatewayOrFallback;
+}
+
+/**
  * Unified wrapper around `generateText`.
  *
  * @param params - Same parameters as AI SDK's `generateText`
@@ -284,7 +309,7 @@ const DEFAULT_VALIDATE = (text: string) => text.trim().length > 0;
  * @param thinking - Optional per-call thinking config (overrides global LLM_THINKING_DISABLED)
  */
 export async function callLLM<T extends GenerateTextParams>(
-  params: T,
+  params: T & { sessionId?: string },
   source: string,
   retryOptions?: LLMRetryOptions,
   thinking?: ThinkingConfig,
@@ -297,21 +322,23 @@ export async function callLLM<T extends GenerateTextParams>(
   let lastResult: GenerateTextResult<any, any> | undefined;
   let lastError: unknown;
 
+  // Strip sessionId so it never reaches the AI SDK (unknown prop).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { sessionId, ...llmParams } = params as any;
+
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       // Resolve effective thinking config: per-call > global env > undefined
       const effectiveThinking = thinking ?? getGlobalThinkingConfig();
-      const injectedParams = injectProviderOptions(params, effectiveThinking);
+      const injectedParams = injectProviderOptions(llmParams as T, effectiveThinking);
 
       const prompt =
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (injectedParams as any).prompt ||
         (injectedParams.messages ? JSON.stringify(injectedParams.messages) : '');
-      const sessionId = (params as any).sessionId;
 
-      const result = await withFridayLearningGatewayOrFallback(prompt as string, sessionId, async () => {
-        // Wrap in thinkingContext so the custom fetch wrapper in providers.ts
-        // can read the config and inject vendor-specific body params for
-        // OpenAI-compatible providers.
+      const gatewayFn = resolveGatewayFn(source);
+      const result = await gatewayFn(prompt as string, sessionId as string | undefined, async () => {
         return thinkingContext.run(effectiveThinking, () => generateText(injectedParams));
       });
 

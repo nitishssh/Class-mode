@@ -167,6 +167,9 @@ export async function generateClassroom(
   },
 ): Promise<GenerateClassroomResult> {
   const { requirement, pdfContent } = input;
+  // Groups all LLM calls for this classroom in the gateway audit log and
+  // lets the sandbox maintain context across outline → scene → action calls.
+  const sessionId = nanoid(12);
 
   await options.onProgress?.({
     step: 'initializing',
@@ -197,6 +200,7 @@ export async function generateClassroom(
           { role: 'user', content: userPrompt },
         ],
         maxOutputTokens: modelInfo?.outputWindow,
+        sessionId,
       },
       'generate-classroom',
     );

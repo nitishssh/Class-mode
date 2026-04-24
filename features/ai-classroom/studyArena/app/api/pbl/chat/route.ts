@@ -62,6 +62,7 @@ export async function POST(req: NextRequest) {
         model,
         system: systemPrompt,
         prompt: message,
+        sessionId: currentIssue?.id ?? agent.name,
       },
       'pbl-chat',
     );
