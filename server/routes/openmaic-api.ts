@@ -7,7 +7,7 @@
 
 import { Router, Request, Response } from 'express';
 import { authenticateOpenMAICBridge, generateOpenMAICClassroomUrl, generateOpenMAICIframeEmbed } from '../lib/openmaic-auth-bridge';
-import { getOpenMAICClient } from '../services/openmaic-client';
+import { getStudyArenaClient } from '../services/study-arena-client';
 import { MongoUser, MongoAnalytics } from '@shared/mongo-schema';
 import { logger } from '../lib/logger';
 import { z } from 'zod';
@@ -33,7 +33,6 @@ const createClassroomSchema = z.object({
 openmaicApiRouter.post('/classroom/create', async (req: Request, res: Response) => {
   try {
     const firebaseUid = (req as any).firebaseUid;
-    const openmaicToken = (req as any).openmaicToken;
 
     // Validate request
     const validatedData = createClassroomSchema.parse(req.body);
@@ -50,7 +49,7 @@ openmaicApiRouter.post('/classroom/create', async (req: Request, res: Response) 
     });
 
     // Get OpenMAIC client
-    const client = getOpenMAICClient();
+    const client = getStudyArenaClient();
     if (!client) {
       return res.status(503).json({
         message: 'OpenMAIC service is not available',
@@ -58,23 +57,17 @@ openmaicApiRouter.post('/classroom/create', async (req: Request, res: Response) 
       });
     }
 
-    // Create classroom in OpenMAIC
-    const classroom = await client.createClassroom({
-      topic: validatedData.topic,
-      materials: validatedData.materials,
-      sceneTypes: validatedData.sceneTypes,
-      duration: validatedData.duration,
+    // Submit async classroom generation job to Study Arena
+    const job = await client.createClassroom({
+      requirement: validatedData.topic,
     });
-
-    // Generate classroom URL with session token
-    const classroomUrl = generateOpenMAICClassroomUrl(classroom.classroomId, openmaicToken);
 
     // Record in analytics
     const analytics = new MongoAnalytics({
       userId: user.id,
       type: 'openmaic_classroom_created',
       metadata: {
-        classroomId: classroom.classroomId,
+        jobId: job.jobId,
         topic: validatedData.topic,
         difficulty: validatedData.difficulty,
       },
@@ -83,20 +76,19 @@ openmaicApiRouter.post('/classroom/create', async (req: Request, res: Response) 
 
     await analytics.save();
 
-    logger.info('[openmaic-api] Classroom created successfully', {
+    logger.info('[openmaic-api] Classroom generation started', {
       userId: user.id,
-      classroomId: classroom.classroomId,
+      jobId: job.jobId,
     });
 
-    res.status(201).json({
+    res.status(202).json({
       success: true,
-      classroom: {
-        id: classroom.classroomId,
-        status: classroom.status,
-        url: classroomUrl,
-        topic: validatedData.topic,
-        createdAt: new Date().toISOString(),
-      },
+      jobId: job.jobId,
+      status: job.status,
+      message: job.message,
+      pollUrl: job.pollUrl,
+      topic: validatedData.topic,
+      createdAt: new Date().toISOString(),
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -128,7 +120,7 @@ openmaicApiRouter.get('/classroom/:classroomId', async (req: Request, res: Respo
     }
 
     // Get OpenMAIC client
-    const client = getOpenMAICClient();
+    const client = getStudyArenaClient();
     if (!client) {
       return res.status(503).json({
         message: 'OpenMAIC service is not available',
@@ -191,129 +183,22 @@ openmaicApiRouter.post('/classroom/:classroomId/embed', async (req: Request, res
  * @route POST /api/openmaic/quiz/generate
  * @desc Generate an interactive quiz from a topic
  */
-openmaicApiRouter.post('/quiz/generate', async (req: Request, res: Response) => {
-  try {
-    const firebaseUid = (req as any).firebaseUid;
-    const { topic, questionCount = 5 } = req.body;
-
-    // Validate input
-    if (!topic || typeof topic !== 'string') {
-      return res.status(400).json({ message: 'Topic is required' });
-    }
-
-    // Find user
-    const user = await MongoUser.findOne({ firebaseUid });
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    logger.info('[openmaic-api] Generating quiz', {
-      userId: user.id,
-      topic,
-      questionCount,
-    });
-
-    // Get OpenMAIC client
-    const client = getOpenMAICClient();
-    if (!client) {
-      return res.status(503).json({
-        message: 'OpenMAIC service is not available',
-      });
-    }
-
-    // Generate quiz
-    const quiz = await client.generateQuiz(topic, questionCount);
-
-    // Record in analytics
-    const analytics = new MongoAnalytics({
-      userId: user.id,
-      type: 'openmaic_quiz_generated',
-      metadata: {
-        topic,
-        questionCount,
-      },
-      timestamp: new Date(),
-    });
-
-    await analytics.save();
-
-    logger.info('[openmaic-api] Quiz generated successfully', {
-      userId: user.id,
-      topic,
-    });
-
-    res.status(201).json({
-      success: true,
-      quiz,
-    });
-  } catch (error) {
-    logger.error('[openmaic-api] Quiz generation error:', error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
+openmaicApiRouter.post('/quiz/generate', async (_req: Request, res: Response) => {
+  res.status(503).json({
+    message: 'Standalone quiz generation is not supported. Use /classroom/create to generate a classroom with embedded quizzes.',
+    error: 'UNSUPPORTED_OPERATION',
+  });
 });
 
 /**
  * @route POST /api/openmaic/slides/generate
  * @desc Generate slides from content
  */
-openmaicApiRouter.post('/slides/generate', async (req: Request, res: Response) => {
-  try {
-    const firebaseUid = (req as any).firebaseUid;
-    const { content, title } = req.body;
-
-    // Validate input
-    if (!content || typeof content !== 'string') {
-      return res.status(400).json({ message: 'Content is required' });
-    }
-
-    // Find user
-    const user = await MongoUser.findOne({ firebaseUid });
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    logger.info('[openmaic-api] Generating slides', {
-      userId: user.id,
-      title: title || 'Untitled',
-    });
-
-    // Get OpenMAIC client
-    const client = getOpenMAICClient();
-    if (!client) {
-      return res.status(503).json({
-        message: 'OpenMAIC service is not available',
-      });
-    }
-
-    // Generate slides
-    const slides = await client.generateSlides(content, title);
-
-    // Record in analytics
-    const analytics = new MongoAnalytics({
-      userId: user.id,
-      type: 'openmaic_slides_generated',
-      metadata: {
-        title: title || 'Untitled',
-        contentLength: content.length,
-      },
-      timestamp: new Date(),
-    });
-
-    await analytics.save();
-
-    logger.info('[openmaic-api] Slides generated successfully', {
-      userId: user.id,
-      title,
-    });
-
-    res.status(201).json({
-      success: true,
-      slides,
-    });
-  } catch (error) {
-    logger.error('[openmaic-api] Slides generation error:', error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
+openmaicApiRouter.post('/slides/generate', async (_req: Request, res: Response) => {
+  res.status(503).json({
+    message: 'Standalone slide generation is not supported. Use /classroom/create to generate a classroom with embedded slides.',
+    error: 'UNSUPPORTED_OPERATION',
+  });
 });
 
 /**
@@ -322,7 +207,7 @@ openmaicApiRouter.post('/slides/generate', async (req: Request, res: Response) =
  */
 openmaicApiRouter.get('/health', async (req: Request, res: Response) => {
   try {
-    const client = getOpenMAICClient();
+    const client = getStudyArenaClient();
 
     if (!client) {
       return res.status(503).json({

@@ -52,7 +52,7 @@ export async function generateOpenMAICSessionToken(
       exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60), // 24 hours
     };
 
-    const token = jwt.sign(payload, BRIDGE_SECRET, { expiresIn });
+    const token = jwt.sign(payload, BRIDGE_SECRET);
     return token;
   } catch (error) {
     console.error('[openmaic-auth-bridge] Token generation failed:', error);
