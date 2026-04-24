@@ -15,6 +15,15 @@ NEMOCLAW_CMD=("$@")
 CHAT_UI_URL="${CHAT_UI_URL:-http://127.0.0.1:18789}"
 PUBLIC_PORT=18789
 
+# When GATEWAY_ONLY=true the sandbox acts as a headless API backend for the
+# PersonalLearningPro IniClaw gateway. Web UI pairing and dashboard URLs are
+# skipped because no browser will connect to the OpenClaw control interface.
+GATEWAY_ONLY="${GATEWAY_ONLY:-false}"
+
+# Override the default NVIDIA model. Honoured on every start so you can swap
+# providers (OpenAI, Anthropic, NVIDIA) without editing this script.
+OPENCLAW_MODEL="${OPENCLAW_MODEL:-nvidia/nemotron-3-super-120b-a12b}"
+
 fix_openclaw_config() {
   python3 - <<'PYCFG'
 import json
@@ -168,7 +177,7 @@ PYAUTOPAIR
 
 echo 'Setting up NemoClaw...'
 openclaw doctor --fix > /dev/null 2>&1 || true
-openclaw models set nvidia/nemotron-3-super-120b-a12b > /dev/null 2>&1 || true
+openclaw models set "${OPENCLAW_MODEL}" > /dev/null 2>&1 || true
 write_auth_profile
 export CHAT_UI_URL PUBLIC_PORT
 fix_openclaw_config
@@ -180,5 +189,10 @@ fi
 
 nohup openclaw gateway run > /tmp/gateway.log 2>&1 &
 echo "[gateway] openclaw gateway launched (pid $!)"
-start_auto_pair
-print_dashboard_urls
+
+if [ "${GATEWAY_ONLY}" = "true" ]; then
+  echo "[gateway] running in gateway-only mode — web UI pairing and dashboard URLs skipped"
+else
+  start_auto_pair
+  print_dashboard_urls
+fi

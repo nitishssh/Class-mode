@@ -2,18 +2,12 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-const { execSync, spawnSync } = require("child_process");
+const { spawnSync } = require("child_process");
 const path = require("path");
 const fs = require("fs");
-const os = require("os");
 
 const { ROOT, SCRIPTS, run, runCapture } = require("./lib/runner");
-const {
-  ensureApiKey,
-  ensureGithubToken,
-  getCredential,
-  isRepoPrivate,
-} = require("./lib/credentials");
+const { ensureApiKey } = require("./lib/credentials");
 const registry = require("./lib/registry");
 const nim = require("./lib/nim");
 const policies = require("./lib/policies");
@@ -23,9 +17,6 @@ const policies = require("./lib/policies");
 const GLOBAL_COMMANDS = new Set([
   "onboard",
   "list",
-  "deploy",
-  "setup",
-  "setup-spark",
   "start",
   "stop",
   "status",
@@ -41,117 +32,6 @@ async function onboard() {
   await runOnboard();
 }
 
-async function setup() {
-  console.log("");
-  console.log("  ⚠  `nemoclaw setup` is deprecated. Use `nemoclaw onboard` instead.");
-  console.log("     Running legacy setup.sh for backwards compatibility...");
-  console.log("");
-  await ensureApiKey();
-  run(`bash "${SCRIPTS}/setup.sh"`);
-}
-
-async function setupSpark() {
-  await ensureApiKey();
-  run(`sudo -E NVIDIA_API_KEY="${process.env.NVIDIA_API_KEY}" bash "${SCRIPTS}/setup-spark.sh"`);
-}
-
-async function deploy(instanceName) {
-  if (!instanceName) {
-    console.error("  Usage: nemoclaw deploy <instance-name>");
-    console.error("");
-    console.error("  Examples:");
-    console.error("    nemoclaw deploy my-gpu-box");
-    console.error("    nemoclaw deploy nemoclaw-prod");
-    console.error("    nemoclaw deploy nemoclaw-test");
-    process.exit(1);
-  }
-  await ensureApiKey();
-  if (isRepoPrivate("NVIDIA/OpenShell")) {
-    await ensureGithubToken();
-  }
-  const name = instanceName;
-  const gpu = process.env.NEMOCLAW_GPU || "a2-highgpu-1g:nvidia-tesla-a100:1";
-
-  console.log("");
-  console.log(`  Deploying NemoClaw to Brev instance: ${name}`);
-  console.log("");
-
-  try {
-    execSync("which brev", { stdio: "ignore" });
-  } catch {
-    console.error("brev CLI not found. Install: https://brev.nvidia.com");
-    process.exit(1);
-  }
-
-  let exists = false;
-  try {
-    const out = execSync("brev ls 2>&1", { encoding: "utf-8" });
-    exists = out.includes(name);
-  } catch {}
-
-  if (!exists) {
-    console.log(`  Creating Brev instance '${name}' (${gpu})...`);
-    run(`brev create ${name} --gpu "${gpu}"`);
-  } else {
-    console.log(`  Brev instance '${name}' already exists.`);
-  }
-
-  run(`brev refresh`, { ignoreError: true });
-
-  console.log("  Waiting for SSH...");
-  for (let i = 0; i < 60; i++) {
-    try {
-      execSync(
-        `ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no ${name} 'echo ok' 2>/dev/null`,
-        { encoding: "utf-8", stdio: "pipe" }
-      );
-      break;
-    } catch {
-      if (i === 59) {
-        console.error(`  Timed out waiting for SSH to ${name}`);
-        process.exit(1);
-      }
-      spawnSync("sleep", ["3"]);
-    }
-  }
-
-  console.log("  Syncing NemoClaw to VM...");
-  run(`ssh -o StrictHostKeyChecking=no -o LogLevel=ERROR ${name} 'mkdir -p /home/ubuntu/nemoclaw'`);
-  run(
-    `rsync -az --delete --exclude node_modules --exclude .git --exclude src -e "ssh -o StrictHostKeyChecking=no -o LogLevel=ERROR" "${ROOT}/scripts" "${ROOT}/Dockerfile" "${ROOT}/nemoclaw" "${ROOT}/nemoclaw-blueprint" "${ROOT}/bin" "${ROOT}/package.json" ${name}:/home/ubuntu/nemoclaw/`
-  );
-
-  const envLines = [`NVIDIA_API_KEY=${process.env.NVIDIA_API_KEY}`];
-  const ghToken = process.env.GITHUB_TOKEN;
-  if (ghToken) envLines.push(`GITHUB_TOKEN=${ghToken}`);
-  const tgToken = getCredential("TELEGRAM_BOT_TOKEN");
-  if (tgToken) envLines.push(`TELEGRAM_BOT_TOKEN=${tgToken}`);
-  const envTmp = path.join(os.tmpdir(), `nemoclaw-env-${Date.now()}`);
-  fs.writeFileSync(envTmp, envLines.join("\n") + "\n", { mode: 0o600 });
-  run(
-    `scp -q -o StrictHostKeyChecking=no -o LogLevel=ERROR "${envTmp}" ${name}:/home/ubuntu/nemoclaw/.env`
-  );
-  fs.unlinkSync(envTmp);
-
-  console.log("  Running setup...");
-  run(
-    `ssh -t -o StrictHostKeyChecking=no -o LogLevel=ERROR ${name} 'cd /home/ubuntu/nemoclaw && set -a && . .env && set +a && bash scripts/brev-setup.sh'`
-  );
-
-  if (tgToken) {
-    console.log("  Starting services...");
-    run(
-      `ssh -o StrictHostKeyChecking=no -o LogLevel=ERROR ${name} 'cd /home/ubuntu/nemoclaw && set -a && . .env && set +a && bash scripts/start-services.sh'`
-    );
-  }
-
-  console.log("");
-  console.log("  Connecting to sandbox...");
-  console.log("");
-  run(
-    `ssh -t -o StrictHostKeyChecking=no -o LogLevel=ERROR ${name} 'cd /home/ubuntu/nemoclaw && set -a && . .env && set +a && openshell sandbox connect nemoclaw'`
-  );
-}
 
 async function start() {
   await ensureApiKey();
@@ -295,16 +175,19 @@ function sandboxDestroy(sandboxName) {
 
 function help() {
   console.log(`
-  nemoclaw — NemoClaw CLI
+  nemoclaw — IniClaw gateway CLI for Study Arena
 
   Getting Started:
-    nemoclaw onboard                 Interactive setup wizard (recommended)
-    nemoclaw setup                   Legacy setup (deprecated, use onboard)
-    nemoclaw setup-spark             Set up on DGX Spark (fixes cgroup v2 + Docker)
+    nemoclaw onboard                 Interactive setup wizard
+
+  Gateway:
+    nemoclaw start                   Start the IniClaw gateway (port 7070)
+    nemoclaw stop                    Stop the gateway
+    nemoclaw status                  Show sandbox list and gateway status
 
   Sandbox Management:
     nemoclaw list                    List all sandboxes
-    nemoclaw <name> connect          Connect to a sandbox
+    nemoclaw <name> connect          Connect to a sandbox (debug)
     nemoclaw <name> status           Show sandbox status and health
     nemoclaw <name> logs [--follow]  View sandbox logs
     nemoclaw <name> destroy          Stop NIM + delete sandbox
@@ -312,14 +195,6 @@ function help() {
   Policy Presets:
     nemoclaw <name> policy-add       Add a policy preset to a sandbox
     nemoclaw <name> policy-list      List presets (● = applied)
-
-  Deploy:
-    nemoclaw deploy <instance>       Deploy to a Brev VM and start services
-
-  Services:
-    nemoclaw start                   Start services (Telegram, tunnel)
-    nemoclaw stop                    Stop all services
-    nemoclaw status                  Show sandbox list and service status
 
   Credentials are prompted on first use, then saved securely
   in ~/.nemoclaw/credentials.json (mode 600).
@@ -342,15 +217,6 @@ const [cmd, ...args] = process.argv.slice(2);
     switch (cmd) {
       case "onboard":
         await onboard();
-        break;
-      case "setup":
-        await setup();
-        break;
-      case "setup-spark":
-        await setupSpark();
-        break;
-      case "deploy":
-        await deploy(args[0]);
         break;
       case "start":
         await start();
