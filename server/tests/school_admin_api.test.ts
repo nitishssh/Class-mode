@@ -8,6 +8,7 @@ import session from "express-session";
 // Mock dependencies
 vi.mock("../lib/firebase-admin", () => ({
   verifyFirebaseToken: vi.fn(),
+  setCustomUserClaims: vi.fn(),
 }));
 
 // Mock MongoDB
