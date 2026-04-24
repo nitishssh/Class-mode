@@ -63,13 +63,13 @@ const FeatureCard = ({ feature, index }: { feature: any; index: number }) => {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ delay: 0.1 * index }}
-      className="notebook-card group hover:-translate-y-2 hover:shadow-[8px_10px_0px_#000] dark:hover:shadow-[8px_10px_0px_hsl(var(--primary))] transition-all duration-300 relative overflow-hidden"
+      className="notebook-card group hover:-translate-y-2 hover:shadow-[8px_10px_0px_hsl(var(--foreground))] dark:hover:shadow-[8px_10px_0px_hsl(var(--primary))] transition-all duration-300 relative overflow-hidden"
       style={{ paddingLeft: '3.5rem' }}
     >
       {/* Notebook Punch Holes */}
       <div className="absolute left-3 top-0 bottom-0 flex flex-col justify-evenly py-4 z-20">
         {[...Array(5)].map((_, i) => (
-          <div key={i} className="w-4 h-4 rounded-full bg-[#F8F9FA] dark:bg-[#161618] border border-black/10 dark:border-white/10 shadow-[inset_1px_1px_3px_rgba(0,0,0,0.15)] dark:shadow-[inset_1px_1px_3px_rgba(255,255,255,0.05)]"></div>
+          <div key={i} className="w-4 h-4 rounded-full bg-background border border-border shadow-[inset_1px_1px_3px_rgba(0,0,0,0.15)] dark:shadow-[inset_1px_1px_3px_rgba(255,255,255,0.05)]"></div>
         ))}
       </div>
 
@@ -81,13 +81,13 @@ const FeatureCard = ({ feature, index }: { feature: any; index: number }) => {
       <div className="flex items-center gap-3 mb-6 relative z-10">
         <div className="p-2 relative group-hover:-rotate-6 transition-transform">
           {/* Handwritten style highlight behind icon */}
-          <div className="absolute inset-0 bg-[#FFD455]/90 -rotate-3 rounded-sm -z-10 group-hover:rotate-6 transition-transform"></div>
-          <feature.icon size={26} strokeWidth={2.5} className="text-[#111111]" />
+          <div className="absolute inset-0 bg-[#FFD455]/90 dark:bg-primary/30 -rotate-3 rounded-sm -z-10 group-hover:rotate-6 transition-transform"></div>
+          <feature.icon size={26} strokeWidth={2.5} className="text-foreground" />
         </div>
-        <h3 className="text-2xl font-bold text-[#111111] dark:text-neutral-50 relative inline-block font-sans">
+        <h3 className="text-2xl font-bold text-foreground relative inline-block font-sans">
           {feature.title}
           {/* Custom handwritten underline effect */}
-          <svg className="absolute -bottom-2 left-0 w-full h-3 text-[#FFD455] opacity-80" viewBox="0 0 100 10" preserveAspectRatio="none">
+          <svg className="absolute -bottom-2 left-0 w-full h-3 text-[#FFD455] dark:text-primary opacity-80" viewBox="0 0 100 10" preserveAspectRatio="none">
             <path d="M0 5 Q 50 10 100 2" stroke="currentColor" strokeWidth="3" fill="none" strokeLinecap="round" />
           </svg>
         </h3>
@@ -95,8 +95,8 @@ const FeatureCard = ({ feature, index }: { feature: any; index: number }) => {
 
       <ul className="space-y-3 mb-8 ml-2 mt-4 relative z-10">
         {feature.points.map((point: string, i: number) => (
-          <li key={i} className="flex items-center gap-3 text-[#111111] dark:text-neutral-200 text-base font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#4C6FFF] shrink-0"></span>
+          <li key={i} className="flex items-center gap-3 text-foreground text-base font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#4C6FFF] dark:bg-primary shrink-0"></span>
             {point}
           </li>
         ))}
@@ -104,7 +104,7 @@ const FeatureCard = ({ feature, index }: { feature: any; index: number }) => {
 
       <Button
         variant="outline"
-        className="w-full sm:w-auto relative z-10 rounded-full bg-white dark:bg-[#161618] border-2 border-[#111111] dark:border-neutral-50 text-[#111111] dark:text-neutral-50 font-bold hover:bg-[#FFD455] dark:hover:bg-[#FFD455] hover:text-[#111111] dark:hover:text-[#111111] transition-colors shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_hsl(var(--primary))] hover:shadow-[4px_4px_0px_#000] dark:hover:shadow-[4px_4px_0px_hsl(var(--primary))] text-sm h-11 px-6 hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
+        className="w-full sm:w-auto relative z-10 rounded-full bg-background border-2 border-foreground text-foreground font-bold hover:bg-[#FFD455] dark:hover:bg-primary hover:text-foreground transition-colors shadow-[2px_2px_0px_hsl(var(--foreground))] dark:shadow-[2px_2px_0px_hsl(var(--primary))] hover:shadow-[4px_4px_0px_hsl(var(--foreground))] dark:hover:shadow-[4px_4px_0px_hsl(var(--primary))] text-sm h-11 px-6 hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
       >
         {feature.cta} <span className="ml-1 text-lg leading-none">›</span>
       </Button>
@@ -122,7 +122,7 @@ export const NotebookFeature = () => {
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <h2 className="text-4xl md:text-5xl font-extrabold mb-4 text-[#111111] dark:text-neutral-50">
+          <h2 className="text-4xl md:text-5xl font-extrabold mb-4 text-foreground">
             From Concept to Launch
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">

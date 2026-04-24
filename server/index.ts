@@ -28,33 +28,21 @@ app.use(express.urlencoded({ extended: false }));
 app.use(helmet({ contentSecurityPolicy: false })); // CSP handled by Vite in dev
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
-const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5001").split(",");
-
-// Add mobile app origins
-const mobileOrigins = [
-  'exp://localhost:8081', // Expo Go development
-  'exp://192.168.*', // Expo Go on local network (wildcard pattern)
-  'capacitor://localhost', // Capacitor iOS
-  'http://localhost', // Capacitor Android
-];
-
+const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5001").split(",").map(o => o.trim());
 app.use(cors({
   origin: (origin, cb) => {
-    // Allow requests with no origin (mobile apps, Postman, etc.)
+    // Allow requests with no origin (same-origin requests, static files, etc.)
     if (!origin) return cb(null, true);
     
-    // Check exact matches
+    // Allow configured origins
     if (allowedOrigins.includes(origin)) return cb(null, true);
     
-    // Check mobile origins
-    if (mobileOrigins.some(pattern => {
-      if (pattern.includes('*')) {
-        const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
-        return regex.test(origin);
+    // In production, also allow the deployment domain
+    if (process.env.NODE_ENV === 'production') {
+      const url = new URL(origin);
+      if (url.hostname.endsWith('.onrender.com') || url.hostname === 'inmodel.in' || url.hostname.endsWith('.inmodel.in')) {
+        return cb(null, true);
       }
-      return origin.startsWith(pattern);
-    })) {
-      return cb(null, true);
     }
     
     cb(new Error("Not allowed by CORS"));

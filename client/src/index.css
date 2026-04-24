@@ -409,6 +409,16 @@
     border-radius: 2px;
   }
 
+  /* Hidden scrollbar for tasks board */
+  .hidden-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .hidden-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   /* landing page hover tilt */
   .hover-tilt {
     transition: transform 0.3s ease, box-shadow 0.3s ease;

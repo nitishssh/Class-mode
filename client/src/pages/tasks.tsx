@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
-import { Plus, GripVertical, MoreHorizontal, Calendar, MessageSquare, Paperclip, ChevronDown, Filter, Loader2, AlertCircle } from "lucide-react";
+import { Plus, MoreHorizontal, Calendar, MessageSquare, Paperclip, ChevronDown, Filter, Loader2, AlertCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -25,18 +24,18 @@ interface Task {
 }
 
 const STATUSES: { id: TaskStatus; label: string; icon: React.ReactNode; color: string }[] = [
-    { id: "backlog", label: "Backlog", icon: <div className="w-3 h-3 rounded-full border-2 border-dashed border-zinc-500" />, color: "text-zinc-400" },
-    { id: "todo", label: "To Do", icon: <div className="w-3 h-3 rounded-full border-2 border-zinc-300" />, color: "text-zinc-200" },
-    { id: "in-progress", label: "In Progress", icon: <div className="w-3 h-3 rounded-full border-2 border-amber-500 bg-amber-500/20" />, color: "text-amber-400" },
-    { id: "review", label: "Review", icon: <div className="w-3 h-3 rounded-full border-2 border-blue-500 bg-blue-500/20" />, color: "text-blue-400" },
-    { id: "done", label: "Done", icon: <div className="w-3 h-3 bg-indigo-500 rounded-full flex items-center justify-center"><div className="w-1.5 h-1.5 bg-background rounded-full" /></div>, color: "text-indigo-400" }
+    { id: "backlog", label: "Backlog", icon: <div className="w-3 h-3 rounded-full border-2 border-dashed border-zinc-400" />, color: "text-zinc-300" },
+    { id: "todo", label: "To Do", icon: <div className="w-3 h-3 rounded-full border-2 border-zinc-200" />, color: "text-zinc-100" },
+    { id: "in-progress", label: "In Progress", icon: <div className="w-3 h-3 rounded-full border-2 border-amber-400 bg-amber-400/30" />, color: "text-amber-300" },
+    { id: "review", label: "Review", icon: <div className="w-3 h-3 rounded-full border-2 border-blue-400 bg-blue-400/30" />, color: "text-blue-300" },
+    { id: "done", label: "Done", icon: <div className="w-3 h-3 bg-indigo-400 rounded-full flex items-center justify-center"><div className="w-1.5 h-1.5 bg-zinc-900 rounded-full" /></div>, color: "text-indigo-300" }
 ];
 
 const PRIORITY_ICONS: Record<TaskPriority, React.ReactNode> = {
-    low: <div className="flex gap-0.5 mt-0.5"><div className="w-1.5 h-1.5 bg-zinc-500 rounded-sm" /><div className="w-1.5 h-1.5 bg-zinc-800 rounded-sm" /><div className="w-1.5 h-1.5 bg-zinc-800 rounded-sm" /></div>,
-    medium: <div className="flex gap-0.5 mt-0.5"><div className="w-1.5 h-1.5 bg-amber-500 rounded-sm" /><div className="w-1.5 h-1.5 bg-amber-500 rounded-sm" /><div className="w-1.5 h-1.5 bg-zinc-800 rounded-sm" /></div>,
-    high: <div className="flex gap-0.5 mt-0.5"><div className="w-1.5 h-1.5 bg-rose-500 rounded-sm" /><div className="w-1.5 h-1.5 bg-rose-500 rounded-sm" /><div className="w-1.5 h-1.5 bg-rose-500 rounded-sm" /></div>,
-    urgent: <div className="w-4 h-4 rounded-sm bg-rose-600/20 flex items-center justify-center border border-rose-500/50"><div className="w-1 h-2 bg-rose-500 rounded-[1px]" /></div>,
+    low: <div className="flex gap-0.5 mt-0.5"><div className="w-1.5 h-1.5 bg-zinc-400 rounded-sm" /><div className="w-1.5 h-1.5 bg-zinc-700 rounded-sm" /><div className="w-1.5 h-1.5 bg-zinc-700 rounded-sm" /></div>,
+    medium: <div className="flex gap-0.5 mt-0.5"><div className="w-1.5 h-1.5 bg-amber-400 rounded-sm" /><div className="w-1.5 h-1.5 bg-amber-400 rounded-sm" /><div className="w-1.5 h-1.5 bg-zinc-700 rounded-sm" /></div>,
+    high: <div className="flex gap-0.5 mt-0.5"><div className="w-1.5 h-1.5 bg-rose-400 rounded-sm" /><div className="w-1.5 h-1.5 bg-rose-400 rounded-sm" /><div className="w-1.5 h-1.5 bg-rose-400 rounded-sm" /></div>,
+    urgent: <div className="w-4 h-4 rounded-sm bg-rose-500/30 flex items-center justify-center border border-rose-400/60"><div className="w-1 h-2 bg-rose-400 rounded-[1px]" /></div>,
 };
 
 export default function TasksPage() {
@@ -48,22 +47,7 @@ export default function TasksPage() {
         queryKey: ["/api/tasks"],
     });
 
-    // ── Create ─────────────────────────────────────────────────────────────
-    const createMutation = useMutation({
-        mutationFn: (newTask: Omit<Task, "id">) =>
-            apiRequest("POST", "/api/tasks", newTask).then(r => r.json()),
-        onMutate: async (newTask) => {
-            await qc.cancelQueries({ queryKey: ["/api/tasks"] });
-            const previous = qc.getQueryData<Task[]>(["/api/tasks"]);
-            const optimistic: Task = { ...newTask, id: `temp-${Date.now()}` };
-            qc.setQueryData<Task[]>(["/api/tasks"], old => [...(old ?? []), optimistic]);
-            return { previous };
-        },
-        onError: (_err, _vars, ctx) => {
-            if (ctx?.previous) qc.setQueryData(["/api/tasks"], ctx.previous);
-        },
-        onSettled: () => qc.invalidateQueries({ queryKey: ["/api/tasks"] }),
-    });
+
 
     // ── Status update (drag-and-drop) ──────────────────────────────────────
     const updateStatusMutation = useMutation({
@@ -114,18 +98,18 @@ export default function TasksPage() {
     // ── Loading / error states ─────────────────────────────────────────────
     if (isLoading) {
         return (
-            <div className="flex flex-col h-[calc(100vh-2rem)] bg-[#0e0e0e] text-zinc-100 rounded-xl border border-zinc-800/60 shadow-2xl items-center justify-center gap-3">
+            <div className="flex flex-col h-[calc(100vh-2rem)] bg-zinc-950 text-zinc-50 rounded-xl border border-zinc-800 shadow-2xl items-center justify-center gap-3">
                 <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
-                <p className="text-sm text-zinc-400">Loading tasks…</p>
+                <p className="text-sm text-zinc-300">Loading tasks…</p>
             </div>
         );
     }
 
     if (isError) {
         return (
-            <div className="flex flex-col h-[calc(100vh-2rem)] bg-[#0e0e0e] text-zinc-100 rounded-xl border border-zinc-800/60 shadow-2xl items-center justify-center gap-3">
+            <div className="flex flex-col h-[calc(100vh-2rem)] bg-zinc-950 text-zinc-50 rounded-xl border border-zinc-800 shadow-2xl items-center justify-center gap-3">
                 <AlertCircle className="w-8 h-8 text-rose-400" />
-                <p className="text-sm text-zinc-400">
+                <p className="text-sm text-zinc-300">
                     {error instanceof Error ? error.message : "Failed to load tasks"}
                 </p>
             </div>
@@ -133,27 +117,27 @@ export default function TasksPage() {
     }
 
     return (
-        <div className="flex flex-col h-[calc(100vh-2rem)] bg-[#0e0e0e] text-zinc-100 font-sans selection:bg-indigo-500/30 overflow-hidden rounded-xl border border-zinc-800/60 shadow-2xl">
+        <div className="flex flex-col h-[calc(100vh-2rem)] bg-zinc-950 text-zinc-50 font-sans selection:bg-indigo-500/30 overflow-hidden rounded-xl border border-zinc-800 shadow-2xl">
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-black/40 backdrop-blur-md shrink-0">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-900/80 backdrop-blur-md shrink-0">
                 <div className="flex items-center gap-4">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center">
                         <div className="w-4 h-4 bg-indigo-400 rounded-sm" />
                     </div>
                     <div>
-                        <h1 className="text-lg font-semibold tracking-tight text-white flex items-center gap-2">
-                            Master Plan <ChevronDown className="w-4 h-4 text-zinc-500" />
+                        <h1 className="text-lg font-semibold tracking-tight text-zinc-50 flex items-center gap-2">
+                            Master Plan <ChevronDown className="w-4 h-4 text-zinc-400" />
                         </h1>
-                        <p className="text-xs text-zinc-500 font-medium tracking-wide">STUDY TRACKER</p>
+                        <p className="text-xs text-zinc-400 font-medium tracking-wide">STUDY TRACKER</p>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/10 hidden sm:flex">
+                    <Button variant="ghost" size="sm" className="text-zinc-300 hover:text-zinc-50 hover:bg-zinc-800 border border-transparent hover:border-zinc-700 hidden sm:flex">
                         <Filter className="w-4 h-4 mr-2" /> View
                     </Button>
-                    <div className="w-px h-6 bg-white/10 mx-2 hidden sm:block" />
-                    <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500/50 shadow-[0_0_15px_rgba(79,70,229,0.2)]">
+                    <div className="w-px h-6 bg-zinc-700 mx-2 hidden sm:block" />
+                    <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500/50 shadow-[0_0_15px_rgba(79,70,229,0.3)]">
                         <Plus className="w-4 h-4 mr-1.5" />
                         New Issue
                     </Button>
@@ -180,11 +164,11 @@ export default function TasksPage() {
                                         <span className={cn("text-sm font-medium tracking-wide", status.color)}>
                                             {status.label}
                                         </span>
-                                        <span className="text-xs font-medium text-zinc-600 bg-zinc-900 px-1.5 py-0.5 rounded-md border border-zinc-800">
+                                        <span className="text-xs font-medium text-zinc-400 bg-zinc-900 px-1.5 py-0.5 rounded-md border border-zinc-800">
                                             {columnTasks.length}
                                         </span>
                                     </div>
-                                    <Button variant="ghost" size="icon" className="h-6 w-6 rounded hover:bg-white/5 text-zinc-500">
+                                    <Button variant="ghost" size="icon" className="h-6 w-6 rounded hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200">
                                         <Plus className="w-3.5 h-3.5" />
                                     </Button>
                                 </div>
@@ -204,18 +188,18 @@ export default function TasksPage() {
                                                 onDragStart={(e: any) => handleDragStart(e, task.id)}
                                                 onDragEnd={() => setDraggedTask(null)}
                                                 className={cn(
-                                                    "bg-[#151515] hover:bg-[#1a1a1a] border border-white/5 hover:border-white/10 rounded-lg p-3 cursor-grab active:cursor-grabbing transition-all group",
+                                                    "bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 rounded-lg p-3 cursor-grab active:cursor-grabbing transition-all group",
                                                     draggedTask === task.id ? "opacity-40 border-indigo-500/50 scale-95" : "shadow-sm"
                                                 )}
                                             >
                                                 <div className="flex items-start justify-between gap-2 mb-2">
-                                                    <p className="text-sm font-medium text-zinc-200 leading-snug group-hover:text-white transition-colors">
+                                                    <p className="text-sm font-medium text-zinc-100 leading-snug group-hover:text-zinc-50 transition-colors">
                                                         {task.title}
                                                     </p>
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
-                                                        className="h-5 w-5 rounded opacity-0 group-hover:opacity-100 transition-opacity -mr-1 -mt-1 text-zinc-500 hover:bg-white/5"
+                                                        className="h-5 w-5 rounded opacity-0 group-hover:opacity-100 transition-opacity -mr-1 -mt-1 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
                                                         onClick={() => deleteMutation.mutate(task.id)}
                                                     >
                                                         <MoreHorizontal className="w-3 h-3" />
@@ -224,14 +208,14 @@ export default function TasksPage() {
 
                                                 <div className="flex flex-wrap gap-1.5 mb-3">
                                                     {task.tags.map(tag => (
-                                                        <Badge key={tag} variant="outline" className="bg-zinc-800/50 hover:bg-zinc-800 text-zinc-400 font-medium text-[10px] px-1.5 py-0 border-white/5 rounded">
+                                                        <Badge key={tag} variant="outline" className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium text-[10px] px-1.5 py-0 border-zinc-700 rounded">
                                                             {tag}
                                                         </Badge>
                                                     ))}
                                                 </div>
 
                                                 <div className="flex items-center justify-between mt-auto pt-1">
-                                                    <div className="flex items-center gap-2.5 text-zinc-500">
+                                                    <div className="flex items-center gap-2.5 text-zinc-400">
                                                         <span className="text-[11px] font-semibold tracking-wider hover:text-indigo-400 transition-colors cursor-pointer">
                                                             {task.id}
                                                         </span>
@@ -283,8 +267,8 @@ export default function TasksPage() {
 
                                     {/* Drop zone visual hint when empty */}
                                     {columnTasks.length === 0 && (
-                                        <div className="h-24 rounded-lg border border-dashed border-zinc-800/60 bg-zinc-900/10 flex items-center justify-center">
-                                            <span className="text-xs text-zinc-600 font-medium tracking-wide">Drop issues here</span>
+                                        <div className="h-24 rounded-lg border border-dashed border-zinc-800 bg-zinc-900/30 flex items-center justify-center">
+                                            <span className="text-xs text-zinc-500 font-medium tracking-wide">Drop issues here</span>
                                         </div>
                                     )}
                                 </div>

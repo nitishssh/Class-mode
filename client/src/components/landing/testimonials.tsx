@@ -38,7 +38,7 @@ const steps = [
 
 export const Turbulence = () => {
   return (
-    <section className="py-24 bg-[#0B0B0B] text-white relative overflow-hidden">
+    <section className="py-24 bg-zinc-950 dark:bg-background text-white dark:text-foreground relative overflow-hidden">
       {/* Abstract Grid/Vibration Effect */}
       <div className="absolute inset-0 opacity-10 pointer-events-none">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
@@ -54,10 +54,10 @@ export const Turbulence = () => {
           <span className="inline-block bg-red-500/10 text-red-400 border border-red-500/20 px-4 py-1.5 rounded-full text-xs font-bold tracking-widest uppercase mb-4">
             ⚠️ Standard Learning Warning
           </span>
-          <h2 className="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight">
+          <h2 className="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight text-zinc-50 dark:text-foreground">
             Studying in the <span className="text-red-500">Clouds?</span>
           </h2>
-          <p className="text-neutral-400 text-lg md:text-xl leading-relaxed">
+          <p className="text-zinc-300 dark:text-muted-foreground text-lg md:text-xl leading-relaxed">
             Most students are studying blind. No plan, no feedback, just pure chaos.
             It's not that you're not working hard—it's that your navigation system is broken.
           </p>
@@ -71,13 +71,13 @@ export const Turbulence = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className="group p-8 rounded-3xl bg-neutral-900/50 border border-neutral-800 hover:border-red-500/30 transition-all duration-500"
+              className="group p-8 rounded-3xl bg-zinc-900/70 dark:bg-card border border-zinc-800 dark:border-border hover:border-red-500/30 transition-all duration-500"
             >
-              <div className={`w-12 h-12 rounded-2xl bg-neutral-800 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform ${point.color}`}>
+              <div className={`w-12 h-12 rounded-2xl bg-zinc-800 dark:bg-muted flex items-center justify-center mb-6 group-hover:scale-110 transition-transform ${point.color}`}>
                 <point.icon size={24} />
               </div>
-              <h3 className="text-xl font-bold mb-3 text-neutral-100">{point.title}</h3>
-              <p className="text-neutral-500 leading-relaxed text-sm group-hover:text-neutral-400 transition-colors">
+              <h3 className="text-xl font-bold mb-3 text-zinc-50 dark:text-foreground">{point.title}</h3>
+              <p className="text-zinc-400 dark:text-muted-foreground leading-relaxed text-sm group-hover:text-zinc-300 dark:group-hover:text-foreground/80 transition-colors">
                 {point.desc}
               </p>
             </motion.div>
@@ -91,7 +91,7 @@ export const Turbulence = () => {
           className="mt-20 text-center"
         >
           <div className="inline-flex flex-col items-center">
-            <p className="text-neutral-500 text-sm mb-4 italic">Ready for clear skies?</p>
+            <p className="text-zinc-400 dark:text-muted-foreground text-sm mb-4 italic">Ready for clear skies?</p>
             <div className="w-1 h-12 bg-gradient-to-b from-red-500 to-primary rounded-full animate-bounce"></div>
           </div>
         </motion.div>
