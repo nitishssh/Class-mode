@@ -31,12 +31,22 @@ export function RagChatSheet({ isOpen, onClose, subjectName, initialPrompt }: Ra
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Set initial prompt if provided when opening
+  // Set initial prompt or welcome message
   useEffect(() => {
-    if (isOpen && initialPrompt) {
-      setInput(initialPrompt);
+    if (isOpen) {
+      if (initialPrompt) {
+        setInput(initialPrompt);
+      }
+      
+      if (messages.length === 0) {
+        setMessages([{
+          id: 'welcome',
+          role: 'assistant',
+          content: `Hi! I'm your **${subjectName}** AI Tutor. How can I help you today? You can ask me to explain concepts, generate quizzes, or help with problem solving.`
+        }]);
+      }
     }
-  }, [isOpen, initialPrompt]);
+  }, [isOpen, initialPrompt, subjectName]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -102,7 +112,7 @@ export function RagChatSheet({ isOpen, onClose, subjectName, initialPrompt }: Ra
       <div
         className={cn(
           "animate-fade-in-up fixed inset-x-0 bottom-0 z-50 flex h-[85vh] w-full transform flex-col rounded-t-3xl border border-border bg-card shadow-card transition-all duration-500 ease-out md:inset-x-auto md:bottom-8 md:right-8 md:top-auto md:h-[680px] md:w-[480px] md:rounded-2xl",
-          isOpen ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-10 opacity-0"
+          isOpen ? "translate-y-0 opacity-100 pointer-events-auto" : "translate-y-10 opacity-0 pointer-events-none"
         )}
       >
         {/* Header */}
