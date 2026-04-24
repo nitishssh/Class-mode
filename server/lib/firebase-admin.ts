@@ -24,7 +24,12 @@ function ensureInitialised() {
 
   const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
   const projectId =
-    process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || "app-lock-21748";
+    process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID;
+
+  if (!projectId) {
+    console.warn("[firebase-admin] No project ID found — Firebase Admin disabled. Set FIREBASE_PROJECT_ID.");
+    return;
+  }
 
   try {
     if (serviceAccountJson) {
@@ -33,14 +38,16 @@ function ensureInitialised() {
         credential: admin.credential.cert(serviceAccount),
         projectId,
       });
+      console.log("[firebase-admin] Initialised with service account, project:", projectId);
     } else {
-      // Minimal init — works when GOOGLE_APPLICATION_CREDENTIALS is set or in Cloud Run
-      admin.initializeApp({
-        projectId,
-      });
+      // No service account — initialise with project ID only.
+      // Token verification will fail locally without ADC; the auth route
+      // falls back to JWT session auth automatically.
+      admin.initializeApp({ projectId });
+      console.log("[firebase-admin] Initialised (no service account) project:", projectId);
+      console.warn("[firebase-admin] To enable Firebase token verification, set FIREBASE_SERVICE_ACCOUNT_JSON.");
     }
     initialised = true;
-    console.log("[firebase-admin] Initialised with project:", projectId);
   } catch (err) {
     console.warn("[firebase-admin] Failed to initialise:", (err as Error).message);
   }
