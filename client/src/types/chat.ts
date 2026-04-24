@@ -1,4 +1,4 @@
-export type UserRole = 'student' | 'teacher' | 'parent';
+export type UserRole = "student" | "teacher" | "parent";
 
 // ─── Server-side shapes (from the REST API) ───────────────────────────────────
 // These mirror the shapes returned by the backend. They are separate from the
@@ -8,7 +8,7 @@ export type UserRole = 'student' | 'teacher' | 'parent';
 export interface ServerChannel {
   id: number;
   name: string;
-  type: 'text' | 'dm' | 'announcement';
+  type: "text" | "dm" | "announcement";
   workspaceId: number | null;
   subject?: string;
   class?: string;
@@ -21,15 +21,24 @@ export interface ServerMessage {
   authorId: number;
   authorUsername?: string;
   content: string;
-  type: 'text' | 'file' | 'image';
+  type: "text" | "file" | "image";
   fileUrl?: string | null;
   readBy: number[];
   isHomework?: boolean;
   createdAt: string;
 }
-export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read';
-export type MessageType = 'text' | 'image' | 'video' | 'audio' | 'doc' | 'announcement' | 'assignment' | 'doubt' | 'system';
-export type ConversationCategory = 'announcement' | 'class' | 'teacher' | 'friend' | 'parent';
+export type MessageStatus = "sending" | "sent" | "delivered" | "read";
+export type MessageType =
+  | "text"
+  | "image"
+  | "video"
+  | "audio"
+  | "doc"
+  | "announcement"
+  | "assignment"
+  | "doubt"
+  | "system";
+export type ConversationCategory = "announcement" | "class" | "teacher" | "friend" | "parent";
 
 export interface Message {
   id: string;

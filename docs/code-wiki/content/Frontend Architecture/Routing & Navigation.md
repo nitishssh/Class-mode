@@ -19,6 +19,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -30,9 +31,11 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document explains the frontend routing and navigation system for PersonalLearningPro. It covers the Wouter-based routing implementation, route protection via authentication, dynamic route generation based on user roles, the sidebar and mobile navigation systems, breadcrumbs, layout wrappers, responsive behavior, navigation state management, accessibility features, and performance strategies.
 
 ## Project Structure
+
 The routing and navigation stack centers around a single-page app built with React and Wouter. The application bootstraps at the root and mounts the routing tree after authentication resolution. Layout wrappers constrain content width for readability, while the sidebar and mobile navigation adapt to screen size and user role.
 
 ```mermaid
@@ -50,6 +53,7 @@ Sidebar --> Header["header.tsx<br/>Header()"]
 ```
 
 **Diagram sources**
+
 - [main.tsx](file://client/src/main.tsx#L1-L8)
 - [App.tsx](file://client/src/App.tsx#L1-L165)
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L1-L267)
@@ -64,10 +68,12 @@ Sidebar --> Header["header.tsx<br/>Header()"]
 - [admin-dashboard.tsx](file://client/src/pages/admin-dashboard.tsx#L1-L302)
 
 **Section sources**
+
 - [main.tsx](file://client/src/main.tsx#L1-L8)
 - [App.tsx](file://client/src/App.tsx#L1-L165)
 
 ## Core Components
+
 - Wouter routing and route protection:
   - Authentication guard resolves before rendering routes. A loading state is shown while checking auth; an authentication dialog is shown when unauthenticated; authenticated users see role-aware routes.
   - Dynamic dashboard selection is performed based on the user’s role.
@@ -83,6 +89,7 @@ Sidebar --> Header["header.tsx<br/>Header()"]
   - Provides user profile, role, and loading state consumed by routing and navigation.
 
 **Section sources**
+
 - [App.tsx](file://client/src/App.tsx#L80-L165)
 - [sidebar.tsx](file://client/src/components/layout/sidebar.tsx#L1-L332)
 - [breadcrumb.tsx](file://client/src/components/ui/breadcrumb.tsx#L1-L116)
@@ -91,6 +98,7 @@ Sidebar --> Header["header.tsx<br/>Header()"]
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L1-L267)
 
 ## Architecture Overview
+
 The routing pipeline integrates authentication, role-based route selection, and layout composition. Wouter manages URL changes and renders the appropriate page wrapped in AppLayout. The sidebar reflects the current location and highlights active items. Breadcrumbs are composed per page via PageHeader.
 
 ```mermaid
@@ -121,6 +129,7 @@ end
 ```
 
 **Diagram sources**
+
 - [main.tsx](file://client/src/main.tsx#L1-L8)
 - [App.tsx](file://client/src/App.tsx#L80-L165)
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L1-L267)
@@ -129,6 +138,7 @@ end
 ## Detailed Component Analysis
 
 ### Wouter Routing and Route Protection
+
 - Authentication guard:
   - While authentication is resolving, a centered loader is displayed.
   - If no user is present, the authentication dialog is shown.
@@ -152,14 +162,17 @@ RegisterRoutes --> NotFound["Default to NotFound"]
 ```
 
 **Diagram sources**
+
 - [App.tsx](file://client/src/App.tsx#L93-L149)
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L38-L71)
 
 **Section sources**
+
 - [App.tsx](file://client/src/App.tsx#L80-L165)
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L1-L267)
 
 ### Layout Wrapper: AppLayout and Full-Width vs Constrained Layout
+
 - AppLayout:
   - Renders a persistent sidebar and a main content area.
   - Uses a CSS variable to control the sidebar width and adjusts main content margins accordingly.
@@ -178,12 +191,15 @@ Main --> |fullWidth=true| FullBleed["Full width + height container"]
 ```
 
 **Diagram sources**
+
 - [App.tsx](file://client/src/App.tsx#L25-L65)
 
 **Section sources**
+
 - [App.tsx](file://client/src/App.tsx#L25-L65)
 
 ### Sidebar Navigation System
+
 - Role-aware menu:
   - Different sets of navigation items are defined for principal, admin, teacher, student, and parent.
   - The active item is highlighted based on the current location.
@@ -208,12 +224,15 @@ Sidebar --> Overlay["Mobile overlay + toggle"]
 ```
 
 **Diagram sources**
+
 - [sidebar.tsx](file://client/src/components/layout/sidebar.tsx#L48-L332)
 
 **Section sources**
+
 - [sidebar.tsx](file://client/src/components/layout/sidebar.tsx#L1-L332)
 
 ### Breadcrumb Implementation
+
 - Reusable Breadcrumb components:
   - Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator, BreadcrumbEllipsis.
 - PageHeader integration:
@@ -249,14 +268,17 @@ PageHeader --> Breadcrumb
 ```
 
 **Diagram sources**
+
 - [breadcrumb.tsx](file://client/src/components/ui/breadcrumb.tsx#L1-L116)
 - [page-header.tsx](file://client/src/components/layout/page-header.tsx#L1-L69)
 
 **Section sources**
+
 - [breadcrumb.tsx](file://client/src/components/ui/breadcrumb.tsx#L1-L116)
 - [page-header.tsx](file://client/src/components/layout/page-header.tsx#L1-L69)
 
 ### Mobile-Responsive Navigation Patterns
+
 - MobileNav:
   - Bottom tab bar with role-aware items and active state based on the current location.
   - Designed for touch-friendly, low-height navigation.
@@ -278,16 +300,19 @@ Header --> Toggle["Toggle sidebar via CustomEvent"]
 ```
 
 **Diagram sources**
+
 - [mobile-nav.tsx](file://client/src/components/layout/mobile-nav.tsx#L1-L76)
 - [use-mobile.tsx](file://client/src/hooks/use-mobile.tsx#L1-L20)
 - [header.tsx](file://client/src/components/layout/header.tsx#L1-L133)
 
 **Section sources**
+
 - [mobile-nav.tsx](file://client/src/components/layout/mobile-nav.tsx#L1-L76)
 - [use-mobile.tsx](file://client/src/hooks/use-mobile.tsx#L1-L20)
 - [header.tsx](file://client/src/components/layout/header.tsx#L1-L133)
 
 ### Navigation State Management and Active Link Highlighting
+
 - Location-based active state:
   - Sidebar computes active links using the current location.
   - MobileNav mirrors the same pattern for bottom tabs.
@@ -297,11 +322,13 @@ Header --> Toggle["Toggle sidebar via CustomEvent"]
   - Sidebar items include titles for collapsed mode; Header toggles provide keyboard-accessible controls.
 
 **Section sources**
+
 - [sidebar.tsx](file://client/src/components/layout/sidebar.tsx#L48-L70)
 - [mobile-nav.tsx](file://client/src/components/layout/mobile-nav.tsx#L14-L76)
 - [header.tsx](file://client/src/components/layout/header.tsx#L32-L40)
 
 ### Dynamic Route Generation Based on User Roles
+
 - Role-aware dashboard selection:
   - The root route resolves to a dashboard based on the authenticated user’s role.
 - Role-specific routes:
@@ -320,16 +347,19 @@ Role --> |parent| Parent["Dashboard (default)"]
 ```
 
 **Diagram sources**
+
 - [App.tsx](file://client/src/App.tsx#L113-L124)
 - [sidebar.tsx](file://client/src/components/layout/sidebar.tsx#L143-L149)
 - [mobile-nav.tsx](file://client/src/components/layout/mobile-nav.tsx#L51-L55)
 
 **Section sources**
+
 - [App.tsx](file://client/src/App.tsx#L113-L124)
 - [sidebar.tsx](file://client/src/components/layout/sidebar.tsx#L76-L149)
 - [mobile-nav.tsx](file://client/src/components/layout/mobile-nav.tsx#L19-L55)
 
 ### Page-Level Examples and Breadcrumbs
+
 - Teacher Dashboard:
   - Uses PageHeader with breadcrumbs pointing to the root and the teacher dashboard.
 - Student Dashboard:
@@ -338,12 +368,14 @@ Role --> |parent| Parent["Dashboard (default)"]
   - PageHeader with breadcrumbs and action buttons; content organized via tabs and cards.
 
 **Section sources**
+
 - [dashboard.tsx](file://client/src/pages/dashboard.tsx#L130-L152)
 - [student-dashboard.tsx](file://client/src/pages/student-dashboard.tsx#L314-L341)
 - [principal-dashboard.tsx](file://client/src/pages/principal-dashboard.tsx#L90-L109)
 - [admin-dashboard.tsx](file://client/src/pages/admin-dashboard.tsx#L32-L56)
 
 ## Dependency Analysis
+
 - Routing and layout:
   - App.tsx depends on Wouter for routing and on AppLayout to wrap pages.
   - AppLayout depends on Sidebar for navigation and on utils for class merging.
@@ -368,6 +400,7 @@ Header --> Utils
 ```
 
 **Diagram sources**
+
 - [App.tsx](file://client/src/App.tsx#L1-L165)
 - [sidebar.tsx](file://client/src/components/layout/sidebar.tsx#L1-L332)
 - [utils.ts](file://client/src/lib/utils.ts#L1-L21)
@@ -378,6 +411,7 @@ Header --> Utils
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L1-L267)
 
 **Section sources**
+
 - [App.tsx](file://client/src/App.tsx#L1-L165)
 - [sidebar.tsx](file://client/src/components/layout/sidebar.tsx#L1-L332)
 - [utils.ts](file://client/src/lib/utils.ts#L1-L21)
@@ -388,6 +422,7 @@ Header --> Utils
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L1-L267)
 
 ## Performance Considerations
+
 - Route protection and loading:
   - Authentication resolution occurs once via onAuthStateChanged; a loading state prevents unnecessary re-renders until the user state is known.
 - Layout wrapping:
@@ -402,6 +437,7 @@ Header --> Utils
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
+
 - Authentication loop or blank screen:
   - Verify that the authentication provider initializes and that onAuthStateChanged resolves. Check for errors in the toast feedback and ensure the auth context is mounted at the app root.
 - Sidebar not collapsing/expanding:
@@ -414,10 +450,12 @@ Header --> Utils
   - Confirm the bottom tab bar is visible on small screens and that the role-aware items are populated.
 
 **Section sources**
+
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L38-L71)
 - [sidebar.tsx](file://client/src/components/layout/sidebar.tsx#L54-L70)
 - [page-header.tsx](file://client/src/components/layout/page-header.tsx#L31-L69)
 - [mobile-nav.tsx](file://client/src/components/layout/mobile-nav.tsx#L14-L76)
 
 ## Conclusion
+
 PersonalLearningPro’s routing and navigation system leverages Wouter for declarative routing, Firebase for authentication, and a flexible layout wrapper to deliver role-aware, responsive experiences. The sidebar and mobile navigation adapt to user roles and screen sizes, while breadcrumbs and page headers provide clear context. The design emphasizes performance through pre-wrapped layouts, CSS-driven animations, and efficient state management.

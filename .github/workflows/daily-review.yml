@@ -3,7 +3,7 @@ name: Daily Code Quality Review
 on:
   schedule:
     # Run every day at 9 AM UTC
-    - cron: '0 9 * * *'
+    - cron: "0 9 * * *"
   workflow_dispatch: # Allow manual trigger
 
 jobs:
@@ -33,27 +33,27 @@ jobs:
         with:
           script: |
             const changes = `${{ steps.changes.outputs.changes }}`;
-            
+
             if (!changes.trim()) {
               console.log('No changes in the last 24 hours');
               return;
             }
 
             const body = `## 📊 Daily Code Quality Report
-            
+
             **Date:** ${new Date().toISOString().split('T')[0]}
-            
+
             ### Recent Changes (Last 24 hours)
             \`\`\`
             ${changes}
             \`\`\`
-            
+
             ### Action Items
             - [ ] Review recent commits for code quality
             - [ ] Check for TODO comments that need addressing
             - [ ] Verify test coverage for new features
             - [ ] Update documentation if needed
-            
+
             ---
             *This is an automated daily review. Close this issue once reviewed.*`;
 

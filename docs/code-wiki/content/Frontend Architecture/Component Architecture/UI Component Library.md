@@ -26,6 +26,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -38,9 +39,11 @@
 10. [Appendices](#appendices)
 
 ## Introduction
+
 This document describes PersonalLearningPro’s custom UI component library built on Radix UI primitives. It covers reusable components for buttons, forms, dialogs, navigation, and educational dashboards, along with styling patterns, accessibility, and theme integration. The guide explains component composition, prop validation, customization, focus management, keyboard navigation, screen reader compatibility, responsive design, and state management. It also provides usage examples and best practices for extending components.
 
 ## Project Structure
+
 The UI components live under client/src/components/ui and integrate with Radix UI, Tailwind CSS, and a theme context. Utility helpers centralize class merging and styling.
 
 ```mermaid
@@ -92,6 +95,7 @@ THEME_TOGGLE --> CSS
 ```
 
 **Diagram sources**
+
 - [button.tsx](file://client/src/components/ui/button.tsx#L1-L57)
 - [form.tsx](file://client/src/components/ui/form.tsx#L1-L177)
 - [dialog.tsx](file://client/src/components/ui/dialog.tsx#L1-L121)
@@ -115,6 +119,7 @@ THEME_TOGGLE --> CSS
 - [index.css](file://client/src/index.css)
 
 **Section sources**
+
 - [button.tsx](file://client/src/components/ui/button.tsx#L1-L57)
 - [form.tsx](file://client/src/components/ui/form.tsx#L1-L177)
 - [dialog.tsx](file://client/src/components/ui/dialog.tsx#L1-L121)
@@ -138,6 +143,7 @@ THEME_TOGGLE --> CSS
 - [index.css](file://client/src/index.css)
 
 ## Core Components
+
 This section summarizes the primary UI building blocks and their roles.
 
 - Buttons: Variants, sizes, and composition via Radix Slot for semantic flexibility.
@@ -151,6 +157,7 @@ This section summarizes the primary UI building blocks and their roles.
 - Interactions: Accordion, Collapsible, Checkbox for progressive disclosure and selections.
 
 **Section sources**
+
 - [button.tsx](file://client/src/components/ui/button.tsx#L1-L57)
 - [form.tsx](file://client/src/components/ui/form.tsx#L1-L177)
 - [dialog.tsx](file://client/src/components/ui/dialog.tsx#L1-L121)
@@ -168,6 +175,7 @@ This section summarizes the primary UI building blocks and their roles.
 - [collapsible.tsx](file://client/src/components/ui/collapsible.tsx#L1-L10)
 
 ## Architecture Overview
+
 The UI library is built around Radix UI primitives to ensure accessibility and predictable behavior. Styling leverages Tailwind classes merged via a utility function. The theme system toggles between light/dark modes and updates CSS variables consumed by components.
 
 ```mermaid
@@ -233,6 +241,7 @@ THEME --> CSS
 ```
 
 **Diagram sources**
+
 - [button.tsx](file://client/src/components/ui/button.tsx#L1-L57)
 - [form.tsx](file://client/src/components/ui/form.tsx#L1-L177)
 - [dialog.tsx](file://client/src/components/ui/dialog.tsx#L1-L121)
@@ -256,6 +265,7 @@ THEME --> CSS
 ## Detailed Component Analysis
 
 ### Button
+
 - Purpose: Base action element with variants, sizes, and composition support.
 - Props:
   - Inherits standard button attributes.
@@ -281,19 +291,22 @@ Button --> Variants : "applies"
 ```
 
 **Diagram sources**
+
 - [button.tsx](file://client/src/components/ui/button.tsx#L36-L54)
 
 **Section sources**
+
 - [button.tsx](file://client/src/components/ui/button.tsx#L1-L57)
 
 ### Form System
+
 - Purpose: Accessible form stack built on react-hook-form and Radix Label.
 - Components:
   - Form: Provider wrapping react-hook-form context.
   - FormField: Binds Controller to field name context.
   - FormItem: Provides unique IDs for labeling and ARIA.
   - FormLabel: Renders Radix Label with error-aware styling.
-  - FormControl: Wraps child inputs with aria-* attributes and IDs.
+  - FormControl: Wraps child inputs with aria-\* attributes and IDs.
   - FormDescription: Neutral helper text.
   - FormMessage: Error message display with accessible announcements.
 - Accessibility: Proper labeling, aria-invalid, aria-describedby, and unique IDs.
@@ -318,12 +331,15 @@ FM-->>U : "Render error"
 ```
 
 **Diagram sources**
+
 - [form.tsx](file://client/src/components/ui/form.tsx#L18-L176)
 
 **Section sources**
+
 - [form.tsx](file://client/src/components/ui/form.tsx#L1-L177)
 
 ### Dialog
+
 - Purpose: Modal overlay with portal rendering, backdrop, and animated content.
 - Components:
   - Root, Trigger, Portal, Close, Overlay, Content, Header, Footer, Title, Description.
@@ -349,20 +365,25 @@ C->>D : "Close"
 ```
 
 **Diagram sources**
+
 - [dialog.tsx](file://client/src/components/ui/dialog.tsx#L7-L52)
 
 **Section sources**
+
 - [dialog.tsx](file://client/src/components/ui/dialog.tsx#L1-L121)
 
 ### Input
+
 - Purpose: Styled text input with focus-visible ring and disabled state.
 - Props: Standard input attributes plus className.
 - Accessibility: Inherits native semantics; focus ring ensures keyboard navigation visibility.
 
 **Section sources**
+
 - [input.tsx](file://client/src/components/ui/input.tsx#L1-L26)
 
 ### Select
+
 - Purpose: Accessible single/multi-selection with scrollable viewport and icons.
 - Components:
   - Root, Group, Value, Trigger, Content, Label, Item, Separator, ScrollUp/Down buttons.
@@ -370,94 +391,118 @@ C->>D : "Close"
 - Positioning: Popper positioning with side-aware animations.
 
 **Section sources**
+
 - [select.tsx](file://client/src/components/ui/select.tsx#L1-L159)
 
 ### Card
+
 - Purpose: Container for content with header, title, description, content, and footer.
 - Props: Standard div attributes plus className.
 - Composition: Semantic sections for consistent spacing and typography.
 
 **Section sources**
+
 - [card.tsx](file://client/src/components/ui/card.tsx#L1-L80)
 
 ### Tabs
+
 - Purpose: Tabbed interface with accessible keyboard navigation and active indicators.
 - Components: Root, List, Trigger, Content.
 - Accessibility: Active state styling and focus-visible ring.
 
 **Section sources**
+
 - [tabs.tsx](file://client/src/components/ui/tabs.tsx#L1-L54)
 
 ### Table
+
 - Purpose: Responsive data table with scroll wrapper and hover/selected states.
 - Components: Table, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell, TableCaption.
 - Responsiveness: Wrapper enables horizontal scrolling on small screens.
 
 **Section sources**
+
 - [table.tsx](file://client/src/components/ui/table.tsx#L1-L118)
 
 ### Accordion
+
 - Purpose: Expandable sections with chevron rotation and smooth animations.
 - Components: Root, Item, Trigger, Content.
 - Interaction: Open/close state managed by Radix; trigger rotates chevron icon.
 
 **Section sources**
+
 - [accordion.tsx](file://client/src/components/ui/accordion.tsx#L1-L57)
 
 ### Alert
+
 - Purpose: Status messages with role and variant styling.
 - Components: Alert, AlertTitle, AlertDescription.
 - Accessibility: Role="alert" for screen readers; variant-driven color scheme.
 
 **Section sources**
+
 - [alert.tsx](file://client/src/components/ui/alert.tsx#L1-L60)
 
 ### Badge
+
 - Purpose: Small status or metadata labels with variants.
 - Props: Inherits standard div attributes plus variant selection.
 
 **Section sources**
+
 - [badge.tsx](file://client/src/components/ui/badge.tsx#L1-L37)
 
 ### Avatar
+
 - Purpose: User or entity images with fallback initials.
 - Components: Avatar, AvatarImage, AvatarFallback.
 - Accessibility: Semantic root element; image/fallback rendering.
 
 **Section sources**
+
 - [avatar.tsx](file://client/src/components/ui/avatar.tsx#L1-L49)
 
 ### Checkbox
+
 - Purpose: Binary selection with check indicator and focus ring.
 - Accessibility: Native semantics; checked state styling.
 
 **Section sources**
+
 - [checkbox.tsx](file://client/src/components/ui/checkbox.tsx#L1-L29)
 
 ### Command (Command Palette)
+
 - Purpose: Discoverable actions via keyboard-driven menu.
 - Components: Command, CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem, CommandSeparator, CommandShortcut.
 - Integration: Built atop cmdk with Dialog for modal presentation.
 
 **Section sources**
+
 - [command.tsx](file://client/src/components/ui/command.tsx#L1-L154)
 
 ### Collapsible
+
 - Purpose: Lightweight expand/collapse container.
 - Components: Root, Trigger, Content.
 
 **Section sources**
+
 - [collapsible.tsx](file://client/src/components/ui/collapsible.tsx#L1-L10)
 
 ### Calendar
+
 - Purpose: Date picker with integrated button styles for navigation.
 - Props: Extends DayPicker props; custom classNames and components for icons.
 - Styling: Reuses buttonVariants for nav buttons and ghost variant for days.
 
 **Section sources**
+
 - [calendar.tsx](file://client/src/components/ui/calendar.tsx#L1-L65)
 
 ## Dependency Analysis
+
 The UI components depend on Radix UI primitives for behavior and accessibility, Tailwind for styling, and react-hook-form for forms. Utilities consolidate class merging and theme integration.
 
 ```mermaid
@@ -487,6 +532,7 @@ CMDK["cmdk"] --> CMD
 ```
 
 **Diagram sources**
+
 - [utils.ts](file://client/src/lib/utils.ts)
 - [button.tsx](file://client/src/components/ui/button.tsx#L1-L57)
 - [dialog.tsx](file://client/src/components/ui/dialog.tsx#L1-L121)
@@ -504,6 +550,7 @@ CMDK["cmdk"] --> CMD
 - [form.tsx](file://client/src/components/ui/form.tsx#L1-L177)
 
 **Section sources**
+
 - [utils.ts](file://client/src/lib/utils.ts)
 - [button.tsx](file://client/src/components/ui/button.tsx#L1-L57)
 - [dialog.tsx](file://client/src/components/ui/dialog.tsx#L1-L121)
@@ -521,6 +568,7 @@ CMDK["cmdk"] --> CMD
 - [form.tsx](file://client/src/components/ui/form.tsx#L1-L177)
 
 ## Performance Considerations
+
 - Prefer composition with asChild to avoid unnecessary DOM nodes.
 - Use variants and sizes judiciously to limit CSS bloat; leverage shared base classes.
 - Keep portals scoped to minimize reflows; render only when needed.
@@ -528,6 +576,7 @@ CMDK["cmdk"] --> CMD
 - Use lazy loading for large lists (Command groups, table rows) when appropriate.
 
 ## Troubleshooting Guide
+
 - Dialog focus issues:
   - Ensure a single focusable element exists inside Content or trap will fail.
   - Verify Portal is rendered and overlay is visible.
@@ -542,6 +591,7 @@ CMDK["cmdk"] --> CMD
   - Confirm theme toggle updates CSS variables and Tailwind classes; verify Tailwind config supports dark mode.
 
 **Section sources**
+
 - [dialog.tsx](file://client/src/components/ui/dialog.tsx#L30-L52)
 - [form.tsx](file://client/src/components/ui/form.tsx#L104-L165)
 - [select.tsx](file://client/src/components/ui/select.tsx#L68-L97)
@@ -550,11 +600,13 @@ CMDK["cmdk"] --> CMD
 - [tailwind.config.ts](file://client/src/tailwind.config.ts)
 
 ## Conclusion
+
 PersonalLearningPro’s UI library combines Radix UI primitives with Tailwind and a theme context to deliver accessible, customizable components. The form stack integrates seamlessly with react-hook-form, while dialogs, selects, and navigational components emphasize keyboard and screen reader compatibility. By following the composition patterns and customization guidelines outlined here, teams can extend the library reliably and consistently.
 
 ## Appendices
 
 ### Theming and Customization
+
 - Theme Toggle:
   - Switches between light and dark modes; updates CSS variables and Tailwind classes.
 - Theme Context:
@@ -565,20 +617,23 @@ PersonalLearningPro’s UI library combines Radix UI primitives with Tailwind an
   - Applies base styles and CSS variables consumed by components.
 
 **Section sources**
+
 - [theme-toggle.tsx](file://client/src/components/ui/theme-toggle.tsx)
 - [theme-context.tsx](file://client/src/contexts/theme-context.tsx)
 - [tailwind.config.ts](file://client/src/tailwind.config.ts)
 - [index.css](file://client/src/index.css)
 
 ### Accessibility and Keyboard Navigation
+
 - Focus Management:
   - Dialogs trap focus; Tabs manage focus within triggers/content; Selects handle keyboard navigation.
 - Screen Reader Compatibility:
-  - Roles and aria-* attributes are applied in Form, Dialog, Select, and Tabs.
+  - Roles and aria-\* attributes are applied in Form, Dialog, Select, and Tabs.
 - Keyboard Shortcuts:
   - Command palette supports keyboard-driven selection and shortcuts.
 
 **Section sources**
+
 - [dialog.tsx](file://client/src/components/ui/dialog.tsx#L15-L52)
 - [form.tsx](file://client/src/components/ui/form.tsx#L104-L165)
 - [select.tsx](file://client/src/components/ui/select.tsx#L68-L133)
@@ -586,6 +641,7 @@ PersonalLearningPro’s UI library combines Radix UI primitives with Tailwind an
 - [command.tsx](file://client/src/components/ui/command.tsx#L9-L154)
 
 ### Responsive Design Patterns
+
 - Table:
   - Horizontal scrolling wrapper ensures readability on small screens.
 - Calendar:
@@ -594,11 +650,13 @@ PersonalLearningPro’s UI library combines Radix UI primitives with Tailwind an
   - Centered grid with max-width and animation scaling for various viewports.
 
 **Section sources**
+
 - [table.tsx](file://client/src/components/ui/table.tsx#L1-L18)
 - [calendar.tsx](file://client/src/components/ui/calendar.tsx#L21-L29)
 - [dialog.tsx](file://client/src/components/ui/dialog.tsx#L34-L50)
 
 ### Component Composition Examples
+
 - Button as Link:
   - Wrap anchor inside Button with asChild to preserve button semantics while rendering an anchor.
 - Dialog with Actions:
@@ -609,6 +667,7 @@ PersonalLearningPro’s UI library combines Radix UI primitives with Tailwind an
   - Use Accordion inside TabsContent for progressive disclosure within tabbed views.
 
 **Section sources**
+
 - [button.tsx](file://client/src/components/ui/button.tsx#L42-L54)
 - [dialog.tsx](file://client/src/components/ui/dialog.tsx#L68-L80)
 - [select.tsx](file://client/src/components/ui/select.tsx#L13-L31)

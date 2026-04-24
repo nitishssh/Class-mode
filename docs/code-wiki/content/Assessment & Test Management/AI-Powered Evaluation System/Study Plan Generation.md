@@ -12,6 +12,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -23,10 +24,13 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document explains the AI-powered study plan generation system. It focuses on the generateStudyPlan function that produces personalized learning plans based on student performance data, detailing input parameters, AI prompt engineering, resource recommendation system, response structure, and fallback mechanisms. It also covers the frontend UI that triggers plan generation and displays results.
 
 ## Project Structure
+
 The study plan feature spans the frontend React page and the backend Express server:
+
 - Frontend: A dedicated page that collects a test ID and renders the generated plan and resources.
 - Backend: An OpenAI integration that generates the plan and resources, and a route handler that orchestrates data retrieval and response.
 
@@ -48,6 +52,7 @@ STORAGE --> SCHEMA
 ```
 
 **Diagram sources**
+
 - [client/src/pages/study-plan.tsx](file://client/src/pages/study-plan.tsx#L17-L112)
 - [server/routes.ts](file://server/routes.ts#L1-L1104)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L107-L163)
@@ -55,10 +60,12 @@ STORAGE --> SCHEMA
 - [shared/schema.ts](file://shared/schema.ts#L61-L68)
 
 **Section sources**
+
 - [README.md](file://README.md#L70-L102)
 - [server/index.ts](file://server/index.ts#L1-L114)
 
 ## Core Components
+
 - Frontend Study Plan Page: Collects a test ID, calls the backend endpoint, and renders the plan and recommended resources.
 - Backend Route Handler: Receives the test ID, retrieves related data, and invokes the AI plan generator.
 - AI Plan Generator: Sends a structured prompt to OpenAI to produce a JSON response containing a study plan and resources.
@@ -66,11 +73,13 @@ STORAGE --> SCHEMA
 - Validation Schemas: Define the shape of analytics data, including weak topics, strong topics, and recommended resources.
 
 Key responsibilities:
+
 - Input validation and routing on the backend.
 - Prompt construction and JSON parsing on the AI integration layer.
 - Rendering and UX on the frontend.
 
 **Section sources**
+
 - [client/src/pages/study-plan.tsx](file://client/src/pages/study-plan.tsx#L17-L112)
 - [server/routes.ts](file://server/routes.ts#L1-L1104)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L107-L163)
@@ -78,7 +87,9 @@ Key responsibilities:
 - [shared/schema.ts](file://shared/schema.ts#L61-L68)
 
 ## Architecture Overview
+
 The study plan generation follows a client-server architecture:
+
 - The client sends a POST request with a test ID.
 - The server validates and processes the request, optionally retrieving performance analytics.
 - The server calls the AI integration to generate a structured plan and resources.
@@ -100,6 +111,7 @@ Client->>Client : Render plan and resources
 ```
 
 **Diagram sources**
+
 - [client/src/pages/study-plan.tsx](file://client/src/pages/study-plan.tsx#L35-L59)
 - [server/routes.ts](file://server/routes.ts#L1-L1104)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L107-L163)
@@ -108,6 +120,7 @@ Client->>Client : Render plan and resources
 ## Detailed Component Analysis
 
 ### Frontend: Study Plan Page
+
 - Purpose: Accepts a test ID, triggers plan generation, and displays results.
 - Behavior:
   - Validates that the test ID is present.
@@ -128,12 +141,15 @@ Render --> End(["Done"])
 ```
 
 **Diagram sources**
+
 - [client/src/pages/study-plan.tsx](file://client/src/pages/study-plan.tsx#L23-L59)
 
 **Section sources**
+
 - [client/src/pages/study-plan.tsx](file://client/src/pages/study-plan.tsx#L17-L112)
 
 ### Backend: Route Handler and Data Access
+
 - Route registration: The server registers routes and attaches middleware.
 - Study plan endpoint: The handler receives the test ID, performs access checks, and orchestrates plan generation.
 - Data retrieval: Uses the storage layer to fetch test-related data and analytics (weak topics, strong topics, subject).
@@ -142,11 +158,13 @@ Render --> End(["Done"])
 Note: The route handler integrates with storage and OpenAI. The exact implementation of data extraction for weak/strong topics is encapsulated within the handler and storage layer.
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L1-L1104)
 - [server/storage.ts](file://server/storage.ts#L1-L519)
 - [server/index.ts](file://server/index.ts#L1-L114)
 
 ### AI Integration: generateStudyPlan
+
 - Inputs:
   - weakTopics: array of strings representing topics the student struggles with.
   - strongTopics: array of strings representing topics the student excels in.
@@ -174,12 +192,15 @@ H --> |Yes| E
 ```
 
 **Diagram sources**
+
 - [server/lib/openai.ts](file://server/lib/openai.ts#L107-L163)
 
 **Section sources**
+
 - [server/lib/openai.ts](file://server/lib/openai.ts#L107-L163)
 
 ### Data Model: Analytics and Resource Recommendations
+
 - Analytics schema includes arrays for weak topics, strong topics, and recommended resources.
 - These fields are used to populate the AI prompt with accurate, performance-driven insights.
 
@@ -197,12 +218,15 @@ date insightDate
 ```
 
 **Diagram sources**
+
 - [shared/schema.ts](file://shared/schema.ts#L61-L68)
 
 **Section sources**
+
 - [shared/schema.ts](file://shared/schema.ts#L61-L68)
 
 ## Dependency Analysis
+
 - The frontend depends on the backend API endpoint for plan generation.
 - The backend route handler depends on:
   - Storage layer for data retrieval.
@@ -218,6 +242,7 @@ STORAGE --> SCHEMA["Validation Schemas<br/>shared/schema.ts"]
 ```
 
 **Diagram sources**
+
 - [client/src/pages/study-plan.tsx](file://client/src/pages/study-plan.tsx#L17-L112)
 - [server/routes.ts](file://server/routes.ts#L1-L1104)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L107-L163)
@@ -225,19 +250,23 @@ STORAGE --> SCHEMA["Validation Schemas<br/>shared/schema.ts"]
 - [shared/schema.ts](file://shared/schema.ts#L61-L68)
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L1-L1104)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L107-L163)
 - [server/storage.ts](file://server/storage.ts#L1-L519)
 - [shared/schema.ts](file://shared/schema.ts#L61-L68)
 
 ## Performance Considerations
+
 - Network latency: The plan generation involves an external API call; consider caching or precomputing insights when feasible.
 - JSON parsing overhead: The AI response is parsed once per request; keep prompts concise to minimize token usage.
 - Rendering: The frontend renders plan HTML directly; ensure sanitized content to avoid XSS risks.
 - Scalability: If many concurrent requests occur, monitor OpenAI rate limits and consider batching or queuing.
 
 ## Troubleshooting Guide
+
 Common failure modes and fallback behavior:
+
 - Missing or invalid test ID: The frontend validates input and shows an error toast.
 - Non-200 HTTP response: The frontend catches errors and displays a toast with the message.
 - JSON parse error from AI: The AI integration falls back to a generic plan and a general resource suggestion.
@@ -245,14 +274,17 @@ Common failure modes and fallback behavior:
 - Missing environment configuration: If the OpenAI API key is not set, AI features are disabled with a warning.
 
 Resolution steps:
+
 - Verify the test ID exists and is accessible to the requesting user.
 - Confirm the OPENAI_API_KEY environment variable is configured.
 - Retry the request; the fallback ensures a meaningful response even if AI parsing fails.
 - Inspect server logs for detailed error messages.
 
 **Section sources**
+
 - [client/src/pages/study-plan.tsx](file://client/src/pages/study-plan.tsx#L23-L59)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L135-L163)
 
 ## Conclusion
+
 The study plan generation system combines a clean frontend UI with a robust backend pipeline that leverages OpenAI to produce structured, actionable plans. Its design emphasizes resilience through explicit fallbacks and clear separation of concerns across the UI, routing, AI integration, and storage layers. By focusing on weak topics while acknowledging strengths and subject context, the system supports targeted, personalized learning outcomes.

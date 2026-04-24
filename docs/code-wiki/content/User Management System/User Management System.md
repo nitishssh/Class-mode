@@ -21,6 +21,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -32,9 +33,11 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document describes the user management system for PersonalLearningPro, focusing on user profile management, role-based dashboard customization, and the student directory functionality. It explains the five-user role hierarchy (Student, Teacher, Admin, Principal, Parent), their permissions and dashboard features, user registration and authentication flows, profile updates, and data access patterns. It also covers the student directory system with grade-level organization and search capabilities, along with administrative user management features.
 
 ## Project Structure
+
 The user management system spans client-side React components, Firebase authentication, shared validation schemas, and server-side routes backed by MongoDB/Mongoose with optional Cassandra message storage.
 
 ```mermaid
@@ -63,6 +66,7 @@ G --> I
 ```
 
 **Diagram sources**
+
 - [App.tsx](file://client/src/App.tsx#L93-L133)
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L1-L267)
 - [firebase.ts](file://client/src/lib/firebase.ts#L1-L212)
@@ -72,11 +76,13 @@ G --> I
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L1-L159)
 
 **Section sources**
+
 - [App.tsx](file://client/src/App.tsx#L93-L133)
 - [routes.ts](file://server/routes.ts#L11-L85)
 - [storage.ts](file://server/storage.ts#L33-L106)
 
 ## Core Components
+
 - Authentication and user profiles:
   - Firebase-based authentication with email/password and Google OAuth.
   - User profile interface with role, class/subject associations, and timestamps.
@@ -96,6 +102,7 @@ G --> I
   - Mock data and UI scaffolding for future API integration.
 
 **Section sources**
+
 - [firebase.ts](file://client/src/lib/firebase.ts#L47-L63)
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L18-L34)
 - [register.tsx](file://client/src/pages/register.tsx#L36-L48)
@@ -106,6 +113,7 @@ G --> I
 - [student-directory.tsx](file://client/src/pages/student-directory.tsx#L69-L80)
 
 ## Architecture Overview
+
 The system uses a client-server architecture with Firebase for authentication and Express for backend APIs. The storage layer abstracts persistence, currently using MongoDB with Mongoose and optionally Cassandra for message-heavy features.
 
 ```mermaid
@@ -132,6 +140,7 @@ R-->>U : Dashboard
 ```
 
 **Diagram sources**
+
 - [register.tsx](file://client/src/pages/register.tsx#L70-L86)
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L97-L125)
 - [firebase.ts](file://client/src/lib/firebase.ts#L80-L115)
@@ -141,6 +150,7 @@ R-->>U : Dashboard
 ## Detailed Component Analysis
 
 ### User Registration and Authentication
+
 - Registration form:
   - Validates name, email, username, password, role, and optional class/subject.
   - Submits to Firebase and creates Firestore user document with timestamps.
@@ -162,16 +172,19 @@ Success --> Redirect["Redirect to dashboard"]
 ```
 
 **Diagram sources**
+
 - [register.tsx](file://client/src/pages/register.tsx#L70-L86)
 - [firebase.ts](file://client/src/lib/firebase.ts#L80-L115)
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L97-L125)
 
 **Section sources**
+
 - [register.tsx](file://client/src/pages/register.tsx#L36-L86)
 - [firebase.ts](file://client/src/lib/firebase.ts#L66-L115)
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L73-L125)
 
 ### User Data Models and Validation
+
 - Client-side user profile interface includes role, class/subject associations, and timestamps.
 - Shared Zod schema defines server-side user creation contract with role enum and optional fields.
 - Server routes validate incoming data and enforce uniqueness for username/email.
@@ -195,15 +208,18 @@ USER ||--|| ROLE_ENUM : "has"
 ```
 
 **Diagram sources**
+
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L13-L23)
 - [schema.ts](file://shared/schema.ts#L4-L13)
 
 **Section sources**
+
 - [firebase.ts](file://client/src/lib/firebase.ts#L50-L63)
 - [schema.ts](file://shared/schema.ts#L4-L13)
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L13-L23)
 
 ### Role-Based Dashboard Customization
+
 - Routing selects dashboard based on user role:
   - Principal → Principal dashboard
   - Admin → Admin dashboard
@@ -224,9 +240,11 @@ B --> |other/default| T
 ```
 
 **Diagram sources**
+
 - [App.tsx](file://client/src/App.tsx#L114-L124)
 
 **Section sources**
+
 - [App.tsx](file://client/src/App.tsx#L114-L124)
 - [principal-dashboard.tsx](file://client/src/pages/principal-dashboard.tsx#L1-L365)
 - [admin-dashboard.tsx](file://client/src/pages/admin-dashboard.tsx#L1-L302)
@@ -235,6 +253,7 @@ B --> |other/default| T
 - [parent-dashboard.tsx](file://client/src/pages/parent-dashboard.tsx#L1-L279)
 
 ### Student Directory Functionality
+
 - Filtering and search:
   - Search by name, city, or state.
   - Filter by standard, standard group, and state.
@@ -255,13 +274,16 @@ Apply --> Display["Display filtered grid"]
 ```
 
 **Diagram sources**
+
 - [student-directory.tsx](file://client/src/pages/student-directory.tsx#L69-L257)
 
 **Section sources**
+
 - [student-directory.tsx](file://client/src/pages/student-directory.tsx#L43-L80)
 - [student-directory.tsx](file://client/src/pages/student-directory.tsx#L240-L257)
 
 ### Administrative User Management Features
+
 - Admin dashboard provides:
   - User management summary cards.
   - User listing with role counts.
@@ -271,9 +293,11 @@ Apply --> Display["Display filtered grid"]
 - These are UI scaffolds indicating intended administrative capabilities.
 
 **Section sources**
+
 - [admin-dashboard.tsx](file://client/src/pages/admin-dashboard.tsx#L29-L302)
 
 ### Data Access Patterns and Server-Side Implementation
+
 - Authentication routes:
   - POST /api/auth/register validates input and ensures unique username/email.
   - POST /api/auth/login authenticates and sets session.
@@ -287,12 +311,14 @@ Apply --> Display["Display filtered grid"]
   - Message operations can fall back to MongoDB if Cassandra client is unavailable.
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L13-L85)
 - [routes.ts](file://server/routes.ts#L88-L107)
 - [storage.ts](file://server/storage.ts#L127-L158)
 - [storage.ts](file://server/storage.ts#L413-L437)
 
 ## Dependency Analysis
+
 - Client depends on:
   - Firebase SDK for auth and Firestore for user profiles.
   - Zod schemas for validation.
@@ -316,6 +342,7 @@ Storage --> Cassandra["Cassandra (optional)"]
 ```
 
 **Diagram sources**
+
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L1-L267)
 - [schema.ts](file://shared/schema.ts#L1-L142)
 - [routes.ts](file://server/routes.ts#L1-L1104)
@@ -323,11 +350,13 @@ Storage --> Cassandra["Cassandra (optional)"]
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L1-L159)
 
 **Section sources**
+
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L1-L267)
 - [routes.ts](file://server/routes.ts#L1-L1104)
 - [storage.ts](file://server/storage.ts#L1-L519)
 
 ## Performance Considerations
+
 - Client-side:
   - Use controlled components and validation to minimize re-renders.
   - Debounce search inputs in the student directory to reduce filtering overhead.
@@ -337,6 +366,7 @@ Storage --> Cassandra["Cassandra (optional)"]
   - Use auto-increment counters efficiently to avoid contention.
 
 ## Troubleshooting Guide
+
 - Authentication issues:
   - Verify Firebase configuration and environment variables.
   - Check toast notifications for login/register failures.
@@ -348,9 +378,11 @@ Storage --> Cassandra["Cassandra (optional)"]
   - Check MongoDB connectivity and collection existence.
 
 **Section sources**
+
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L73-L125)
 - [routes.ts](file://server/routes.ts#L13-L85)
 - [storage.ts](file://server/storage.ts#L127-L147)
 
 ## Conclusion
+
 PersonalLearningPro’s user management system combines Firebase authentication with role-aware dashboards and a robust server-side storage layer. The five-role hierarchy is enforced through routing and UI customization, while shared validation schemas ensure data integrity. The student directory provides a foundation for scalable search and filtering, and the admin dashboard outlines administrative capabilities. Future enhancements could include API integration for the student directory, expanded admin features, and improved error handling and monitoring.

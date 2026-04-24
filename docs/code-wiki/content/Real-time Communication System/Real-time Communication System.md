@@ -17,6 +17,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -29,10 +30,13 @@
 10. [Appendices](#appendices)
 
 ## Introduction
+
 This document describes the real-time communication system powering PersonalLearningPro’s chat platform. It covers the WebSocket architecture, connection lifecycle, message handling, chat rooms and DMs, typing indicators, presence management, message persistence, offline handling, and the integration between frontend React components and backend WebSocket handlers. It also outlines scalability considerations, connection pooling, and error recovery mechanisms.
 
 ## Project Structure
+
 The real-time system spans:
+
 - Backend server with Express, WebSocket servers, and storage abstractions
 - Frontend React hooks and components for WebSocket integration and UI rendering
 - Separate WebSocket endpoints for different chat domains (workspaces vs. personal messaging)
@@ -61,6 +65,7 @@ C --> E
 ```
 
 **Diagram sources**
+
 - [server/index.ts](file://server/index.ts#L76-L84)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L119-L120)
 - [server/routes.ts](file://server/routes.ts#L11-L11)
@@ -74,10 +79,12 @@ C --> E
 - [client/src/pages/messages.tsx](file://client/src/pages/messages.tsx#L1-L15)
 
 **Section sources**
+
 - [server/index.ts](file://server/index.ts#L76-L113)
 - [client/src/pages/messages.tsx](file://client/src/pages/messages.tsx#L1-L15)
 
 ## Core Components
+
 - Backend WebSocket server for workspace chat (/ws/chat)
   - Handles join/leave channels, send message, typing, read receipts, presence, rate limiting, and heartbeat
 - Frontend React hook for workspace chat
@@ -90,13 +97,16 @@ C --> E
   - Message rendering, typing indicators, and read status icons
 
 **Section sources**
+
 - [server/chat-ws.ts](file://server/chat-ws.ts#L119-L392)
 - [client/src/hooks/use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L65-L217)
 - [client/src/components/messagepal/use-messagepal-ws.ts](file://client/src/components/messagepal/use-messagepal-ws.ts#L32-L295)
 - [server/storage.ts](file://server/storage.ts#L97-L106)
 
 ## Architecture Overview
+
 The system uses two primary WebSocket endpoints:
+
 - /ws/chat for workspace-based group chat and DMs
 - A separate WebSocket endpoint for MessagePal personal messaging
 
@@ -129,6 +139,7 @@ WS-->>FE : "broadcast AI message"
 ```
 
 **Diagram sources**
+
 - [server/chat-ws.ts](file://server/chat-ws.ts#L185-L375)
 - [server/storage.ts](file://server/storage.ts#L413-L422)
 - [client/src/hooks/use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L115-L141)
@@ -136,6 +147,7 @@ WS-->>FE : "broadcast AI message"
 ## Detailed Component Analysis
 
 ### Backend WebSocket Server (Workspace Chat)
+
 - Connection lifecycle
   - Authenticates via Express session cookie and stores user metadata per socket
   - Heartbeat ping/pong to detect inactive connections
@@ -168,12 +180,15 @@ Err --> End
 ```
 
 **Diagram sources**
+
 - [server/chat-ws.ts](file://server/chat-ws.ts#L172-L375)
 
 **Section sources**
+
 - [server/chat-ws.ts](file://server/chat-ws.ts#L119-L392)
 
 ### Frontend React Hook (use-chat-ws)
+
 - Connection management
   - Builds WS URL from current origin, auto-reconnects with exponential backoff, stops reconnect on 4001 (unauthorized)
   - On mount, connects and optionally joins a channel; on unmount, leaves channel and closes socket
@@ -196,12 +211,15 @@ Hook->>WS : "send {type : mark_read}"
 ```
 
 **Diagram sources**
+
 - [client/src/hooks/use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L199-L214)
 
 **Section sources**
+
 - [client/src/hooks/use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L65-L217)
 
 ### MessagePal WebSocket (Personal Messaging)
+
 - Endpoint and lifecycle
   - Connects to a dedicated WebSocket endpoint, auto-reconnects with exponential backoff
   - Supports subscribing to conversations, fetching history, and managing read receipts
@@ -226,14 +244,17 @@ FE->>API : "GET /api/messagepal/conversations (on mount)"
 ```
 
 **Diagram sources**
+
 - [client/src/components/messagepal/use-messagepal-ws.ts](file://client/src/components/messagepal/use-messagepal-ws.ts#L32-L295)
 - [server/message/routes.ts](file://server/message/routes.ts#L1-L194)
 
 **Section sources**
+
 - [client/src/components/messagepal/use-messagepal-ws.ts](file://client/src/components/messagepal/use-messagepal-ws.ts#L32-L295)
 - [server/message/routes.ts](file://server/message/routes.ts#L1-L194)
 
 ### Message Persistence and Offline Handling
+
 - Persistence
   - Messages are persisted via storage.createMessage; when Cassandra client is available, Cassandra-backed store is used; otherwise falls back to MongoDB
   - Additional operations include pinning, grading, and read receipts
@@ -251,14 +272,17 @@ E --> F["Update UI and read receipts"]
 ```
 
 **Diagram sources**
+
 - [server/storage.ts](file://server/storage.ts#L413-L422)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L276-L296)
 
 **Section sources**
+
 - [server/storage.ts](file://server/storage.ts#L413-L513)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L276-L339)
 
 ### Presence, Typing, and Read Receipts
+
 - Presence
   - On join: broadcast online presence to channel
   - On leave/close: broadcast offline presence to channel
@@ -283,14 +307,17 @@ WS-->>U1 : "message_read"
 ```
 
 **Diagram sources**
+
 - [server/chat-ws.ts](file://server/chat-ws.ts#L219-L245)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L342-L370)
 
 **Section sources**
+
 - [server/chat-ws.ts](file://server/chat-ws.ts#L219-L245)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L342-L370)
 
 ### Frontend UI Integration
+
 - Message rendering
   - MessageBubble displays content, media, mentions, and status badges
   - MessageStatusIcon reflects sending/sent/delivered/read states
@@ -308,6 +335,7 @@ B --> F["TypingIndicator.tsx"]
 ```
 
 **Diagram sources**
+
 - [client/src/pages/messages.tsx](file://client/src/pages/messages.tsx#L1-L15)
 - [client/src/hooks/use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L65-L217)
 - [client/src/components/chat/MessageBubble.tsx](file://client/src/components/chat/MessageBubble.tsx#L1-L157)
@@ -315,12 +343,14 @@ B --> F["TypingIndicator.tsx"]
 - [client/src/components/chat/TypingIndicator.tsx](file://client/src/components/chat/TypingIndicator.tsx#L1-L19)
 
 **Section sources**
+
 - [client/src/pages/messages.tsx](file://client/src/pages/messages.tsx#L1-L15)
 - [client/src/components/chat/MessageBubble.tsx](file://client/src/components/chat/MessageBubble.tsx#L1-L157)
 - [client/src/components/chat/MessageStatusIcon.tsx](file://client/src/components/chat/MessageStatusIcon.tsx#L1-L24)
 - [client/src/components/chat/TypingIndicator.tsx](file://client/src/components/chat/TypingIndicator.tsx#L1-L19)
 
 ## Dependency Analysis
+
 - Backend
   - server/index.ts initializes Express, sessions, attaches WebSocket servers, and starts the HTTP server
   - server/chat-ws.ts depends on storage for user/channel/message operations and OpenAI for AI assistant
@@ -341,6 +371,7 @@ FE2["client/src/components/messagepal/use-messagepal-ws.ts"] --> M
 ```
 
 **Diagram sources**
+
 - [server/index.ts](file://server/index.ts#L76-L84)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L1-L10)
 - [server/storage.ts](file://server/storage.ts#L1-L31)
@@ -349,10 +380,12 @@ FE2["client/src/components/messagepal/use-messagepal-ws.ts"] --> M
 - [client/src/components/messagepal/use-messagepal-ws.ts](file://client/src/components/messagepal/use-messagepal-ws.ts#L1-L1)
 
 **Section sources**
+
 - [server/index.ts](file://server/index.ts#L76-L113)
 - [server/storage.ts](file://server/storage.ts#L413-L513)
 
 ## Performance Considerations
+
 - Connection lifecycle
   - Heartbeat ping/pong prevents resource leaks from idle connections
   - Cleanup ensures channels are properly unsubscribed and presence is updated
@@ -370,6 +403,7 @@ FE2["client/src/components/messagepal/use-messagepal-ws.ts"] --> M
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
+
 - Unauthorized connections
   - If the session cookie is missing or invalid, the WS server closes with code 4001 and sends an error; frontend should not reconnect automatically
 - Channel access denied
@@ -382,6 +416,7 @@ FE2["client/src/components/messagepal/use-messagepal-ws.ts"] --> M
   - If message creation fails, the server responds with an error; frontend should surface a retry mechanism
 
 **Section sources**
+
 - [server/chat-ws.ts](file://server/chat-ws.ts#L126-L138)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L194-L213)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L262-L273)
@@ -389,6 +424,7 @@ FE2["client/src/components/messagepal/use-messagepal-ws.ts"] --> M
 - [server/chat-ws.ts](file://server/chat-ws.ts#L335-L338)
 
 ## Conclusion
+
 PersonalLearningPro’s real-time communication system combines a robust WebSocket server for workspace chat with a separate personal messaging WebSocket for MessagePal. The frontend integrates seamlessly via React hooks, providing smooth presence, typing, read receipts, and message persistence. The storage abstraction enables scalable message handling with Cassandra as the primary store and MongoDB as a fallback. With heartbeat monitoring, rate limiting, and resilient reconnection, the system balances reliability and performance while supporting future horizontal scaling.
 
 [No sources needed since this section summarizes without analyzing specific files]
@@ -396,6 +432,7 @@ PersonalLearningPro’s real-time communication system combines a robust WebSock
 ## Appendices
 
 ### Message Types and Payloads
+
 - Workspace chat (server/chat-ws.ts)
   - join_channel: { type: "join_channel", channelId: number }
   - leave_channel: { type: "leave_channel", channelId: number }
@@ -411,5 +448,6 @@ PersonalLearningPro’s real-time communication system combines a robust WebSock
   - fetch_history: { type: "fetch_history", conversationId: string }
 
 **Section sources**
+
 - [server/chat-ws.ts](file://server/chat-ws.ts#L19-L26)
 - [client/src/components/messagepal/use-messagepal-ws.ts](file://client/src/components/messagepal/use-messagepal-ws.ts#L105-L187)

@@ -1,18 +1,21 @@
-import { useRole } from '@/contexts/chat-role-context';
-import { UserRole } from '@/types/chat';
-import { GraduationCap, BookOpen, Users } from 'lucide-react';
+import { useRole } from "@/contexts/chat-role-context";
+import { UserRole } from "@/types/chat";
+import { GraduationCap, BookOpen, Users } from "lucide-react";
 
-const roleConfig: Record<UserRole, { label: string; icon: typeof GraduationCap; colorClass: string }> = {
-  student: { label: 'Student', icon: GraduationCap, colorClass: 'bg-role-student' },
-  teacher: { label: 'Teacher', icon: BookOpen, colorClass: 'bg-role-teacher' },
-  parent: { label: 'Parent', icon: Users, colorClass: 'bg-role-parent' },
+const roleConfig: Record<
+  UserRole,
+  { label: string; icon: typeof GraduationCap; colorClass: string }
+> = {
+  student: { label: "Student", icon: GraduationCap, colorClass: "bg-role-student" },
+  teacher: { label: "Teacher", icon: BookOpen, colorClass: "bg-role-teacher" },
+  parent: { label: "Parent", icon: Users, colorClass: "bg-role-parent" },
 };
 
 const RoleSwitcher = () => {
   const { currentRole, setRole } = useRole();
 
   return (
-    <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
+    <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
       {(Object.keys(roleConfig) as UserRole[]).map((role) => {
         const cfg = roleConfig[role];
         const Icon = cfg.icon;
@@ -22,10 +25,10 @@ const RoleSwitcher = () => {
           <button
             key={role}
             onClick={() => setRole(role)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
               isActive
                 ? `${cfg.colorClass} text-primary-foreground shadow-sm`
-                : 'text-muted-foreground hover:text-foreground'
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <Icon className="h-3.5 w-3.5" />

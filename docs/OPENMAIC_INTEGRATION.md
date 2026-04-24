@@ -13,6 +13,7 @@ OpenMAIC (Open Multi-Agent Interactive Classroom) is an AI-powered platform that
 - AI classmates for discussions
 
 The integration is powered by:
+
 - **OpenMAIC**: The multi-agent classroom engine (Next.js)
 - **IniClaw**: NVIDIA NemoClaw-based sandboxed agent runtime
 
@@ -33,6 +34,7 @@ LLM Providers (OpenAI, Anthropic, Google)
 ### Prerequisites
 
 1. Clone the arena-learning repository:
+
    ```bash
    cd ~/Downloads
    git clone https://github.com/NitishKumar-ai/arena-learning
@@ -40,26 +42,29 @@ LLM Providers (OpenAI, Anthropic, Google)
    ```
 
 2. Install dependencies:
+
    ```bash
    # Install IniClaw dependencies
    cd ini_claw
    npm install
-   
+
    # Install OpenMAIC dependencies
    cd ../studyArena
    pnpm install
    ```
 
 3. Configure environment variables:
+
    ```bash
    cp .env.example .env
    ```
 
    Edit `.env` and set:
+
    ```env
    # Generate a secure bridge secret
    BRIDGE_SECRET=$(openssl rand -hex 16)
-   
+
    # Set at least one LLM provider
    OPENAI_API_KEY=sk-...
    # OR
@@ -76,18 +81,21 @@ docker-compose up -d
 ```
 
 This starts:
+
 - IniClaw Gateway on `http://localhost:7070`
 - OpenMAIC on `http://localhost:3000`
 
 ### Running Manually (Development)
 
 Terminal 1 - Start IniClaw:
+
 ```bash
 cd ~/Downloads/arena-learning/ini_claw
 npm run dev:gateway
 ```
 
 Terminal 2 - Start OpenMAIC:
+
 ```bash
 cd ~/Downloads/arena-learning/studyArena
 pnpm dev
@@ -107,6 +115,7 @@ USE_INICLAW=true
 ## API Endpoints
 
 ### Health Check
+
 ```http
 GET /api/ai-classroom/health
 ```
@@ -114,6 +123,7 @@ GET /api/ai-classroom/health
 Returns the availability status of the OpenMAIC service.
 
 ### Create Classroom
+
 ```http
 POST /api/ai-classroom/create
 Content-Type: application/json
@@ -128,6 +138,7 @@ Content-Type: application/json
 Creates a new AI classroom session with the specified topic and scene types.
 
 ### Get Classroom
+
 ```http
 GET /api/ai-classroom/:classroomId
 ```
@@ -135,6 +146,7 @@ GET /api/ai-classroom/:classroomId
 Retrieves the status and details of a classroom session.
 
 ### Generate Quiz
+
 ```http
 POST /api/ai-classroom/quiz/generate
 Content-Type: application/json
@@ -148,6 +160,7 @@ Content-Type: application/json
 Generates an interactive quiz on the specified topic.
 
 ### Generate Slides
+
 ```http
 POST /api/ai-classroom/slides/generate
 Content-Type: application/json
@@ -165,6 +178,7 @@ Generates presentation slides from content.
 Navigate to `/ai-classroom` in the application to access the AI Classroom interface.
 
 Features:
+
 - Create full classroom experiences
 - Generate quick quizzes
 - View classroom status
@@ -180,16 +194,19 @@ Features:
 ## Troubleshooting
 
 ### OpenMAIC not available
+
 - Check if services are running: `docker-compose ps` or check terminal outputs
 - Verify `OPENMAIC_INTERNAL_URL` is set correctly
 - Check `BRIDGE_SECRET` matches between services
 
 ### Classroom creation fails
+
 - Ensure at least one LLM provider API key is configured
 - Check IniClaw gateway logs for errors
 - Verify network connectivity between services
 
 ### Authentication errors
+
 - Ensure `BRIDGE_SECRET` is identical in both `.env` files
 - Regenerate secret if needed: `openssl rand -hex 16`
 

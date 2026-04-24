@@ -5,6 +5,7 @@ MessagePal is a high-performance, real-time messaging service built specifically
 ## Features
 
 ### 🚀 Core Features
+
 - **Real-time Messaging**: WebSocket-powered instant messaging
 - **User Roles**: Student, Teacher, Parent, Admin role-based communication
 - **Secure Authentication**: Session-based authentication with role validation
@@ -15,6 +16,7 @@ MessagePal is a high-performance, real-time messaging service built specifically
 - **Unread Counters**: Track unread messages per conversation
 
 ### 🎯 Educational Features
+
 - **Role-aware Communication**: Teachers can message students, parents can contact teachers
 - **Class-based Filtering**: Messages organized by classes and subjects
 - **Homework Integration**: Direct homework assignment and submission
@@ -24,12 +26,14 @@ MessagePal is a high-performance, real-time messaging service built specifically
 ## Architecture
 
 ### Backend Services
+
 - **WebSocket Gateway**: Real-time message delivery (`/messagepal` endpoint)
 - **REST API**: HTTP fallback and administrative operations
 - **Cassandra Storage**: Scalable message persistence
 - **Session Management**: Express-session based authentication
 
 ### Frontend Components
+
 - **React Hooks**: `useMessagePalWebSocket` for WebSocket management
 - **UI Components**: Pre-built messaging interface
 - **TypeScript**: Full type safety throughout
@@ -39,6 +43,7 @@ MessagePal is a high-performance, real-time messaging service built specifically
 ### WebSocket Events
 
 **Client → Server:**
+
 - `send_message` - Send a new message
 - `typing` - Indicate typing activity
 - `mark_read` - Mark message as read
@@ -47,6 +52,7 @@ MessagePal is a high-performance, real-time messaging service built specifically
 - `unsubscribe` - Unsubscribe from conversation
 
 **Server → Client:**
+
 - `connected` - Connection established
 - `message_received` - New message received
 - `user_typing` - User is typing
@@ -72,6 +78,7 @@ POST   /api/messagepal/conversations/between-users    # Create/get conversation 
 ### Cassandra Tables
 
 **messages** - Individual message storage
+
 ```
 conversation_id text,
 message_id timeuuid,
@@ -89,6 +96,7 @@ PRIMARY KEY (conversation_id, message_id)
 ```
 
 **user_conversations** - User conversation tracking
+
 ```
 user_id int,
 conversation_id text,
@@ -102,6 +110,7 @@ PRIMARY KEY (user_id, conversation_id)
 ```
 
 **conversations** - Conversation metadata
+
 ```
 conversation_id text PRIMARY KEY,
 participant_ids set<int>,
@@ -113,6 +122,7 @@ is_group boolean
 ## Getting Started
 
 ### Prerequisites
+
 - Node.js 18+
 - Cassandra/Astra DB
 - Existing PersonalLearningPro setup
@@ -120,12 +130,14 @@ is_group boolean
 ### Installation
 
 1. **Database Setup**
+
 ```bash
 # Execute the Cassandra schema
 cqlsh -f server/messagepal/cassandra-schema.cql
 ```
 
 2. **Environment Variables**
+
 ```env
 # Add to your .env file
 ASTRA_DB_SECURE_BUNDLE_PATH=./config/secure-connect-chat-db.zip
@@ -134,11 +146,13 @@ ASTRA_DB_KEYSPACE=chat_db
 ```
 
 3. **Start the Service**
+
 ```bash
 npm run dev
 ```
 
 The MessagePal service will be available at:
+
 - WebSocket: `ws://localhost:5001/messagepal`
 - HTTP API: `http://localhost:5001/api/messagepal`
 
@@ -188,6 +202,7 @@ function MyMessagingComponent() {
 ## Monitoring & Logging
 
 The service includes comprehensive logging:
+
 - Connection events
 - Message delivery status
 - Error tracking

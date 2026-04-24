@@ -15,6 +15,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -32,10 +33,13 @@
 15. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document provides comprehensive containerization guidance for PersonalLearningPro, focusing on the multi-stage Docker build process, development and production workflows, docker-compose orchestration for local development, and operational best practices. It explains how the current Dockerfile and docker-compose.yml enable efficient development with hot reloading, layered dependency management, and clean separation between development, build, and production stages.
 
 ## Project Structure
+
 The containerization setup centers on three primary files:
+
 - Dockerfile: Defines the multi-stage build pipeline for development, build, and production.
 - docker-compose.yml: Orchestrates the development environment with bind mounts for hot reload and environment injection.
 - .dockerignore: Ensures only necessary files are copied into containers, optimizing build cache and reducing image size.
@@ -53,16 +57,19 @@ J[".dockerignore<br/>Optimized Copy"] --> K["Excludes<br/>node_modules, dist, lo
 ```
 
 **Diagram sources**
+
 - [Dockerfile](file://Dockerfile#L1-L58)
 - [docker-compose.yml](file://docker-compose.yml#L1-L24)
 - [.dockerignore](file://.dockerignore#L1-L31)
 
 **Section sources**
+
 - [Dockerfile](file://Dockerfile#L1-L58)
 - [docker-compose.yml](file://docker-compose.yml#L1-L24)
 - [.dockerignore](file://.dockerignore#L1-L31)
 
 ## Core Components
+
 - Multi-stage Docker build:
   - Development stage installs all dependencies and starts the app in development mode with hot reload capabilities.
   - Build stage compiles the client and server bundles into dist artifacts.
@@ -80,6 +87,7 @@ J[".dockerignore<br/>Optimized Copy"] --> K["Excludes<br/>node_modules, dist, lo
   - Vite configuration resolves aliases and outputs static assets to dist/public for production serving.
 
 **Section sources**
+
 - [Dockerfile](file://Dockerfile#L1-L58)
 - [docker-compose.yml](file://docker-compose.yml#L1-L24)
 - [package.json](file://package.json#L6-L11)
@@ -87,7 +95,9 @@ J[".dockerignore<br/>Optimized Copy"] --> K["Excludes<br/>node_modules, dist, lo
 - [tsconfig.json](file://tsconfig.json#L1-L24)
 
 ## Architecture Overview
+
 The containerization architecture separates concerns across stages and services:
+
 - Development: Full source code plus all dev dependencies; Vite dev server handles hot reload.
 - Build: Produces optimized client and server bundles in dist.
 - Production: Minimal runtime image with only production dependencies and built artifacts.
@@ -114,13 +124,16 @@ ProdRun --> Port
 ```
 
 **Diagram sources**
+
 - [Dockerfile](file://Dockerfile#L1-L58)
 - [package.json](file://package.json#L6-L11)
 
 ## Detailed Component Analysis
 
 ### Multi-Stage Docker Build
+
 The Dockerfile defines three stages:
+
 - Development: Copies dependency manifests, installs dependencies, copies source, exposes port 5001, and runs the development script.
 - Build: Copies manifests, installs dependencies, copies source, runs the build script, and produces dist.
 - Production: Copies manifests, installs only production dependencies, copies dist from the build stage, sets NODE_ENV=production, and starts the server.
@@ -146,15 +159,19 @@ ProdCmd --> End(["Serve on 5001"])
 ```
 
 **Diagram sources**
+
 - [Dockerfile](file://Dockerfile#L1-L58)
 - [package.json](file://package.json#L6-L11)
 
 **Section sources**
+
 - [Dockerfile](file://Dockerfile#L1-L58)
 - [package.json](file://package.json#L6-L11)
 
 ### docker-compose Orchestration for Local Development
+
 The docker-compose.yml defines a single service that:
+
 - Builds using the development target.
 - Maps client, server, and shared directories for hot reload.
 - Mounts configuration files (Vite, Tailwind, PostCSS, TS config, theme JSON) into the container.
@@ -183,36 +200,44 @@ FS-->>Ctn : Changes reflected immediately
 ```
 
 **Diagram sources**
+
 - [docker-compose.yml](file://docker-compose.yml#L1-L24)
 - [Dockerfile](file://Dockerfile#L1-L58)
 
 **Section sources**
+
 - [docker-compose.yml](file://docker-compose.yml#L1-L24)
 - [README.md](file://README.md#L23-L35)
 
 ### Layer Caching Strategies and Dependency Management
+
 - Dependency-first copy pattern: package.json and package-lock.json are copied before source code to leverage Docker layer caching effectively.
 - npm ci is used in all stages to ensure deterministic installs and faster rebuilds.
 - Development stage includes devDependencies for tooling; production stage omits devDependencies to reduce attack surface and image size.
 
 **Section sources**
+
 - [Dockerfile](file://Dockerfile#L11-L18)
 - [Dockerfile](file://Dockerfile#L33-L37)
 - [Dockerfile](file://Dockerfile#L46-L48)
 - [package.json](file://package.json#L89-L114)
 
 ### Environment-Specific Configurations
+
 - Port exposure and binding: The server listens on port 5001 and serves both API routes and the Vite-built client.
 - Vite configuration: Aliases and output directory are configured for client asset resolution and production bundling.
 - TypeScript configuration: Path aliases and module resolution are aligned with Vite and client/server code locations.
 
 **Section sources**
+
 - [server/index.ts](file://server/index.ts#L103-L113)
 - [vite.config.ts](file://vite.config.ts#L13-L34)
 - [tsconfig.json](file://tsconfig.json#L17-L21)
 
 ## Dependency Analysis
+
 The containerization stack depends on:
+
 - Node.js base image for all stages.
 - npm scripts defined in package.json for dev/build/start.
 - docker-compose for orchestrating the development service and mounting volumes.
@@ -234,16 +259,19 @@ Ig --> Env["env_file .env"]
 ```
 
 **Diagram sources**
+
 - [package.json](file://package.json#L6-L11)
 - [Dockerfile](file://Dockerfile#L1-L58)
 - [docker-compose.yml](file://docker-compose.yml#L1-L24)
 
 **Section sources**
+
 - [package.json](file://package.json#L6-L11)
 - [Dockerfile](file://Dockerfile#L1-L58)
 - [docker-compose.yml](file://docker-compose.yml#L1-L24)
 
 ## Performance Considerations
+
 - Optimize build cache:
   - Keep package.json and package-lock.json unchanged when only source code changes to reuse dependency layers.
   - Use npm ci to avoid resolving floating versions and speed up installs.
@@ -257,6 +285,7 @@ Ig --> Env["env_file .env"]
 [No sources needed since this section provides general guidance]
 
 ## Security Best Practices
+
 - Environment variables:
   - Use .env for local development; ensure sensitive variables are not committed.
   - SESSION_SECRET must be set in production to secure session cookies.
@@ -268,11 +297,14 @@ Ig --> Env["env_file .env"]
   - Only expose port 5001 internally for development; restrict external access in production environments.
 
 **Section sources**
+
 - [.env.example](file://.env.example#L25-L28)
 - [server/index.ts](file://server/index.ts#L31-L44)
 
 ## Health Checks and Monitoring
+
 Current configuration does not define explicit health checks. Recommended additions:
+
 - HTTP health endpoint: Expose a lightweight GET endpoint returning 200 OK when dependencies are ready.
 - Readiness probe: Wait for database connections and message store initialization before marking the service ready.
 - Liveness probe: Periodic check to restart unhealthy containers automatically.
@@ -280,7 +312,9 @@ Current configuration does not define explicit health checks. Recommended additi
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
+
 Common issues and resolutions:
+
 - Port conflicts on 5001:
   - Change host port mapping in docker-compose.yml or stop the conflicting service.
 - Hot reload not working:
@@ -295,11 +329,13 @@ Common issues and resolutions:
   - Ensure dist is not ignored by .dockerignore during development.
 
 **Section sources**
+
 - [docker-compose.yml](file://docker-compose.yml#L10-L22)
 - [.dockerignore](file://.dockerignore#L1-L31)
 - [README.md](file://README.md#L124-L125)
 
 ## Image Optimization Techniques
+
 - Multi-stage builds:
   - Separate development, build, and production stages to minimize final image size.
 - Layer ordering:
@@ -310,11 +346,13 @@ Common issues and resolutions:
   - Leverage .dockerignore to exclude logs, IDE folders, and build artifacts.
 
 **Section sources**
+
 - [Dockerfile](file://Dockerfile#L11-L18)
 - [Dockerfile](file://Dockerfile#L46-L48)
 - [.dockerignore](file://.dockerignore#L1-L31)
 
 ## Multi-Platform Build Considerations
+
 - Current base image:
   - node:20-slim is architecture-specific; ensure consistent platform across hosts.
 - Cross-platform builds:
@@ -326,6 +364,7 @@ Common issues and resolutions:
 [No sources needed since this section provides general guidance]
 
 ## Container Registry Integration
+
 - Tagging strategy:
   - Use semantic versioning tags (e.g., v1.2.3) and latest for automated deployments.
 - Push commands:
@@ -337,6 +376,7 @@ Common issues and resolutions:
 [No sources needed since this section provides general guidance]
 
 ## Automated Image Building Processes
+
 - CI/CD pipeline:
   - Trigger builds on pushes to main or release branches.
   - Run tests and linting before building images.
@@ -346,7 +386,9 @@ Common issues and resolutions:
   - Cache dependencies to speed up builds.
 
 **Section sources**
+
 - [.github/workflows/cla.yml](file://.github/workflows/cla.yml#L1-L38)
 
 ## Conclusion
+
 PersonalLearningPro’s containerization leverages a clean multi-stage Docker build and a practical docker-compose setup for efficient local development. By following the layer caching strategies, environment-specific configurations, and the recommended security and optimization practices, teams can maintain fast iteration cycles while ensuring robust production deployments.

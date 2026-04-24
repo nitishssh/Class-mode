@@ -1,12 +1,12 @@
-import { chromium } from 'playwright';
+import { chromium } from "playwright";
 
 (async () => {
   const browser = await chromium.launch({ headless: false });
   const page = await browser.newPage();
 
-  await page.goto('http://localhost:5001');
+  await page.goto("http://localhost:5001");
 
-  const buttons = await page.$$('button');
+  const buttons = await page.$$("button");
 
   console.log(`Found ${buttons.length} buttons`);
 

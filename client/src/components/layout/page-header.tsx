@@ -1,21 +1,21 @@
 import { ReactNode, Fragment } from "react";
 import { cn } from "@/lib/utils";
 import {
-    Breadcrumb,
-    BreadcrumbItem,
-    BreadcrumbLink,
-    BreadcrumbList,
-    BreadcrumbPage,
-    BreadcrumbSeparator,
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Link } from "wouter";
 
 interface PageHeaderProps {
-    title: string;
-    subtitle?: string;
-    children?: ReactNode;
-    className?: string;
-    breadcrumbs?: { label: string; href?: string }[];
+  title: string;
+  subtitle?: string;
+  children?: ReactNode;
+  className?: string;
+  breadcrumbs?: { label: string; href?: string }[];
 }
 
 /**
@@ -29,41 +29,41 @@ interface PageHeaderProps {
  * @returns A JSX element containing the header layout, including breadcrumbs (when provided), the title, optional subtitle, and optional children.
  */
 export function PageHeader({ title, subtitle, children, className, breadcrumbs }: PageHeaderProps) {
-    return (
-        <div className={cn("mb-8 flex flex-col gap-1", className)}>
-            {breadcrumbs && breadcrumbs.length > 0 && (
-                <Breadcrumb className="mb-2">
-                    <BreadcrumbList>
-                        {breadcrumbs.map((crumb, index) => (
-                            <Fragment key={crumb.label}>
-                                <BreadcrumbItem>
-                                    {index === breadcrumbs.length - 1 || !crumb.href ? (
-                                        <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
-                                    ) : (
-                                        <BreadcrumbLink asChild>
-                                            <Link href={crumb.href}>{crumb.label}</Link>
-                                        </BreadcrumbLink>
-                                    )}
-                                </BreadcrumbItem>
-                                {index < breadcrumbs.length - 1 && <BreadcrumbSeparator />}
-                            </Fragment>
-                        ))}
-                    </BreadcrumbList>
-                </Breadcrumb>
-            )}
-            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <h1 className="text-2xl font-display text-foreground tracking-tight leading-tight">{title}</h1>
-                    {subtitle && (
-                        <p className="text-sm font-body text-muted-foreground mt-0.5 max-w-2xl">{subtitle}</p>
-                    )}
-                </div>
-                {children && (
-                    <div className="flex items-center gap-2 mt-3 sm:mt-0 flex-shrink-0">
-                        {children}
-                    </div>
-                )}
-            </div>
+  return (
+    <div className={cn("mb-8 flex flex-col gap-1", className)}>
+      {breadcrumbs && breadcrumbs.length > 0 && (
+        <Breadcrumb className="mb-2">
+          <BreadcrumbList>
+            {breadcrumbs.map((crumb, index) => (
+              <Fragment key={crumb.label}>
+                <BreadcrumbItem>
+                  {index === breadcrumbs.length - 1 || !crumb.href ? (
+                    <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                  ) : (
+                    <BreadcrumbLink asChild>
+                      <Link href={crumb.href}>{crumb.label}</Link>
+                    </BreadcrumbLink>
+                  )}
+                </BreadcrumbItem>
+                {index < breadcrumbs.length - 1 && <BreadcrumbSeparator />}
+              </Fragment>
+            ))}
+          </BreadcrumbList>
+        </Breadcrumb>
+      )}
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="font-display text-2xl leading-tight tracking-tight text-foreground">
+            {title}
+          </h1>
+          {subtitle && (
+            <p className="mt-0.5 max-w-2xl font-body text-sm text-muted-foreground">{subtitle}</p>
+          )}
         </div>
-    );
+        {children && (
+          <div className="mt-3 flex flex-shrink-0 items-center gap-2 sm:mt-0">{children}</div>
+        )}
+      </div>
+    </div>
+  );
 }

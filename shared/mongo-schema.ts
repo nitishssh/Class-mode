@@ -20,7 +20,11 @@ const UserSchema = new mongoose.Schema({
   password: { type: String, required: true },
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
-  role: { type: String, enum: ["student", "teacher", "parent", "principal", "school_admin", "admin"], default: "student" },
+  role: {
+    type: String,
+    enum: ["student", "teacher", "parent", "principal", "school_admin", "admin"],
+    default: "student",
+  },
   status: { type: String, enum: ["active", "pending", "suspended", "rejected"], default: "active" },
   school_code: { type: String, default: null },
   grade: { type: String, default: null },
@@ -34,8 +38,8 @@ const UserSchema = new mongoose.Schema({
   firebaseUid: { type: String, default: null, sparse: true },
   displayName: { type: String, default: null },
   createdAt: { type: Date, default: Date.now },
-  lastLoginAt:        { type: Date, default: null },
-  schoolId:           { type: mongoose.Schema.Types.ObjectId, ref: "School", default: null },
+  lastLoginAt: { type: Date, default: null },
+  schoolId: { type: mongoose.Schema.Types.ObjectId, ref: "School", default: null },
   onboardingComplete: { type: Boolean, default: false },
 });
 
@@ -141,7 +145,11 @@ const TestAssignmentSchema = new mongoose.Schema({
   assignedBy: { type: Number, required: true },
   assignedDate: { type: Date, default: Date.now },
   dueDate: { type: Date, required: true },
-  status: { type: String, enum: ["pending", "started", "completed", "overdue"], default: "pending" },
+  status: {
+    type: String,
+    enum: ["pending", "started", "completed", "overdue"],
+    default: "pending",
+  },
   notificationSent: { type: Boolean, default: false },
 });
 
@@ -153,9 +161,9 @@ TestAssignmentSchema.index({ dueDate: 1, status: 1 });
 // Auto-increment counter for MongoDB IDs
 const CounterSchema = new mongoose.Schema({
   _id: { type: String, required: true },
-  seq: { type: Number, default: 0 }
+  seq: { type: Number, default: 0 },
 });
-const Counter = mongoose.model('Counter', CounterSchema);
+const Counter = mongoose.model("Counter", CounterSchema);
 
 async function getNextSequenceValue(sequenceName: string) {
   const sequenceDocument = await Counter.findOneAndUpdate(
@@ -191,11 +199,15 @@ const ChannelSchema = new mongoose.Schema({
   pinnedMessages: [{ type: Number }],
   createdAt: { type: Date, default: Date.now },
   // Phase 3: Messaging feature extensions
-  category: { type: String, enum: ['announcement', 'class', 'teacher', 'friend', 'parent'], default: 'class' },
+  category: {
+    type: String,
+    enum: ["announcement", "class", "teacher", "friend", "parent"],
+    default: "class",
+  },
   isReadOnly: { type: Boolean, default: false },
-  participants: [{ type: String }],   // firebase UIDs (for DMs between two users)
+  participants: [{ type: String }], // firebase UIDs (for DMs between two users)
   unreadCounts: { type: Map, of: Number, default: {} }, // firebaseUid → unread count
-  typingUsers: [{ type: String }],   // firebase UIDs currently typing
+  typingUsers: [{ type: String }], // firebase UIDs currently typing
 });
 
 // Compound indexes for channel queries
@@ -216,10 +228,18 @@ const MessageSchema = new mongoose.Schema({
   readBy: [{ type: Number }],
   createdAt: { type: Date, default: Date.now },
   // Phase 3: Messaging feature extensions
-  senderRole: { type: String, enum: ['student', 'teacher', 'parent', 'principal', 'school_admin', 'admin'], default: 'student' },
-  messageType: { type: String, enum: ['text', 'doubt', 'assignment', 'announcement', 'system'], default: 'text' },
-  replyTo: { type: Number, default: null },          // message id being replied to
-  mentions: [{ type: String }],                      // firebase UIDs mentioned
+  senderRole: {
+    type: String,
+    enum: ["student", "teacher", "parent", "principal", "school_admin", "admin"],
+    default: "student",
+  },
+  messageType: {
+    type: String,
+    enum: ["text", "doubt", "assignment", "announcement", "system"],
+    default: "text",
+  },
+  replyTo: { type: Number, default: null }, // message id being replied to
+  mentions: [{ type: String }], // firebase UIDs mentioned
   isDoubtAnswered: { type: Boolean, default: false },
   assignmentData: {
     title: { type: String },
@@ -227,7 +247,7 @@ const MessageSchema = new mongoose.Schema({
     fileUrl: { type: String },
     subject: { type: String },
   },
-  deliveredTo: [{ type: String }],                   // firebase UIDs message was delivered to
+  deliveredTo: [{ type: String }], // firebase UIDs message was delivered to
 });
 
 // Compound indexes for message queries
@@ -235,7 +255,6 @@ MessageSchema.index({ channelId: 1, createdAt: -1 });
 MessageSchema.index({ channelId: 1, isPinned: 1 });
 MessageSchema.index({ authorId: 1, createdAt: -1 });
 MessageSchema.index({ isHomework: 1, gradingStatus: 1 });
-
 
 export const MongoUser = mongoose.model("User", UserSchema);
 export const MongoSession = mongoose.model("Session", SessionSchema);
@@ -258,7 +277,11 @@ const LiveClassSchema = new mongoose.Schema({
   class: { type: String, required: true },
   scheduledTime: { type: Date, required: true },
   durationMinutes: { type: Number, default: 60 },
-  status: { type: String, enum: ["scheduled", "live", "completed", "cancelled"], default: "scheduled" },
+  status: {
+    type: String,
+    enum: ["scheduled", "live", "completed", "cancelled"],
+    default: "scheduled",
+  },
   dailyRoomName: { type: String, default: null },
   dailyRoomUrl: { type: String, default: null },
   startedAt: { type: Date, default: null },
@@ -286,7 +309,10 @@ const LiveSessionAttendanceSchema = new mongoose.Schema({
 // Compound index for attendance queries
 LiveSessionAttendanceSchema.index({ sessionId: 1, studentId: 1 });
 
-export const MongoLiveSessionAttendance = mongoose.model("LiveSessionAttendance", LiveSessionAttendanceSchema);
+export const MongoLiveSessionAttendance = mongoose.model(
+  "LiveSessionAttendance",
+  LiveSessionAttendanceSchema
+);
 
 const FcmTokenSchema = new mongoose.Schema({
   id: { type: Number, required: true, unique: true },
@@ -307,7 +333,11 @@ const TaskSchema = new mongoose.Schema({
   id: { type: Number, required: true, unique: true },
   userId: { type: Number, required: true, index: true },
   title: { type: String, required: true },
-  status: { type: String, enum: ["backlog", "todo", "in-progress", "review", "done"], default: "todo" },
+  status: {
+    type: String,
+    enum: ["backlog", "todo", "in-progress", "review", "done"],
+    default: "todo",
+  },
   priority: { type: String, enum: ["low", "medium", "high", "urgent"], default: "medium" },
   tags: [{ type: String }],
   dueDate: { type: String, default: null },
@@ -322,7 +352,11 @@ export const MongoTask = mongoose.model("Task", TaskSchema);
 const NotificationSchema = new mongoose.Schema({
   id: { type: Number, required: true, unique: true },
   userId: { type: Number, required: true, index: true },
-  type: { type: String, enum: ["test", "result", "announcement", "message", "achievement", "reminder"], required: true },
+  type: {
+    type: String,
+    enum: ["test", "result", "announcement", "message", "achievement", "reminder"],
+    required: true,
+  },
   title: { type: String, required: true },
   body: { type: String, required: true },
   isRead: { type: Boolean, default: false },
@@ -344,5 +378,20 @@ const FocusSessionSchema = new mongoose.Schema({
 });
 FocusSessionSchema.index({ userId: 1, completedAt: -1 });
 export const MongoFocusSession = mongoose.model("FocusSession", FocusSessionSchema);
+
+// ─── AI Classroom Schema ──────────────────────────────────────────────────────
+
+const AIClassroomSchema = new mongoose.Schema({
+  id: { type: Number, required: true, unique: true },
+  teacherId: { type: Number, required: true, index: true },
+  topic: { type: String, required: true },
+  studyArenaJobId: { type: String, required: true },
+  classroomId: { type: String, default: null },
+  status: { type: String, enum: ["pending", "generating", "ready", "error"], default: "pending" },
+  url: { type: String, default: null },
+  createdAt: { type: Date, default: Date.now },
+});
+AIClassroomSchema.index({ teacherId: 1, createdAt: -1 });
+export const MongoAIClassroom = mongoose.model("AIClassroom", AIClassroomSchema);
 
 export { getNextSequenceValue };

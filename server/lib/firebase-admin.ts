@@ -17,35 +17,33 @@ import * as admin from "firebase-admin";
 let initialised = false;
 
 function ensureInitialised() {
-    if (initialised || admin.apps.length > 0) {
-        initialised = true;
-        return;
-    }
+  if (initialised || admin.apps.length > 0) {
+    initialised = true;
+    return;
+  }
 
-    const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-    const projectId =
-        process.env.FIREBASE_PROJECT_ID ||
-        process.env.VITE_FIREBASE_PROJECT_ID ||
-        "app-lock-21748";
+  const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  const projectId =
+    process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || "app-lock-21748";
 
-    try {
-        if (serviceAccountJson) {
-            const serviceAccount = JSON.parse(serviceAccountJson);
-            admin.initializeApp({
-                credential: admin.credential.cert(serviceAccount),
-                projectId,
-            });
-        } else {
-            // Minimal init — works when GOOGLE_APPLICATION_CREDENTIALS is set or in Cloud Run
-            admin.initializeApp({
-                projectId,
-            });
-        }
-        initialised = true;
-        console.log("[firebase-admin] Initialised with project:", projectId);
-    } catch (err) {
-        console.warn("[firebase-admin] Failed to initialise:", (err as Error).message);
+  try {
+    if (serviceAccountJson) {
+      const serviceAccount = JSON.parse(serviceAccountJson);
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        projectId,
+      });
+    } else {
+      // Minimal init — works when GOOGLE_APPLICATION_CREDENTIALS is set or in Cloud Run
+      admin.initializeApp({
+        projectId,
+      });
     }
+    initialised = true;
+    console.log("[firebase-admin] Initialised with project:", projectId);
+  } catch (err) {
+    console.warn("[firebase-admin] Failed to initialise:", (err as Error).message);
+  }
 }
 
 /**
@@ -53,37 +51,37 @@ function ensureInitialised() {
  * Returns the decoded token payload, or null on failure.
  */
 export async function verifyFirebaseToken(
-    idToken: string
+  idToken: string
 ): Promise<admin.auth.DecodedIdToken | null> {
-    ensureInitialised();
+  ensureInitialised();
 
-    if (!admin.apps.length) return null;
+  if (!admin.apps.length) return null;
 
-    try {
-        const decoded = await admin.auth().verifyIdToken(idToken);
-        return decoded;
-    } catch (err) {
-        console.error("[firebase-admin] Token verification failed:", (err as Error).message);
-        return null;
-    }
+  try {
+    const decoded = await admin.auth().verifyIdToken(idToken);
+    return decoded;
+  } catch (err) {
+    console.error("[firebase-admin] Token verification failed:", (err as Error).message);
+    return null;
+  }
 }
 
 /**
  * Set custom user claims for a Firebase user.
  */
 export async function setCustomUserClaims(
-    uid: string,
-    claims: Record<string, any>
+  uid: string,
+  claims: Record<string, any>
 ): Promise<boolean> {
-    ensureInitialised();
+  ensureInitialised();
 
-    if (!admin.apps.length) return false;
+  if (!admin.apps.length) return false;
 
-    try {
-        await admin.auth().setCustomUserClaims(uid, claims);
-        return true;
-    } catch (err) {
-        console.error("[firebase-admin] Failed to set custom claims:", (err as Error).message);
-        return false;
-    }
+  try {
+    await admin.auth().setCustomUserClaims(uid, claims);
+    return true;
+  } catch (err) {
+    console.error("[firebase-admin] Failed to set custom claims:", (err as Error).message);
+    return false;
+  }
 }

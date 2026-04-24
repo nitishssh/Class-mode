@@ -1,0 +1,147 @@
+export const enum KEYS {
+  C = 'C',
+  X = 'X',
+  Z = 'Z',
+  Y = 'Y',
+  A = 'A',
+  G = 'G',
+  L = 'L',
+  F = 'F',
+  D = 'D',
+  B = 'B',
+  P = 'P',
+  O = 'O',
+  R = 'R',
+  T = 'T',
+  MINUS = '-',
+  EQUAL = '=',
+  DIGIT_0 = '0',
+  DELETE = 'DELETE',
+  UP = 'ARROWUP',
+  DOWN = 'ARROWDOWN',
+  LEFT = 'ARROWLEFT',
+  RIGHT = 'ARROWRIGHT',
+  ENTER = 'ENTER',
+  SPACE = ' ',
+  TAB = 'TAB',
+  BACKSPACE = 'BACKSPACE',
+  ESC = 'ESCAPE',
+  PAGEUP = 'PAGEUP',
+  PAGEDOWN = 'PAGEDOWN',
+  F5 = 'F5',
+}
+
+interface HotkeyItem {
+  type: string;
+  children: {
+    label: string;
+    value?: string;
+  }[];
+}
+
+export const HOTKEY_DOC: HotkeyItem[] = [
+  {
+    type: '',
+    children: [
+      { label: '', value: 'Ctrl + X' },
+      { label: '', value: 'Ctrl + C' },
+      { label: '', value: 'Ctrl + V' },
+      { label: '', value: 'Ctrl + Shift + V' },
+      { label: '', value: 'Ctrl + D' },
+      { label: '', value: 'Ctrl + A' },
+      { label: '', value: 'Ctrl + Z' },
+      { label: '', value: 'Ctrl + Y' },
+      { label: '', value: 'Delete / Backspace' },
+      { label: '', value: ' Ctrl  Shift' },
+      { label: '', value: 'Ctrl + F' },
+      { label: '', value: 'Ctrl + P' },
+      { label: '', value: 'ESC' },
+    ],
+  },
+  {
+    type: '',
+    children: [
+      { label: '', value: 'F5' },
+      { label: '', value: 'Shift + F5' },
+      { label: '', value: '↑ / ← / PgUp' },
+      { label: '', value: '↓ / → / PgDown' },
+      { label: '', value: 'Enter / Space' },
+      { label: '', value: 'ESC' },
+    ],
+  },
+  {
+    type: '',
+    children: [
+      { label: '', value: 'Enter' },
+      { label: '', value: 'Space + ' },
+      { label: '', value: 'Ctrl + ' },
+      { label: '', value: 'Ctrl + =' },
+      { label: '', value: 'Ctrl + -' },
+      { label: '', value: 'Ctrl + 0' },
+      { label: '', value: '↑' },
+      { label: '', value: '↓' },
+      { label: '', value: ' / PgUp' },
+      { label: '', value: ' / PgDown' },
+      { label: '', value: ' / T' },
+      { label: '', value: 'R' },
+      { label: '', value: 'O' },
+      { label: '', value: 'L' },
+      { label: '', value: '' },
+    ],
+  },
+  {
+    type: '',
+    children: [
+      { label: '', value: '↑ / ← / ↓ / →' },
+      { label: '', value: 'Ctrl + L' },
+      { label: '', value: 'Ctrl + G' },
+      { label: '', value: 'Ctrl + Shift + G' },
+      { label: '', value: 'Alt + F' },
+      { label: '', value: 'Alt + B' },
+      { label: '', value: ' Ctrl  Shift' },
+      { label: ' / ', value: ' Ctrl  Shift' },
+      { label: '', value: 'Tab' },
+      { label: '', value: 'Enter' },
+      { label: '', value: 'Enter' },
+    ],
+  },
+  {
+    type: '',
+    children: [
+      { label: '', value: 'Tab' },
+      { label: '', value: '↑ / ← / ↓ / →' },
+      { label: '', value: 'Ctrl + ↑' },
+      { label: '', value: 'Ctrl + ↓' },
+      { label: '', value: 'Ctrl + ←' },
+      { label: '', value: 'Ctrl + →' },
+    ],
+  },
+  {
+    type: '',
+    children: [{ label: '', value: 'Enter' }],
+  },
+  {
+    type: '',
+    children: [
+      { label: '', value: 'Ctrl + B' },
+      { label: '', value: 'Ctrl + I' },
+      { label: '', value: 'Ctrl + U' },
+      { label: '', value: 'Ctrl + E' },
+      { label: '', value: 'Ctrl + ;' },
+      { label: '', value: `Ctrl + '` },
+      { label: '', value: `ESC` },
+    ],
+  },
+  {
+    type: '',
+    children: [
+      { label: ' - ' },
+      { label: ' - ' },
+      { label: ' - SVG' },
+      { label: ' -  pexels ' },
+      { label: ' - ' },
+      { label: ' - ' },
+      { label: ' -  markdown ' },
+    ],
+  },
+];

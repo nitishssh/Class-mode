@@ -1,6 +1,6 @@
-import { WebSocketServer, WebSocket } from 'ws';
-import { Server } from 'http';
-import { storage } from '../storage';
+import { WebSocketServer, WebSocket } from "ws";
+import { Server } from "http";
+import { storage } from "../storage";
 
 interface AuthenticatedWebSocket extends WebSocket {
   userId?: number;
@@ -8,21 +8,21 @@ interface AuthenticatedWebSocket extends WebSocket {
 }
 
 export function setupGateway(server: Server) {
-  const wss = new WebSocketServer({ server, path: '/gateway' });
+  const wss = new WebSocketServer({ server, path: "/gateway" });
 
-  wss.on('connection', (ws: AuthenticatedWebSocket) => {
+  wss.on("connection", (ws: AuthenticatedWebSocket) => {
     ws.isAlive = true;
 
-    ws.on('pong', () => {
+    ws.on("pong", () => {
       ws.isAlive = true;
     });
 
-    ws.on('message', async (data) => {
+    ws.on("message", async (data) => {
       try {
         const payload = JSON.parse(data.toString());
 
         switch (payload.op) {
-          case 'IDENTIFY':
+          case "IDENTIFY":
             // In a real app, we'd verify a JWT here.
             // For now, we'll trust the userId if provided (dev mode)
             if (payload.d && payload.d.userId) {
@@ -32,22 +32,24 @@ export function setupGateway(server: Server) {
 
               // Send READY event
               const guilds = await storage.getWorkspaces(userId);
-              ws.send(JSON.stringify({
-                t: 'READY',
-                d: {
-                  user: await storage.getUser(userId),
-                  guilds
-                }
-              }));
+              ws.send(
+                JSON.stringify({
+                  t: "READY",
+                  d: {
+                    user: await storage.getUser(userId),
+                    guilds,
+                  },
+                })
+              );
             }
             break;
 
-          case 'HEARTBEAT':
-            ws.send(JSON.stringify({ op: 'HEARTBEAT_ACK' }));
+          case "HEARTBEAT":
+            ws.send(JSON.stringify({ op: "HEARTBEAT_ACK" }));
             break;
         }
       } catch (err) {
-        console.error('Gateway message error:', err);
+        console.error("Gateway message error:", err);
       }
     });
   });
@@ -61,7 +63,7 @@ export function setupGateway(server: Server) {
     });
   }, 30000);
 
-  wss.on('close', () => {
+  wss.on("close", () => {
     clearInterval(interval);
   });
 

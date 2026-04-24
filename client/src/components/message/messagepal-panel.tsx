@@ -1,21 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { 
-  MessageCircle, 
-  Send, 
-  Users, 
-  Search, 
+import {
+  MessageCircle,
+  Send,
+  Users,
+  Search,
   MoreVertical,
   Check,
   CheckCheck,
   Paperclip,
   Smile,
-  Loader2
+  Loader2,
 } from "lucide-react";
 import { useMessagePalWebSocket } from "./use-messagepal-ws";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
@@ -52,7 +52,7 @@ interface Conversation {
 }
 
 export function MessageSidebar() {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const { currentUser } = useFirebaseAuth();
   const userId = (currentUser?.profile as any)?.id as number | undefined;
@@ -61,14 +61,12 @@ export function MessageSidebar() {
     activeConversation,
     setActiveConversation,
     subscribeToConversation,
-    unsubscribeFromConversation
+    unsubscribeFromConversation,
   } = useMessagePalWebSocket(userId);
 
-  const filteredConversations = conversations.filter(conv => {
+  const filteredConversations = conversations.filter((conv) => {
     if (!searchTerm) return true;
-    return conv.participants.some(p => 
-      p.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    return conv.participants.some((p) => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
   });
 
   const handleConversationClick = (conversationId: string) => {
@@ -85,11 +83,11 @@ export function MessageSidebar() {
   };
 
   return (
-    <div className="flex flex-col h-full border-r bg-background">
+    <div className="flex h-full flex-col border-r bg-background">
       {/* Header */}
-      <div className="p-4 border-b">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
+      <div className="border-b p-4">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-lg font-semibold">
             <MessageCircle className="h-5 w-5" />
             Messages
           </h2>
@@ -97,10 +95,10 @@ export function MessageSidebar() {
             <MoreVertical className="h-4 w-4" />
           </Button>
         </div>
-        
+
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
           <Input
             placeholder="Search conversations..."
             value={searchTerm}
@@ -112,30 +110,30 @@ export function MessageSidebar() {
 
       {/* Conversations List */}
       <ScrollArea className="flex-1">
-        <div className="p-2 space-y-1">
+        <div className="space-y-1 p-2">
           {!userId ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : filteredConversations.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <MessageCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
+            <div className="py-8 text-center text-muted-foreground">
+              <MessageCircle className="mx-auto mb-2 h-12 w-12 opacity-50" />
               <p>No conversations yet</p>
               <p className="text-sm">Start a conversation with someone</p>
             </div>
           ) : (
             filteredConversations.map((conversation) => {
-              const otherParticipant = conversation.participants.find(p => p.id !== userId);
+              const otherParticipant = conversation.participants.find((p) => p.id !== userId);
               const isActive = activeConversation === conversation.id;
-              
+
               return (
                 <button
                   key={conversation.id}
                   onClick={() => handleConversationClick(conversation.id)}
-                  className={`w-full text-left p-3 rounded-lg transition-colors ${
-                    isActive 
-                      ? 'bg-primary/10 border border-primary/20' 
-                      : 'hover:bg-accent hover:text-accent-foreground'
+                  className={`w-full rounded-lg p-3 text-left transition-colors ${
+                    isActive
+                      ? "border border-primary/20 bg-primary/10"
+                      : "hover:bg-accent hover:text-accent-foreground"
                   }`}
                 >
                   <div className="flex items-start gap-3">
@@ -145,23 +143,21 @@ export function MessageSidebar() {
                         {otherParticipant?.name.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    
-                    <div className="flex-1 min-w-0">
+
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between">
-                        <h3 className="font-medium truncate">
-                          {otherParticipant?.name}
-                        </h3>
+                        <h3 className="truncate font-medium">{otherParticipant?.name}</h3>
                         {conversation.unreadCount > 0 && (
                           <Badge variant="default" className="h-5 px-2">
                             {conversation.unreadCount}
                           </Badge>
                         )}
                       </div>
-                      
-                      <p className="text-sm text-muted-foreground truncate mt-1">
-                        {conversation.lastMessage 
+
+                      <p className="mt-1 truncate text-sm text-muted-foreground">
+                        {conversation.lastMessage
                           ? `${conversation.lastMessage.senderName}: ${conversation.lastMessage.content}`
-                          : 'No messages yet'}
+                          : "No messages yet"}
                       </p>
                     </div>
                   </div>
@@ -176,7 +172,7 @@ export function MessageSidebar() {
 }
 
 export function MessageChatWindow() {
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState("");
   const { currentUser } = useFirebaseAuth();
   const userId = (currentUser?.profile as any)?.id as number | undefined;
   const {
@@ -185,23 +181,23 @@ export function MessageChatWindow() {
     conversations,
     sendMessage,
     sendTyping,
-    markMessageAsRead
+    markMessageAsRead,
   } = useMessagePalWebSocket(userId);
 
   // Resolve recipient from active conversation participants
-  const activeConv = conversations.find(c => c.id === activeConversation);
-  const recipientId = activeConv?.participants.find(p => p.id !== userId)?.id ?? 0;
+  const activeConv = conversations.find((c) => c.id === activeConversation);
+  const recipientId = activeConv?.participants.find((p) => p.id !== userId)?.id ?? 0;
 
   const handleSend = () => {
     if (!message.trim() || !activeConversation) return;
-    
+
     if (sendMessage(recipientId, message.trim())) {
-      setMessage('');
+      setMessage("");
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
@@ -210,7 +206,7 @@ export function MessageChatWindow() {
   // Mark messages as read when chat window is active
   useEffect(() => {
     if (activeConversation) {
-      messages.forEach(msg => {
+      messages.forEach((msg) => {
         if (!msg.isRead && msg.recipientId === userId) {
           markMessageAsRead(msg.id);
         }
@@ -220,9 +216,9 @@ export function MessageChatWindow() {
 
   if (!activeConversation) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-background">
-        <MessageCircle className="h-16 w-16 text-muted-foreground mb-4" />
-        <h3 className="text-xl font-semibold mb-2">No conversation selected</h3>
+      <div className="flex flex-1 flex-col items-center justify-center bg-background">
+        <MessageCircle className="mb-4 h-16 w-16 text-muted-foreground" />
+        <h3 className="mb-2 text-xl font-semibold">No conversation selected</h3>
         <p className="text-muted-foreground">
           Select a conversation from the sidebar to start chatting
         </p>
@@ -231,9 +227,9 @@ export function MessageChatWindow() {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-background">
+    <div className="flex flex-1 flex-col bg-background">
       {/* Chat Header */}
-      <div className="p-4 border-b flex items-center justify-between">
+      <div className="flex items-center justify-between border-b p-4">
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10">
             <AvatarFallback>JD</AvatarFallback>
@@ -254,30 +250,30 @@ export function MessageChatWindow() {
           {messages.map((msg) => (
             <div
               key={msg.id}
-              className={`flex ${msg.senderId === userId ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${msg.senderId === userId ? "justify-end" : "justify-start"}`}
             >
               <div
                 className={`max-w-[80%] rounded-2xl px-4 py-2 ${
-                  msg.senderId === userId
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted'
+                  msg.senderId === userId ? "bg-primary text-primary-foreground" : "bg-muted"
                 }`}
               >
                 {msg.senderId !== userId && (
-                  <p className="text-xs font-medium mb-1">{msg.senderName}</p>
+                  <p className="mb-1 text-xs font-medium">{msg.senderName}</p>
                 )}
                 <p className="text-sm">{msg.content}</p>
-                <div className="flex items-center justify-end gap-1 mt-1">
+                <div className="mt-1 flex items-center justify-end gap-1">
                   <span className="text-xs opacity-70">
-                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(msg.timestamp).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </span>
-                  {msg.senderId === userId && (
-                    msg.isRead ? (
+                  {msg.senderId === userId &&
+                    (msg.isRead ? (
                       <CheckCheck className="h-3 w-3" />
                     ) : (
                       <Check className="h-3 w-3" />
-                    )
-                  )}
+                    ))}
                 </div>
               </div>
             </div>
@@ -286,7 +282,7 @@ export function MessageChatWindow() {
       </ScrollArea>
 
       {/* Message Input */}
-      <div className="p-4 border-t">
+      <div className="border-t p-4">
         <div className="flex items-end gap-2">
           <Button variant="ghost" size="icon">
             <Paperclip className="h-4 w-4" />
@@ -303,11 +299,7 @@ export function MessageChatWindow() {
               className="w-full"
             />
           </div>
-          <Button 
-            onClick={handleSend}
-            disabled={!message.trim()}
-            size="icon"
-          >
+          <Button onClick={handleSend} disabled={!message.trim()} size="icon">
             <Send className="h-4 w-4" />
           </Button>
         </div>

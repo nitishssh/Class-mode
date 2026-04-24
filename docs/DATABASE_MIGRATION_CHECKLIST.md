@@ -3,26 +3,29 @@
 ## Pre-Migration
 
 - [ ] **Backup your database**
+
   ```bash
   # MongoDB backup
   mongodump --uri="$MONGODB_URL" --out=backup-$(date +%Y%m%d)
-  
+
   # Verify backup
   ls -lh backup-$(date +%Y%m%d)
   ```
 
 - [ ] **Review current database size**
+
   ```javascript
   // In MongoDB shell
-  db.stats()
-  db.getSiblingDB('eduai').stats()
+  db.stats();
+  db.getSiblingDB("eduai").stats();
   ```
 
 - [ ] **Check current index usage**
+
   ```javascript
   // For each collection
-  db.users.getIndexes()
-  db.tests.getIndexes()
+  db.users.getIndexes();
+  db.tests.getIndexes();
   // etc.
   ```
 
@@ -37,11 +40,13 @@
 ### 1. Code Update
 
 - [ ] Pull latest code
+
   ```bash
   git pull origin main
   ```
 
 - [ ] Install dependencies
+
   ```bash
   npm install
   ```
@@ -61,11 +66,13 @@
 ### 3. Database Indexes
 
 - [ ] Start the application (indexes will be created automatically)
+
   ```bash
   npm run dev
   ```
 
 - [ ] Monitor logs for index creation
+
   ```bash
   tail -f logs/app.log | grep -i "index"
   ```
@@ -73,21 +80,23 @@
 - [ ] Verify indexes were created
   ```javascript
   // In MongoDB shell
-  db.users.getIndexes()
-  db.tests.getIndexes()
-  db.sessions.getIndexes()
-  db.otps.getIndexes()
+  db.users.getIndexes();
+  db.tests.getIndexes();
+  db.sessions.getIndexes();
+  db.otps.getIndexes();
   // ... check all collections
   ```
 
 ### 4. Health Check Verification
 
 - [ ] Test basic health endpoint
+
   ```bash
   curl http://localhost:5001/api/health
   ```
 
 - [ ] Test detailed health endpoint
+
   ```bash
   curl http://localhost:5001/api/health/detailed
   ```
@@ -98,6 +107,7 @@
 ### 5. Performance Verification
 
 - [ ] Run a few test queries
+
   ```bash
   # Example: Get tests for a teacher
   curl -H "Authorization: Bearer $TOKEN" \
@@ -105,6 +115,7 @@
   ```
 
 - [ ] Check query performance in logs
+
   ```bash
   tail -f logs/app.log | grep -i "query"
   ```
@@ -115,20 +126,22 @@
 ### 6. TTL Index Verification
 
 - [ ] Create a test session with past expiry
+
   ```javascript
   // In MongoDB shell
   db.sessions.insertOne({
     id: 999999,
     userId: 1,
     refreshTokenHash: "test",
-    expiresAt: new Date(Date.now() - 1000)
-  })
+    expiresAt: new Date(Date.now() - 1000),
+  });
   ```
 
 - [ ] Wait 60 seconds
 - [ ] Verify session was auto-deleted
+
   ```javascript
-  db.sessions.findOne({ id: 999999 })  // Should return null
+  db.sessions.findOne({ id: 999999 }); // Should return null
   ```
 
 - [ ] Repeat for OTPs collection
@@ -138,16 +151,19 @@
 ### Monitoring (First 24 Hours)
 
 - [ ] Monitor application logs for errors
+
   ```bash
   tail -f logs/app.log | grep -i "error"
   ```
 
 - [ ] Monitor slow queries
+
   ```bash
   tail -f logs/app.log | grep -i "slow query"
   ```
 
 - [ ] Check database connection stability
+
   ```bash
   # Check health endpoint every 5 minutes
   watch -n 300 'curl -s http://localhost:5001/api/health | jq'
@@ -156,7 +172,7 @@
 - [ ] Monitor database size (should decrease over time due to TTL)
   ```javascript
   // Run daily
-  db.stats()
+  db.stats();
   ```
 
 ### Performance Comparison
@@ -178,24 +194,28 @@
 ### If Issues Occur
 
 1. **Stop the application**
+
    ```bash
    # Stop the process
    pkill -f "node.*server"
    ```
 
 2. **Restore from backup**
+
    ```bash
    # Restore MongoDB
    mongorestore --uri="$MONGODB_URL" --drop backup-YYYYMMDD/
    ```
 
 3. **Revert code changes**
+
    ```bash
    git checkout <previous-commit-hash>
    npm install
    ```
 
 4. **Restart application**
+
    ```bash
    npm run dev
    ```
@@ -208,35 +228,40 @@
 ### Common Issues & Solutions
 
 #### Issue: Indexes not created
-**Solution**: 
+
+**Solution**:
+
 ```javascript
 // Manually create indexes in MongoDB shell
-db.tests.createIndex({ teacherId: 1, status: 1 })
-db.tests.createIndex({ class: 1, status: 1 })
+db.tests.createIndex({ teacherId: 1, status: 1 });
+db.tests.createIndex({ class: 1, status: 1 });
 // ... etc
 ```
 
 #### Issue: TTL indexes not working
+
 **Solution**:
+
 ```javascript
 // Verify TTL index exists
-db.sessions.getIndexes()
+db.sessions.getIndexes();
 
 // If missing, create manually
-db.sessions.createIndex(
-  { expiresAt: 1 },
-  { expireAfterSeconds: 0 }
-)
+db.sessions.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 ```
 
 #### Issue: Connection pool exhausted
+
 **Solution**:
+
 - Increase `maxPoolSize` in `server/db.ts`
 - Check for connection leaks in application code
 - Monitor active connections
 
 #### Issue: Slow queries persist
+
 **Solution**:
+
 - Verify indexes are being used: `db.collection.explain().find(...)`
 - Check query patterns in application code
 - Consider adding additional indexes
@@ -268,11 +293,13 @@ If you encounter issues:
 
 ---
 
-**Migration Date**: _____________
-**Performed By**: _____________
+**Migration Date**: ******\_******
+**Performed By**: ******\_******
 **Status**: ⬜ Pending | ⬜ In Progress | ⬜ Complete | ⬜ Rolled Back
-**Notes**: 
+**Notes**:
 
-_____________________________________________
-_____________________________________________
-_____________________________________________
+---
+
+---
+
+---

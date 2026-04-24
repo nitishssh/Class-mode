@@ -10,6 +10,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -21,10 +22,13 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document provides comprehensive documentation for the question data model and validation system in PersonalLearningPro. It covers the Question interface definition, Zod validation schema, relationships with tests, question ordering mechanisms, optional field handling for different question types, and the end-to-end data transformation and API flow. The goal is to enable developers to understand how questions are modeled, validated, persisted, and retrieved within the system.
 
 ## Project Structure
+
 The question data model spans three layers:
+
 - Shared validation layer: Defines Zod schemas and TypeScript types for runtime validation and type inference.
 - Client-side form layer: Handles user input, conditional validation, and payload transformation before submission.
 - Server-side persistence layer: Validates requests, enforces ownership and access rules, persists to MongoDB, and exposes REST endpoints.
@@ -50,6 +54,7 @@ SERVER_STORAGE --> SH_MONGO
 ```
 
 **Diagram sources**
+
 - [schema.ts](file://shared/schema.ts#L28-L37)
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L40-L50)
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L36-L45)
@@ -57,6 +62,7 @@ SERVER_STORAGE --> SH_MONGO
 - [storage.ts](file://server/storage.ts#L192-L211)
 
 **Section sources**
+
 - [schema.ts](file://shared/schema.ts#L28-L37)
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L40-L50)
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L36-L45)
@@ -64,6 +70,7 @@ SERVER_STORAGE --> SH_MONGO
 - [storage.ts](file://server/storage.ts#L192-L211)
 
 ## Core Components
+
 This section defines the Question interface and its validation schema, including field requirements, constraints, and data types.
 
 - Question Interface Definition
@@ -92,10 +99,12 @@ This section defines the Question interface and its validation schema, including
   - Question: InsertQuestion with additional id and createdAt fields.
 
 **Section sources**
+
 - [schema.ts](file://shared/schema.ts#L28-L37)
 - [schema.ts](file://shared/schema.ts#L78-L79)
 
 ## Architecture Overview
+
 The question lifecycle involves client-side form validation, server-side Zod parsing, ownership checks, persistence, and retrieval with ordering.
 
 ```mermaid
@@ -115,6 +124,7 @@ API-->>Client : "201 Created Question"
 ```
 
 **Diagram sources**
+
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L77-L88)
 - [routes.ts](file://server/routes.ts#L250-L278)
 - [storage.ts](file://server/storage.ts#L192-L197)
@@ -123,6 +133,7 @@ API-->>Client : "201 Created Question"
 ## Detailed Component Analysis
 
 ### Question Data Model
+
 The Question model is defined in both shared Zod schemas and MongoDB schemas to ensure consistency across client, server, and persistence layers.
 
 ```mermaid
@@ -153,15 +164,18 @@ TEST ||--o{ QUESTION : "contains"
   - Questions are stored with an order field and retrieved sorted ascending by order for consistent sequencing.
 
 **Diagram sources**
+
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L25-L38)
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L40-L50)
 - [storage.ts](file://server/storage.ts#L204-L207)
 
 **Section sources**
+
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L40-L50)
 - [storage.ts](file://server/storage.ts#L204-L207)
 
 ### Zod Validation Schema
+
 The insertQuestionSchema defines strict validation rules for incoming question payloads.
 
 - Field Requirements and Constraints
@@ -179,10 +193,12 @@ The insertQuestionSchema defines strict validation rules for incoming question p
   - Question: InsertQuestion augmented with id and createdAt.
 
 **Section sources**
+
 - [schema.ts](file://shared/schema.ts#L28-L37)
 - [schema.ts](file://shared/schema.ts#L78-L79)
 
 ### Client-Side Form Validation and Transformation
+
 The QuestionForm component manages dynamic question types, local validation, and payload transformation before sending to the server.
 
 - Conditional Fields and Validation
@@ -215,15 +231,18 @@ SendPayload --> End
 ```
 
 **Diagram sources**
+
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L162-L204)
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L77-L88)
 
 **Section sources**
+
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L36-L45)
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L162-L204)
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L77-L88)
 
 ### Server-Side Validation, Ownership, and Persistence
+
 The server validates requests, enforces ownership, and persists questions to MongoDB.
 
 - Route: POST /api/questions
@@ -255,16 +274,19 @@ Routes-->>Client : "201 Created Question"
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L250-L278)
 - [storage.ts](file://server/storage.ts#L192-L197)
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L40-L50)
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L250-L278)
 - [storage.ts](file://server/storage.ts#L192-L197)
 - [storage.ts](file://server/storage.ts#L204-L207)
 
 ### Question Ordering System
+
 Questions maintain sequence within a test using the order field.
 
 - Creation: The order value is supplied by the client (typically incremented from the last question’s order).
@@ -272,10 +294,12 @@ Questions maintain sequence within a test using the order field.
 - UI Behavior: After adding a question, the form resets with order incremented by 1 to facilitate sequential addition.
 
 **Section sources**
+
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L95-L104)
 - [storage.ts](file://server/storage.ts#L204-L207)
 
 ### Optional Fields and Conditional Validation
+
 Different question types utilize optional fields conditionally:
 
 - MCQ
@@ -290,10 +314,12 @@ Different question types utilize optional fields conditionally:
   - aiRubric: Optional for all types.
 
 **Section sources**
+
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L162-L204)
 - [schema.ts](file://shared/schema.ts#L28-L37)
 
 ### Data Transformation and API Payload Handling
+
 - Client to Server
   - MCQ: Options are normalized and correctAnswer is derived from the selected option index.
   - Numerical: correctAnswer must be present.
@@ -303,10 +329,12 @@ Different question types utilize optional fields conditionally:
   - On validation errors, the server responds with a structured error payload containing validation details.
 
 **Section sources**
+
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L77-L88)
 - [routes.ts](file://server/routes.ts#L272-L277)
 
 ## Dependency Analysis
+
 The question system exhibits clear separation of concerns across layers with explicit dependencies.
 
 ```mermaid
@@ -323,6 +351,7 @@ STORAGE --> MONGO
 ```
 
 **Diagram sources**
+
 - [schema.ts](file://shared/schema.ts#L28-L37)
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L36-L45)
 - [routes.ts](file://server/routes.ts#L250-L278)
@@ -330,6 +359,7 @@ STORAGE --> MONGO
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L40-L50)
 
 **Section sources**
+
 - [schema.ts](file://shared/schema.ts#L28-L37)
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L36-L45)
 - [routes.ts](file://server/routes.ts#L250-L278)
@@ -337,12 +367,14 @@ STORAGE --> MONGO
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L40-L50)
 
 ## Performance Considerations
+
 - Query Sorting: Retrieving questions by testId and sorting by order is efficient with an appropriate index on the Question collection.
 - Auto-increment IDs: Using a counter collection ensures predictable IDs but requires atomic updates; monitor contention under high write loads.
 - Validation Overhead: Zod parsing occurs on every request; keep schemas minimal and avoid unnecessary transformations in hot paths.
 - Caching: Consider caching frequently accessed test-question sets to reduce database load.
 
 ## Troubleshooting Guide
+
 Common issues and resolutions:
 
 - Validation Errors
@@ -363,8 +395,10 @@ Common issues and resolutions:
   - Resolution: Ensure order values are unique and sequential per test; retrieve with sort(order: 1).
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L250-L278)
 - [storage.ts](file://server/storage.ts#L204-L207)
 
 ## Conclusion
+
 The question data model in PersonalLearningPro is designed with clear validation, robust ownership enforcement, and consistent ordering. The shared Zod schemas ensure type safety across the stack, while client-side transformations prepare payloads tailored to each question type. Server routes validate inputs rigorously, enforce ownership, and persist records efficiently. Together, these components provide a reliable foundation for managing assessments and their constituent questions.

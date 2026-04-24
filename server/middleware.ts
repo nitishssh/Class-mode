@@ -3,6 +3,10 @@ import mongoose from "mongoose";
 
 // ── DB health guard ───────────────────────────────────────────────────────────
 export function requireDb(req: Request, res: Response, next: NextFunction) {
+  // Allow health / diagnostic endpoints through even when DB is down
+  if (req.path === "/health" || req.path.startsWith("/health/") || req.path === "/ai-classroom/health") {
+    return next();
+  }
   if (mongoose.connection.readyState !== 1) {
     return res.status(503).json({ error: "Database unavailable, try again shortly" });
   }

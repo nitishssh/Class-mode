@@ -20,6 +20,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -34,10 +35,13 @@
 12. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document presents the architecture of PersonalLearningPro, an AI-powered personalized learning platform. The system follows a layered clean architecture with clear separation between presentation, application, domain, and infrastructure concerns. It integrates a React frontend with an Express backend, multi-database persistence using MongoDB and Cassandra (via Astra DB), WebSocket real-time communication, and AI services (OpenAI and Tesseract). The document explains component roles, data flows, and operational patterns, and provides guidance on scalability, security, and deployment.
 
 ## Project Structure
+
 The repository is organized into three primary areas:
+
 - client: React application built with Vite, providing role-aware dashboards, chat UI, OCR scanning, analytics, and AI tutoring.
 - server: Express server hosting REST APIs, WebSocket servers, session management, and integrations with AI and databases.
 - shared: Validation schemas and shared types used by both client and server.
@@ -76,6 +80,7 @@ BE_Routes --> SH_Schema
 ```
 
 **Diagram sources**
+
 - [server/index.ts](file://server/index.ts#L1-L114)
 - [server/routes.ts](file://server/routes.ts#L1-L1104)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L1-L393)
@@ -90,10 +95,12 @@ BE_Routes --> SH_Schema
 - [client/src/lib/firebase.ts](file://client/src/lib/firebase.ts#L1-L212)
 
 **Section sources**
+
 - [README.md](file://README.md#L70-L102)
 - [package.json](file://package.json#L1-L120)
 
 ## Core Components
+
 - Presentation Layer (client):
   - Role-aware routing and UI composition in App.tsx.
   - Firebase integration for authentication and user profiles.
@@ -110,6 +117,7 @@ BE_Routes --> SH_Schema
   - Storage abstraction coordinating MongoDB and Cassandra.
 
 **Section sources**
+
 - [client/src/App.tsx](file://client/src/App.tsx#L93-L150)
 - [client/src/lib/firebase.ts](file://client/src/lib/firebase.ts#L1-L212)
 - [server/routes.ts](file://server/routes.ts#L1-L1104)
@@ -119,7 +127,9 @@ BE_Routes --> SH_Schema
 - [shared/schema.ts](file://shared/schema.ts#L1-L142)
 
 ## Architecture Overview
+
 The system adheres to clean architecture principles:
+
 - Presentation depends on application interfaces.
 - Application orchestrates use cases and delegates persistence to the domain.
 - Domain defines schemas and validation.
@@ -162,6 +172,7 @@ Schemas --> WS_MP
 ```
 
 **Diagram sources**
+
 - [client/src/App.tsx](file://client/src/App.tsx#L1-L165)
 - [client/src/lib/firebase.ts](file://client/src/lib/firebase.ts#L1-L212)
 - [server/routes.ts](file://server/routes.ts#L1-L1104)
@@ -176,6 +187,7 @@ Schemas --> WS_MP
 ## Detailed Component Analysis
 
 ### Frontend: Client Application
+
 - Routing and layout:
   - Role-aware routing selects dashboards and feature pages.
   - AppLayout composes sidebar and main content area.
@@ -201,14 +213,17 @@ end
 ```
 
 **Diagram sources**
+
 - [client/src/App.tsx](file://client/src/App.tsx#L93-L150)
 - [client/src/lib/firebase.ts](file://client/src/lib/firebase.ts#L1-L212)
 
 **Section sources**
+
 - [client/src/App.tsx](file://client/src/App.tsx#L1-L165)
 - [client/src/lib/firebase.ts](file://client/src/lib/firebase.ts#L1-L212)
 
 ### Backend: REST API and Middleware
+
 - Entry point:
   - Express server initializes sessions, static uploads, logging, and routes.
 - Routes:
@@ -233,17 +248,20 @@ Err401 --> Done
 ```
 
 **Diagram sources**
+
 - [server/routes.ts](file://server/routes.ts#L1-L1104)
 - [server/storage.ts](file://server/storage.ts#L1-L519)
 - [shared/schema.ts](file://shared/schema.ts#L1-L142)
 
 **Section sources**
+
 - [server/index.ts](file://server/index.ts#L1-L114)
 - [server/routes.ts](file://server/routes.ts#L1-L1104)
 - [server/storage.ts](file://server/storage.ts#L1-L519)
 - [shared/schema.ts](file://shared/schema.ts#L1-L142)
 
 ### Real-Time Communication: WebSocket Servers
+
 - Chat WebSocket (/ws/chat):
   - Session-based authentication, presence, typing indicators, rate limiting, and AI command support.
 - MessagePal WebSocket (/messagepal):
@@ -270,16 +288,19 @@ WSCore-->>Client : Broadcast to channel
 ```
 
 **Diagram sources**
+
 - [server/chat-ws.ts](file://server/chat-ws.ts#L119-L393)
 - [server/messagepal/index.ts](file://server/messagepal/index.ts#L262-L375)
 - [server/storage.ts](file://server/storage.ts#L413-L422)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L20-L42)
 
 **Section sources**
+
 - [server/chat-ws.ts](file://server/chat-ws.ts#L1-L393)
 - [server/messagepal/index.ts](file://server/messagepal/index.ts#L1-L410)
 
 ### Multi-Database Architecture: MongoDB and Cassandra
+
 - MongoDB:
   - Primary store for user, test, question, attempt, answer, analytics, workspace, channel, and message metadata.
 - Cassandra (Astra DB):
@@ -305,15 +326,18 @@ MongoStorage --> CassandraClient : "optional"
 ```
 
 **Diagram sources**
+
 - [server/storage.ts](file://server/storage.ts#L110-L519)
 - [server/lib/cassandra.ts](file://server/lib/cassandra.ts#L1-L73)
 
 **Section sources**
+
 - [server/db.ts](file://server/db.ts#L1-L21)
 - [server/lib/cassandra.ts](file://server/lib/cassandra.ts#L1-L73)
 - [server/storage.ts](file://server/storage.ts#L1-L519)
 
 ### AI Integration Patterns
+
 - OpenAI:
   - Chat completions for AI tutor, evaluation of subjective answers, study plan generation, and test performance analysis.
 - Tesseract:
@@ -340,16 +364,19 @@ API-->>Client : OCR result
 ```
 
 **Diagram sources**
+
 - [server/lib/openai.ts](file://server/lib/openai.ts#L1-L217)
 - [server/lib/tesseract.ts](file://server/lib/tesseract.ts#L1-L33)
 - [server/routes.ts](file://server/routes.ts#L488-L580)
 
 **Section sources**
+
 - [server/lib/openai.ts](file://server/lib/openai.ts#L1-L217)
 - [server/lib/tesseract.ts](file://server/lib/tesseract.ts#L1-L33)
 - [server/routes.ts](file://server/routes.ts#L466-L580)
 
 ## Dependency Analysis
+
 - Internal dependencies:
   - Routes depend on storage, schemas, and AI/OCR utilities.
   - Storage depends on MongoDB and optional Cassandra client.
@@ -373,6 +400,7 @@ Server --> |hosts| WS2["server/messagepal/index.ts"]
 ```
 
 **Diagram sources**
+
 - [shared/schema.ts](file://shared/schema.ts#L1-L142)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L1-L217)
 - [server/lib/tesseract.ts](file://server/lib/tesseract.ts#L1-L33)
@@ -384,9 +412,11 @@ Server --> |hosts| WS2["server/messagepal/index.ts"]
 - [server/messagepal/index.ts](file://server/messagepal/index.ts#L1-L410)
 
 **Section sources**
+
 - [package.json](file://package.json#L12-L88)
 
 ## Performance Considerations
+
 - Database choice:
   - Cassandra is optimized for high write throughput and time-ordered reads for messages, reducing latency for chat histories.
 - Caching and polling:
@@ -399,6 +429,7 @@ Server --> |hosts| WS2["server/messagepal/index.ts"]
 [No sources needed since this section provides general guidance]
 
 ## Security Architecture
+
 - Authentication:
   - Firebase Auth integrated in the client; session middleware on the server maintains authenticated state.
 - Authorization:
@@ -409,6 +440,7 @@ Server --> |hosts| WS2["server/messagepal/index.ts"]
   - Environment variables for Firebase, OpenAI, and database credentials.
 
 **Section sources**
+
 - [client/src/lib/firebase.ts](file://client/src/lib/firebase.ts#L1-L212)
 - [server/index.ts](file://server/index.ts#L35-L44)
 - [server/routes.ts](file://server/routes.ts#L110-L247)
@@ -416,6 +448,7 @@ Server --> |hosts| WS2["server/messagepal/index.ts"]
 - [server/lib/cassandra.ts](file://server/lib/cassandra.ts#L9-L27)
 
 ## Deployment Topology
+
 - Single-container deployment:
   - Docker Compose exposes port 5001 and mounts source directories for hot reload.
 - Ports:
@@ -442,16 +475,20 @@ App --> Astra
 ```
 
 **Diagram sources**
+
 - [docker-compose.yml](file://docker-compose.yml#L1-L24)
 - [server/index.ts](file://server/index.ts#L103-L113)
 - [server/messagepal/index.ts](file://server/messagepal/index.ts#L379-L410)
 
 **Section sources**
+
 - [docker-compose.yml](file://docker-compose.yml#L1-L24)
 - [README.md](file://README.md#L21-L52)
 
 ## System Context and External Dependencies
+
 External systems and their roles:
+
 - Firebase:
   - Authentication and user profiles for the client.
 - OpenAI:
@@ -492,6 +529,7 @@ WS2 --> Store
 ```
 
 **Diagram sources**
+
 - [client/src/lib/firebase.ts](file://client/src/lib/firebase.ts#L1-L212)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L1-L217)
 - [server/lib/tesseract.ts](file://server/lib/tesseract.ts#L1-L33)
@@ -499,6 +537,7 @@ WS2 --> Store
 - [server/storage.ts](file://server/storage.ts#L1-L519)
 
 **Section sources**
+
 - [README.md](file://README.md#L53-L69)
 - [client/src/lib/firebase.ts](file://client/src/lib/firebase.ts#L1-L212)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L1-L217)
@@ -506,6 +545,7 @@ WS2 --> Store
 - [server/lib/cassandra.ts](file://server/lib/cassandra.ts#L1-L73)
 
 ## Troubleshooting Guide
+
 - MongoDB connectivity:
   - Missing MONGODB_URL prevents MongoDB connection; server continues without it.
 - Cassandra connectivity:
@@ -518,6 +558,7 @@ WS2 --> Store
   - OpenAI errors are caught and surfaced; ensure OPENAI_API_KEY is configured.
 
 **Section sources**
+
 - [server/db.ts](file://server/db.ts#L4-L19)
 - [server/lib/cassandra.ts](file://server/lib/cassandra.ts#L13-L16)
 - [server/index.ts](file://server/index.ts#L31-L33)
@@ -525,4 +566,5 @@ WS2 --> Store
 - [server/lib/openai.ts](file://server/lib/openai.ts#L38-L41)
 
 ## Conclusion
+
 PersonalLearningPro applies clean architecture to separate concerns across presentation, application, domain, and infrastructure layers. The system’s frontend and backend communicate via REST and WebSockets, backed by a dual-database strategy that leverages MongoDB for rich domain modeling and Cassandra for scalable message operations. AI services (OpenAI and Tesseract) augment core capabilities, while Firebase provides authentication. The documented patterns and diagrams should guide future development, scaling, and maintenance.

@@ -15,6 +15,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -27,10 +28,13 @@
 10. [Appendices](#appendices)
 
 ## Introduction
+
 This document provides comprehensive API documentation for PersonalLearningPro’s RESTful and WebSocket endpoints. It covers HTTP endpoints for user management, assessments, communication, and data operations, as well as WebSocket connections for real-time chat and MessagePal messaging. The guide includes endpoint categorization, authentication requirements, request/response schemas, error handling, rate limiting, and client integration patterns.
 
 ## Project Structure
+
 The backend is an Express server with:
+
 - REST routes registered under /api
 - WebSocket servers for chat (/ws/chat) and MessagePal (/messagepal)
 - A dedicated HTTP server for MessagePal endpoints
@@ -57,6 +61,7 @@ MessageHTTP --> Storage
 ```
 
 **Diagram sources**
+
 - [server/index.ts](file://server/index.ts#L107-L113)
 - [server/routes.ts](file://server/routes.ts#L11-L1102)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L119-L392)
@@ -66,10 +71,12 @@ MessageHTTP --> Storage
 - [server/lib/openai.ts](file://server/lib/openai.ts#L20-L42)
 
 **Section sources**
+
 - [server/index.ts](file://server/index.ts#L1-L114)
 - [server/routes.ts](file://server/routes.ts#L11-L1102)
 
 ## Core Components
+
 - REST API: Routes under /api for authentication, user, test, question, attempt, answer, OCR, AI evaluation, workspace/channel/message CRUD, and uploads.
 - Chat WebSocket: Real-time chat over /ws/chat with presence, typing indicators, read receipts, and rate-limited message sending.
 - MessagePal WebSocket/HTTP: Real-time messaging over /messagepal with HTTP endpoints for conversations and history.
@@ -77,6 +84,7 @@ MessageHTTP --> Storage
 - Validation: Zod schemas define request/response shapes for robust API contracts.
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L11-L1102)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L119-L392)
 - [server/message/index.ts](file://server/message/index.ts#L262-L375)
@@ -85,7 +93,9 @@ MessageHTTP --> Storage
 - [shared/schema.ts](file://shared/schema.ts#L1-L142)
 
 ## Architecture Overview
+
 The system integrates REST and WebSocket communications:
+
 - REST endpoints handle CRUD and batch operations with session-based authentication.
 - WebSocket endpoints enable real-time collaboration with presence, typing, read receipts, and optional AI assistance.
 - MessagePal provides a separate real-time messaging service with its own WebSocket and HTTP endpoints.
@@ -114,6 +124,7 @@ M-->>Recipient : "message_received {message}"
 ```
 
 **Diagram sources**
+
 - [server/routes.ts](file://server/routes.ts#L49-L85)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L122-L156)
 - [server/message/index.ts](file://server/message/index.ts#L276-L307)
@@ -121,6 +132,7 @@ M-->>Recipient : "message_received {message}"
 ## Detailed Component Analysis
 
 ### Authentication and User Management
+
 - POST /api/auth/register
   - Purpose: Register a new user.
   - Authentication: None.
@@ -154,6 +166,7 @@ M-->>Recipient : "message_received {message}"
     - [server/routes.ts](file://server/routes.ts#L87-L107)
 
 ### Assessment and Test Operations
+
 - POST /api/tests
   - Purpose: Create a test (teacher only).
   - Authentication: Session required; role must be teacher; teacherId must match session.
@@ -256,6 +269,7 @@ M-->>Recipient : "message_received {message}"
     - [server/lib/openai.ts](file://server/lib/openai.ts#L20-L42)
 
 ### Communication and Messaging (REST)
+
 - POST /api/workspaces
   - Purpose: Create a workspace; owner becomes member.
   - Authentication: Session required.
@@ -440,6 +454,7 @@ M-->>Recipient : "message_received {message}"
     - [server/routes.ts](file://server/routes.ts#L1066-L1095)
 
 ### Communication and Messaging (WebSocket: Chat)
+
 - Path: /ws/chat
 - Authentication: Session-based; validates session cookie and loads user metadata.
 - Events (client -> server):
@@ -463,6 +478,7 @@ M-->>Recipient : "message_received {message}"
   - [server/chat-ws.ts](file://server/chat-ws.ts#L119-L392)
 
 ### Communication and Messaging (WebSocket: MessagePal)
+
 - Path: /messagepal
 - Authentication: Session-based; validates session cookie.
 - Events (client -> server):
@@ -484,6 +500,7 @@ M-->>Recipient : "message_received {message}"
   - [server/message/index.ts](file://server/message/index.ts#L262-L375)
 
 ### MessagePal HTTP Endpoints
+
 - GET /api/conversations/:userId
   - Purpose: List conversations for a user.
   - Responses: 200 OK, 500 Internal Server Error.
@@ -517,6 +534,7 @@ M-->>Recipient : "message_received {message}"
   - [server/message/routes.ts](file://server/message/routes.ts#L1-L194)
 
 ### OCR and AI Evaluation
+
 - POST /api/ocr
   - Purpose: Process image data via OCR.
   - Authentication: Session required.
@@ -535,6 +553,7 @@ M-->>Recipient : "message_received {message}"
     - [server/lib/openai.ts](file://server/lib/openai.ts#L50-L105)
 
 ### Client-Side Integration Patterns
+
 - REST client utilities:
   - Credentials: include cookies for session-based auth.
   - Workspaces: fetch workspaces, channels, DMs.
@@ -550,6 +569,7 @@ M-->>Recipient : "message_received {message}"
     - [client/src/hooks/use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L65-L218)
 
 ### Request/Response Schemas
+
 - User: { id, username, name, email, role, avatar?, class?, subject? }
 - Test: { id, title, description?, subject, class, teacherId, totalMarks, duration, testDate, questionTypes, status }
 - Question: { id, testId, type, text, options?, correctAnswer?, marks, order, aiRubric? }
@@ -562,6 +582,7 @@ M-->>Recipient : "message_received {message}"
   - [shared/schema.ts](file://shared/schema.ts#L72-L141)
 
 ### Authentication and Authorization
+
 - Session-based auth:
   - Cookies: connect.sid
   - Roles: student, teacher, principal, admin, parent
@@ -576,6 +597,7 @@ M-->>Recipient : "message_received {message}"
   - [server/message/index.ts](file://server/message/index.ts#L71-L93)
 
 ### Rate Limiting and Backpressure
+
 - Chat WebSocket:
   - Token bucket: 5 tokens every 5 seconds; rejects bursts
   - Heartbeat ping/pong; inactive clients terminated
@@ -584,6 +606,7 @@ M-->>Recipient : "message_received {message}"
   - [server/chat-ws.ts](file://server/chat-ws.ts#L262-L274)
 
 ### Error Handling and Status Codes
+
 - Common patterns:
   - 400 Bad Request: validation errors, malformed requests
   - 401 Unauthorized: missing/invalid session
@@ -596,16 +619,18 @@ M-->>Recipient : "message_received {message}"
   - [server/chat-ws.ts](file://server/chat-ws.ts#L126-L130)
 
 ### API Versioning, Compatibility, and Deprecation
+
 - No explicit versioning scheme observed in the codebase.
 - Backward compatibility is not documented; future changes should introduce deprecation notices and migration paths.
 - Recommendations:
-  - Adopt semantic versioning (e.g., /api/v1/*)
+  - Adopt semantic versioning (e.g., /api/v1/\*)
   - Maintain changelog entries for breaking changes
   - Provide grace periods and migration guides
 - Section sources
   - [server/index.ts](file://server/index.ts#L107-L113)
 
 ## Dependency Analysis
+
 ```mermaid
 graph TB
 R["routes.ts"]
@@ -628,6 +653,7 @@ MR --> S
 ```
 
 **Diagram sources**
+
 - [server/index.ts](file://server/index.ts#L10-L17)
 - [server/routes.ts](file://server/routes.ts#L1-L11)
 - [server/storage.ts](file://server/storage.ts#L1-L31)
@@ -638,11 +664,13 @@ MR --> S
 - [server/lib/openai.ts](file://server/lib/openai.ts#L1-L9)
 
 **Section sources**
+
 - [server/index.ts](file://server/index.ts#L10-L17)
 - [server/routes.ts](file://server/routes.ts#L1-L11)
 - [server/storage.ts](file://server/storage.ts#L1-L31)
 
 ## Performance Considerations
+
 - Message pagination: REST endpoints support limit and before parameters to constrain payloads.
 - Cassandra fallback: Message retrieval and mutation operations switch to Cassandra when available, otherwise fall back to MongoDB.
 - Rate limiting: Chat WebSocket enforces token bucket to prevent spam.
@@ -656,6 +684,7 @@ MR --> S
   - [server/chat-ws.ts](file://server/chat-ws.ts#L262-L274)
 
 ## Troubleshooting Guide
+
 - WebSocket Unauthorized (code 4001):
   - Cause: Invalid or missing session cookie.
   - Resolution: Re-authenticate and ensure cookies are sent.
@@ -675,11 +704,13 @@ MR --> S
   - [server/lib/openai.ts](file://server/lib/openai.ts#L4-L9)
 
 ## Conclusion
+
 PersonalLearningPro provides a robust REST API with comprehensive assessment and communication features, complemented by real-time WebSocket channels for chat and MessagePal messaging. Session-based authentication and strict access controls protect resources. Clients should leverage pagination, WebSocket for real-time updates, and implement resilient error handling and retry strategies.
 
 ## Appendices
 
 ### Endpoint Index by Feature Area
+
 - Authentication: /api/auth/register, /api/auth/login, /api/auth/logout
 - Users: /api/users/me
 - Tests: /api/tests, /api/tests/:id, PATCH /api/tests/:id, /api/tests/:testId/questions
@@ -693,6 +724,7 @@ PersonalLearningPro provides a robust REST API with comprehensive assessment and
 - MessagePal (HTTP): GET /api/conversations/:userId, GET /api/conversations/:conversationId/history, GET /api/messages/:messageId, POST /api/messages, PATCH /api/messages/:messageId/read, DELETE /api/conversations/:conversationId/users/:userId, GET /api/users/:userId/unread-count, POST /api/conversations/between-users
 
 ### Practical Examples
+
 - Login and persist session:
   - POST /api/auth/login with { username, password }
 - Create a test and add questions:
@@ -711,6 +743,7 @@ PersonalLearningPro provides a robust REST API with comprehensive assessment and
   - POST /api/upload with multipart/form-data
 
 ### Client Integration Best Practices
+
 - Use credentials: include for session persistence across fetch calls.
 - Implement exponential backoff for WebSocket reconnection.
 - Respect rate limits; throttle message sends.

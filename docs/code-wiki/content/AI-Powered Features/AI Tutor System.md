@@ -15,6 +15,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -26,10 +27,13 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document explains the AI tutor system implementation, focusing on the OpenAI integration for intelligent tutoring, chat message handling, conversation context management, and response generation. It covers system prompt engineering for high school-level explanations across STEM subjects, message flow architecture, error handling strategies, fallback mechanisms, practical examples of tutor interactions, subject-specific response patterns, conversation state management, performance optimization, rate limiting considerations, and cost management for AI API usage.
 
 ## Project Structure
+
 The AI tutor system spans the client and server layers:
+
 - Client-side React components manage the chat UI, conversation history persistence, and API communication.
 - Server-side Express routes expose REST endpoints and WebSocket servers for real-time chat and AI integration.
 - OpenAI integration encapsulates model selection, prompt engineering, and response parsing with robust error handling and fallbacks.
@@ -60,6 +64,7 @@ G --> H
 ```
 
 **Diagram sources**
+
 - [ai-tutor.tsx](file://client/src/pages/ai-tutor.tsx#L1-L604)
 - [chat-api.ts](file://client/src/lib/chat-api.ts#L1-L112)
 - [use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L1-L218)
@@ -70,10 +75,12 @@ G --> H
 - [storage.ts](file://server/storage.ts#L1-L200)
 
 **Section sources**
+
 - [README.md](file://README.md#L1-L148)
 - [index.ts](file://server/index.ts#L1-L114)
 
 ## Core Components
+
 - AI Tutor UI: Manages conversation creation, message composition, local persistence, and API requests.
 - OpenAI Integration: Provides chat completions, evaluation, study plan generation, and performance analysis with system prompts and JSON response parsing.
 - REST Routes: Exposes endpoints for AI chat, authentication, and chat message persistence.
@@ -81,6 +88,7 @@ G --> H
 - Storage Layer: Provides user, channel, and message operations used by both REST and WebSocket flows.
 
 **Section sources**
+
 - [ai-tutor.tsx](file://client/src/pages/ai-tutor.tsx#L1-L604)
 - [openai.ts](file://server/lib/openai.ts#L1-L217)
 - [routes.ts](file://server/routes.ts#L561-L580)
@@ -88,7 +96,9 @@ G --> H
 - [storage.ts](file://server/storage.ts#L1-L200)
 
 ## Architecture Overview
+
 The AI tutor integrates REST and WebSocket pathways:
+
 - REST path: Client sends messages to the AI chat endpoint; server invokes OpenAI and returns the response.
 - WebSocket path: Real-time chat supports presence, typing indicators, and AI responses triggered by special commands.
 
@@ -110,6 +120,7 @@ C-->>U : "Display AI response"
 ```
 
 **Diagram sources**
+
 - [ai-tutor.tsx](file://client/src/pages/ai-tutor.tsx#L122-L191)
 - [routes.ts](file://server/routes.ts#L561-L580)
 - [openai.ts](file://server/lib/openai.ts#L20-L42)
@@ -117,13 +128,16 @@ C-->>U : "Display AI response"
 ## Detailed Component Analysis
 
 ### AI Tutor UI (Client)
+
 Responsibilities:
+
 - Maintains conversation state in localStorage.
 - Constructs message arrays for the AI chat endpoint.
 - Handles loading states and error fallbacks.
 - Uses a system prompt to prime the AI’s behavior.
 
 Key behaviors:
+
 - Conversation lifecycle: create, update, persist.
 - Message composition: append user messages, call API, append assistant responses.
 - Error handling: display a friendly error message on failures.
@@ -143,19 +157,24 @@ Persist --> End(["UI updates"])
 ```
 
 **Diagram sources**
+
 - [ai-tutor.tsx](file://client/src/pages/ai-tutor.tsx#L122-L191)
 
 **Section sources**
+
 - [ai-tutor.tsx](file://client/src/pages/ai-tutor.tsx#L50-L191)
 
 ### OpenAI Integration (Server)
+
 Responsibilities:
+
 - Ensures a system message is present before invoking the model.
 - Calls the OpenAI chat completion API with the configured model.
 - Parses and validates JSON responses for specialized tasks (evaluation, study plan, performance analysis).
 - Implements fallbacks and sanitization for robustness.
 
 System prompt engineering:
+
 - Targets high school-level STEM explanations.
 - Encourages step-by-step math solutions and supportive tone.
 - Ensures clarity and conciseness while including examples when helpful.
@@ -172,18 +191,23 @@ Parse --> Return["Return { content }"]
 ```
 
 **Diagram sources**
+
 - [openai.ts](file://server/lib/openai.ts#L20-L42)
 
 **Section sources**
+
 - [openai.ts](file://server/lib/openai.ts#L1-L217)
 
 ### REST Routes (Server)
+
 Responsibilities:
+
 - Validates request bodies and session context.
 - Delegates AI chat to the OpenAI integration module.
 - Returns standardized JSON responses with appropriate HTTP status codes.
 
 Endpoints relevant to AI tutor:
+
 - POST /api/ai-chat: Accepts an array of messages and returns the AI’s response.
 
 ```mermaid
@@ -198,20 +222,25 @@ Routes-->>Client : "200 OK { content }"
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L561-L580)
 - [openai.ts](file://server/lib/openai.ts#L20-L42)
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L561-L580)
 
 ### WebSocket Chat (Server)
+
 Responsibilities:
+
 - Authenticates clients via session cookies.
 - Manages subscriptions to channels and broadcasts messages.
 - Implements rate limiting for message throughput.
 - Triggers AI responses when a special command is detected.
 
 Command handling:
+
 - Detects @AI command variants and responds with a typed indicator, then calls the AI chat function and broadcasts the AI’s reply.
 
 ```mermaid
@@ -234,20 +263,25 @@ ChatWS->>ChatWS : "Broadcast AI message"
 ```
 
 **Diagram sources**
+
 - [chat-ws.ts](file://server/chat-ws.ts#L248-L334)
 - [openai.ts](file://server/lib/openai.ts#L20-L42)
 - [storage.ts](file://server/storage.ts#L97-L106)
 
 **Section sources**
+
 - [chat-ws.ts](file://server/chat-ws.ts#L119-L393)
 
 ### Conversation State Management
+
 Client-side:
+
 - Conversations are stored in localStorage with timestamps and message arrays.
 - The active conversation is tracked and updated after each message exchange.
 - Titles are auto-generated from the first user message after the initial system message.
 
 Server-side:
+
 - Channels and messages are persisted via the storage layer.
 - WebSocket subscriptions maintain channel membership and presence.
 
@@ -264,14 +298,17 @@ Error --> ActiveConversation : "Show error message"
 ```
 
 **Diagram sources**
+
 - [ai-tutor.tsx](file://client/src/pages/ai-tutor.tsx#L96-L191)
 - [chat-ws.ts](file://server/chat-ws.ts#L248-L334)
 
 **Section sources**
+
 - [ai-tutor.tsx](file://client/src/pages/ai-tutor.tsx#L66-L191)
 - [storage.ts](file://server/storage.ts#L97-L106)
 
 ### Practical Examples of Tutor Interactions
+
 - Physics concept explanation: The system prompt directs the AI to explain concepts clearly and include examples suitable for high school students.
 - Math problem solving: The AI is instructed to show step-by-step solutions for math problems.
 - Chemistry reactions: The AI provides balanced equations and explains reaction mechanisms with appropriate terminology.
@@ -280,10 +317,12 @@ Error --> ActiveConversation : "Show error message"
 These patterns emerge from the system prompt and are reinforced by the AI’s JSON response parsing for evaluation tasks.
 
 **Section sources**
+
 - [openai.ts](file://server/lib/openai.ts#L20-L42)
 - [openai.ts](file://server/lib/openai.ts#L50-L105)
 
 ### Message Flow Architecture
+
 - REST flow: Client → routes.ts → openai.ts → OpenAI API → response back to client.
 - WebSocket flow: Client → chat-ws.ts → storage.ts → broadcast to channel → openai.ts → storage.ts → broadcast AI response.
 
@@ -303,16 +342,19 @@ end
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L561-L580)
 - [openai.ts](file://server/lib/openai.ts#L20-L42)
 - [chat-ws.ts](file://server/chat-ws.ts#L248-L334)
 - [storage.ts](file://server/storage.ts#L97-L106)
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L561-L580)
 - [chat-ws.ts](file://server/chat-ws.ts#L119-L393)
 
 ## Dependency Analysis
+
 - Client depends on:
   - REST API for chat responses.
   - WebSocket for real-time chat and typing indicators.
@@ -344,6 +386,7 @@ CS --> ST
 ```
 
 **Diagram sources**
+
 - [ai-tutor.tsx](file://client/src/pages/ai-tutor.tsx#L1-L604)
 - [chat-api.ts](file://client/src/lib/chat-api.ts#L1-L112)
 - [use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L1-L218)
@@ -353,10 +396,12 @@ CS --> ST
 - [storage.ts](file://server/storage.ts#L1-L200)
 
 **Section sources**
+
 - [index.ts](file://server/index.ts#L1-L114)
 - [routes.ts](file://server/routes.ts#L1-L800)
 
 ## Performance Considerations
+
 - Model selection: The integration targets a modern model optimized for speed and quality.
 - Rate limiting: WebSocket chat enforces a token-based rate limiter to prevent spamming.
 - Caching: Client-side localStorage reduces repeated network calls for conversation history.
@@ -370,7 +415,9 @@ CS --> ST
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
+
 Common issues and resolutions:
+
 - Missing OpenAI API key:
   - Symptom: AI features disabled with warnings.
   - Resolution: Set OPENAI_API_KEY in environment variables.
@@ -385,6 +432,7 @@ Common issues and resolutions:
   - Resolution: Verify system prompts and response formats; check server logs.
 
 **Section sources**
+
 - [.env.example](file://.env.example#L16-L19)
 - [openai.ts](file://server/lib/openai.ts#L38-L42)
 - [openai.ts](file://server/lib/openai.ts#L88-L104)
@@ -393,4 +441,5 @@ Common issues and resolutions:
 - [chat-ws.ts](file://server/chat-ws.ts#L262-L273)
 
 ## Conclusion
+
 The AI tutor system combines a user-friendly React interface with robust server-side OpenAI integration and real-time chat capabilities. The system prompt ensures high school-level, STEM-focused explanations, while error handling and fallbacks maintain reliability. Rate limiting and careful model selection contribute to performance and cost control. Together, these components deliver an adaptive, supportive learning experience.

@@ -50,7 +50,7 @@ export function getCassandraClient() {
       // Query options
       queryOptions: {
         consistency: 1, // LOCAL_ONE for better performance
-        prepare: true,  // Use prepared statements
+        prepare: true, // Use prepared statements
       },
       // Socket options
       socketOptions: {
@@ -113,18 +113,27 @@ export async function initCassandra() {
     } catch (err: any) {
       const errorMsg = err?.message || String(err);
       const innerErrorMsg = JSON.stringify(err?.innerErrors || {});
-      
+
       // Check if it's a hibernation/401 error (can be in message or innerErrors)
-      if (errorMsg.includes('401') || errorMsg.includes('Unauthorized') || 
-          innerErrorMsg.includes('401') || innerErrorMsg.includes('Unauthorized')) {
+      if (
+        errorMsg.includes("401") ||
+        errorMsg.includes("Unauthorized") ||
+        innerErrorMsg.includes("401") ||
+        innerErrorMsg.includes("Unauthorized")
+      ) {
         console.warn(`[Cassandra] Database appears to be hibernated (HTTP 401).`);
-        console.warn(`[Cassandra] The app will use MongoDB for messages. Wake your Astra DB at https://astra.datastax.com`);
+        console.warn(
+          `[Cassandra] The app will use MongoDB for messages. Wake your Astra DB at https://astra.datastax.com`
+        );
         hibernationDetected = true;
         isConnected = false;
         return false;
       }
-      
-      console.error(`Failed to connect to Astra DB (attempt ${attempt}/${MAX_CONNECTION_ATTEMPTS}):`, err);
+
+      console.error(
+        `Failed to connect to Astra DB (attempt ${attempt}/${MAX_CONNECTION_ATTEMPTS}):`,
+        err
+      );
       isConnected = false;
       return false;
     }
@@ -135,19 +144,23 @@ export async function initCassandra() {
     connectionAttempts = i;
     const success = await attemptConnection(i);
     if (success) return;
-    
+
     // Stop retrying if we detected hibernation
     if (hibernationDetected) {
-      console.warn("[Cassandra] Skipping retries for hibernated database. Falling back to MongoDB.");
+      console.warn(
+        "[Cassandra] Skipping retries for hibernated database. Falling back to MongoDB."
+      );
       return;
     }
-    
+
     if (i < MAX_CONNECTION_ATTEMPTS) {
       const delay = Math.min(1000 * Math.pow(2, i), 10000);
       console.log(`[Cassandra] Retrying in ${delay}ms...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
 
-  console.warn("[Cassandra] Max connection attempts reached. Falling back to MongoDB for messages.");
+  console.warn(
+    "[Cassandra] Max connection attempts reached. Falling back to MongoDB for messages."
+  );
 }

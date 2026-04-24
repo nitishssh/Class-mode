@@ -4,7 +4,7 @@ import { initCassandra } from "../server/lib/cassandra";
 
 async function test() {
   console.log("Starting Cassandra-only test...");
-  
+
   // Initialize Cassandra
   await initCassandra();
 
@@ -13,7 +13,7 @@ async function test() {
     channelId: testChannelId,
     authorId: 1,
     content: "Hello from Astra DB! " + new Date().toISOString(),
-    attachments: []
+    attachments: [],
   };
 
   try {

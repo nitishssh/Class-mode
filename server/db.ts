@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 // MongoDB Connection
 if (!process.env.MONGODB_URL) {
@@ -25,12 +25,14 @@ mongoose.connection.on("error", (err) => {
 mongoose.connection.on("disconnected", () => {
   console.warn("[MongoDB] disconnected");
   isConnected = false;
-  
+
   // Attempt reconnection with exponential backoff
   if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
     reconnectAttempts++;
     const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
-    console.info(`[MongoDB] attempting reconnection ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS} in ${delay}ms`);
+    console.info(
+      `[MongoDB] attempting reconnection ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS} in ${delay}ms`
+    );
     setTimeout(() => connectMongoDB(), delay);
   }
 });
@@ -45,8 +47,8 @@ export const connectMongoDB = async () => {
   if (!process.env.MONGODB_URL) return;
   try {
     await mongoose.connect(process.env.MONGODB_URL, {
-      tls: process.env.MONGODB_URL.includes('+srv'),
-      tlsAllowInvalidCertificates: process.env.MONGODB_URL.includes('+srv') ? true : undefined,
+      tls: process.env.MONGODB_URL.includes("+srv"),
+      tlsAllowInvalidCertificates: process.env.MONGODB_URL.includes("+srv") ? true : undefined,
       // Connection pool configuration
       maxPoolSize: 10,
       minPoolSize: 2,
@@ -56,10 +58,10 @@ export const connectMongoDB = async () => {
       retryWrites: true,
       retryReads: true,
     });
-    console.log('MongoDB Connected...');
+    console.log("MongoDB Connected...");
     isConnected = true;
   } catch (err) {
-    console.error('MongoDB connection error (non-fatal, server will continue):', err);
+    console.error("MongoDB connection error (non-fatal, server will continue):", err);
     isConnected = false;
     // Do not exit — server can still serve the app without MongoDB
   }

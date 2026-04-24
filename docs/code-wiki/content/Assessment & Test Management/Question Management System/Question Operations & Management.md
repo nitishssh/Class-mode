@@ -11,6 +11,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -22,10 +23,13 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document explains question operations and management within the PersonalLearningPro system. It covers the complete lifecycle of questions: creation, reading, updating, and deletion. It documents the QuestionForm component architecture, including form validation, state management, and submission handling. It details integration with React Query for optimistic updates and cache invalidation, mutation handling for adding questions with error management and user feedback, the question ordering system with sequential numbering and position management, and the relationship between questions and their parent test entities. Bulk operations and question preview functionality are noted as areas for future development.
 
 ## Project Structure
+
 The question feature spans client-side React components and server-side routes and persistence:
+
 - Client-side:
   - QuestionForm component manages question creation and validation.
   - CreateTest page orchestrates test creation and question sequencing.
@@ -55,6 +59,7 @@ ST --> SC
 ```
 
 **Diagram sources**
+
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L1-L390)
 - [create-test.tsx](file://client/src/pages/create-test.tsx#L1-L121)
 - [queryClient.ts](file://client/src/lib/queryClient.ts#L1-L62)
@@ -63,6 +68,7 @@ ST --> SC
 - [schema.ts](file://shared/schema.ts#L28-L37)
 
 **Section sources**
+
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L1-L390)
 - [create-test.tsx](file://client/src/pages/create-test.tsx#L1-L121)
 - [queryClient.ts](file://client/src/lib/queryClient.ts#L1-L62)
@@ -71,6 +77,7 @@ ST --> SC
 - [schema.ts](file://shared/schema.ts#L28-L37)
 
 ## Core Components
+
 - QuestionForm: A controlled form that validates question data, manages local state for MCQ options, and submits via React Query mutation to the backend.
 - CreateTest: Orchestrates test creation and maintains the incremental order for newly added questions.
 - React Query Client: Provides a typed API wrapper and global caching configuration.
@@ -79,6 +86,7 @@ ST --> SC
 - Shared Schema: Defines validation rules for question creation and updates.
 
 **Section sources**
+
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L47-L126)
 - [create-test.tsx](file://client/src/pages/create-test.tsx#L15-L27)
 - [queryClient.ts](file://client/src/lib/queryClient.ts#L10-L28)
@@ -87,7 +95,9 @@ ST --> SC
 - [schema.ts](file://shared/schema.ts#L28-L37)
 
 ## Architecture Overview
+
 The question lifecycle follows a predictable flow:
+
 - Frontend: QuestionForm collects input, validates locally, and triggers a mutation.
 - Backend: Routes validate session and ownership, parse input with shared schemas, and delegate to storage.
 - Persistence: Storage saves the question and returns it sorted by order.
@@ -115,6 +125,7 @@ RQ-->>VF : onSuccess (toast + reset)
 ```
 
 **Diagram sources**
+
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L77-L126)
 - [routes.ts](file://server/routes.ts#L250-L278)
 - [storage.ts](file://server/storage.ts#L192-L197)
@@ -123,6 +134,7 @@ RQ-->>VF : onSuccess (toast + reset)
 ## Detailed Component Analysis
 
 ### QuestionForm Component
+
 - Purpose: Encapsulates question creation with dynamic MCQ options, type-specific fields, and robust validation.
 - Validation:
   - Zod schema enforces required fields and types.
@@ -156,15 +168,18 @@ Success --> |No| ToastErr["Destructive toast"] --> End
 ```
 
 **Diagram sources**
+
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L162-L204)
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L77-L126)
 
 **Section sources**
+
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L31-L47)
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L55-L126)
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L162-L204)
 
 ### CreateTest Page and Question Ordering
+
 - Responsibilities:
   - Manages active tab state and test creation flow.
   - Maintains a monotonically increasing order for questions.
@@ -182,12 +197,15 @@ Review --> [*]
 ```
 
 **Diagram sources**
+
 - [create-test.tsx](file://client/src/pages/create-test.tsx#L15-L27)
 
 **Section sources**
+
 - [create-test.tsx](file://client/src/pages/create-test.tsx#L15-L27)
 
 ### Server-Side Question Creation and Retrieval
+
 - Endpoints:
   - POST /api/questions: Creates a question after validating session, role, and ownership of the parent test.
   - GET /api/tests/:testId/questions: Retrieves questions for a test, sorted by order.
@@ -212,15 +230,18 @@ R-->>C : 201 Created
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L250-L278)
 - [storage.ts](file://server/storage.ts#L192-L197)
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L250-L316)
 - [storage.ts](file://server/storage.ts#L191-L211)
 - [schema.ts](file://shared/schema.ts#L28-L37)
 
 ### React Query Integration and Cache Invalidation
+
 - API Wrapper:
   - apiRequest centralizes HTTP behavior, including credentials and JSON serialization.
 - Global Defaults:
@@ -244,13 +265,16 @@ QueryClient <.. apiRequest : "used by components"
 ```
 
 **Diagram sources**
+
 - [queryClient.ts](file://client/src/lib/queryClient.ts#L10-L28)
 - [queryClient.ts](file://client/src/lib/queryClient.ts#L48-L61)
 
 **Section sources**
+
 - [queryClient.ts](file://client/src/lib/queryClient.ts#L1-L62)
 
 ### CRUD Operations Summary
+
 - Create
   - Client: QuestionForm mutation to POST /api/questions.
   - Server: Route validates and delegates to storage; storage persists and returns the new question.
@@ -268,11 +292,13 @@ QueryClient <.. apiRequest : "used by components"
 Note: The referenced files demonstrate create and read flows. Update and delete are not implemented in the provided sources.
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L250-L316)
 - [storage.ts](file://server/storage.ts#L191-L211)
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L77-L126)
 
 ### Question Ordering System and Position Management
+
 - Sequential Numbering:
   - The form passes an order prop to QuestionForm; CreateTest increments this value after each successful submission.
 - Persistence and Sorting:
@@ -281,11 +307,13 @@ Note: The referenced files demonstrate create and read flows. Update and delete 
   - Order is managed client-side during creation and enforced server-side during retrieval.
 
 **Section sources**
+
 - [create-test.tsx](file://client/src/pages/create-test.tsx#L17-L27)
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L50-L75)
 - [storage.ts](file://server/storage.ts#L204-L207)
 
 ### Relationship Between Questions and Parent Tests
+
 - Foreign Key:
   - Questions include testId, linking each question to its parent test.
 - Access Control:
@@ -294,11 +322,13 @@ Note: The referenced files demonstrate create and read flows. Update and delete 
   - GET /api/tests/:testId/questions returns all questions for a given test, sorted by order.
 
 **Section sources**
+
 - [schema.ts](file://shared/schema.ts#L28-L37)
 - [routes.ts](file://server/routes.ts#L258-L267)
 - [storage.ts](file://server/storage.ts#L204-L207)
 
 ### Bulk Operations and Preview Functionality
+
 - Bulk Operations:
   - Not implemented in the referenced files; future enhancements could include batch creation endpoints and UI controls.
 - Preview:
@@ -307,6 +337,7 @@ Note: The referenced files demonstrate create and read flows. Update and delete 
 [No sources needed since this section does not analyze specific files]
 
 ## Dependency Analysis
+
 The following diagram highlights key dependencies among components involved in question operations.
 
 ```mermaid
@@ -319,6 +350,7 @@ ST --> SC["Schemas<br/>schema.ts"]
 ```
 
 **Diagram sources**
+
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L7-L7)
 - [queryClient.ts](file://client/src/lib/queryClient.ts#L10-L28)
 - [routes.ts](file://server/routes.ts#L250-L278)
@@ -326,6 +358,7 @@ ST --> SC["Schemas<br/>schema.ts"]
 - [schema.ts](file://shared/schema.ts#L28-L37)
 
 **Section sources**
+
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L1-L30)
 - [queryClient.ts](file://client/src/lib/queryClient.ts#L1-L62)
 - [routes.ts](file://server/routes.ts#L250-L316)
@@ -333,6 +366,7 @@ ST --> SC["Schemas<br/>schema.ts"]
 - [schema.ts](file://shared/schema.ts#L28-L37)
 
 ## Performance Considerations
+
 - Caching Strategy:
   - Queries are configured with infinite staleTime and no automatic refetch, reducing unnecessary network calls.
   - Cache invalidation occurs explicitly after question creation to keep views synchronized.
@@ -344,6 +378,7 @@ ST --> SC["Schemas<br/>schema.ts"]
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
+
 - Unauthorized or Forbidden:
   - Ensure the user is authenticated as a teacher and owns the test before creating questions.
 - Validation Errors:
@@ -355,9 +390,11 @@ ST --> SC["Schemas<br/>schema.ts"]
   - If the UI does not reflect new questions, confirm that cache invalidation runs after mutation success.
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L252-L267)
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L170-L201)
 - [queryClient.ts](file://client/src/lib/queryClient.ts#L48-L61)
 
 ## Conclusion
+
 The PersonalLearningPro system implements a robust question creation workflow with strong validation, clear ownership enforcement, and efficient caching. The QuestionForm component encapsulates validation and submission, while React Query ensures cache consistency. Questions are linked to tests via testId and retrieved in order. Update and delete operations are not present in the referenced files and would require additional UI and server endpoints. Bulk operations and preview functionality are identified as future enhancements.

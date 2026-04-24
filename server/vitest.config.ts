@@ -1,6 +1,6 @@
-import { defineConfig } from 'vitest/config';
-import { fileURLToPath } from 'node:url';
-import path from 'node:path';
+import { defineConfig } from "vitest/config";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -8,10 +8,10 @@ const __dirname = path.dirname(__filename);
 export default defineConfig({
   root: __dirname,
   test: {
-    environment: 'node',
-    include: ['tests/**/*.ts'],
+    environment: "node",
+    include: ["tests/**/*.ts"],
     alias: {
-      '@shared': path.resolve(__dirname, '../shared'),
+      "@shared": path.resolve(__dirname, "../shared"),
     },
-  }
+  },
 });

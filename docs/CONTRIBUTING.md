@@ -20,13 +20,14 @@ Join our Discord server for discussions, support, and to connect with other cont
 But that's not all — the **🌟 top contributor** will also earn a spot as one of the **🔥 Super 5 Core Members** for PersonalLearningPro. This is your chance to shape the future of this product, have a direct say in key decisions, and be recognized as a core part of the team. 👑✨
 
 **How to become the top contributor:**
+
 - 📝 Submit high-quality pull requests
 - 🐞 Fix bugs and resolve issues
 - ✨ Add meaningful new features
 - 🤝 Help other contributors and review PRs
 - 📖 Improve documentation and testing
 
-> 🎉 *Contribute, rise to the top, enjoy a burger, and join the Super 5!* 🚀🍔
+> 🎉 _Contribute, rise to the top, enjoy a burger, and join the Super 5!_ 🚀🍔
 
 ---
 
@@ -37,18 +38,22 @@ But that's not all — the **🌟 top contributor** will also earn a spot as one
 The fastest way to get a development environment running — no Node.js install required.
 
 1.  **📦 Fork and clone the repository:**
+
     ```bash
     git clone https://github.com/your-username/PersonalLearningPro.git
     cd PersonalLearningPro
     ```
 
 2.  **⚙️ Set up environment variables:**
+
     ```bash
     cp .env.example .env
     ```
+
     Edit `.env` with your credentials. All variables are optional — see [README.md](README.md#-environment-variables) for details.
 
 3.  **🏗️ Build and run:**
+
     ```bash
     docker compose build
     docker compose up
@@ -63,23 +68,28 @@ The fastest way to get a development environment running — no Node.js install 
 Requires **Node.js v18+** and **npm**.
 
 1.  **📦 Fork and clone the repository:**
+
     ```bash
     git clone https://github.com/your-username/PersonalLearningPro.git
     cd PersonalLearningPro
     ```
 
 2.  **📦 Install dependencies:**
+
     ```bash
     npm install
     ```
 
 3.  **⚙️ Set up environment variables:**
+
     ```bash
     cp .env.example .env
     ```
+
     Edit `.env` with your credentials (all optional).
 
 4.  **🚀 Start the development server:**
+
     ```bash
     npm run dev
     ```

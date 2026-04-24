@@ -76,10 +76,10 @@ export function TestDetailsForm() {
   const createTestMutation = useMutation({
     mutationFn: async (data: TestFormValues) => {
       if (!currentUser?.user?.uid) throw new Error("User ID not found");
-      
+
       // Convert date string to ISO format
       const testDate = new Date(data.testDate).toISOString();
-      
+
       return apiRequest("POST", "/api/tests", {
         ...data,
         teacherId: currentUser.user.uid,
@@ -92,10 +92,10 @@ export function TestDetailsForm() {
         title: "Test Created",
         description: "Your test has been created successfully.",
       });
-      
+
       // Invalidate the tests cache
       queryClient.invalidateQueries({ queryKey: ["/api/tests"] });
-      
+
       // Redirect to the add questions page
       setLocation(`/tests/${test.id}/questions`);
     },
@@ -137,27 +137,21 @@ export function TestDetailsForm() {
             <FormItem>
               <FormLabel>Test Title</FormLabel>
               <FormControl>
-                <Input
-                  placeholder="e.g., Physics Midterm Examination"
-                  {...field}
-                />
+                <Input placeholder="e.g., Physics Midterm Examination" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <FormField
             control={form.control}
             name="subject"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Subject</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select a subject" />
@@ -166,10 +160,14 @@ export function TestDetailsForm() {
                   <SelectContent>
                     {teacherSubjects.length > 0 ? (
                       teacherSubjects.map((s) => (
-                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                        <SelectItem key={s} value={s}>
+                          {s}
+                        </SelectItem>
                       ))
                     ) : (
-                      <SelectItem value="none" disabled>No subjects found</SelectItem>
+                      <SelectItem value="none" disabled>
+                        No subjects found
+                      </SelectItem>
                     )}
                   </SelectContent>
                 </Select>
@@ -184,10 +182,7 @@ export function TestDetailsForm() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Class</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select a class" />
@@ -207,7 +202,7 @@ export function TestDetailsForm() {
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <FormField
             control={form.control}
             name="testDate"
@@ -278,7 +273,7 @@ export function TestDetailsForm() {
         />
 
         <div>
-          <FormLabel className="block mb-2">Question Types to Include</FormLabel>
+          <FormLabel className="mb-2 block">Question Types to Include</FormLabel>
           <div className="space-y-2">
             {questionTypeOptions.map((option) => (
               <FormField
@@ -295,27 +290,25 @@ export function TestDetailsForm() {
                           if (checked) {
                             field.onChange([...currentValues, option.id]);
                           } else {
-                            field.onChange(
-                              currentValues.filter((value) => value !== option.id)
-                            );
+                            field.onChange(currentValues.filter((value) => value !== option.id));
                           }
                         }}
                       />
                     </FormControl>
-                    <FormLabel className="font-normal cursor-pointer">{option.label}</FormLabel>
+                    <FormLabel className="cursor-pointer font-normal">{option.label}</FormLabel>
                   </FormItem>
                 )}
               />
             ))}
           </div>
           {form.formState.errors.questionTypes && (
-            <p className="text-sm font-medium text-destructive mt-2">
+            <p className="mt-2 text-sm font-medium text-destructive">
               {form.formState.errors.questionTypes.message}
             </p>
           )}
         </div>
 
-        <div className="pt-4 flex justify-end">
+        <div className="flex justify-end pt-4">
           <Button
             type="button"
             variant="outline"
@@ -325,10 +318,7 @@ export function TestDetailsForm() {
           >
             Save Draft
           </Button>
-          <Button
-            type="submit"
-            disabled={createTestMutation.isPending}
-          >
+          <Button type="submit" disabled={createTestMutation.isPending}>
             {createTestMutation.isPending ? "Creating..." : "Continue to Questions"}
           </Button>
         </div>

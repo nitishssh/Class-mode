@@ -25,6 +25,7 @@ Welcome, AI agent! 🧠 This file provides the essential context and instruction
 
 We follow a structured **Spec -> Design -> Implementation** workflow. 🔄
 For any non-trivial feature or bugfix, use the `spec-workflow` agent:
+
 1. **🏁 Initialize:** Create a new spec directory in `.agent/spec/{feature-name}/`.
 2. **📝 Draft:** Define requirements (`requirements.md`) and technical design (`design.md`).
 3. **📅 Plan:** Break down into granular tasks (`tasks.md`).
@@ -49,4 +50,4 @@ Refer to `.agent/prompts/spec-workflow.md` for the full instruction set. 📜
 
 ---
 
-*✨ This file is machine-readable and designed to be the primary entry point for AI context. ✨*
+_✨ This file is machine-readable and designed to be the primary entry point for AI context. ✨_

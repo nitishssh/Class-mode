@@ -13,6 +13,7 @@ PersonalLearningPro uses a multi-database architecture optimized for different d
 ### Collections
 
 #### Users
+
 Stores user profiles and authentication data.
 
 ```typescript
@@ -38,12 +39,14 @@ Stores user profiles and authentication data.
 ```
 
 **Indexes:**
+
 - `{ id: 1 }` (unique)
 - `{ username: 1 }` (unique)
 - `{ email: 1 }` (unique)
 - `{ firebaseUid: 1 }` (sparse, unique)
 
 #### Tests
+
 Test definitions created by teachers.
 
 ```typescript
@@ -64,12 +67,14 @@ Test definitions created by teachers.
 ```
 
 **Indexes:**
+
 - `{ id: 1 }` (unique)
 - `{ teacherId: 1, status: 1 }` (compound)
 - `{ class: 1, status: 1 }` (compound)
 - `{ testDate: 1, status: 1 }` (compound)
 
 #### Questions
+
 Individual questions belonging to tests.
 
 ```typescript
@@ -87,10 +92,12 @@ Individual questions belonging to tests.
 ```
 
 **Indexes:**
+
 - `{ id: 1 }` (unique)
 - `{ testId: 1, order: 1 }` (compound)
 
 #### TestAttempts
+
 Student attempts at tests.
 
 ```typescript
@@ -106,11 +113,13 @@ Student attempts at tests.
 ```
 
 **Indexes:**
+
 - `{ id: 1 }` (unique)
 - `{ studentId: 1, status: 1 }` (compound)
 - `{ testId: 1, status: 1 }` (compound)
 
 #### Answers
+
 Student answers to questions.
 
 ```typescript
@@ -130,10 +139,12 @@ Student answers to questions.
 ```
 
 **Indexes:**
+
 - `{ id: 1 }` (unique)
 - `{ attemptId: 1, questionId: 1 }` (compound)
 
 #### TestAssignments
+
 Assignments of tests to students.
 
 ```typescript
@@ -150,12 +161,14 @@ Assignments of tests to students.
 ```
 
 **Indexes:**
+
 - `{ id: 1 }` (unique)
 - `{ studentId: 1, status: 1 }` (compound)
 - `{ testId: 1 }` (single)
 - `{ dueDate: 1, status: 1 }` (compound)
 
 #### Analytics
+
 AI-generated learning insights.
 
 ```typescript
@@ -171,11 +184,13 @@ AI-generated learning insights.
 ```
 
 **Indexes:**
+
 - `{ id: 1 }` (unique)
 - `{ userId: 1, insightDate: -1 }` (compound)
 - `{ testId: 1 }` (single)
 
 #### Workspaces
+
 Collaboration spaces for teams.
 
 ```typescript
@@ -190,11 +205,13 @@ Collaboration spaces for teams.
 ```
 
 **Indexes:**
+
 - `{ id: 1 }` (unique)
 - `{ members: 1 }` (single)
 - `{ ownerId: 1 }` (single)
 
 #### Channels
+
 Communication channels within workspaces.
 
 ```typescript
@@ -216,12 +233,14 @@ Communication channels within workspaces.
 ```
 
 **Indexes:**
+
 - `{ id: 1 }` (unique)
 - `{ workspaceId: 1, type: 1 }` (compound)
 - `{ type: 1, name: 1 }` (compound)
 - `{ class: 1, subject: 1 }` (compound)
 
 #### Messages (MongoDB Fallback)
+
 Messages when Cassandra is unavailable.
 
 ```typescript
@@ -248,6 +267,7 @@ Messages when Cassandra is unavailable.
 ```
 
 **Indexes:**
+
 - `{ id: 1 }` (unique)
 - `{ channelId: 1, createdAt: -1 }` (compound)
 - `{ channelId: 1, isPinned: 1 }` (compound)
@@ -255,6 +275,7 @@ Messages when Cassandra is unavailable.
 - `{ isHomework: 1, gradingStatus: 1 }` (compound)
 
 #### Sessions
+
 User authentication sessions.
 
 ```typescript
@@ -270,12 +291,14 @@ User authentication sessions.
 ```
 
 **Indexes:**
+
 - `{ id: 1 }` (unique)
 - `{ userId: 1 }` (single)
 - `{ refreshTokenHash: 1 }` (single)
 - `{ expiresAt: 1 }` (TTL index - auto-cleanup)
 
 #### OTPs
+
 One-time passwords for verification.
 
 ```typescript
@@ -290,11 +313,13 @@ One-time passwords for verification.
 ```
 
 **Indexes:**
+
 - `{ id: 1 }` (unique)
 - `{ userId: 1, type: 1, used: 1 }` (compound)
 - `{ expiresAt: 1 }` (TTL index - auto-cleanup)
 
 #### LiveClasses
+
 Scheduled live video classes.
 
 ```typescript
@@ -317,12 +342,14 @@ Scheduled live video classes.
 ```
 
 **Indexes:**
+
 - `{ id: 1 }` (unique)
 - `{ class: 1, scheduledTime: -1 }` (compound)
 - `{ teacherId: 1, status: 1 }` (compound)
 - `{ status: 1, scheduledTime: 1 }` (compound)
 
 #### LiveSessionAttendance
+
 Attendance tracking for live classes.
 
 ```typescript
@@ -337,10 +364,12 @@ Attendance tracking for live classes.
 ```
 
 **Indexes:**
+
 - `{ id: 1 }` (unique)
 - `{ sessionId: 1, studentId: 1 }` (compound)
 
 #### Tasks
+
 Student task management.
 
 ```typescript
@@ -359,10 +388,12 @@ Student task management.
 ```
 
 **Indexes:**
+
 - `{ id: 1 }` (unique)
 - `{ userId: 1 }` (single)
 
 #### Notifications
+
 User notifications.
 
 ```typescript
@@ -379,10 +410,12 @@ User notifications.
 ```
 
 **Indexes:**
+
 - `{ id: 1 }` (unique)
 - `{ userId: 1, createdAt: -1 }` (compound)
 
 #### FocusSession
+
 Pomodoro timer sessions.
 
 ```typescript
@@ -397,10 +430,12 @@ Pomodoro timer sessions.
 ```
 
 **Indexes:**
+
 - `{ id: 1 }` (unique)
 - `{ userId: 1, completedAt: -1 }` (compound)
 
 #### FCMTokens
+
 Firebase Cloud Messaging tokens for push notifications.
 
 ```typescript
@@ -414,12 +449,14 @@ Firebase Cloud Messaging tokens for push notifications.
 ```
 
 **Indexes:**
+
 - `{ id: 1 }` (unique)
 - `{ userId: 1, token: 1 }` (compound, unique)
 
 ## Cassandra Schema
 
 ### Messages Table
+
 High-performance message storage partitioned by channel.
 
 ```cql
@@ -443,6 +480,7 @@ AND default_time_to_live = 0;
 ```
 
 **Indexes:**
+
 - `messages_is_pinned_idx` on `is_pinned`
 
 **Partition Key:** `channel_id` - All messages for a channel are stored together
@@ -451,6 +489,7 @@ AND default_time_to_live = 0;
 ## Connection Configuration
 
 ### MongoDB
+
 ```typescript
 {
   maxPoolSize: 10,
@@ -463,6 +502,7 @@ AND default_time_to_live = 0;
 ```
 
 ### Cassandra
+
 ```typescript
 {
   pooling: {
@@ -482,23 +522,27 @@ AND default_time_to_live = 0;
 ## Best Practices
 
 ### Query Optimization
+
 1. Always use indexed fields in queries
 2. Limit result sets with pagination
 3. Use projection to fetch only needed fields
 4. Avoid N+1 queries with aggregation
 
 ### Data Consistency
+
 1. Use transactions for multi-document updates
 2. Implement optimistic locking for concurrent updates
 3. Validate data at application layer before database writes
 
 ### Performance
+
 1. Cache frequently accessed data
 2. Use compound indexes for common query patterns
 3. Monitor slow queries (>500ms warning, >1000ms alert)
 4. Batch operations when processing multiple items
 
 ### Monitoring
+
 - Health check endpoint: `GET /api/health`
 - Detailed health: `GET /api/health/detailed`
 - Connection status tracked in real-time
@@ -507,6 +551,7 @@ AND default_time_to_live = 0;
 ## Maintenance
 
 ### Index Creation
+
 Indexes are created automatically on application startup. To manually create:
 
 ```javascript
@@ -518,11 +563,13 @@ CREATE INDEX IF NOT EXISTS index_name ON table (column);
 ```
 
 ### Data Cleanup
+
 - Sessions: Auto-expire via TTL index
 - OTPs: Auto-expire via TTL index
 - Old messages: Manual cleanup recommended (implement retention policy)
 
 ### Backup Strategy
+
 1. MongoDB: Use mongodump or Atlas automated backups
 2. Cassandra: Astra DB provides automatic backups
 3. Frequency: Daily incremental, weekly full backup
@@ -531,18 +578,21 @@ CREATE INDEX IF NOT EXISTS index_name ON table (column);
 ## Troubleshooting
 
 ### Connection Issues
+
 1. Check environment variables
 2. Verify network connectivity
 3. Check connection pool exhaustion
 4. Review error logs for specific errors
 
 ### Performance Issues
+
 1. Check slow query logs
 2. Analyze index usage
 3. Monitor connection pool metrics
 4. Review query patterns
 
 ### Data Inconsistency
+
 1. Check for failed transactions
 2. Verify dual-write operations (Cassandra + MongoDB)
 3. Review application logs for errors

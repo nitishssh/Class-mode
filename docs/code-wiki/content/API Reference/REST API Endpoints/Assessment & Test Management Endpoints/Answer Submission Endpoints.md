@@ -13,6 +13,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -24,10 +25,13 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document provides comprehensive API documentation for answer submission endpoints, focusing on POST /api/answers for student answer submission. It covers access control, attempt ownership verification, test completion validation, automatic MCQ evaluation logic, request/response schemas, validation rules, scoring algorithms for different question types, integration with AI evaluation, and practical examples for both automatic scoring and manual evaluation workflows.
 
 ## Project Structure
+
 The answer submission feature spans the backend server routes, shared schemas, MongoDB persistence, and client-side OCR integration:
+
 - Backend: Routes define the POST /api/answers endpoint and integrate with storage and AI evaluation.
 - Shared schemas: Define request/response structures and validation rules.
 - Storage: Implements CRUD operations for answers and integrates with MongoDB.
@@ -54,6 +58,7 @@ Storage --> Mongo
 ```
 
 **Diagram sources**
+
 - [server/routes.ts](file://server/routes.ts#L416-L463)
 - [server/storage.ts](file://server/storage.ts#L241-L262)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L50-L105)
@@ -62,6 +67,7 @@ Storage --> Mongo
 - [client/src/components/test/ocr-processing.tsx](file://client/src/components/test/ocr-processing.tsx#L1-L117)
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L416-L463)
 - [shared/schema.ts](file://shared/schema.ts#L48-L59)
 - [shared/mongo-schema.ts](file://shared/mongo-schema.ts#L62-L74)
@@ -71,6 +77,7 @@ Storage --> Mongo
 - [client/src/components/test/ocr-processing.tsx](file://client/src/components/test/ocr-processing.tsx#L1-L117)
 
 ## Core Components
+
 - POST /api/answers: Student-only endpoint to submit answers for a specific test attempt and question.
 - Validation: Zod schemas enforce request payload structure and types.
 - Access control: Session-based role checks ensure only authenticated students can submit answers.
@@ -80,12 +87,14 @@ Storage --> Mongo
 - AI evaluation integration: Teachers can manually evaluate subjective answers using AI-assisted rubrics.
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L416-L463)
 - [shared/schema.ts](file://shared/schema.ts#L48-L59)
 - [shared/mongo-schema.ts](file://shared/mongo-schema.ts#L62-L74)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L50-L105)
 
 ## Architecture Overview
+
 The answer submission flow involves the client sending an answer payload, the server validating and enforcing access/control rules, performing automatic MCQ scoring when applicable, persisting the answer, and optionally integrating with AI evaluation for subjective questions.
 
 ```mermaid
@@ -110,6 +119,7 @@ Routes-->>Client : 201 Created {Answer}
 ```
 
 **Diagram sources**
+
 - [server/routes.ts](file://server/routes.ts#L416-L463)
 - [server/storage.ts](file://server/storage.ts#L241-L262)
 - [shared/mongo-schema.ts](file://shared/mongo-schema.ts#L62-L74)
@@ -117,6 +127,7 @@ Routes-->>Client : 201 Created {Answer}
 ## Detailed Component Analysis
 
 ### POST /api/answers Endpoint
+
 - Purpose: Allow authenticated students to submit answers for a specific test attempt and question.
 - Authentication and Authorization:
   - Requires a valid session with role set to student.
@@ -157,14 +168,17 @@ CreateAnswer --> Success["Return 201 Created with Answer"]
 ```
 
 **Diagram sources**
+
 - [server/routes.ts](file://server/routes.ts#L416-L463)
 - [shared/schema.ts](file://shared/schema.ts#L48-L59)
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L416-L463)
 - [shared/schema.ts](file://shared/schema.ts#L48-L59)
 
 ### Request and Response Schemas
+
 - Request Body (insertAnswerSchema):
   - attemptId: number (required)
   - questionId: number (required)
@@ -190,15 +204,18 @@ CreateAnswer --> Success["Return 201 Created with Answer"]
   - isCorrect: boolean | null
 
 Validation Rules:
+
 - Required fields: attemptId, questionId.
 - Optional fields: text, selectedOption, imageUrl, ocrText, score, aiConfidence, aiFeedback, isCorrect.
 - For MCQ: selectedOption must be present to enable auto-evaluation.
 
 **Section sources**
+
 - [shared/schema.ts](file://shared/schema.ts#L48-L59)
 - [shared/mongo-schema.ts](file://shared/mongo-schema.ts#L62-L74)
 
 ### Automatic MCQ Evaluation Logic
+
 - Trigger: Question type equals mcq and selectedOption is provided.
 - Logic:
   - Compare selectedOption (converted to string) with question.correctAnswer.
@@ -220,12 +237,15 @@ Skip --> Persist
 ```
 
 **Diagram sources**
+
 - [server/routes.ts](file://server/routes.ts#L447-L452)
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L447-L452)
 
 ### Manual Evaluation for Subjective Answers
+
 - Workflow:
   - Student submits answer text (and optional OCR text).
   - Teacher initiates evaluation via POST /api/evaluate with answerId.
@@ -260,16 +280,19 @@ Routes-->>Teacher : 200 OK {Answer}
 ```
 
 **Diagram sources**
+
 - [server/routes.ts](file://server/routes.ts#L487-L559)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L50-L105)
 - [server/storage.ts](file://server/storage.ts#L259-L262)
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L487-L559)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L50-L105)
 - [shared/schema.ts](file://shared/schema.ts#L28-L37)
 
 ### OCR Integration for Subjective Answers
+
 - Client-side OCR:
   - Users upload answer sheet images.
   - OCR processing extracts text and confidence metrics.
@@ -287,16 +310,19 @@ Review --> Submit["Submit Answer (text or ocrText)"]
 ```
 
 **Diagram sources**
+
 - [client/src/pages/ocr-scan.tsx](file://client/src/pages/ocr-scan.tsx#L1-L95)
 - [client/src/components/test/ocr-processing.tsx](file://client/src/components/test/ocr-processing.tsx#L1-L117)
 - [server/routes.ts](file://server/routes.ts#L533-L538)
 
 **Section sources**
+
 - [client/src/pages/ocr-scan.tsx](file://client/src/pages/ocr-scan.tsx#L1-L95)
 - [client/src/components/test/ocr-processing.tsx](file://client/src/components/test/ocr-processing.tsx#L1-L117)
 - [server/routes.ts](file://server/routes.ts#L533-L538)
 
 ## Dependency Analysis
+
 - Routes depend on:
   - Shared Zod schemas for validation.
   - Storage module for database operations.
@@ -316,6 +342,7 @@ ClientOCR["client/.../ocr-processing.tsx"] --> Routes
 ```
 
 **Diagram sources**
+
 - [server/routes.ts](file://server/routes.ts#L1-L11)
 - [shared/schema.ts](file://shared/schema.ts#L1-L142)
 - [server/storage.ts](file://server/storage.ts#L1-L106)
@@ -323,6 +350,7 @@ ClientOCR["client/.../ocr-processing.tsx"] --> Routes
 - [client/src/components/test/ocr-processing.tsx](file://client/src/components/test/ocr-processing.tsx#L1-L117)
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L1-L11)
 - [shared/schema.ts](file://shared/schema.ts#L1-L142)
 - [server/storage.ts](file://server/storage.ts#L1-L106)
@@ -330,13 +358,16 @@ ClientOCR["client/.../ocr-processing.tsx"] --> Routes
 - [client/src/components/test/ocr-processing.tsx](file://client/src/components/test/ocr-processing.tsx#L1-L117)
 
 ## Performance Considerations
+
 - Validation overhead: Zod parsing occurs on every request; keep payloads minimal and avoid unnecessary fields.
 - Database queries: Each submission triggers retrieval of attempt and question; ensure indexes on id fields for fast lookup.
 - AI evaluation latency: /api/evaluate calls OpenAI; consider caching rubrics and batching evaluations where feasible.
 - Concurrency: Multiple concurrent submissions per student should be safe due to attempt ownership checks and completed-status prevention.
 
 ## Troubleshooting Guide
+
 Common issues and resolutions:
+
 - 401 Unauthorized (student-only):
   - Ensure the session has role set to student.
 - 403 Forbidden (attempt ownership):
@@ -352,9 +383,11 @@ Common issues and resolutions:
   - Review fallback responses and adjust rubrics for clarity.
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L416-L463)
 - [server/routes.ts](file://server/routes.ts#L487-L559)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L4-L9)
 
 ## Conclusion
+
 The answer submission endpoint provides a robust, role-protected mechanism for students to submit answers, with built-in automatic MCQ evaluation and seamless integration with AI-powered subjective evaluation. The design emphasizes validation, access control, and extensibility for future enhancements such as batch operations and advanced AI scoring.

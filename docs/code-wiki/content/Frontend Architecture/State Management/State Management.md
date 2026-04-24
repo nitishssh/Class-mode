@@ -19,6 +19,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -30,7 +31,9 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document explains the frontend state management architecture for PersonalLearningPro. It covers:
+
 - Context providers for authentication, theming, and chat role preferences
 - Custom hooks for real-time communication and toast notifications
 - Integration with TanStack Query for server state, caching, and error handling
@@ -38,7 +41,9 @@ This document explains the frontend state management architecture for PersonalLe
 - Strategies for performance optimization with large datasets and real-time updates
 
 ## Project Structure
+
 The frontend composes state management via layered providers and hooks:
+
 - Providers wrap the app and expose global state to components
 - TanStack Query manages server state and caching
 - Real-time WebSocket hooks manage live chat events
@@ -68,6 +73,7 @@ Chat --> WS
 ```
 
 **Diagram sources**
+
 - [App.tsx](file://client/src/App.tsx#L152-L163)
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L38-L259)
 - [theme-context.tsx](file://client/src/contexts/theme-context.tsx#L23-L63)
@@ -76,9 +82,11 @@ Chat --> WS
 - [use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L65-L218)
 
 **Section sources**
+
 - [App.tsx](file://client/src/App.tsx#L1-L165)
 
 ## Core Components
+
 - FirebaseAuthContext: Centralizes authentication state, user profile, and actions (login, register, logout, reset password). Integrates with Firebase Auth and Firestore.
 - ThemeContext: Manages UI theme selection and persists it to localStorage.
 - ChatRoleContext: Derives the chat role from the authenticated user’s profile and exposes a normalized chat user object.
@@ -87,6 +95,7 @@ Chat --> WS
 - Toast System: A lightweight, centralized notification system with a capped queue and dismissal behavior.
 
 **Section sources**
+
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L18-L36)
 - [theme-context.tsx](file://client/src/contexts/theme-context.tsx#L3-L19)
 - [chat-role-context.tsx](file://client/src/contexts/chat-role-context.tsx#L5-L21)
@@ -95,6 +104,7 @@ Chat --> WS
 - [use-toast.ts](file://client/src/hooks/use-toast.ts#L171-L191)
 
 ## Architecture Overview
+
 The app initializes providers at the root, then routes depend on authentication state. Feature components consume context and hooks to manage UI state, server state, and real-time updates.
 
 ```mermaid
@@ -121,6 +131,7 @@ end
 ```
 
 **Diagram sources**
+
 - [App.tsx](file://client/src/App.tsx#L93-L150)
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L38-L71)
 - [firebase-auth-dialog.tsx](file://client/src/components/auth/firebase-auth-dialog.tsx#L39-L104)
@@ -131,6 +142,7 @@ end
 ## Detailed Component Analysis
 
 ### Authentication State Management (FirebaseAuthContext)
+
 - Responsibilities:
   - Initialize auth state via onAuthStateChanged
   - Load user profile from Firestore with a timeout guard
@@ -157,14 +169,17 @@ Skip --> Done
 ```
 
 **Diagram sources**
+
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L43-L71)
 - [firebase.ts](file://client/src/lib/firebase.ts#L199-L212)
 
 **Section sources**
+
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L38-L259)
 - [firebase.ts](file://client/src/lib/firebase.ts#L27-L42)
 
 ### UI Theming (ThemeContext)
+
 - Responsibilities:
   - Persist theme preference to localStorage
   - Apply theme to document root (light/dark/system)
@@ -184,12 +199,15 @@ UserChange --> |No| Idle["Idle"]
 ```
 
 **Diagram sources**
+
 - [theme-context.tsx](file://client/src/contexts/theme-context.tsx#L29-L48)
 
 **Section sources**
+
 - [theme-context.tsx](file://client/src/contexts/theme-context.tsx#L23-L72)
 
 ### Chat Role Preferences (ChatRoleContext)
+
 - Responsibilities:
   - Map authenticated user’s role to a chat UserRole
   - Construct a normalized chat user object with online status
@@ -206,13 +224,16 @@ BuildUser --> Provide["Provide {currentRole, currentUser, setRole}"]
 ```
 
 **Diagram sources**
+
 - [chat-role-context.tsx](file://client/src/contexts/chat-role-context.tsx#L23-L51)
 
 **Section sources**
+
 - [chat-role-context.tsx](file://client/src/contexts/chat-role-context.tsx#L17-L58)
 - [chat.ts](file://client/src/types/chat.ts#L1-L1)
 
 ### Server State Management (TanStack Query)
+
 - Responsibilities:
   - Centralized cache and invalidation
   - Controlled refetch policies and retry behavior
@@ -235,12 +256,15 @@ Parse --> ReturnData["Return data to caller"]
 ```
 
 **Diagram sources**
+
 - [queryClient.ts](file://client/src/lib/queryClient.ts#L31-L46)
 
 **Section sources**
+
 - [queryClient.ts](file://client/src/lib/queryClient.ts#L1-L62)
 
 ### Real-Time Communication (useChatWs)
+
 - Responsibilities:
   - Establish and maintain a WebSocket connection
   - Join/leave channels dynamically
@@ -272,13 +296,16 @@ end
 ```
 
 **Diagram sources**
+
 - [use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L95-L178)
 - [use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L180-L195)
 
 **Section sources**
+
 - [use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L65-L218)
 
 ### Chat Feature Composition (ChatLayout)
+
 - Responsibilities:
   - Fetch workspaces, channels, and DMs via TanStack Query
   - Merge server data with mock fallbacks
@@ -307,16 +334,19 @@ Active --> WS["useChatWs({ channelId: active.id })"]
 ```
 
 **Diagram sources**
+
 - [ChatLayout.tsx](file://client/src/components/chat/ChatLayout.tsx#L47-L127)
 - [chat-api.ts](file://client/src/lib/chat-api.ts#L59-L71)
 - [mockData.ts](file://client/src/data/mockData.ts#L211-L231)
 
 **Section sources**
+
 - [ChatLayout.tsx](file://client/src/components/chat/ChatLayout.tsx#L41-L182)
 - [chat-api.ts](file://client/src/lib/chat-api.ts#L1-L112)
 - [mockData.ts](file://client/src/data/mockData.ts#L1-L240)
 
 ### Authentication UI and Forms (FirebaseAuthDialog and LoginPage)
+
 - Responsibilities:
   - Provide login/register forms with validation
   - Drive FirebaseAuthContext actions
@@ -344,17 +374,20 @@ Ctx-->>UI : Update context + toast
 ```
 
 **Diagram sources**
+
 - [firebase-auth-dialog.tsx](file://client/src/components/auth/firebase-auth-dialog.tsx#L98-L118)
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L73-L125)
 - [firebase.ts](file://client/src/lib/firebase.ts#L66-L115)
 
 **Section sources**
+
 - [firebase-auth-dialog.tsx](file://client/src/components/auth/firebase-auth-dialog.tsx#L39-L233)
 - [LoginPage.tsx](file://client/src/pages/LoginPage.tsx#L1-L112)
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L73-L125)
 - [firebase.ts](file://client/src/lib/firebase.ts#L66-L115)
 
 ### Toast Notifications (use-toast)
+
 - Responsibilities:
   - Centralized toast state with reducer
   - Limit queue to one toast at a time
@@ -372,13 +405,16 @@ AutoDismiss --> Remove["REMOVE_TOAST"]
 ```
 
 **Diagram sources**
+
 - [use-toast.ts](file://client/src/hooks/use-toast.ts#L142-L169)
 - [use-toast.ts](file://client/src/hooks/use-toast.ts#L171-L191)
 
 **Section sources**
+
 - [use-toast.ts](file://client/src/hooks/use-toast.ts#L1-L192)
 
 ## Dependency Analysis
+
 - Provider hierarchy:
   - QueryClientProvider wraps all other providers
   - ThemeProvider wraps FirebaseAuthProvider
@@ -407,6 +443,7 @@ Chat --> WS
 ```
 
 **Diagram sources**
+
 - [App.tsx](file://client/src/App.tsx#L152-L163)
 - [ChatLayout.tsx](file://client/src/components/chat/ChatLayout.tsx#L178-L182)
 - [chat-role-context.tsx](file://client/src/contexts/chat-role-context.tsx#L23-L51)
@@ -415,12 +452,14 @@ Chat --> WS
 - [firebase.ts](file://client/src/lib/firebase.ts#L1-L42)
 
 **Section sources**
+
 - [App.tsx](file://client/src/App.tsx#L152-L163)
 - [ChatLayout.tsx](file://client/src/components/chat/ChatLayout.tsx#L178-L182)
 - [chat-api.ts](file://client/src/lib/chat-api.ts#L1-L112)
 - [firebase.ts](file://client/src/lib/firebase.ts#L1-L42)
 
 ## Performance Considerations
+
 - Caching and staleness:
   - Use staleTime to reduce redundant network calls for lists
   - Keep queries disabled until preconditions (e.g., workspaces present) to avoid wasted requests
@@ -437,6 +476,7 @@ Chat --> WS
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
+
 - Authentication not loading:
   - Verify Firebase configuration and that the app does not short-circuit when credentials are missing
   - Check onAuthStateChanged subscription and profile fetch timeout
@@ -450,15 +490,18 @@ Chat --> WS
   - For 401 behavior, ensure on401 option matches desired policy
 
 **Section sources**
+
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L43-L71)
 - [App.tsx](file://client/src/App.tsx#L158-L159)
 - [use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L144-L161)
 - [queryClient.ts](file://client/src/lib/queryClient.ts#L3-L8)
 
 ## Conclusion
+
 PersonalLearningPro’s frontend employs a clean separation of concerns:
+
 - Context providers supply global state (auth, theme, chat role)
 - TanStack Query standardizes server state management with explicit caching and error handling
 - Real-time WebSocket hooks encapsulate connection lifecycle and event handling
 - Local state and memoization keep UI responsive and synchronized
-Adhering to these patterns ensures predictable state flows, robust error handling, and scalable performance for large datasets and real-time updates.
+  Adhering to these patterns ensures predictable state flows, robust error handling, and scalable performance for large datasets and real-time updates.

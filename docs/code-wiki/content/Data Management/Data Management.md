@@ -17,6 +17,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -29,9 +30,11 @@
 10. [Appendices](#appendices)
 
 ## Introduction
+
 This document describes the multi-database data management architecture of PersonalLearningPro. The system integrates MongoDB for core domain data (users, tests, questions, attempts, answers, analytics, workspaces, channels, and messages) and Apache Cassandra (via DataStax Astra DB) for high-throughput, time-ordered messaging. It documents schema design, storage abstractions, repository pattern implementation, data access patterns, caching and session strategies, performance optimizations, connection management, and operational procedures such as testing and environment configuration.
 
 ## Project Structure
+
 The data layer spans shared schemas, MongoDB models, a Cassandra client and message store, and a unified storage abstraction that delegates to either MongoDB or Cassandra depending on configuration.
 
 ```mermaid
@@ -66,6 +69,7 @@ SSCH -.-> CSCH
 ```
 
 **Diagram sources**
+
 - [server/index.ts](file://server/index.ts#L1-L114)
 - [server/db.ts](file://server/db.ts#L1-L21)
 - [server/lib/cassandra.ts](file://server/lib/cassandra.ts#L1-L73)
@@ -77,6 +81,7 @@ SSCH -.-> CSCH
 - [shared/schema.ts](file://shared/schema.ts#L1-L142)
 
 **Section sources**
+
 - [server/index.ts](file://server/index.ts#L1-L114)
 - [server/db.ts](file://server/db.ts#L1-L21)
 - [server/lib/cassandra.ts](file://server/lib/cassandra.ts#L1-L73)
@@ -86,6 +91,7 @@ SSCH -.-> CSCH
 - [shared/schema.ts](file://shared/schema.ts#L1-L142)
 
 ## Core Components
+
 - MongoDB connection and models:
   - Connection initialization and error handling.
   - Domain models for users, tests, questions, attempts, answers, analytics, and chat entities.
@@ -102,11 +108,13 @@ SSCH -.-> CSCH
   - Cassandra message schema extends the shared insert schema with Cassandra-specific fields.
 
 Key responsibilities:
+
 - Data modeling: clear primary keys, embedded arrays for membership and read receipts, and numeric IDs mapped from auto-increment sequences.
 - Storage delegation: message operations prefer Cassandra when configured; otherwise fall back to MongoDB.
 - Session store: in-memory session store backed by MemoryStore for development.
 
 **Section sources**
+
 - [server/db.ts](file://server/db.ts#L1-L21)
 - [shared/mongo-schema.ts](file://shared/mongo-schema.ts#L1-L159)
 - [server/lib/cassandra.ts](file://server/lib/cassandra.ts#L1-L73)
@@ -116,6 +124,7 @@ Key responsibilities:
 - [shared/cassandra-schema.ts](file://shared/cassandra-schema.ts#L1-L10)
 
 ## Architecture Overview
+
 The system initializes both MongoDB and Cassandra at startup. Routes validate payloads with Zod, enforce authorization, and delegate data operations to the storage layer. For messages, the storage layer chooses Cassandra if configured; otherwise it falls back to MongoDB. Sessions are stored in memory.
 
 ```mermaid
@@ -139,12 +148,14 @@ API-->>Client : "201 Created"
 ```
 
 **Diagram sources**
+
 - [server/routes.ts](file://server/routes.ts#L779-L804)
 - [server/storage.ts](file://server/storage.ts#L413-L422)
 - [server/lib/cassandra-message-store.ts](file://server/lib/cassandra-message-store.ts#L36-L75)
 - [server/lib/cassandra.ts](file://server/lib/cassandra.ts#L42-L60)
 
 **Section sources**
+
 - [server/index.ts](file://server/index.ts#L26-L28)
 - [server/routes.ts](file://server/routes.ts#L779-L804)
 - [server/storage.ts](file://server/storage.ts#L413-L422)
@@ -153,6 +164,7 @@ API-->>Client : "201 Created"
 ## Detailed Component Analysis
 
 ### Data Modeling and Schemas
+
 - Users, Tests, Questions, Attempts, Answers, Analytics:
   - Defined with Mongoose schemas and compiled into models.
   - Numeric IDs are managed via an auto-increment counter collection and mapped to the id field.
@@ -259,14 +271,17 @@ CHANNEL ||--o{ MESSAGE : "contains"
 ```
 
 **Diagram sources**
+
 - [shared/mongo-schema.ts](file://shared/mongo-schema.ts#L13-L156)
 - [shared/schema.ts](file://shared/schema.ts#L72-L141)
 
 **Section sources**
+
 - [shared/mongo-schema.ts](file://shared/mongo-schema.ts#L1-L159)
 - [shared/schema.ts](file://shared/schema.ts#L1-L142)
 
 ### Storage Abstraction and Repository Pattern
+
 - IStorage defines a comprehensive contract for all domain operations.
 - MongoStorage implements IStorage:
   - Maps Mongoose documents to shared types by stripping internal fields.
@@ -318,14 +333,17 @@ IStorage <|.. MongoStorage
 ```
 
 **Diagram sources**
+
 - [server/storage.ts](file://server/storage.ts#L33-L106)
 - [server/storage.ts](file://server/storage.ts#L110-L514)
 
 **Section sources**
+
 - [server/storage.ts](file://server/storage.ts#L33-L106)
 - [server/storage.ts](file://server/storage.ts#L110-L514)
 
 ### Cassandra Message Store and Snowflake IDs
+
 - Cassandra client initialization:
   - Reads secure bundle path, token, and keyspace from environment variables.
   - Creates the messages table with partition key channel_id and clustering key message_id (stored as text).
@@ -347,16 +365,19 @@ Return --> End(["Done"])
 ```
 
 **Diagram sources**
+
 - [server/lib/cassandra.ts](file://server/lib/cassandra.ts#L42-L60)
 - [server/lib/cassandra-message-store.ts](file://server/lib/cassandra-message-store.ts#L36-L75)
 - [server/lib/snowflake.ts](file://server/lib/snowflake.ts#L38-L62)
 
 **Section sources**
+
 - [server/lib/cassandra.ts](file://server/lib/cassandra.ts#L1-L73)
 - [server/lib/cassandra-message-store.ts](file://server/lib/cassandra-message-store.ts#L1-L166)
 - [server/lib/snowflake.ts](file://server/lib/snowflake.ts#L1-L74)
 
 ### Data Access Patterns and Routing
+
 - Routes validate payloads with Zod, enforce roles and ownership, and call storage methods.
 - Message endpoints:
   - Create message via HTTP.
@@ -387,15 +408,18 @@ Routes-->>Client : "200 OK"
 ```
 
 **Diagram sources**
+
 - [server/routes.ts](file://server/routes.ts#L722-L745)
 - [server/storage.ts](file://server/storage.ts#L424-L437)
 - [server/lib/cassandra-message-store.ts](file://server/lib/cassandra-message-store.ts#L79-L102)
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L722-L745)
 - [server/storage.ts](file://server/storage.ts#L424-L437)
 
 ### Session Store and Caching Strategies
+
 - Session store:
   - Memory-backed session store via MemoryStore with periodic cleanup.
   - Configured via express-session with secure cookie settings in production.
@@ -404,10 +428,12 @@ Routes-->>Client : "200 OK"
   - Recommendations include Redis for session and hot-path caching, with invalidation on write.
 
 **Section sources**
+
 - [server/index.ts](file://server/index.ts#L30-L44)
 - [server/storage.ts](file://server/storage.ts#L110-L118)
 
 ## Dependency Analysis
+
 - External dependencies:
   - MongoDB via Mongoose.
   - Cassandra via cassandra-driver with Astra DB secure bundle.
@@ -430,6 +456,7 @@ Shared --> CassandraStore
 ```
 
 **Diagram sources**
+
 - [server/routes.ts](file://server/routes.ts#L1-L11)
 - [server/storage.ts](file://server/storage.ts#L1-L32)
 - [shared/schema.ts](file://shared/schema.ts#L1-L142)
@@ -439,11 +466,13 @@ Shared --> CassandraStore
 - [server/lib/snowflake.ts](file://server/lib/snowflake.ts#L1-L74)
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L1-L11)
 - [server/storage.ts](file://server/storage.ts#L1-L32)
 - [shared/schema.ts](file://shared/schema.ts#L1-L142)
 
 ## Performance Considerations
+
 - Cassandra message table design:
   - Partition by channel_id and cluster by message_id (Snowflake) ensures efficient range scans and time-ordered retrieval.
   - Secondary index on is_pinned enables filtered queries without ALLOW FILTERING on full partitions.
@@ -459,6 +488,7 @@ Shared --> CassandraStore
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
+
 - MongoDB connectivity:
   - Ensure MONGODB_URL is set; connection is attempted at startup and errors are logged without crashing the server.
 - Cassandra/Astra DB:
@@ -470,6 +500,7 @@ Shared --> CassandraStore
   - SESSION_SECRET must be set in production; otherwise startup will fail.
 
 **Section sources**
+
 - [server/db.ts](file://server/db.ts#L4-L19)
 - [server/lib/cassandra.ts](file://server/lib/cassandra.ts#L9-L30)
 - [server/lib/cassandra.ts](file://server/lib/cassandra.ts#L32-L72)
@@ -478,6 +509,7 @@ Shared --> CassandraStore
 - [.env.example](file://.env.example#L21-L36)
 
 ## Conclusion
+
 PersonalLearningPro employs a hybrid data architecture: MongoDB for relational domain entities and Cassandra for scalable, time-ordered messaging. The IStorage abstraction cleanly separates concerns, enabling seamless fallback and future migration. Strong typing via Zod, numeric ID mapping, and careful indexing support performance and correctness. Operational readiness is ensured by environment-driven configuration and a dedicated integration test.
 
 [No sources needed since this section summarizes without analyzing specific files]
@@ -485,6 +517,7 @@ PersonalLearningPro employs a hybrid data architecture: MongoDB for relational d
 ## Appendices
 
 ### Environment Variables
+
 - Required:
   - MONGODB_URL for MongoDB connection.
 - Optional but recommended:
@@ -492,9 +525,11 @@ PersonalLearningPro employs a hybrid data architecture: MongoDB for relational d
   - SESSION_SECRET for production sessions.
 
 **Section sources**
+
 - [.env.example](file://.env.example#L21-L36)
 
 ### Data Consistency and Transactions
+
 - Current state:
   - MongoDB operations are atomic per-document; cross-collection consistency relies on application-level checks.
   - Cassandra writes are atomic per partition; cross-partition transactions are not supported.
@@ -505,6 +540,7 @@ PersonalLearningPro employs a hybrid data architecture: MongoDB for relational d
 [No sources needed since this section provides general guidance]
 
 ### Backup and Disaster Recovery
+
 - MongoDB:
   - Use regular logical backups (mongodump) and point-in-time recovery with oplogs enabled.
 - Cassandra:

@@ -18,6 +18,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -29,10 +30,13 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document explains the user role and permission system in PersonalLearningPro. It covers the five-user role hierarchy (Student, Teacher, Admin, Principal, and Parent), role-specific permissions, access controls, and feature availability. It also documents the role-based access control implementation, authentication middleware, and authorization patterns, along with role transition workflows, permission inheritance, and security considerations. Examples of role-specific dashboard features and administrative capabilities are included to illustrate practical usage.
 
 ## Project Structure
+
 The role and permission system spans both client and server layers:
+
 - Client-side authentication and role-aware UI rendering
 - Server-side session-based authorization and route guards
 - Shared schemas and storage abstractions
@@ -68,6 +72,7 @@ ST --> SCH
 ```
 
 **Diagram sources**
+
 - [client/src/contexts/firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L1-L267)
 - [client/src/components/auth/firebase-auth-dialog.tsx](file://client/src/components/auth/firebase-auth-dialog.tsx#L1-L500)
 - [client/src/lib/firebase.ts](file://client/src/lib/firebase.ts#L1-L212)
@@ -81,6 +86,7 @@ ST --> SCH
 - [shared/schema.ts](file://shared/schema.ts#L1-L142)
 
 **Section sources**
+
 - [client/src/contexts/firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L1-L267)
 - [client/src/lib/firebase.ts](file://client/src/lib/firebase.ts#L1-L212)
 - [server/middleware.ts](file://server/middleware.ts#L1-L18)
@@ -89,6 +95,7 @@ ST --> SCH
 - [shared/schema.ts](file://shared/schema.ts#L1-L142)
 
 ## Core Components
+
 - Authentication and user profiles:
   - Client-side Firebase integration and user context
   - Role-aware registration and login flows
@@ -101,12 +108,14 @@ ST --> SCH
   - Validation schemas and storage abstractions used across routes
 
 Key implementation references:
+
 - Client auth and roles: [client/src/lib/firebase.ts](file://client/src/lib/firebase.ts#L47-L63), [client/src/contexts/firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L19-L34), [client/src/components/auth/firebase-auth-dialog.tsx](file://client/src/components/auth/firebase-auth-dialog.tsx#L55-L64)
 - Server middleware: [server/middleware.ts](file://server/middleware.ts#L3-L17)
 - Server routes and authorization: [server/routes.ts](file://server/routes.ts#L110-L132), [server/routes.ts](file://server/routes.ts#L250-L278), [server/routes.ts](file://server/routes.ts#L319-L370), [server/routes.ts](file://server/routes.ts#L417-L463), [server/routes.ts](file://server/routes.ts#L584-L676), [server/routes.ts](file://server/routes.ts#L679-L718), [server/routes.ts](file://server/routes.ts#L722-L777)
 - Dashboards: [client/src/pages/student-dashboard.tsx](file://client/src/pages/student-dashboard.tsx#L123-L125), [client/src/pages/admin-dashboard.tsx](file://client/src/pages/admin-dashboard.tsx#L29-L30), [client/src/pages/principal-dashboard.tsx](file://client/src/pages/principal-dashboard.tsx#L44-L45), [client/src/pages/parent-dashboard.tsx](file://client/src/pages/parent-dashboard.tsx#L36-L37)
 
 **Section sources**
+
 - [client/src/lib/firebase.ts](file://client/src/lib/firebase.ts#L47-L63)
 - [client/src/contexts/firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L19-L34)
 - [client/src/components/auth/firebase-auth-dialog.tsx](file://client/src/components/auth/firebase-auth-dialog.tsx#L55-L64)
@@ -124,6 +133,7 @@ Key implementation references:
 - [client/src/pages/parent-dashboard.tsx](file://client/src/pages/parent-dashboard.tsx#L36-L37)
 
 ## Architecture Overview
+
 The system enforces role-based access control using session-based middleware and route-level guards. Authentication is handled client-side via Firebase, while server-side routes validate session presence and role membership before granting access to protected resources.
 
 ```mermaid
@@ -148,6 +158,7 @@ S-->>UI : "Response"
 ```
 
 **Diagram sources**
+
 - [client/src/lib/firebase.ts](file://client/src/lib/firebase.ts#L66-L115)
 - [client/src/contexts/firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L73-L125)
 - [server/middleware.ts](file://server/middleware.ts#L3-L17)
@@ -157,6 +168,7 @@ S-->>UI : "Response"
 ## Detailed Component Analysis
 
 ### Role Model and Registration Flow
+
 - Roles supported on the client and in the auth dialog include: student, teacher, principal, admin, parent.
 - Registration captures role and role-specific data, storing it in the user profile.
 - Google login supports new-user flow completion by selecting a role.
@@ -171,18 +183,21 @@ StoreProfile --> Done(["Authenticated Session"])
 ```
 
 **Diagram sources**
+
 - [client/src/components/auth/firebase-auth-dialog.tsx](file://client/src/components/auth/firebase-auth-dialog.tsx#L55-L64)
 - [client/src/components/auth/firebase-auth-dialog.tsx](file://client/src/components/auth/firebase-auth-dialog.tsx#L111-L118)
 - [client/src/lib/firebase.ts](file://client/src/lib/firebase.ts#L80-L115)
 - [client/src/lib/firebase.ts](file://client/src/lib/firebase.ts#L152-L177)
 
 **Section sources**
+
 - [client/src/components/auth/firebase-auth-dialog.tsx](file://client/src/components/auth/firebase-auth-dialog.tsx#L55-L64)
 - [client/src/components/auth/firebase-auth-dialog.tsx](file://client/src/components/auth/firebase-auth-dialog.tsx#L111-L118)
 - [client/src/lib/firebase.ts](file://client/src/lib/firebase.ts#L80-L115)
 - [client/src/lib/firebase.ts](file://client/src/lib/firebase.ts#L152-L177)
 
 ### Role-Based Access Control Implementation
+
 - Middleware enforces authentication and role checks:
   - isAuthenticated: blocks unauthenticated requests
   - hasRole: allows only specified roles
@@ -207,6 +222,7 @@ ValidateOwnership --> |Pass| Resource["Resource Access"]
 ```
 
 **Diagram sources**
+
 - [server/middleware.ts](file://server/middleware.ts#L3-L17)
 - [server/routes.ts](file://server/routes.ts#L110-L132)
 - [server/routes.ts](file://server/routes.ts#L250-L278)
@@ -217,6 +233,7 @@ ValidateOwnership --> |Pass| Resource["Resource Access"]
 - [server/routes.ts](file://server/routes.ts#L722-L777)
 
 **Section sources**
+
 - [server/middleware.ts](file://server/middleware.ts#L3-L17)
 - [server/routes.ts](file://server/routes.ts#L110-L132)
 - [server/routes.ts](file://server/routes.ts#L250-L278)
@@ -283,6 +300,7 @@ class Parent {
 ```
 
 **Diagram sources**
+
 - [client/src/pages/student-dashboard.tsx](file://client/src/pages/student-dashboard.tsx#L123-L125)
 - [client/src/pages/admin-dashboard.tsx](file://client/src/pages/admin-dashboard.tsx#L29-L30)
 - [client/src/pages/principal-dashboard.tsx](file://client/src/pages/principal-dashboard.tsx#L44-L45)
@@ -296,6 +314,7 @@ class Parent {
 - [server/routes.ts](file://server/routes.ts#L722-L777)
 
 **Section sources**
+
 - [client/src/pages/student-dashboard.tsx](file://client/src/pages/student-dashboard.tsx#L123-L125)
 - [client/src/pages/admin-dashboard.tsx](file://client/src/pages/admin-dashboard.tsx#L29-L30)
 - [client/src/pages/principal-dashboard.tsx](file://client/src/pages/principal-dashboard.tsx#L44-L45)
@@ -309,6 +328,7 @@ class Parent {
 - [server/routes.ts](file://server/routes.ts#L722-L777)
 
 ### Role Transition Workflows
+
 - New Google user flow:
   - Authenticate via Google
   - If new user, prompt to select role and complete registration with role-specific data
@@ -334,18 +354,21 @@ FB-->>FD : "Authenticated"
 ```
 
 **Diagram sources**
+
 - [client/src/components/auth/firebase-auth-dialog.tsx](file://client/src/components/auth/firebase-auth-dialog.tsx#L174-L185)
 - [client/src/components/auth/firebase-auth-dialog.tsx](file://client/src/components/auth/firebase-auth-dialog.tsx#L128-L139)
 - [client/src/lib/firebase.ts](file://client/src/lib/firebase.ts#L117-L150)
 - [client/src/lib/firebase.ts](file://client/src/lib/firebase.ts#L152-L177)
 
 **Section sources**
+
 - [client/src/components/auth/firebase-auth-dialog.tsx](file://client/src/components/auth/firebase-auth-dialog.tsx#L174-L185)
 - [client/src/components/auth/firebase-auth-dialog.tsx](file://client/src/components/auth/firebase-auth-dialog.tsx#L128-L139)
 - [client/src/lib/firebase.ts](file://client/src/lib/firebase.ts#L117-L150)
 - [client/src/lib/firebase.ts](file://client/src/lib/firebase.ts#L152-L177)
 
 ### Permission Inheritance and Security Considerations
+
 - Permission inheritance:
   - Admin inherits teacher privileges plus administrative controls
   - Principal inherits administrative oversight with institution-level views
@@ -356,6 +379,7 @@ FB-->>FD : "Authenticated"
   - Role-specific data stored during registration supports downstream UI and feature gating
 
 **Section sources**
+
 - [server/middleware.ts](file://server/middleware.ts#L3-L17)
 - [server/routes.ts](file://server/routes.ts#L110-L132)
 - [server/routes.ts](file://server/routes.ts#L250-L278)
@@ -366,7 +390,9 @@ FB-->>FD : "Authenticated"
 - [server/routes.ts](file://server/routes.ts#L722-L777)
 
 ## Dependency Analysis
+
 The role and permission system depends on:
+
 - Client auth context and Firebase library for user identity and role
 - Server middleware and routes for enforcement
 - Storage abstraction for data access and ownership checks
@@ -383,6 +409,7 @@ ST --> SCH["Schemas<br/>shared/schema.ts"]
 ```
 
 **Diagram sources**
+
 - [client/src/lib/firebase.ts](file://client/src/lib/firebase.ts#L1-L212)
 - [client/src/contexts/firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L1-L267)
 - [server/routes.ts](file://server/routes.ts#L1-L1104)
@@ -391,6 +418,7 @@ ST --> SCH["Schemas<br/>shared/schema.ts"]
 - [shared/schema.ts](file://shared/schema.ts#L1-L142)
 
 **Section sources**
+
 - [client/src/lib/firebase.ts](file://client/src/lib/firebase.ts#L1-L212)
 - [client/src/contexts/firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L1-L267)
 - [server/routes.ts](file://server/routes.ts#L1-L1104)
@@ -399,12 +427,15 @@ ST --> SCH["Schemas<br/>shared/schema.ts"]
 - [shared/schema.ts](file://shared/schema.ts#L1-L142)
 
 ## Performance Considerations
+
 - Session-based middleware is lightweight and efficient for authentication checks.
 - Route-level validations leverage stored schemas to minimize runtime errors.
 - Storage abstractions support scalable data access patterns; Cassandra integration is available for message-heavy workloads.
 
 ## Troubleshooting Guide
+
 Common issues and resolutions:
+
 - Authentication failures:
   - Verify Firebase configuration and credentials
   - Ensure user profile retrieval succeeds after login
@@ -418,6 +449,7 @@ Common issues and resolutions:
   - Re-authenticate after role changes
 
 **Section sources**
+
 - [client/src/lib/firebase.ts](file://client/src/lib/firebase.ts#L27-L42)
 - [client/src/contexts/firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L43-L71)
 - [server/middleware.ts](file://server/middleware.ts#L3-L17)
@@ -426,4 +458,5 @@ Common issues and resolutions:
 - [server/routes.ts](file://server/routes.ts#L584-L676)
 
 ## Conclusion
+
 PersonalLearningPro implements a robust role and permission system combining client-side Firebase authentication with server-side session-based authorization. The five-user hierarchy (Student, Teacher, Admin, Principal, Parent) is enforced through middleware and route-level guards, ensuring secure access to features and resources. Role-specific dashboards provide tailored experiences, while shared schemas and storage abstractions maintain consistency and scalability across the platform.

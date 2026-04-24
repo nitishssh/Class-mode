@@ -41,10 +41,15 @@ const plans = [
     name: "All Access Pass",
     price: "Coming Soon",
     desc: "We're preparing our premium learning features for launch.",
-    features: ["Unlimited AI study plans", "Smart tutor bot", "Performance analytics", "Priority support"],
+    features: [
+      "Unlimited AI study plans",
+      "Smart tutor bot",
+      "Performance analytics",
+      "Priority support",
+    ],
     cta: "Join Waitlist",
     highlighted: true,
-  }
+  },
 ];
 
 export const DemoWidget = () => {
@@ -58,18 +63,16 @@ export const DemoWidget = () => {
   };
 
   return (
-    <section className="py-24 bg-card/50">
+    <section className="bg-card/50 py-24">
       <div className="container max-w-3xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-10"
+          className="mb-10 text-center"
         >
-          <h2 className="text-3xl md:text-4xl font-extrabold mb-3">
-            Try It Now ✨
-          </h2>
-          <p className="text-muted-foreground text-lg">
+          <h2 className="mb-3 text-3xl font-extrabold md:text-4xl">Try It Now ✨</h2>
+          <p className="text-lg text-muted-foreground">
             Enter a subject and get an instant 7-day micro study plan.
           </p>
         </motion.div>
@@ -78,13 +81,16 @@ export const DemoWidget = () => {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="bg-background sketch-border sketch-shadow-yellow p-8 rounded-2xl"
+          className="sketch-border sketch-shadow-yellow rounded-2xl bg-background p-8"
         >
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row">
             <select
               value={subject}
-              onChange={(e) => { setSubject(e.target.value); setPlan(null); }}
-              className="flex-1 h-11 rounded-lg border border-border bg-background px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+              onChange={(e) => {
+                setSubject(e.target.value);
+                setPlan(null);
+              }}
+              className="h-11 flex-1 rounded-lg border border-border bg-background px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="">Select subject</option>
               <option>Mathematics</option>
@@ -96,11 +102,11 @@ export const DemoWidget = () => {
               placeholder="Grade (e.g. 10th)"
               value={grade}
               onChange={(e) => setGrade(e.target.value)}
-              className="flex-1 h-11 rounded-lg border border-border bg-background px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="h-11 flex-1 rounded-lg border border-border bg-background px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <Button
               onClick={generate}
-              className="rounded-full font-heading bg-primary text-primary-foreground hover:bg-primary/90 sketch-border sketch-shadow-yellow hover-tilt"
+              className="sketch-border sketch-shadow-yellow hover-tilt rounded-full bg-primary font-heading text-primary-foreground hover:bg-primary/90"
               disabled={!subject}
             >
               <Sparkles size={16} className="mr-2" />
@@ -123,9 +129,9 @@ export const DemoWidget = () => {
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.08 }}
-                    className="flex items-start gap-3 p-3 rounded-lg bg-card border border-border"
+                    className="flex items-start gap-3 rounded-lg border border-border bg-card p-3"
                   >
-                    <span className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold shrink-0">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/20 text-xs font-bold">
                       {i + 1}
                     </span>
                     <span className="text-sm">{day}</span>
@@ -143,23 +149,21 @@ export const DemoWidget = () => {
 export const Pricing = () => {
   const [, setLocation] = useLocation();
   return (
-    <section id="pricing" className="py-24 bg-card/50">
+    <section id="pricing" className="bg-card/50 py-24">
       <div className="container">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-16"
+          className="mb-16 text-center"
         >
-          <h2 className="text-3xl md:text-4xl font-extrabold mb-3">
-            Choose Your Ticket 🎫
-          </h2>
-          <p className="text-muted-foreground text-lg">
+          <h2 className="mb-3 text-3xl font-extrabold md:text-4xl">Choose Your Ticket 🎫</h2>
+          <p className="text-lg text-muted-foreground">
             Simple pricing for every kind of learner. Tickets launching soon.
           </p>
         </motion.div>
 
-        <div className="flex justify-center max-w-4xl mx-auto">
+        <div className="mx-auto flex max-w-4xl justify-center">
           {plans.map((plan, i) => (
             <motion.div
               key={plan.name}
@@ -167,32 +171,36 @@ export const Pricing = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className={`p-6 w-full max-w-sm rounded-2xl sketch-border transition-all flex flex-col hover-tilt ${plan.highlighted
-                ? "bg-card sketch-shadow-yellow ring-2 ring-primary"
-                : "bg-card sketch-shadow"
-                }`}
+              className={`sketch-border hover-tilt flex w-full max-w-sm flex-col rounded-2xl p-6 transition-all ${
+                plan.highlighted
+                  ? "sketch-shadow-yellow bg-card ring-2 ring-primary"
+                  : "sketch-shadow bg-card"
+              }`}
             >
               {plan.highlighted && (
-                <span className="text-xs font-bold bg-primary px-3 py-1 rounded-full self-start mb-4 text-primary-foreground">
+                <span className="mb-4 self-start rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">
                   Launching Soon
                 </span>
               )}
-              <h3 className="font-heading font-bold text-xl">{plan.name}</h3>
-              <p className="text-3xl font-extrabold font-heading mt-2">{plan.price}</p>
-              <p className="text-sm text-muted-foreground mt-2 mb-6">{plan.desc}</p>
-              <ul className="space-y-4 flex-1">
+              <h3 className="font-heading text-xl font-bold">{plan.name}</h3>
+              <p className="mt-2 font-heading text-3xl font-extrabold">{plan.price}</p>
+              <p className="mb-6 mt-2 text-sm text-muted-foreground">{plan.desc}</p>
+              <ul className="flex-1 space-y-4">
                 {plan.features.map((f) => (
                   <li key={f} className="flex items-center gap-3 text-sm font-medium">
-                    <Check size={18} className="text-primary shrink-0" strokeWidth={3} />
+                    <Check size={18} className="shrink-0 text-primary" strokeWidth={3} />
                     {f}
                   </li>
                 ))}
               </ul>
               <Button
-                className={`mt-8 h-12 rounded-full font-heading text-base sketch-border hover-tilt ${plan.highlighted ? "bg-primary text-primary-foreground hover:bg-primary/90 sketch-shadow-yellow" : "bg-card sketch-shadow"
-                  }`}
+                className={`sketch-border hover-tilt mt-8 h-12 rounded-full font-heading text-base ${
+                  plan.highlighted
+                    ? "sketch-shadow-yellow bg-primary text-primary-foreground hover:bg-primary/90"
+                    : "sketch-shadow bg-card"
+                }`}
                 variant={plan.highlighted ? "default" : "outline"}
-                onClick={() => setLocation('/login')}
+                onClick={() => setLocation("/login")}
               >
                 {plan.cta}
               </Button>
@@ -221,13 +229,13 @@ export const ContactForm = () => {
     "w-full h-11 rounded-lg border border-border bg-background px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.06)] transition-all";
 
   return (
-    <section id="contact" className="py-24 relative overflow-hidden flex items-center min-h-[80vh]">
+    <section id="contact" className="relative flex min-h-[80vh] items-center overflow-hidden py-24">
       {/* Background illustration */}
-      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
         <img
           src={schoolMeeting}
           alt="Contact Section Background"
-          className="w-full h-full object-cover opacity-35 dark:opacity-15 mix-blend-multiply dark:mix-blend-screen grayscale select-none"
+          className="h-full w-full select-none object-cover opacity-35 mix-blend-multiply grayscale dark:opacity-15 dark:mix-blend-screen"
         />
         {/* Fade out right side (where form is), keep left visible */}
         <div className="absolute inset-0 bg-gradient-to-l from-background via-background/80 to-background/20" />
@@ -237,15 +245,16 @@ export const ContactForm = () => {
 
       <div className="container relative z-10 flex justify-end">
         <div className="w-full max-w-lg">
-          <div className="text-left mb-10">
-            <span className="inline-block bg-card sketch-border sketch-shadow px-4 py-1.5 text-sm font-medium text-foreground mb-4">
+          <div className="mb-10 text-left">
+            <span className="sketch-border sketch-shadow mb-4 inline-block bg-card px-4 py-1.5 text-sm font-medium text-foreground">
               ✨ Get in touch
             </span>
-            <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight">
+            <h2 className="text-4xl font-extrabold tracking-tight md:text-5xl">
               Book Your Digital Journey
             </h2>
-            <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mt-4">
-              Whether you're a student, teacher, or school — we'd love to help you succeed. Fill out the form and our team will reach out within 24 hours.
+            <p className="mt-4 text-lg leading-relaxed text-muted-foreground md:text-xl">
+              Whether you're a student, teacher, or school — we'd love to help you succeed. Fill out
+              the form and our team will reach out within 24 hours.
             </p>
           </div>
 
@@ -255,7 +264,7 @@ export const ContactForm = () => {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="bg-card/70 dark:bg-card/50 backdrop-blur-xl sketch-border sketch-shadow p-8 rounded-2xl space-y-4"
+            className="sketch-border sketch-shadow space-y-4 rounded-2xl bg-card/70 p-8 backdrop-blur-xl dark:bg-card/50"
           >
             <input
               type="text"
@@ -296,14 +305,18 @@ export const ContactForm = () => {
               placeholder="Tell us about your learning goals…"
               value={form.message}
               onChange={(e) => setForm({ ...form, message: e.target.value })}
-              className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.06)] min-h-[100px] resize-none transition-all"
+              className="min-h-[100px] w-full resize-none rounded-lg border border-border bg-background px-4 py-3 text-sm transition-all focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.06)] focus:outline-none focus:ring-2 focus:ring-primary"
               maxLength={1000}
             />
-            <Button type="submit" className="w-full rounded-full font-heading bg-primary text-primary-foreground hover:bg-primary/90 sketch-border sketch-shadow-yellow hover-tilt" size="lg">
+            <Button
+              type="submit"
+              className="sketch-border sketch-shadow-yellow hover-tilt w-full rounded-full bg-primary font-heading text-primary-foreground hover:bg-primary/90"
+              size="lg"
+            >
               <Send size={16} className="mr-2" />
               Send Message
             </Button>
-            <p className="text-xs text-muted-foreground text-center">
+            <p className="text-center text-xs text-muted-foreground">
               We won't share your data. Privacy first. 🔒
             </p>
           </motion.form>

@@ -13,6 +13,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -25,10 +26,13 @@
 10. [Appendices](#appendices)
 
 ## Introduction
+
 This document describes the schema design for PersonalLearningPro’s core data models across MongoDB and Cassandra. It defines entity schemas, field types, validation rules, business constraints, relationships, and foreign key references. It also documents schema evolution, versioning, migrations, validation patterns, indexing strategies, and query optimization considerations. Finally, it explains shared interfaces and schema inheritance patterns used to support both MongoDB and Cassandra implementations.
 
 ## Project Structure
+
 The schema design spans three primary areas:
+
 - Shared TypeScript Zod schemas define canonical validation and types for all entities.
 - MongoDB Mongoose schemas implement persistent storage for core entities and include indexes and auto-increment helpers.
 - Cassandra schemas define both CQL DDL and a data-access layer for the messaging feature, with a shared interface compatible with MongoDB models.
@@ -57,6 +61,7 @@ CASS_CLIENT --> CASS_STORE
 ```
 
 **Diagram sources**
+
 - [shared/schema.ts](file://shared/schema.ts#L1-L142)
 - [shared/mongo-schema.ts](file://shared/mongo-schema.ts#L1-L159)
 - [shared/cassandra-schema.ts](file://shared/cassandra-schema.ts#L1-L10)
@@ -66,6 +71,7 @@ CASS_CLIENT --> CASS_STORE
 - [server/lib/cassandra-message-store.ts](file://server/lib/cassandra-message-store.ts#L1-L166)
 
 **Section sources**
+
 - [shared/schema.ts](file://shared/schema.ts#L1-L142)
 - [shared/mongo-schema.ts](file://shared/mongo-schema.ts#L1-L159)
 - [shared/cassandra-schema.ts](file://shared/cassandra-schema.ts#L1-L10)
@@ -75,6 +81,7 @@ CASS_CLIENT --> CASS_STORE
 - [server/lib/cassandra-message-store.ts](file://server/lib/cassandra-message-store.ts#L1-L166)
 
 ## Core Components
+
 This section defines each entity schema, including fields, types, validation rules, and constraints. All definitions derive from the shared Zod schemas and are mapped to MongoDB and Cassandra implementations as applicable.
 
 - User
@@ -148,12 +155,15 @@ This section defines each entity schema, including fields, types, validation rul
   - Cassandra mapping: Extended schema with string id and optional attachments; partitioned by channel_id, clustered by message_id (Snowflake)
 
 **Section sources**
+
 - [shared/schema.ts](file://shared/schema.ts#L1-L142)
 - [shared/mongo-schema.ts](file://shared/mongo-schema.ts#L1-L159)
 - [shared/cassandra-schema.ts](file://shared/cassandra-schema.ts#L1-L10)
 
 ## Architecture Overview
+
 The system supports dual persistence backends:
+
 - MongoDB: Core assessment and chat entities persisted via Mongoose models with indexes and auto-increment counters.
 - Cassandra: Messaging feature optimized for time-series writes and reads, using partitioned tables and secondary indexes.
 
@@ -186,6 +196,7 @@ C --- CM
 ```
 
 **Diagram sources**
+
 - [shared/mongo-schema.ts](file://shared/mongo-schema.ts#L1-L159)
 - [shared/schema.ts](file://shared/schema.ts#L1-L142)
 - [shared/cassandra-schema.ts](file://shared/cassandra-schema.ts#L1-L10)
@@ -193,6 +204,7 @@ C --- CM
 ## Detailed Component Analysis
 
 ### Entity Relationships and Foreign Keys
+
 - User → Test (teacherId)
 - Test → Question (testId)
 - TestAttempt (studentId, testId)
@@ -258,14 +270,17 @@ CHANNEL ||--o{ MESSAGE : "messages"
 ```
 
 **Diagram sources**
+
 - [shared/mongo-schema.ts](file://shared/mongo-schema.ts#L1-L159)
 - [shared/schema.ts](file://shared/schema.ts#L1-L142)
 
 **Section sources**
+
 - [shared/mongo-schema.ts](file://shared/mongo-schema.ts#L1-L159)
 - [shared/schema.ts](file://shared/schema.ts#L1-L142)
 
 ### Message Model: MongoDB vs Cassandra
+
 - MongoDB Message: Uses numeric id with unique index and createdAt default.
 - Cassandra Message: Extends shared schema with string id and optional attachments; stored in a partitioned table keyed by channel_id and clustered by message_id (Snowflake).
 
@@ -298,16 +313,19 @@ SharedMessage <|-- CassandraMessage
 ```
 
 **Diagram sources**
+
 - [shared/schema.ts](file://shared/schema.ts#L122-L131)
 - [shared/mongo-schema.ts](file://shared/mongo-schema.ts#L132-L144)
 - [shared/cassandra-schema.ts](file://shared/cassandra-schema.ts#L4-L7)
 
 **Section sources**
+
 - [shared/schema.ts](file://shared/schema.ts#L122-L131)
 - [shared/mongo-schema.ts](file://shared/mongo-schema.ts#L132-L144)
 - [shared/cassandra-schema.ts](file://shared/cassandra-schema.ts#L1-L10)
 
 ### Cassandra Message Store Operations
+
 The Cassandra-backed message store mirrors a shared interface and uses Snowflake ids for clustering, enabling global uniqueness and time ordering.
 
 ```mermaid
@@ -332,14 +350,17 @@ Driver-->>Store : "OK"
 ```
 
 **Diagram sources**
+
 - [server/lib/cassandra-message-store.ts](file://server/lib/cassandra-message-store.ts#L36-L165)
 - [server/lib/cassandra.ts](file://server/lib/cassandra.ts#L44-L66)
 
 **Section sources**
+
 - [server/lib/cassandra-message-store.ts](file://server/lib/cassandra-message-store.ts#L1-L166)
 - [server/lib/cassandra.ts](file://server/lib/cassandra.ts#L1-L73)
 
 ### MessagePal Cassandra Schema (DDL)
+
 The DDL defines partitioned tables and materialized views for efficient querying by recipients and conversation lists.
 
 ```mermaid
@@ -354,12 +375,15 @@ CreateMVActiveConv --> Done(["Ready"])
 ```
 
 **Diagram sources**
+
 - [server/message/cassandra-schema.cql](file://server/message/cassandra-schema.cql#L8-L71)
 
 **Section sources**
+
 - [server/message/cassandra-schema.cql](file://server/message/cassandra-schema.cql#L1-L89)
 
 ## Dependency Analysis
+
 - Shared Zod schemas underpin both MongoDB and Cassandra implementations, ensuring consistent validation and types.
 - MongoDB models depend on Mongoose and an auto-increment counter service.
 - Cassandra relies on Astra DB driver initialization and a message store that translates rows to shared types.
@@ -375,6 +399,7 @@ CASS_STORE --> CASS_INIT
 ```
 
 **Diagram sources**
+
 - [shared/schema.ts](file://shared/schema.ts#L1-L142)
 - [shared/mongo-schema.ts](file://shared/mongo-schema.ts#L1-L159)
 - [shared/cassandra-schema.ts](file://shared/cassandra-schema.ts#L1-L10)
@@ -384,6 +409,7 @@ CASS_STORE --> CASS_INIT
 - [server/lib/cassandra.ts](file://server/lib/cassandra.ts#L1-L73)
 
 **Section sources**
+
 - [shared/schema.ts](file://shared/schema.ts#L1-L142)
 - [shared/mongo-schema.ts](file://shared/mongo-schema.ts#L1-L159)
 - [shared/cassandra-schema.ts](file://shared/cassandra-schema.ts#L1-L10)
@@ -393,6 +419,7 @@ CASS_STORE --> CASS_INIT
 - [server/lib/cassandra.ts](file://server/lib/cassandra.ts#L1-L73)
 
 ## Performance Considerations
+
 - MongoDB
   - Unique indexes on id for all entities to enforce primary keys and speed lookups.
   - Composite indexes on TestAssignment for frequent queries by studentId/status, testId, and dueDate/status.
@@ -408,6 +435,7 @@ CASS_STORE --> CASS_INIT
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
+
 - MongoDB connection failures
   - Symptom: Application continues running despite MongoDB connection errors.
   - Action: Verify MONGODB_URL environment variable; check TLS settings and network connectivity.
@@ -419,11 +447,13 @@ CASS_STORE --> CASS_INIT
   - Action: Ensure message_id is a Snowflake string when querying with bounds; verify clustering order and LIMIT clauses.
 
 **Section sources**
+
 - [server/db.ts](file://server/db.ts#L1-L21)
 - [server/lib/cassandra.ts](file://server/lib/cassandra.ts#L32-L72)
 - [server/lib/cassandra-message-store.ts](file://server/lib/cassandra-message-store.ts#L79-L102)
 
 ## Conclusion
+
 PersonalLearningPro’s schema design leverages shared validation and types to unify data contracts across MongoDB and Cassandra. MongoDB focuses on structured assessment and chat entities with targeted indexes and auto-increment counters. Cassandra optimizes messaging with partitioned writes, time-clustered reads, and materialized views. Together, these approaches enable scalable, consistent, and maintainable data persistence.
 
 [No sources needed since this section summarizes without analyzing specific files]
@@ -431,6 +461,7 @@ PersonalLearningPro’s schema design leverages shared validation and types to u
 ## Appendices
 
 ### Schema Evolution Strategy
+
 - Versioning approach
   - Use semantic versioning for schema changes; increment major version on breaking changes.
   - Maintain backward compatibility by adding optional fields and default values.

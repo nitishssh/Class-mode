@@ -2,7 +2,10 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { PerformanceChart } from "@/components/dashboard/performance-chart";
 import { TopStudents } from "@/components/dashboard/top-students";
-import { StudentAnalyticsCard, type StudentAnalyticsSummary } from "@/components/dashboard/student-analytics-card";
+import {
+  StudentAnalyticsCard,
+  type StudentAnalyticsSummary,
+} from "@/components/dashboard/student-analytics-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -41,14 +44,18 @@ import {
 } from "lucide-react";
 
 function IndividualStudentsTab() {
-  const { data: students, isLoading, isError } = useQuery<StudentAnalyticsSummary[]>({
+  const {
+    data: students,
+    isLoading,
+    isError,
+  } = useQuery<StudentAnalyticsSummary[]>({
     queryKey: ["/api/analytics/students"],
-    queryFn: () => apiRequest("GET", "/api/analytics/students").then(r => r.json()),
+    queryFn: () => apiRequest("GET", "/api/analytics/students").then((r) => r.json()),
   });
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+      <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {Array.from({ length: 6 }).map((_, i) => (
           <Skeleton key={i} className="h-16 w-full rounded-xl" />
         ))}
@@ -56,11 +63,12 @@ function IndividualStudentsTab() {
     );
   }
 
-  if (isError) return <div className="p-4 text-center text-muted-foreground">Failed to load student data</div>;
+  if (isError)
+    return <div className="p-4 text-center text-muted-foreground">Failed to load student data</div>;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
-      {students?.map(student => (
+    <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      {students?.map((student) => (
         <StudentAnalyticsCard key={student.studentId} student={student} />
       ))}
     </div>
@@ -81,13 +89,13 @@ export default function Analytics() {
     },
     onSuccess: (data) => {
       setAnalysis(data);
-    }
+    },
   });
 
   // Fetch real analytics data
   const { data: analyticsData } = useQuery<Array<{ subject: string; avgScore: number }>>({
     queryKey: ["/api/analytics/student", studentId],
-    queryFn: () => apiRequest("GET", `/api/analytics/student/${studentId}`).then(r => r.json()),
+    queryFn: () => apiRequest("GET", `/api/analytics/student/${studentId}`).then((r) => r.json()),
     enabled: !!studentId && currentUser?.profile?.role === "student",
   });
 
@@ -148,35 +156,47 @@ export default function Analytics() {
         className="animate-fade-in-up"
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((kpi, i) => (
-          <Card key={kpi.label} className="animate-fade-in-up" style={{ animationDelay: `${i * 50}ms` }}>
+          <Card
+            key={kpi.label}
+            className="animate-fade-in-up"
+            style={{ animationDelay: `${i * 50}ms` }}
+          >
             <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className={`p-2 rounded-lg ${kpi.bg} ${kpi.color}`}>
-                  {kpi.icon}
-                </div>
-                <div className={`flex items-center text-xs font-bold ${kpi.trendUp ? "text-emerald-600" : "text-amber-600"}`}>
-                  {kpi.trendUp ? <ArrowUpRight className="h-3 w-3 mr-1" /> : <ArrowDownRight className="h-3 w-3 mr-1" />}
+              <div className="mb-4 flex items-center justify-between">
+                <div className={`rounded-lg p-2 ${kpi.bg} ${kpi.color}`}>{kpi.icon}</div>
+                <div
+                  className={`flex items-center text-xs font-bold ${kpi.trendUp ? "text-emerald-600" : "text-amber-600"}`}
+                >
+                  {kpi.trendUp ? (
+                    <ArrowUpRight className="mr-1 h-3 w-3" />
+                  ) : (
+                    <ArrowDownRight className="mr-1 h-3 w-3" />
+                  )}
                   {kpi.trend}
                 </div>
               </div>
-              <div className="text-3xl font-display font-bold text-foreground">{kpi.value}</div>
-              <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground mt-1">{kpi.label}</div>
+              <div className="font-display text-3xl font-bold text-foreground">{kpi.value}</div>
+              <div className="mt-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                {kpi.label}
+              </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
       {/* Performance chart + Top students */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <Card className="md:col-span-2 animate-fade-in-up" style={{ animationDelay: "150ms" }}>
+      <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-3">
+        <Card className="animate-fade-in-up md:col-span-2" style={{ animationDelay: "150ms" }}>
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-indigo-500/10">
+              <div className="rounded-lg bg-indigo-500/10 p-1.5">
                 <BarChart3 className="h-4 w-4 text-indigo-500" />
               </div>
-              <CardTitle className="text-base font-semibold">Class Performance by Subject</CardTitle>
+              <CardTitle className="text-base font-semibold">
+                Class Performance by Subject
+              </CardTitle>
             </div>
           </CardHeader>
           <CardContent className="h-72">
@@ -187,7 +207,7 @@ export default function Analytics() {
         <Card className="animate-fade-in-up" style={{ animationDelay: "200ms" }}>
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-amber-500/10">
+              <div className="rounded-lg bg-amber-500/10 p-1.5">
                 <Sparkles className="h-4 w-4 text-amber-500" />
               </div>
               <CardTitle className="text-base font-semibold">Top Performing Students</CardTitle>
@@ -199,11 +219,11 @@ export default function Analytics() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
         <Card className="animate-fade-in-up" style={{ animationDelay: "250ms" }}>
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-teal-500/10">
+              <div className="rounded-lg bg-teal-500/10 p-1.5">
                 <Target className="h-4 w-4 text-teal-500" />
               </div>
               <CardTitle className="text-base font-semibold">Test Completion Rate</CardTitle>
@@ -235,77 +255,110 @@ export default function Analytics() {
         </Card>
 
         {/* AI Performance Analyst */}
-        <Card className="animate-fade-in-up shadow-soft border-accent/10" style={{ animationDelay: "300ms" }}>
+        <Card
+          className="animate-fade-in-up border-accent/10 shadow-soft"
+          style={{ animationDelay: "300ms" }}
+        >
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-primary/10">
+              <div className="rounded-lg bg-primary/10 p-1.5">
                 <Brain className="h-4 w-4 text-primary" />
               </div>
               <CardTitle className="text-base font-semibold">AI Performance Analyst</CardTitle>
-              <Badge className="ml-auto bg-primary/10 text-primary border-primary/20 text-xs">Powered by GPT-4o</Badge>
+              <Badge className="ml-auto border-primary/20 bg-primary/10 text-xs text-primary">
+                Powered by GPT-4o
+              </Badge>
             </div>
           </CardHeader>
           <CardContent>
             {!analysis ? (
-              <div className="py-8 text-center border-2 border-dashed rounded-2xl bg-muted/20">
-                <Sparkles className="h-10 w-10 text-accent/40 mx-auto mb-4" />
+              <div className="rounded-2xl border-2 border-dashed bg-muted/20 py-8 text-center">
+                <Sparkles className="mx-auto mb-4 h-10 w-10 text-accent/40" />
                 <h3 className="text-lg font-bold">Deep Performance Analysis</h3>
-                <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-6">
-                  Let EduAI analyze your last 90 days of test history to find trends and actionable insights.
+                <p className="mx-auto mb-6 max-w-sm text-sm text-muted-foreground">
+                  Let EduAI analyze your last 90 days of test history to find trends and actionable
+                  insights.
                 </p>
-                <Button 
-                  onClick={() => analyzeMutation.mutate()} 
+                <Button
+                  onClick={() => analyzeMutation.mutate()}
                   disabled={analyzeMutation.isPending}
-                  className="rounded-full bg-accent hover:bg-accent-hover text-white px-8"
+                  className="rounded-full bg-accent px-8 text-white hover:bg-accent-hover"
                 >
                   {analyzeMutation.isPending ? (
-                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analyzing History...</>
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Analyzing History...
+                    </>
                   ) : (
-                    <><Brain className="h-4 w-4 mr-2" /> Generate Insights</>
+                    <>
+                      <Brain className="mr-2 h-4 w-4" /> Generate Insights
+                    </>
                   )}
                 </Button>
               </div>
             ) : analysis.error ? (
               <div className="p-8 text-center">
-                <AlertCircle className="h-10 w-10 text-amber-500 mx-auto mb-4" />
-                <p className="text-foreground font-semibold">{analysis.error}</p>
+                <AlertCircle className="mx-auto mb-4 h-10 w-10 text-amber-500" />
+                <p className="font-semibold text-foreground">{analysis.error}</p>
               </div>
             ) : (
               <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
-                    <div className="flex items-center gap-2 text-emerald-700 font-bold text-[10px] uppercase tracking-widest mb-3">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="rounded-xl border border-emerald-500/10 bg-emerald-500/5 p-4">
+                    <div className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-emerald-700">
                       <ArrowUpRight className="h-3.5 w-3.5" /> Improving
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {analysis.improving?.map((s: string) => (
-                        <Badge key={s} className="bg-emerald-500/10 text-emerald-700 border-emerald-500/20 text-[10px]">{s}</Badge>
+                        <Badge
+                          key={s}
+                          className="border-emerald-500/20 bg-emerald-500/10 text-[10px] text-emerald-700"
+                        >
+                          {s}
+                        </Badge>
                       ))}
                     </div>
                   </div>
-                  <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/10">
-                    <div className="flex items-center gap-2 text-red-700 font-bold text-[10px] uppercase tracking-widest mb-3">
+                  <div className="rounded-xl border border-red-500/10 bg-red-500/5 p-4">
+                    <div className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-red-700">
                       <ArrowDownRight className="h-3.5 w-3.5" /> Attention
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {analysis.declining?.map((s: string) => (
-                        <Badge key={s} className="bg-red-500/10 text-red-700 border-red-500/20 text-[10px]">{s}</Badge>
+                        <Badge
+                          key={s}
+                          className="border-red-500/20 bg-red-500/10 text-[10px] text-red-700"
+                        >
+                          {s}
+                        </Badge>
                       ))}
                     </div>
                   </div>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-accent-soft/30 border border-accent/10">
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-accent mb-2">Key Recommendation</h4>
-                  <p className="text-sm font-medium text-foreground leading-relaxed">{analysis.recommendation}</p>
+                <div className="rounded-2xl border border-accent/10 bg-accent-soft/30 p-5">
+                  <h4 className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-accent">
+                    Key Recommendation
+                  </h4>
+                  <p className="text-sm font-medium leading-relaxed text-foreground">
+                    {analysis.recommendation}
+                  </p>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-muted/50 border border-border">
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-2">Overall Summary</h4>
-                  <p className="text-xs text-muted-foreground italic leading-relaxed">"{analysis.summary}"</p>
+                <div className="rounded-2xl border border-border bg-muted/50 p-5">
+                  <h4 className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                    Overall Summary
+                  </h4>
+                  <p className="text-xs italic leading-relaxed text-muted-foreground">
+                    "{analysis.summary}"
+                  </p>
                 </div>
 
-                <Button variant="ghost" size="sm" onClick={() => setAnalysis(null)} className="text-[10px] uppercase font-bold tracking-widest opacity-50 hover:opacity-100 mx-auto block h-8">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setAnalysis(null)}
+                  className="mx-auto block h-8 text-[10px] font-bold uppercase tracking-widest opacity-50 hover:opacity-100"
+                >
                   Reset Analysis
                 </Button>
               </div>
@@ -318,7 +371,7 @@ export default function Analytics() {
       <Card className="animate-fade-in-up" style={{ animationDelay: "350ms" }}>
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-primary/10">
+            <div className="rounded-lg bg-primary/10 p-1.5">
               <Brain className="h-4 w-4 text-primary" />
             </div>
             <CardTitle className="text-base font-semibold">Curriculum Data Management</CardTitle>
@@ -332,9 +385,11 @@ export default function Analytics() {
             </TabsList>
 
             <TabsContent value="class" className="mt-4">
-              <div className="p-8 text-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed">
-                <Users className="h-8 w-8 mx-auto mb-3 opacity-20" />
-                <p className="text-sm">Class-level trends are being aggregated. Check back shortly.</p>
+              <div className="rounded-xl border border-dashed bg-muted/20 p-8 text-center text-muted-foreground">
+                <Users className="mx-auto mb-3 h-8 w-8 opacity-20" />
+                <p className="text-sm">
+                  Class-level trends are being aggregated. Check back shortly.
+                </p>
               </div>
             </TabsContent>
 

@@ -95,7 +95,12 @@ export default function StudyPlanPage() {
                     <li key={index}>
                       <strong>{resource.title}</strong> ({resource.type})
                       {resource.url && (
-                        <a href={resource.url} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-500 hover:underline">
+                        <a
+                          href={resource.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ml-2 text-blue-500 hover:underline"
+                        >
                           Link
                         </a>
                       )}

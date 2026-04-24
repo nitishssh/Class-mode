@@ -8,11 +8,7 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-export async function apiRequest(
-  method: string,
-  url: string,
-  body?: any
-): Promise<Response> {
+export async function apiRequest(method: string, url: string, body?: any): Promise<Response> {
   const headers: Record<string, string> = {};
 
   if (body) {
@@ -39,34 +35,32 @@ export async function apiRequest(
 
 type UnauthorizedBehavior = "returnNull" | "throw";
 
-export const getQueryFn: <T>(options: {
-  on401: UnauthorizedBehavior;
-}) => QueryFunction<T> =
+export const getQueryFn: <T>(options: { on401: UnauthorizedBehavior }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
-    async ({ queryKey }) => {
-      const headers: Record<string, string> = {};
+  async ({ queryKey }) => {
+    const headers: Record<string, string> = {};
 
-      // Attach Firebase token for authenticated queries
-      if (auth?.currentUser) {
-        try {
-          headers["Authorization"] = `Bearer ${await auth.currentUser.getIdToken()}`;
-        } catch {
-          // proceed without token
-        }
+    // Attach Firebase token for authenticated queries
+    if (auth?.currentUser) {
+      try {
+        headers["Authorization"] = `Bearer ${await auth.currentUser.getIdToken()}`;
+      } catch {
+        // proceed without token
       }
+    }
 
-      const res = await fetch(queryKey[0] as string, {
-        credentials: "include",
-        headers,
-      });
+    const res = await fetch(queryKey[0] as string, {
+      credentials: "include",
+      headers,
+    });
 
-      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-        return null;
-      }
+    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+      return null;
+    }
 
-      await throwIfResNotOk(res);
-      return await res.json();
-    };
+    await throwIfResNotOk(res);
+    return await res.json();
+  };
 
 export const queryClient = new QueryClient({
   defaultOptions: {

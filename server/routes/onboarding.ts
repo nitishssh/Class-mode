@@ -1,4 +1,3 @@
-
 import { Router, Request, Response } from "express";
 import crypto from "crypto";
 import { z } from "zod";
@@ -24,9 +23,9 @@ function sevenDaysFromNow() {
 // ─── STAGE 1: School setup ────────────────────────────────────────────────────
 
 const schoolSetupSchema = z.object({
-  name:          z.string().min(2),
-  city:          z.string().min(2),
-  board:         z.enum(["CBSE", "ICSE", "State", "IB", "Other"]),
+  name: z.string().min(2),
+  city: z.string().min(2),
+  board: z.enum(["CBSE", "ICSE", "State", "IB", "Other"]),
   gradesOffered: z.array(z.string()).min(1, "Select at least one grade"),
 });
 
@@ -55,14 +54,19 @@ router.post("/school/setup", authenticateToken, async (req: Request, res: Respon
 });
 
 // POST /api/school/logo  (multipart)
-router.post("/school/logo", authenticateToken, upload.single("logo"), async (req: Request, res: Response) => {
-  const uid = firebaseUid(req);
-  if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+router.post(
+  "/school/logo",
+  authenticateToken,
+  upload.single("logo"),
+  async (req: Request, res: Response) => {
+    const uid = firebaseUid(req);
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
 
-  const url = diskPathToUrl(req.file.path);
-  await School.findOneAndUpdate({ createdBy: uid }, { logo: url });
-  return res.json({ url });
-});
+    const url = diskPathToUrl(req.file.path);
+    await School.findOneAndUpdate({ createdBy: uid }, { logo: url });
+    return res.json({ url });
+  }
+);
 
 // GET /api/school/me
 router.get("/school/me", authenticateToken, async (req: Request, res: Response) => {
@@ -75,8 +79,8 @@ router.get("/school/me", authenticateToken, async (req: Request, res: Response) 
 // ─── STAGE 2: Admin invites teachers ─────────────────────────────────────────
 
 const teacherInviteSchema = z.object({
-  email:  z.string().email(),
-  name:   z.string().min(1),
+  email: z.string().email(),
+  name: z.string().min(1),
   grades: z.array(z.string()).min(1),
 });
 
@@ -91,11 +95,11 @@ router.post("/invite/teacher", authenticateToken, async (req: Request, res: Resp
 
   const token = crypto.randomUUID();
   const invite = await Invite.create({
-    email:     parsed.data.email,
-    name:      parsed.data.name,
-    role:      "teacher",
-    schoolId:  school._id,
-    grades:    parsed.data.grades,
+    email: parsed.data.email,
+    name: parsed.data.name,
+    role: "teacher",
+    schoolId: school._id,
+    grades: parsed.data.grades,
     token,
     invitedBy: uid,
     expiresAt: sevenDaysFromNow(),
@@ -118,9 +122,9 @@ router.get("/invite/teacher/list", authenticateToken, async (req: Request, res: 
 // ─── STAGE 3: Accept teacher invite ──────────────────────────────────────────
 
 const acceptInviteSchema = z.object({
-  token:       z.string().uuid(),
+  token: z.string().uuid(),
   displayName: z.string().min(1),
-  password:    z.string().min(6),
+  password: z.string().min(6),
 });
 
 // POST /api/invite/accept
@@ -129,14 +133,17 @@ router.post("/invite/accept", async (req: Request, res: Response) => {
   if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
 
   const invite = await Invite.findOne({ token: parsed.data.token });
-  if (!invite)                         return res.status(404).json({ message: "Invalid invite link" });
-  if (invite.status !== "pending")     return res.status(409).json({ message: "Invite already used" });
-  if (invite.expiresAt < new Date())   return res.status(410).json({ message: "This invite has expired. Ask your admin to resend it." });
+  if (!invite) return res.status(404).json({ message: "Invalid invite link" });
+  if (invite.status !== "pending") return res.status(409).json({ message: "Invite already used" });
+  if (invite.expiresAt < new Date())
+    return res
+      .status(410)
+      .json({ message: "This invite has expired. Ask your admin to resend it." });
 
   // Create Firebase Auth user
   const fbUser = await admin.auth().createUser({
-    email:       invite.email,
-    password:    parsed.data.password,
+    email: invite.email,
+    password: parsed.data.password,
     displayName: parsed.data.displayName,
   });
 
@@ -145,15 +152,15 @@ router.post("/invite/accept", async (req: Request, res: Response) => {
 
   // Create MongoDB user
   const mongoUser = await MongoUser.create({
-    firebaseUid:        fbUser.uid,
-    email:              invite.email,
-    username:           invite.email.split("@")[0],
-    name:               parsed.data.displayName,
-    displayName:        parsed.data.displayName,
-    password:           "firebase_managed",
-    role:               invite.role,
-    status:             "active",
-    schoolId:           invite.schoolId,
+    firebaseUid: fbUser.uid,
+    email: invite.email,
+    username: invite.email.split("@")[0],
+    name: parsed.data.displayName,
+    displayName: parsed.data.displayName,
+    password: "firebase_managed",
+    role: invite.role,
+    status: "active",
+    schoolId: invite.schoolId,
     onboardingComplete: invite.role === "student", // students are done immediately
   });
 
@@ -162,8 +169,8 @@ router.post("/invite/accept", async (req: Request, res: Response) => {
   await invite.save();
 
   return res.status(201).json({
-    uid:                fbUser.uid,
-    role:               invite.role,
+    uid: fbUser.uid,
+    role: invite.role,
     onboardingComplete: mongoUser.onboardingComplete,
   });
 });
@@ -171,7 +178,7 @@ router.post("/invite/accept", async (req: Request, res: Response) => {
 // ─── STAGE 3b: Teacher creates classes ───────────────────────────────────────
 
 const classSchema = z.object({
-  name:  z.string().min(1),
+  name: z.string().min(1),
   grade: z.string().min(1),
 });
 
@@ -185,10 +192,10 @@ router.post("/classes", authenticateToken, async (req: Request, res: Response) =
   if (!user?.schoolId) return res.status(400).json({ message: "Not linked to a school" });
 
   const cls = await SchoolClass.create({
-    name:               parsed.data.name,
-    grade:              parsed.data.grade,
+    name: parsed.data.name,
+    grade: parsed.data.grade,
     teacherFirebaseUid: uid,
-    schoolId:           user.schoolId,
+    schoolId: user.schoolId,
   });
 
   // Mark teacher onboarding complete once first class is created
@@ -212,8 +219,8 @@ router.get("/classes/mine", authenticateToken, async (req: Request, res: Respons
 const studentInviteSchema = z.object({
   studentName: z.string().min(1),
   parentEmail: z.string().email(),
-  grade:       z.string().min(1),
-  classId:     z.string().min(1),
+  grade: z.string().min(1),
+  classId: z.string().min(1),
 });
 
 // POST /api/invite/student
@@ -229,12 +236,12 @@ router.post("/invite/student", authenticateToken, async (req: Request, res: Resp
 
   const token = crypto.randomUUID();
   const invite = await Invite.create({
-    email:     parsed.data.parentEmail,
-    name:      parsed.data.studentName,
-    role:      "student",
-    schoolId:  cls.schoolId,
-    classId:   cls._id,
-    grades:    [parsed.data.grade],
+    email: parsed.data.parentEmail,
+    name: parsed.data.studentName,
+    role: "student",
+    schoolId: cls.schoolId,
+    classId: cls._id,
+    grades: [parsed.data.grade],
     token,
     invitedBy: uid,
     expiresAt: sevenDaysFromNow(),
@@ -272,8 +279,8 @@ router.post("/invite/resend/:inviteId", authenticateToken, async (req: Request, 
   if (invite.invitedBy !== uid) return res.status(403).json({ message: "Forbidden" });
   if (invite.status === "accepted") return res.status(409).json({ message: "Already accepted" });
 
-  invite.token     = crypto.randomUUID();
-  invite.status    = "pending";
+  invite.token = crypto.randomUUID();
+  invite.status = "pending";
   invite.expiresAt = sevenDaysFromNow();
   await invite.save();
 
@@ -282,7 +289,13 @@ router.post("/invite/resend/:inviteId", authenticateToken, async (req: Request, 
     await sendTeacherInvite(invite.email, invite.name, school?.name ?? "", invite.token);
   } else {
     const cls = invite.classId ? await SchoolClass.findById(invite.classId) : null;
-    await sendStudentInvite(invite.email, invite.name, school?.name ?? "", cls?.name ?? "", invite.token);
+    await sendStudentInvite(
+      invite.email,
+      invite.name,
+      school?.name ?? "",
+      cls?.name ?? "",
+      invite.token
+    );
   }
 
   return res.json({ message: "Invite resent" });
@@ -291,10 +304,18 @@ router.post("/invite/resend/:inviteId", authenticateToken, async (req: Request, 
 // GET /api/invite/validate/:token  (used by accept-invite page to pre-fill info)
 router.get("/invite/validate/:token", async (req: Request, res: Response) => {
   const invite = await Invite.findOne({ token: req.params.token }).select("-token");
-  if (!invite)                       return res.status(404).json({ message: "Invalid invite link" });
-  if (invite.status !== "pending")   return res.status(409).json({ message: "Invite already used" });
-  if (invite.expiresAt < new Date()) return res.status(410).json({ message: "This invite has expired. Ask your admin to resend it." });
-  return res.json({ name: invite.name, email: invite.email, role: invite.role, grades: invite.grades });
+  if (!invite) return res.status(404).json({ message: "Invalid invite link" });
+  if (invite.status !== "pending") return res.status(409).json({ message: "Invite already used" });
+  if (invite.expiresAt < new Date())
+    return res
+      .status(410)
+      .json({ message: "This invite has expired. Ask your admin to resend it." });
+  return res.json({
+    name: invite.name,
+    email: invite.email,
+    role: invite.role,
+    grades: invite.grades,
+  });
 });
 
 export default router;

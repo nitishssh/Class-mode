@@ -3,7 +3,16 @@ import { useLocation } from "wouter";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { Hero, NotebookFeature, OnboardingFeatures, Turbulence, Journey, DemoWidget, Pricing, ContactForm } from "@/components/landing";
+import {
+  Hero,
+  NotebookFeature,
+  OnboardingFeatures,
+  Turbulence,
+  Journey,
+  DemoWidget,
+  Pricing,
+  ContactForm,
+} from "@/components/landing";
 
 // --- Navbar ---
 const Navbar = () => {
@@ -18,24 +27,28 @@ const Navbar = () => {
   ];
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
-      <div className="container flex items-center justify-between h-16">
+    <nav className="fixed left-0 right-0 top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
+      <div className="container flex h-16 items-center justify-between">
         <a href="#" className="font-heading text-xl font-bold tracking-tight">
           Edu<span className="text-primary">AI</span> ✨
         </a>
 
         {/* Desktop */}
-        <div className="hidden md:flex items-center gap-8">
+        <div className="hidden items-center gap-8 md:flex">
           {links.map((l) => (
             <a
               key={l.href}
               href={l.href}
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               {l.label}
             </a>
           ))}
-          <Button className="rounded-full font-heading text-sm bg-primary text-primary-foreground hover:bg-primary/90 sketch-border sketch-shadow-yellow hover-tilt" size="sm" onClick={() => setLocation('/login')}>
+          <Button
+            className="sketch-border sketch-shadow-yellow hover-tilt rounded-full bg-primary font-heading text-sm text-primary-foreground hover:bg-primary/90"
+            size="sm"
+            onClick={() => setLocation("/login")}
+          >
             Get My Plan
           </Button>
           <ThemeToggle />
@@ -49,7 +62,7 @@ const Navbar = () => {
 
       {/* Mobile menu */}
       {open && (
-        <div className="md:hidden bg-background border-b border-border px-6 pb-4 space-y-3">
+        <div className="space-y-3 border-b border-border bg-background px-6 pb-4 md:hidden">
           {links.map((l) => (
             <a
               key={l.href}
@@ -60,7 +73,14 @@ const Navbar = () => {
               {l.label}
             </a>
           ))}
-          <Button className="w-full rounded-full font-heading text-sm bg-primary text-primary-foreground hover:bg-primary/90 sketch-border sketch-shadow-yellow" size="sm" onClick={() => { setOpen(false); setLocation('/login'); }}>
+          <Button
+            className="sketch-border sketch-shadow-yellow w-full rounded-full bg-primary font-heading text-sm text-primary-foreground hover:bg-primary/90"
+            size="sm"
+            onClick={() => {
+              setOpen(false);
+              setLocation("/login");
+            }}
+          >
             Get Started
           </Button>
         </div>
@@ -71,20 +91,20 @@ const Navbar = () => {
 
 // --- Footer ---
 const Footer = () => (
-  <footer className="border-t border-border py-12 bg-card/30">
+  <footer className="border-t border-border bg-card/30 py-12">
     <div className="container">
       {/* Footer Divider */}
-      <div className="flex justify-center mb-8">
+      <div className="mb-8 flex justify-center">
         <div className="flex gap-2">
           {[...Array(12)].map((_, i) => (
-            <div key={i} className="w-6 h-1 bg-foreground/15 rounded-full" />
+            <div key={i} className="h-1 w-6 rounded-full bg-foreground/15" />
           ))}
         </div>
       </div>
 
-      <div className="grid sm:grid-cols-3 gap-8 text-sm">
+      <div className="grid gap-8 text-sm sm:grid-cols-3">
         <div>
-          <p className="font-heading font-bold text-lg mb-2">
+          <p className="mb-2 font-heading text-lg font-bold">
             Edu<span className="text-primary">AI</span> ✨
           </p>
           <p className="text-muted-foreground">
@@ -92,26 +112,45 @@ const Footer = () => (
           </p>
         </div>
         <div>
-          <p className="font-heading font-bold mb-2">Quick Links</p>
+          <p className="mb-2 font-heading font-bold">Quick Links</p>
           <div className="space-y-1 text-muted-foreground">
-            <a href="#journey" className="block hover:text-foreground transition-colors">How it Works</a>
-            <a href="#features" className="block hover:text-foreground transition-colors">Features</a>
-            <a href="#pricing" className="block hover:text-foreground transition-colors">Pricing</a>
-            <a href="#contact" className="block hover:text-foreground transition-colors">Contact</a>
+            <a href="#journey" className="block transition-colors hover:text-foreground">
+              How it Works
+            </a>
+            <a href="#features" className="block transition-colors hover:text-foreground">
+              Features
+            </a>
+            <a href="#pricing" className="block transition-colors hover:text-foreground">
+              Pricing
+            </a>
+            <a href="#contact" className="block transition-colors hover:text-foreground">
+              Contact
+            </a>
           </div>
         </div>
         <div>
-          <p className="font-heading font-bold mb-2">Connect</p>
+          <p className="mb-2 font-heading font-bold">Connect</p>
           <div className="space-y-1 text-muted-foreground">
-            <a href="#" className="block hover:text-foreground transition-colors">Twitter / X</a>
-            <a href="#" className="block hover:text-foreground transition-colors">LinkedIn</a>
-            <a href="#" className="block hover:text-foreground transition-colors">Instagram</a>
-            <a href="mailto:hello@eduai.com" className="block hover:text-foreground transition-colors">hello@eduai.com</a>
+            <a href="#" className="block transition-colors hover:text-foreground">
+              Twitter / X
+            </a>
+            <a href="#" className="block transition-colors hover:text-foreground">
+              LinkedIn
+            </a>
+            <a href="#" className="block transition-colors hover:text-foreground">
+              Instagram
+            </a>
+            <a
+              href="mailto:hello@eduai.com"
+              className="block transition-colors hover:text-foreground"
+            >
+              hello@eduai.com
+            </a>
           </div>
         </div>
       </div>
 
-      <div className="mt-10 pt-6 border-t border-border text-center text-xs text-muted-foreground">
+      <div className="mt-10 border-t border-border pt-6 text-center text-xs text-muted-foreground">
         © 2026 EduAI. All rights reserved. Built with 💛 for learners everywhere.
       </div>
     </div>
@@ -119,7 +158,7 @@ const Footer = () => (
 );
 
 const LandingPage = () => (
-  <div className="bg-background min-h-screen text-foreground selection:bg-primary/20">
+  <div className="min-h-screen bg-background text-foreground selection:bg-primary/20">
     <Navbar />
     <main>
       <Hero />

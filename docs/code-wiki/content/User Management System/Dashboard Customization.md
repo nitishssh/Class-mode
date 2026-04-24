@@ -19,6 +19,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -30,9 +31,11 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document describes the role-based dashboard customization system implemented in the client application. It explains how five distinct dashboard implementations serve different user roles—administrator, principal, teacher, student, and parent—each with tailored widgets, analytics, and features. It also covers dashboard layout management, widget configuration, personalization options, data sources, real-time update strategies, performance metrics display, accessibility features, responsive design, and user preference storage.
 
 ## Project Structure
+
 The dashboard system is organized around role-aware routing and modular dashboard pages. Each role has a dedicated page component that composes reusable dashboard widgets. Authentication context determines the active role and routes users to the appropriate dashboard. Theme context manages light/dark/system preferences and applies them globally.
 
 ```mermaid
@@ -69,6 +72,7 @@ StudentDash --> QuickAction
 ```
 
 **Diagram sources**
+
 - [App.tsx](file://client/src/App.tsx#L93-L149)
 - [admin-dashboard.tsx](file://client/src/pages/admin-dashboard.tsx#L29-L301)
 - [principal-dashboard.tsx](file://client/src/pages/principal-dashboard.tsx#L44-L364)
@@ -82,10 +86,12 @@ StudentDash --> QuickAction
 - [quick-action-card.tsx](file://client/src/components/dashboard/quick-action-card.tsx#L14-L39)
 
 **Section sources**
+
 - [App.tsx](file://client/src/App.tsx#L93-L149)
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L114-L124)
 
 ## Core Components
+
 - Role-aware routing and dashboard selection:
   - The router selects the appropriate dashboard based on the authenticated user’s role.
   - Default route redirects to the role-specific dashboard.
@@ -99,12 +105,15 @@ StudentDash --> QuickAction
   - Reusable components for charts, tables, schedules, and quick actions.
 
 **Section sources**
+
 - [App.tsx](file://client/src/App.tsx#L113-L124)
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L19-L34)
 - [theme-context.tsx](file://client/src/contexts/theme-context.tsx#L23-L62)
 
 ## Architecture Overview
+
 The system follows a role-based composition pattern:
+
 - Authentication determines the active role.
 - Router maps the role to a dashboard page.
 - Dashboard page renders role-specific widgets and analytics.
@@ -128,6 +137,7 @@ Widget-->>Dash : Render UI with mock data
 ```
 
 **Diagram sources**
+
 - [App.tsx](file://client/src/App.tsx#L113-L124)
 - [dashboard.tsx](file://client/src/pages/dashboard.tsx#L44-L337)
 - [performance-chart.tsx](file://client/src/components/dashboard/performance-chart.tsx#L25-L28)
@@ -138,6 +148,7 @@ Widget-->>Dash : Render UI with mock data
 ## Detailed Component Analysis
 
 ### Role-Based Dashboards Overview
+
 - Administrator dashboard:
   - Tabs for user management, class management, reports, and system settings.
   - Static summaries and lists suitable for administrative tasks.
@@ -152,6 +163,7 @@ Widget-->>Dash : Render UI with mock data
   - Children overview cards, academic progression chart, and upcoming schedule/events.
 
 **Section sources**
+
 - [admin-dashboard.tsx](file://client/src/pages/admin-dashboard.tsx#L29-L301)
 - [principal-dashboard.tsx](file://client/src/pages/principal-dashboard.tsx#L44-L364)
 - [dashboard.tsx](file://client/src/pages/dashboard.tsx#L44-L337)
@@ -159,6 +171,7 @@ Widget-->>Dash : Render UI with mock data
 - [parent-dashboard.tsx](file://client/src/pages/parent-dashboard.tsx#L36-L248)
 
 ### Teacher Dashboard Widgets
+
 - Stats cards:
   - Active tests, total students, average score, number of classes.
 - Quick actions:
@@ -202,6 +215,7 @@ T_Dash --> Res
 ```
 
 **Diagram sources**
+
 - [dashboard.tsx](file://client/src/pages/dashboard.tsx#L98-L335)
 - [class-schedule.tsx](file://client/src/components/dashboard/class-schedule.tsx#L35-L179)
 - [recent-tests-table.tsx](file://client/src/components/dashboard/recent-tests-table.tsx#L33-L149)
@@ -209,6 +223,7 @@ T_Dash --> Res
 - [top-students.tsx](file://client/src/components/dashboard/top-students.tsx#L14-L54)
 
 **Section sources**
+
 - [dashboard.tsx](file://client/src/pages/dashboard.tsx#L98-L335)
 - [class-schedule.tsx](file://client/src/components/dashboard/class-schedule.tsx#L35-L179)
 - [recent-tests-table.tsx](file://client/src/components/dashboard/recent-tests-table.tsx#L33-L149)
@@ -216,6 +231,7 @@ T_Dash --> Res
 - [top-students.tsx](file://client/src/components/dashboard/top-students.tsx#L14-L54)
 
 ### Student Dashboard Widgets
+
 - Hero session:
   - Current topic, progress bar, and resume action.
 - Quick actions:
@@ -249,13 +265,16 @@ Analytics --> End(["Complete"])
 ```
 
 **Diagram sources**
+
 - [student-dashboard.tsx](file://client/src/pages/student-dashboard.tsx#L123-L1001)
 - [performance-chart.tsx](file://client/src/components/dashboard/performance-chart.tsx#L21-L89)
 
 **Section sources**
+
 - [student-dashboard.tsx](file://client/src/pages/student-dashboard.tsx#L123-L1001)
 
 ### Parent Dashboard Widgets
+
 - Children overview:
   - Attendance, average grade, curriculum progress, and status badges.
 - Academic progression:
@@ -275,12 +294,15 @@ P_Dash --> Events
 ```
 
 **Diagram sources**
+
 - [parent-dashboard.tsx](file://client/src/pages/parent-dashboard.tsx#L36-L248)
 
 **Section sources**
+
 - [parent-dashboard.tsx](file://client/src/pages/parent-dashboard.tsx#L36-L248)
 
 ### Principal Dashboard Widgets
+
 - Stats grid:
   - Total students, teachers, active classes, pass rate.
 - Academic tab:
@@ -316,12 +338,15 @@ Pr_Dash --> Notifs
 ```
 
 **Diagram sources**
+
 - [principal-dashboard.tsx](file://client/src/pages/principal-dashboard.tsx#L44-L364)
 
 **Section sources**
+
 - [principal-dashboard.tsx](file://client/src/pages/principal-dashboard.tsx#L44-L364)
 
 ### Admin Dashboard Widgets
+
 - Tabs:
   - User Management, Class Management, Reports & Analytics, System Settings.
 - User Management:
@@ -347,12 +372,15 @@ A_Dash --> Settings
 ```
 
 **Diagram sources**
+
 - [admin-dashboard.tsx](file://client/src/pages/admin-dashboard.tsx#L29-L301)
 
 **Section sources**
+
 - [admin-dashboard.tsx](file://client/src/pages/admin-dashboard.tsx#L29-L301)
 
 ### Shared Widget Components
+
 - Quick action card:
   - Reusable card with icon, title, description, and link.
 - Recent tests table:
@@ -393,6 +421,7 @@ class ClassSchedule {
 ```
 
 **Diagram sources**
+
 - [quick-action-card.tsx](file://client/src/components/dashboard/quick-action-card.tsx#L14-L39)
 - [recent-tests-table.tsx](file://client/src/components/dashboard/recent-tests-table.tsx#L33-L150)
 - [top-students.tsx](file://client/src/components/dashboard/top-students.tsx#L14-L74)
@@ -400,6 +429,7 @@ class ClassSchedule {
 - [class-schedule.tsx](file://client/src/components/dashboard/class-schedule.tsx#L35-L179)
 
 **Section sources**
+
 - [quick-action-card.tsx](file://client/src/components/dashboard/quick-action-card.tsx#L14-L39)
 - [recent-tests-table.tsx](file://client/src/components/dashboard/recent-tests-table.tsx#L33-L150)
 - [top-students.tsx](file://client/src/components/dashboard/top-students.tsx#L14-L74)
@@ -407,6 +437,7 @@ class ClassSchedule {
 - [class-schedule.tsx](file://client/src/components/dashboard/class-schedule.tsx#L35-L179)
 
 ## Dependency Analysis
+
 - Routing depends on authentication context to select the correct dashboard.
 - Dashboard pages depend on shared widgets for consistent UX and data presentation.
 - Widgets depend on React Query for data fetching and on theme context for visual styling.
@@ -423,15 +454,18 @@ Theme --> LocalStorage["localStorage (ui-theme)"]
 ```
 
 **Diagram sources**
+
 - [App.tsx](file://client/src/App.tsx#L113-L124)
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L19-L34)
 - [theme-context.tsx](file://client/src/contexts/theme-context.tsx#L23-L62)
 
 **Section sources**
+
 - [App.tsx](file://client/src/App.tsx#L113-L124)
 - [theme-context.tsx](file://client/src/contexts/theme-context.tsx#L23-L62)
 
 ## Performance Considerations
+
 - Data fetching:
   - Widgets currently disable queries (enabled=false) and rely on mock data. This prevents unnecessary network requests during development and avoids blocking renders.
 - Skeleton loaders:
@@ -444,18 +478,21 @@ Theme --> LocalStorage["localStorage (ui-theme)"]
   - Dashboard pages use CSS grid and flex utilities to adapt to small, medium, and large screens.
 
 Recommendations:
+
 - Enable queries when backend endpoints are ready and implement caching strategies.
 - Consider pagination for long lists (e.g., recent tests, top students).
 - Lazy-load heavy widgets if they are not immediately visible.
 - Debounce or throttle frequent updates for real-time features.
 
 **Section sources**
+
 - [performance-chart.tsx](file://client/src/components/dashboard/performance-chart.tsx#L25-L28)
 - [recent-tests-table.tsx](file://client/src/components/dashboard/recent-tests-table.tsx#L34-L36)
 - [top-students.tsx](file://client/src/components/dashboard/top-students.tsx#L15-L18)
 - [class-schedule.tsx](file://client/src/components/dashboard/class-schedule.tsx#L36-L39)
 
 ## Troubleshooting Guide
+
 - Authentication issues:
   - Verify that the authentication provider is initialized and that onAuthStateChanged resolves profile data. The context includes timeouts to prevent hanging.
 - Role-based routing:
@@ -468,9 +505,11 @@ Recommendations:
   - Ensure interactive elements have proper focus styles and ARIA attributes if extended. The current UI relies on semantic HTML and Tailwind utilities.
 
 **Section sources**
+
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L43-L71)
 - [App.tsx](file://client/src/App.tsx#L113-L124)
 - [theme-context.tsx](file://client/src/contexts/theme-context.tsx#L33-L48)
 
 ## Conclusion
+
 The role-based dashboard customization system provides a scalable, modular foundation for delivering distinct experiences to administrators, principals, teachers, students, and parents. Through shared widgets, role-aware routing, and theme persistence, the system balances personalization with consistency. As the platform evolves, enabling backend integrations, implementing real-time updates, and optimizing performance will further enhance the user experience across devices and preferences.

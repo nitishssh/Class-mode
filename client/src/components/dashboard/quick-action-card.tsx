@@ -17,19 +17,25 @@ export function QuickActionCard({
   icon,
   href,
   bgColor,
-  iconColor
+  iconColor,
 }: QuickActionCardProps) {
   return (
-    <Link href={href} className="block h-full group">
-      <Card className="h-full border-border bg-card shadow-soft hover:shadow-card hover:border-accent/30 transition-all duration-200 hover:-translate-y-0.5">
+    <Link href={href} className="group block h-full">
+      <Card className="h-full border-border bg-card shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/30 hover:shadow-card">
         <CardContent className="p-5">
           <div className="flex items-center gap-4">
-            <div className={`rounded-xl p-2.5 shrink-0 transition-transform duration-200 group-hover:scale-110 ${bgColor} ${iconColor}`}>
+            <div
+              className={`shrink-0 rounded-xl p-2.5 transition-transform duration-200 group-hover:scale-110 ${bgColor} ${iconColor}`}
+            >
               <div className="h-5 w-5">{icon}</div>
             </div>
             <div className="min-w-0">
-              <h3 className="font-semibold text-sm text-foreground group-hover:text-accent transition-colors truncate">{title}</h3>
-              <p className="text-xs text-muted-foreground leading-snug mt-0.5 truncate">{description}</p>
+              <h3 className="truncate text-sm font-semibold text-foreground transition-colors group-hover:text-accent">
+                {title}
+              </h3>
+              <p className="mt-0.5 truncate text-xs leading-snug text-muted-foreground">
+                {description}
+              </p>
             </div>
           </div>
         </CardContent>

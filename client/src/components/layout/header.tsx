@@ -1,13 +1,5 @@
 import { useState } from "react";
-import {
-  Menu,
-  Bell,
-  Search,
-  MessageSquare,
-  Settings,
-  Moon,
-  Sun
-} from "lucide-react";
+import { Menu, Bell, Search, MessageSquare, Settings, Moon, Sun } from "lucide-react";
 import { useTheme } from "@/contexts/theme-context";
 import { useFirebaseAuth as useAuth } from "@/contexts/firebase-auth-context";
 import { getInitials } from "@/lib/utils";
@@ -31,7 +23,10 @@ interface HeaderProps {
 
 export function Header({ title }: HeaderProps) {
   const { theme, setTheme } = useTheme();
-  const { currentUser: { profile: user }, logout } = useAuth();
+  const {
+    currentUser: { profile: user },
+    logout,
+  } = useAuth();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const handleToggleSidebar = () => {
@@ -46,13 +41,9 @@ export function Header({ title }: HeaderProps) {
         <span className="sr-only">Toggle Menu</span>
       </Button>
 
-      {title && (
-        <h1 className="text-xl font-semibold md:text-2xl hidden md:block">
-          {title}
-        </h1>
-      )}
+      {title && <h1 className="hidden text-xl font-semibold md:block md:text-2xl">{title}</h1>}
 
-      <div className={`flex-1 ${isSearchOpen ? 'block' : 'hidden md:block'}`}>
+      <div className={`flex-1 ${isSearchOpen ? "block" : "hidden md:block"}`}>
         <form className="relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -74,19 +65,19 @@ export function Header({ title }: HeaderProps) {
       </Button>
 
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-          {theme === "dark" ? (
-            <Sun className="h-5 w-5" />
-          ) : (
-            <Moon className="h-5 w-5" />
-          )}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+        >
+          {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           <span className="sr-only">Toggle theme</span>
         </Button>
 
         <Button variant="ghost" size="icon" className="relative">
           <MessageSquare className="h-5 w-5" />
           <span className="sr-only">Messages</span>
-          <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]">
+          <Badge className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center p-0 text-[10px]">
             3
           </Badge>
         </Button>
@@ -94,7 +85,7 @@ export function Header({ title }: HeaderProps) {
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
           <span className="sr-only">Notifications</span>
-          <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]">
+          <Badge className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center p-0 text-[10px]">
             5
           </Badge>
         </Button>

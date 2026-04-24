@@ -10,6 +10,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -21,7 +22,9 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document provides comprehensive API documentation for channel management endpoints within the messaging system. It covers:
+
 - Channel creation (POST /api/workspaces/:id/channels) with teacher-only authorization and workspace membership validation
 - Channel listing (GET /api/workspaces/:id/channels) showing accessible channels within a workspace
 - Channel type restrictions (public, private, direct messages)
@@ -30,6 +33,7 @@ This document provides comprehensive API documentation for channel management en
 - Error handling for unauthorized access, workspace validation, and channel creation validation
 
 ## Project Structure
+
 The channel management functionality is implemented in the server routes and storage layers, with shared schemas defining validation rules and data structures.
 
 ```mermaid
@@ -41,6 +45,7 @@ Storage --> Shared["Shared Schemas<br/>schema.ts"]
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L677-L718)
 - [storage.ts](file://server/storage.ts#L357-L409)
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L121-L144)
@@ -48,6 +53,7 @@ Storage --> Shared["Shared Schemas<br/>schema.ts"]
 - [chat-api.ts](file://client/src/lib/chat-api.ts#L63-L71)
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L677-L718)
 - [storage.ts](file://server/storage.ts#L357-L409)
 - [schema.ts](file://shared/schema.ts#L114-L140)
@@ -55,19 +61,23 @@ Storage --> Shared["Shared Schemas<br/>schema.ts"]
 - [chat-api.ts](file://client/src/lib/chat-api.ts#L63-L71)
 
 ## Core Components
+
 - Channel creation endpoint validates teacher role, workspace existence, and membership before creating channels
 - Channel listing endpoint validates workspace membership and returns channels associated with the workspace
 - Channel type restrictions are enforced via Zod schemas and MongoDB enums
 - Workspace membership checks ensure only authorized users can access channels
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L679-L718)
 - [schema.ts](file://shared/schema.ts#L114-L120)
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L121-L130)
 - [storage.ts](file://server/storage.ts#L359-L374)
 
 ## Architecture Overview
+
 The channel management endpoints follow a layered architecture:
+
 - HTTP routes handle authentication and authorization
 - Validation occurs using Zod schemas
 - Storage layer persists data to MongoDB
@@ -95,6 +105,7 @@ Routes-->>Client : 201 Created + Channel JSON
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L679-L701)
 - [storage.ts](file://server/storage.ts#L359-L364)
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L121-L130)
@@ -102,6 +113,7 @@ Routes-->>Client : 201 Created + Channel JSON
 ## Detailed Component Analysis
 
 ### Channel Creation Endpoint
+
 - Endpoint: POST /api/workspaces/:id/channels
 - Authentication: Requires active session
 - Authorization: Only teachers can create channels
@@ -110,6 +122,7 @@ Routes-->>Client : 201 Created + Channel JSON
 - Response: 201 Created with created channel object
 
 Validation Rules:
+
 - workspaceId: Required for workspace-scoped channels; optional for DM channels
 - name: Required, minimum length 1
 - type: Enum ["text", "announcement", "dm"], defaults to "text"
@@ -117,6 +130,7 @@ Validation Rules:
 - subject: Optional
 
 Authorization Flow:
+
 ```mermaid
 flowchart TD
 Start([Request Received]) --> CheckAuth["Check session.userId"]
@@ -139,40 +153,49 @@ CreateChannel --> Return201["Return 201 Created"]
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L679-L701)
 - [schema.ts](file://shared/schema.ts#L114-L120)
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L679-L701)
 - [schema.ts](file://shared/schema.ts#L114-L120)
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L121-L130)
 
 ### Channel Listing Endpoint
+
 - Endpoint: GET /api/workspaces/:id/channels
 - Authentication: Requires active session
 - Authorization: Requester must be a member of the workspace
 - Response: 200 OK with array of channels
 
 Access Control:
+
 - Validates workspace membership before returning channels
 - Ensures requester belongs to the workspace before listing channels
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L703-L718)
 - [storage.ts](file://server/storage.ts#L371-L374)
 
 ### Channel Types and Restrictions
+
 Supported channel types:
+
 - text: General workspace channels
 - announcement: Announcement-only channels
 - dm: Direct messages between users
 
 Type enforcement:
+
 - Zod schema enforces enum values
 - MongoDB schema enforces enum values
 - DM channels are identified by type "dm" and special naming convention
 
 **Section sources**
+
 - [schema.ts](file://shared/schema.ts#L114-L120)
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L121-L130)
 - [storage.ts](file://server/storage.ts#L376-L396)
@@ -180,6 +203,7 @@ Type enforcement:
 ### Request/Response Schemas
 
 #### Request Schema: insertChannelSchema
+
 - workspaceId: number | null (optional)
 - name: string (required)
 - type: "text" | "announcement" | "dm" (defaults to "text")
@@ -187,6 +211,7 @@ Type enforcement:
 - subject: string | null (optional)
 
 #### Response Schema: Channel
+
 - id: number
 - workspaceId: number | null
 - name: string
@@ -197,11 +222,14 @@ Type enforcement:
 - createdAt: Date
 
 **Section sources**
+
 - [schema.ts](file://shared/schema.ts#L114-L140)
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L121-L130)
 
 ## Dependency Analysis
+
 Channel management depends on:
+
 - Session-based authentication for user identity
 - Workspace membership validation for access control
 - Zod schemas for request validation
@@ -218,6 +246,7 @@ Client["Client API (chat-api.ts)"] --> Routes
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L677-L718)
 - [schema.ts](file://shared/schema.ts#L114-L140)
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L121-L144)
@@ -225,6 +254,7 @@ Client["Client API (chat-api.ts)"] --> Routes
 - [chat-api.ts](file://client/src/lib/chat-api.ts#L63-L71)
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L677-L718)
 - [schema.ts](file://shared/schema.ts#L114-L140)
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L121-L144)
@@ -232,6 +262,7 @@ Client["Client API (chat-api.ts)"] --> Routes
 - [chat-api.ts](file://client/src/lib/chat-api.ts#L63-L71)
 
 ## Performance Considerations
+
 - Channel listing uses database sorting by creation time for consistent ordering
 - Workspace membership checks are O(n) against workspace member arrays
 - Consider indexing workspaceId for faster channel queries
@@ -240,19 +271,23 @@ Client["Client API (chat-api.ts)"] --> Routes
 ## Troubleshooting Guide
 
 Common Error Scenarios:
+
 - 401 Unauthorized: Missing or invalid session
 - 403 Forbidden: Non-teacher attempting to create channels, or non-member accessing channels
 - 404 Not Found: Workspace does not exist
 - 400 Bad Request: Invalid input data according to Zod schema
 
 Validation Failures:
+
 - Missing required fields in channel creation
 - Invalid channel type values
 - Workspace ID mismatch for workspace-scoped channels
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L679-L718)
 - [schema.ts](file://shared/schema.ts#L114-L120)
 
 ## Conclusion
+
 The channel management endpoints provide a robust foundation for workspace-based messaging with clear authorization boundaries. The implementation enforces teacher-only creation privileges, workspace membership requirements, and strict schema validation. The architecture cleanly separates concerns between routing, validation, and persistence while maintaining type safety through shared schemas.

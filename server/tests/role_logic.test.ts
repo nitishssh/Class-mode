@@ -1,15 +1,15 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import express from 'express';
-import request from 'supertest';
-import { registerRoutes } from '../routes';
-import { verifyFirebaseToken } from '../lib/firebase-admin';
-import { MongoUser } from '../../shared/mongo-schema';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import express from "express";
+import request from "supertest";
+import { registerRoutes } from "../routes";
+import { verifyFirebaseToken } from "../lib/firebase-admin";
+import { MongoUser } from "../../shared/mongo-schema";
 
 // Mock the dependencies
-vi.mock('../lib/firebase-admin');
+vi.mock("../lib/firebase-admin");
 
 // Mock MongoDB
-vi.mock('../../shared/mongo-schema', () => {
+vi.mock("../../shared/mongo-schema", () => {
   const saveMock = vi.fn().mockResolvedValue(true);
   function MockUser(this: any, data: any) {
     Object.assign(this, data);
@@ -39,7 +39,7 @@ vi.mock('../../shared/mongo-schema', () => {
   };
 });
 
-describe('Role Logic - School Admin', () => {
+describe("Role Logic - School Admin", () => {
   let app: express.Express;
 
   beforeEach(() => {
@@ -49,60 +49,62 @@ describe('Role Logic - School Admin', () => {
     registerRoutes(app);
   });
 
-  describe('POST /api/auth/firebase with school_admin role', () => {
-    it('should successfully sync a profile with school_admin role', async () => {
+  describe("POST /api/auth/firebase with school_admin role", () => {
+    it("should successfully sync a profile with school_admin role", async () => {
       const mockDecodedToken = {
-        uid: 'school-admin-uid',
-        email: 'admin@school.com',
-        name: 'School Administrator',
+        uid: "school-admin-uid",
+        email: "admin@school.com",
+        name: "School Administrator",
       };
 
       (verifyFirebaseToken as any).mockResolvedValue(mockDecodedToken);
-      
+
       // Mock MongoUser.findOne to return null (new user)
       (MongoUser.findOne as any).mockResolvedValue(null);
-      
+
       // Mock MongoUser.findOneAndUpdate to return the user
-      (MongoUser.findOneAndUpdate as any).mockImplementation((query: any, update: any) => Promise.resolve({
-        ...update,
-        id: 101,
-        role: 'school_admin'
-      }));
+      (MongoUser.findOneAndUpdate as any).mockImplementation((query: any, update: any) =>
+        Promise.resolve({
+          ...update,
+          id: 101,
+          role: "school_admin",
+        })
+      );
 
       const res = await request(app)
-        .post('/api/auth/firebase')
-        .send({ idToken: 'valid-school-admin-token', role: 'school_admin' });
+        .post("/api/auth/firebase")
+        .send({ idToken: "valid-school-admin-token", role: "school_admin" });
 
       expect(res.status).toBe(200);
-      expect(res.body.role).toBe('school_admin');
+      expect(res.body.role).toBe("school_admin");
     });
 
-    it('should maintain school_admin role for existing users', async () => {
+    it("should maintain school_admin role for existing users", async () => {
       const mockDecodedToken = {
-        uid: 'existing-admin-uid',
-        email: 'existing@school.com',
+        uid: "existing-admin-uid",
+        email: "existing@school.com",
       };
 
       (verifyFirebaseToken as any).mockResolvedValue(mockDecodedToken);
-      
+
       // Mock MongoUser.findOne to return an existing user with a save method
       const existingUser = {
         id: 102,
-        email: 'existing@school.com',
-        role: 'school_admin',
-        username: 'school_admin_user',
+        email: "existing@school.com",
+        role: "school_admin",
+        username: "school_admin_user",
         firebaseUid: null,
         save: vi.fn().mockResolvedValue(true),
-        toObject: function() { return this; }
+        toObject: function () {
+          return this;
+        },
       };
       (MongoUser.findOne as any).mockResolvedValue(existingUser);
 
-      const res = await request(app)
-        .post('/api/auth/firebase')
-        .send({ idToken: 'valid-token' });
+      const res = await request(app).post("/api/auth/firebase").send({ idToken: "valid-token" });
 
       expect(res.status).toBe(200);
-      expect(res.body.role).toBe('school_admin');
+      expect(res.body.role).toBe("school_admin");
       expect(existingUser.save).toHaveBeenCalled();
     });
   });

@@ -16,6 +16,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -27,9 +28,11 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document describes the Role-Based Access Control (RBAC) model implemented in PersonalLearningPro. It covers the five-user role system (Student, Teacher, Admin, Principal, Parent), permission hierarchies, authorization middleware, role-based route protection, permission checking mechanisms, role assignment during registration, dynamic permission enforcement, role-based UI rendering, protected route implementations, and permission matrices. It also addresses role escalation policies, temporary role assignments, and audit trail for role changes.
 
 ## Project Structure
+
 The RBAC implementation spans the server (Express middleware and routes), shared validation schemas, and the client (Firebase-based authentication and role-aware UI).
 
 ```mermaid
@@ -62,6 +65,7 @@ MOCK --> APP
 ```
 
 **Diagram sources**
+
 - [firebase.ts](file://client/src/lib/firebase.ts#L47-L63)
 - [register.tsx](file://client/src/pages/register.tsx#L36-L46)
 - [App.tsx](file://client/src/App.tsx#L93-L150)
@@ -75,6 +79,7 @@ MOCK --> APP
 - [schema.ts](file://shared/schema.ts#L4-L13)
 
 **Section sources**
+
 - [middleware.ts](file://server/middleware.ts#L1-L18)
 - [routes.ts](file://server/routes.ts#L11-L86)
 - [firebase.ts](file://client/src/lib/firebase.ts#L47-L63)
@@ -88,6 +93,7 @@ MOCK --> APP
 - [schema.ts](file://shared/schema.ts#L4-L13)
 
 ## Core Components
+
 - UserRole enum and typed profiles:
   - Client-side role union type and user profile shape define the supported roles and associated attributes.
   - Registration UI enforces role selection and collects role-specific fields (class, subject).
@@ -104,6 +110,7 @@ MOCK --> APP
   - Dashboards render role-appropriate content and actions.
 
 **Section sources**
+
 - [firebase.ts](file://client/src/lib/firebase.ts#L47-L63)
 - [register.tsx](file://client/src/pages/register.tsx#L36-L46)
 - [middleware.ts](file://server/middleware.ts#L3-L17)
@@ -113,6 +120,7 @@ MOCK --> APP
 - [App.tsx](file://client/src/App.tsx#L113-L124)
 
 ## Architecture Overview
+
 The RBAC architecture combines client-side Firebase authentication with server-side session-based authorization and route-level guards.
 
 ```mermaid
@@ -134,6 +142,7 @@ SRV-->>U : "Render protected resource"
 ```
 
 **Diagram sources**
+
 - [register.tsx](file://client/src/pages/register.tsx#L70-L86)
 - [firebase.ts](file://client/src/lib/firebase.ts#L80-L115)
 - [middleware.ts](file://server/middleware.ts#L10-L17)
@@ -142,6 +151,7 @@ SRV-->>U : "Render protected resource"
 ## Detailed Component Analysis
 
 ### UserRole Enum and Permission Hierarchies
+
 - Roles:
   - Student, Teacher, Admin, Principal, Parent.
 - Role-specific attributes:
@@ -187,14 +197,17 @@ RegisterSchema --> UserRole : "validates"
 ```
 
 **Diagram sources**
+
 - [firebase.ts](file://client/src/lib/firebase.ts#L47-L63)
 - [register.tsx](file://client/src/pages/register.tsx#L36-L46)
 
 **Section sources**
+
 - [firebase.ts](file://client/src/lib/firebase.ts#L47-L63)
 - [register.tsx](file://client/src/pages/register.tsx#L36-L46)
 
 ### Authorization Middleware Implementation
+
 - isAuthenticated:
   - Ensures a session exists with a user identifier.
 - hasRole:
@@ -215,12 +228,15 @@ Next --> End
 ```
 
 **Diagram sources**
+
 - [middleware.ts](file://server/middleware.ts#L3-L17)
 
 **Section sources**
+
 - [middleware.ts](file://server/middleware.ts#L3-L17)
 
 ### Role-Based Route Protection
+
 - Authentication and role enforcement:
   - Login/Register endpoints set session role and user id.
   - Routes enforce role checks (e.g., tests creation requires teacher).
@@ -246,11 +262,13 @@ R-->>C : "201 Created"
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L110-L132)
 - [middleware.ts](file://server/middleware.ts#L10-L17)
 - [storage.ts](file://server/storage.ts#L160-L166)
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L110-L132)
 - [routes.ts](file://server/routes.ts#L318-L370)
 - [routes.ts](file://server/routes.ts#L584-L603)
@@ -259,6 +277,7 @@ R-->>C : "201 Created"
 - [storage.ts](file://server/storage.ts#L160-L166)
 
 ### Permission Checking Mechanisms
+
 - Session-based checks:
   - Server reads req.session.userRole and applies hasRole guards.
 - Ownership and scope checks:
@@ -267,6 +286,7 @@ R-->>C : "201 Created"
   - Zod schemas enforce allowed roles and data correctness.
 
 **Section sources**
+
 - [middleware.ts](file://server/middleware.ts#L10-L17)
 - [routes.ts](file://server/routes.ts#L112-L121)
 - [routes.ts](file://server/routes.ts#L194-L203)
@@ -274,6 +294,7 @@ R-->>C : "201 Created"
 - [schema.ts](file://shared/schema.ts#L4-L13)
 
 ### Role Assignment During Registration
+
 - Client:
   - Registration form collects role and role-specific fields (class/subject).
   - Frontend passes role to authentication provider.
@@ -295,16 +316,19 @@ BE-->>U : "201 Created"
 ```
 
 **Diagram sources**
+
 - [register.tsx](file://client/src/pages/register.tsx#L70-L86)
 - [firebase.ts](file://client/src/lib/firebase.ts#L80-L115)
 - [routes.ts](file://server/routes.ts#L13-L47)
 
 **Section sources**
+
 - [register.tsx](file://client/src/pages/register.tsx#L36-L46)
 - [firebase.ts](file://client/src/lib/firebase.ts#L80-L115)
 - [routes.ts](file://server/routes.ts#L13-L47)
 
 ### Dynamic Permission Enforcement
+
 - Runtime role-aware UI:
   - App selects dashboards based on session role.
   - Admin and Principal dashboards render role-specific features.
@@ -312,23 +336,27 @@ BE-->>U : "201 Created"
   - Role-specific identifiers (institutionId, classId, studentId, subjects) guide UI behavior.
 
 **Section sources**
+
 - [App.tsx](file://client/src/App.tsx#L113-L124)
 - [admin-dashboard.tsx](file://client/src/pages/admin-dashboard.tsx#L29-L302)
 - [principal-dashboard.tsx](file://client/src/pages/principal-dashboard.tsx#L44-L365)
 - [config.ts](file://client/src/config.ts#L1-L8)
 
 ### Role-Based UI Rendering
+
 - Root dashboard selection:
   - Router chooses role-specific dashboard components.
 - Static role views:
   - Dashboards hard-code role-appropriate sections and actions.
 
 **Section sources**
+
 - [App.tsx](file://client/src/App.tsx#L113-L124)
 - [admin-dashboard.tsx](file://client/src/pages/admin-dashboard.tsx#L29-L302)
 - [principal-dashboard.tsx](file://client/src/pages/principal-dashboard.tsx#L44-L365)
 
 ### Protected Route Implementations
+
 - Example: Test lifecycle
   - Creation: Only teachers; ownership validated.
   - Retrieval: Teachers see own tests or all tests (admin); students see class tests.
@@ -341,6 +369,7 @@ BE-->>U : "201 Created"
   - Messages: Workspace membership or DM ownership enforced.
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L110-L132)
 - [routes.ts](file://server/routes.ts#L134-L173)
 - [routes.ts](file://server/routes.ts#L211-L247)
@@ -352,6 +381,7 @@ BE-->>U : "201 Created"
 - [routes.ts](file://server/routes.ts#L720-L777)
 
 ### Permission Matrices
+
 - Derived from route guards and ownership checks:
   - Admin: Full administrative access; can manage users, classes, reports, settings.
   - Principal: Institution oversight; academic/staff/finance/infrastructure views.
@@ -360,6 +390,7 @@ BE-->>U : "201 Created"
   - Parent: Notices, teacher communication, progress monitoring.
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L110-L132)
 - [routes.ts](file://server/routes.ts#L211-L247)
 - [routes.ts](file://server/routes.ts#L318-L370)
@@ -368,6 +399,7 @@ BE-->>U : "201 Created"
 - [routes.ts](file://server/routes.ts#L720-L777)
 
 ### Role Escalation Policies
+
 - Current implementation does not expose explicit role escalation endpoints or mechanisms.
 - Role changes would require:
   - Admin-only mutation endpoints.
@@ -377,6 +409,7 @@ BE-->>U : "201 Created"
 [No sources needed since this section provides general guidance]
 
 ### Temporary Role Assignments
+
 - No temporary role assignment endpoints or mechanisms are present in the current codebase.
 - If introduced, they should:
   - Accept a role scope and expiry.
@@ -386,6 +419,7 @@ BE-->>U : "201 Created"
 [No sources needed since this section provides general guidance]
 
 ### Audit Trail for Role Changes
+
 - No dedicated audit trail for role changes exists.
 - Recommended additions:
   - Track role change events with timestamps, actor, subject, old/new roles.
@@ -395,6 +429,7 @@ BE-->>U : "201 Created"
 [No sources needed since this section provides general guidance]
 
 ## Dependency Analysis
+
 ```mermaid
 graph LR
 REG["register.tsx"] --> FB["firebase.ts"]
@@ -410,6 +445,7 @@ MOCK["mockData.ts"] --> APP
 ```
 
 **Diagram sources**
+
 - [register.tsx](file://client/src/pages/register.tsx#L70-L86)
 - [firebase.ts](file://client/src/lib/firebase.ts#L80-L115)
 - [routes.ts](file://server/routes.ts#L11-L86)
@@ -423,6 +459,7 @@ MOCK["mockData.ts"] --> APP
 - [mockData.ts](file://client/src/data/mockData.ts#L1-L240)
 
 **Section sources**
+
 - [register.tsx](file://client/src/pages/register.tsx#L70-L86)
 - [firebase.ts](file://client/src/lib/firebase.ts#L80-L115)
 - [routes.ts](file://server/routes.ts#L11-L86)
@@ -436,6 +473,7 @@ MOCK["mockData.ts"] --> APP
 - [mockData.ts](file://client/src/data/mockData.ts#L1-L240)
 
 ## Performance Considerations
+
 - Middleware checks are lightweight and short-circuit unauthorized requests.
 - Route-level ownership checks minimize unnecessary database calls by validating early.
 - Consider caching frequently accessed role metadata at the edge or in CDN for static dashboards.
@@ -443,6 +481,7 @@ MOCK["mockData.ts"] --> APP
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
+
 - 401 Unauthorized on protected routes:
   - Verify session initialization and presence of userId.
 - 403 Forbidden on protected routes:
@@ -453,6 +492,7 @@ MOCK["mockData.ts"] --> APP
   - Validate Zod schema allows the chosen role.
 
 **Section sources**
+
 - [middleware.ts](file://server/middleware.ts#L3-L17)
 - [routes.ts](file://server/routes.ts#L112-L121)
 - [routes.ts](file://server/routes.ts#L194-L203)
@@ -460,4 +500,5 @@ MOCK["mockData.ts"] --> APP
 - [register.tsx](file://client/src/pages/register.tsx#L70-L86)
 
 ## Conclusion
+
 PersonalLearningPro implements a clear RBAC model with role-aware UI and robust server-side authorization. The system leverages session-based middleware and route-level guards to enforce permissions, with role-specific UI rendering and role-specific data configurations. Future enhancements should include explicit role escalation, temporary role assignments, and an audit trail for role changes to strengthen governance and compliance.

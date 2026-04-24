@@ -12,6 +12,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -58,10 +59,12 @@ Routes --> Middleware
 ```
 
 **Diagram sources**
+
 - [server/routes.ts](file://server/routes.ts#L11-L1102)
 - [server/storage.ts](file://server/storage.ts#L110-L519)
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L1-L1104)
 - [server/storage.ts](file://server/storage.ts#L1-L519)
 
@@ -72,6 +75,7 @@ Routes --> Middleware
 The system provides comprehensive CRUD operations for test management:
 
 #### Test Creation (`POST /api/tests`)
+
 - **Purpose**: Create new assessment instances
 - **Authentication**: Teacher-only operation
 - **Validation**: Full schema validation using Zod
@@ -79,8 +83,9 @@ The system provides comprehensive CRUD operations for test management:
 - **Response**: Returns complete test object with auto-generated ID
 
 #### Test Listing (`GET /api/tests`)
+
 - **Purpose**: Retrieve test collections with filtering
-- **Query Parameters**: 
+- **Query Parameters**:
   - `teacherId`: Filter by specific teacher
   - `status`: Filter by test status (draft, published, completed)
 - **Role-based Access**:
@@ -88,12 +93,14 @@ The system provides comprehensive CRUD operations for test management:
   - Students: See tests for their class only
 
 #### Individual Test Retrieval (`GET /api/tests/:id`)
+
 - **Purpose**: Fetch specific test details
-- **Access Control**: 
+- **Access Control**:
   - Teachers: Own tests only
   - Students: Tests in their class only
 
 #### Test Updates (`PATCH /api/tests/:id`)
+
 - **Purpose**: Modify existing test configurations
 - **Authentication**: Teacher-only
 - **Authorization**: Teachers can only modify their own tests
@@ -102,12 +109,14 @@ The system provides comprehensive CRUD operations for test management:
 ### Question Management Endpoints
 
 #### Question Creation (`POST /api/questions`)
+
 - **Purpose**: Add questions to existing tests
 - **Authentication**: Teacher-only
 - **Authorization**: Must own the test being modified
 - **Validation**: Comprehensive question schema validation
 
 #### Question Retrieval (`GET /api/tests/:testId/questions`)
+
 - **Purpose**: List all questions in a specific test
 - **Access Control**: Same as test access rules
 
@@ -154,10 +163,12 @@ UserSchema --> TestSchema : "creates"
 ```
 
 **Diagram sources**
+
 - [shared/schema.ts](file://shared/schema.ts#L15-L37)
 - [shared/schema.ts](file://shared/schema.ts#L4-L13)
 
 **Section sources**
+
 - [shared/schema.ts](file://shared/schema.ts#L1-L142)
 - [server/routes.ts](file://server/routes.ts#L109-L316)
 
@@ -183,12 +194,14 @@ Note over Client,DB : Teacher creates test workflow
 ```
 
 **Diagram sources**
+
 - [server/routes.ts](file://server/routes.ts#L110-L132)
 - [server/storage.ts](file://server/storage.ts#L160-L166)
 
 The architecture supports both MongoDB and Cassandra backends, with automatic fallback mechanisms and optimized query patterns.
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L1-L114)
 - [server/storage.ts](file://server/storage.ts#L413-L422)
 
@@ -219,6 +232,7 @@ Proceed --> End
 ```
 
 **Diagram sources**
+
 - [server/routes.ts](file://server/routes.ts#L112-L121)
 - [server/routes.ts](file://server/routes.ts#L194-L203)
 
@@ -246,6 +260,7 @@ Note over Teacher,API : Complete test creation flow
 ```
 
 **Diagram sources**
+
 - [server/routes.ts](file://server/routes.ts#L110-L132)
 - [shared/schema.ts](file://shared/schema.ts#L15-L26)
 
@@ -272,6 +287,7 @@ StoreQuestion --> ReturnQuestion["Return Question Data"]
 ```
 
 **Diagram sources**
+
 - [server/routes.ts](file://server/routes.ts#L250-L278)
 - [client/src/components/test/question-form.tsx](file://client/src/components/test/question-form.tsx#L77-L126)
 
@@ -333,9 +349,11 @@ TEST_ATTEMPT ||--o{ ANSWER : generates
 ```
 
 **Diagram sources**
+
 - [shared/mongo-schema.ts](file://shared/mongo-schema.ts#L25-L87)
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L109-L316)
 - [shared/mongo-schema.ts](file://shared/mongo-schema.ts#L1-L159)
 
@@ -375,12 +393,14 @@ Storage --> Cassandra
 ```
 
 **Diagram sources**
+
 - [server/routes.ts](file://server/routes.ts#L1-L11)
 - [server/storage.ts](file://server/storage.ts#L1-L31)
 
 The dependency structure ensures maintainability and testability while supporting horizontal scaling through the dual database architecture.
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L1-L1104)
 - [server/storage.ts](file://server/storage.ts#L1-L519)
 
@@ -429,6 +449,7 @@ The system implements several performance optimization techniques:
 **Solution**: Verify Cassandra cluster availability and proper partition key usage
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L42-L46)
 - [server/routes.ts](file://server/routes.ts#L112-L121)
 - [server/storage.ts](file://server/storage.ts#L413-L422)
@@ -438,6 +459,7 @@ The system implements several performance optimization techniques:
 The assessment and test management system provides a comprehensive solution for educational testing environments. The implementation demonstrates strong architectural principles with clear separation of concerns, robust validation, and comprehensive access control.
 
 Key strengths include:
+
 - **Security**: Multi-layered authentication and authorization
 - **Flexibility**: Support for multiple question types and evaluation methods
 - **Scalability**: Dual database architecture with optimized query patterns

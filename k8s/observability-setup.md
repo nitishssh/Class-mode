@@ -3,6 +3,7 @@
 We use **kube-prometheus-stack** to deploy Prometheus, Grafana, and Alertmanager via Helm.
 
 ## Prerequisites
+
 - Helm v3 installed
 - Kubeconfig pointing to the EKS cluster (`terraform output cluster_endpoint`)
 
@@ -50,5 +51,6 @@ prometheus:
 ```
 
 ## Accessing Dashboards
-Once deployed, navigate to `https://grafana.app.personallearningpro.com`. 
+
+Once deployed, navigate to `https://grafana.app.personallearningpro.com`.
 The stack automatically discovers metrics from Kubernetes nodes, pods, and any ServiceMonitors we configure.

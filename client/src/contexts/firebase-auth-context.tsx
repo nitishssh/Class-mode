@@ -10,7 +10,7 @@ import {
   getUserProfile,
   completeGoogleSignUp,
   UserProfile,
-  UserRole
+  UserRole,
 } from "@/lib/firebase";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -28,9 +28,15 @@ interface AuthContextType {
   currentUser: AuthUser;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string, role: UserRole, additionalData?: any) => Promise<void>;
+  register: (
+    email: string,
+    password: string,
+    name: string,
+    role: UserRole,
+    additionalData?: Record<string, unknown>
+  ) => Promise<void>;
   googleLogin: () => Promise<AuthUser>;
-  completeGoogleRegistration: (user: User, role: UserRole, additionalData?: any) => Promise<void>;
+  completeGoogleRegistration: (user: User, role: UserRole, additionalData?: Record<string, unknown>) => Promise<void>;
   logout: () => Promise<void>;
   resetUserPassword: (email: string) => Promise<void>;
 }
@@ -45,7 +51,7 @@ async function getProfileWithTimeout(uid: string): Promise<UserProfile | null> {
   return Promise.race([getUserProfile(uid), timeout]);
 }
 
-/** 
+/**
  * Build a minimal profile directly from a Firebase Auth user when Firestore is unavailable.
  * This prevents infinite loading if Firestore is blocked/offline, at least showing a default student role.
  */
@@ -81,7 +87,6 @@ async function syncFirebaseSession(user: import("firebase/auth").User) {
   }
 }
 
-
 // ── Provider ──────────────────────────────────────────────────────────────────
 
 export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -97,7 +102,23 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // ── Single source of truth: onAuthStateChanged ────────────────────────────
   useEffect(() => {
     if (!firebaseEnabled || !auth) {
-      setIsLoading(false);
+      // For development/demo purposes without Firebase keys, provide a mock student profile
+      // Use setTimeout to move the state update out of the synchronous render path
+      setTimeout(() => {
+        setCurrentUser({
+          user: null,
+          profile: {
+            uid: "dev_student",
+            email: "student@example.com",
+            displayName: "Dev Student",
+            role: "student",
+            status: "active",
+            createdAt: null,
+            lastLogin: null,
+          },
+        });
+        setIsLoading(false);
+      }, 0);
       return;
     }
 
@@ -123,7 +144,6 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         const storedUser = localStorage.getItem("auth_user");
         if (storedToken && storedUser) {
           try {
-            const userData = JSON.parse(storedUser);
             // Verify token is still valid by fetching /api/auth/me
             const res = await fetch("/api/auth/me", {
               headers: { Authorization: `Bearer ${storedToken}` },
@@ -177,19 +197,20 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setCurrentUser({ user, profile: resolvedProfile });
 
       // Bridge Firebase session to backend for protected API calls
-      syncFirebaseSession(user).catch(() => { });
+      syncFirebaseSession(user).catch(() => {});
 
       toast({
         title: "Login successful",
         description: `Welcome back, ${resolvedProfile?.displayName || user.displayName || email}!`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as Error & { code?: string };
       setIsLoading(false);
-      const code = error.code || "";
-      if (code !== "auth/operation-not-allowed" && error.message !== "Firebase is not configured") {
+      const code = err.code || "";
+      if (code !== "auth/operation-not-allowed" && err.message !== "Firebase is not configured") {
         toast({
           title: "Login failed",
-          description: error.message || "Please check your credentials and try again",
+          description: err.message || "Please check your credentials and try again",
           variant: "destructive",
         });
       }
@@ -205,7 +226,7 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     password: string,
     name: string,
     role: UserRole,
-    additionalData?: any
+    additionalData?: Record<string, unknown>
   ) => {
     setIsLoading(true);
     try {
@@ -213,9 +234,12 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       // Sync profile to backend so MongoDB user is bridged immediately
       try {
-        await apiRequest("POST", "/api/auth/sync-profile", { displayName: name, ...additionalData });
-      } catch (err: any) {
-        console.warn("Failed to sync new profile to backend", err.message);
+        await apiRequest("POST", "/api/auth/sync-profile", {
+          displayName: name,
+          ...additionalData,
+        });
+      } catch (err: unknown) {
+        console.warn("Failed to sync new profile to backend", (err as Error).message);
       }
 
       const profile = await getProfileWithTimeout(user.uid);
@@ -226,13 +250,14 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         title: "Registration successful",
         description: `Welcome, ${name}!`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as Error & { code?: string };
       setIsLoading(false);
-      const code = error.code || "";
-      if (code !== "auth/operation-not-allowed" && error.message !== "Firebase is not configured") {
+      const code = err.code || "";
+      if (code !== "auth/operation-not-allowed" && err.message !== "Firebase is not configured") {
         toast({
           title: "Registration failed",
-          description: error.message || "Please check your information and try again",
+          description: err.message || "Please check your information and try again",
           variant: "destructive",
         });
       }
@@ -256,7 +281,7 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setCurrentUser({ user: result.user, profile: result.profile });
 
       // Bridge Firebase session to backend for protected API calls
-      syncFirebaseSession(result.user).catch(() => { });
+      syncFirebaseSession(result.user).catch(() => {});
 
       toast({
         title: "Login successful",
@@ -264,11 +289,11 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       });
 
       return { user: result.user, profile: result.profile, isNewUser: false };
-    } catch (error: any) {
+    } catch (error: unknown) {
       setIsLoading(false);
       toast({
         title: "Google login failed",
-        description: error.message || "An error occurred during Google login",
+        description: (error as Error).message || "An error occurred during Google login",
         variant: "destructive",
       });
       throw error;
@@ -276,37 +301,36 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   // ── completeGoogleRegistration ─────────────────────────────────────────────
-  const completeGoogleRegistration = async (
-    user: User,
-    role: UserRole,
-    additionalData?: any
-  ) => {
+  const completeGoogleRegistration = async (user: User, role: UserRole, additionalData?: Record<string, unknown>) => {
     setIsLoading(true);
     try {
       const userData = await completeGoogleSignUp(user, role, additionalData);
 
       // Sync profile to backend after completing google sign up
       try {
-        await apiRequest("POST", "/api/auth/sync-profile", { displayName: userData.displayName, ...additionalData });
-      } catch (err: any) {
-        console.warn("Failed to sync google profile to backend", err.message);
+        await apiRequest("POST", "/api/auth/sync-profile", {
+          displayName: userData.displayName,
+          ...additionalData,
+        });
+      } catch (err: unknown) {
+        console.warn("Failed to sync google profile to backend", (err as Error).message);
       }
 
       skipNextAuthStateProfile.current = true;
       setCurrentUser({ user, profile: userData });
 
       // Bridge Firebase session to backend for protected API calls
-      syncFirebaseSession(user).catch(() => { });
+      syncFirebaseSession(user).catch(() => {});
 
       toast({
         title: "Registration successful",
         description: `Welcome, ${userData.displayName}!`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       setIsLoading(false);
       toast({
         title: "Registration failed",
-        description: error.message || "An error occurred completing your registration",
+        description: (error as Error).message || "An error occurred completing your registration",
         variant: "destructive",
       });
       throw error;
@@ -327,16 +351,15 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
       setCurrentUser({ user: null, profile: null });
       toast({ title: "Logged out", description: "You have been successfully logged out." });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Logout failed",
-        description: error.message || "An error occurred during logout",
+        description: (error as Error).message || "An error occurred during logout",
         variant: "destructive",
       });
       throw error;
     }
   };
-
 
   // ── resetUserPassword ─────────────────────────────────────────────────────
   const resetUserPassword = async (email: string) => {
@@ -346,10 +369,10 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         title: "Password reset email sent",
         description: "Check your email for password reset instructions",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Password reset failed",
-        description: error.message || "An error occurred sending the reset email",
+        description: (error as Error).message || "An error occurred sending the reset email",
         variant: "destructive",
       });
       throw error;
@@ -367,11 +390,7 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     resetUserPassword,
   };
 
-  return (
-    <FirebaseAuthContext.Provider value={value}>
-      {children}
-    </FirebaseAuthContext.Provider>
-  );
+  return <FirebaseAuthContext.Provider value={value}>{children}</FirebaseAuthContext.Provider>;
 };
 
 export const useFirebaseAuth = () => {

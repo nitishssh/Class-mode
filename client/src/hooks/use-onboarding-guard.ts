@@ -3,10 +3,17 @@ import { useLocation } from "wouter";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { useQuery } from "@tanstack/react-query";
 
-const ONBOARDING_PATHS = ["/onboarding/school", "/onboarding/invite-teachers", "/onboarding/teacher", "/onboarding/invite-students"];
+const ONBOARDING_PATHS = [
+  "/onboarding/school",
+  "/onboarding/invite-teachers",
+  "/onboarding/teacher",
+  "/onboarding/invite-students",
+];
 
 export function useOnboardingGuard() {
-  const { currentUser: { profile } } = useFirebaseAuth();
+  const {
+    currentUser: { profile },
+  } = useFirebaseAuth();
   const [location, setLocation] = useLocation();
 
   const { data: school } = useQuery<any>({

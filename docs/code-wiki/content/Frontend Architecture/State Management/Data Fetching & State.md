@@ -15,6 +15,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -26,10 +27,13 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document explains PersonalLearningPro’s data fetching and state management patterns with a focus on TanStack Query integration. It covers queryClient configuration, caching strategies, optimistic updates, server state synchronization, automatic refetching, cache invalidation, error handling, loading states, and data transformation. It also addresses performance optimization for large datasets, pagination, and real-time updates via WebSockets. Practical examples demonstrate how to use queryClient across chat message synchronization and user data management.
 
 ## Project Structure
+
 The data layer centers around:
+
 - A global queryClient configured with strict caching and error behavior
 - REST API helpers for chat resources
 - React components using TanStack Query to fetch and manage conversations and messages
@@ -63,6 +67,7 @@ PAGES --> LAYOUT
 ```
 
 **Diagram sources**
+
 - [queryClient.ts](file://client/src/lib/queryClient.ts#L48-L61)
 - [chat-api.ts](file://client/src/lib/chat-api.ts#L44-L111)
 - [use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L65-L217)
@@ -74,6 +79,7 @@ PAGES --> LAYOUT
 - [messages.tsx](file://client/src/pages/messages.tsx#L1-L15)
 
 **Section sources**
+
 - [queryClient.ts](file://client/src/lib/queryClient.ts#L1-L62)
 - [chat-api.ts](file://client/src/lib/chat-api.ts#L1-L112)
 - [use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L1-L218)
@@ -85,6 +91,7 @@ PAGES --> LAYOUT
 - [messages.tsx](file://client/src/pages/messages.tsx#L1-L15)
 
 ## Core Components
+
 - Global queryClient with default queryFn and strict caching:
   - Default queryFn validates response status and throws on errors
   - Stale time is Infinity for manual cache control
@@ -102,6 +109,7 @@ PAGES --> LAYOUT
   - ConversationList renders UI list with search and grouping
 
 **Section sources**
+
 - [queryClient.ts](file://client/src/lib/queryClient.ts#L30-L61)
 - [chat-api.ts](file://client/src/lib/chat-api.ts#L44-L111)
 - [use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L65-L217)
@@ -110,7 +118,9 @@ PAGES --> LAYOUT
 - [ConversationList.tsx](file://client/src/components/chat/ConversationList.tsx#L23-L161)
 
 ## Architecture Overview
+
 The system combines TanStack Query for server state with a WebSocket for real-time updates. The flow:
+
 - UI triggers queries via useQuery
 - queryClient executes default queryFn or provided queryFn
 - REST endpoints return normalized data transformed into UI types
@@ -141,6 +151,7 @@ UI->>QC : invalidateQueries(['messages', channelId])
 ```
 
 **Diagram sources**
+
 - [ChatThread.tsx](file://client/src/components/chat/ChatThread.tsx#L68-L119)
 - [queryClient.ts](file://client/src/lib/queryClient.ts#L30-L46)
 - [chat-api.ts](file://client/src/lib/chat-api.ts#L74-L83)
@@ -149,6 +160,7 @@ UI->>QC : invalidateQueries(['messages', channelId])
 ## Detailed Component Analysis
 
 ### TanStack Query Integration and queryClient
+
 - Default queryFn:
   - Fetches by URL from queryKey[0]
   - Throws on non-OK responses
@@ -175,12 +187,15 @@ Return --> End
 ```
 
 **Diagram sources**
+
 - [queryClient.ts](file://client/src/lib/queryClient.ts#L30-L46)
 
 **Section sources**
+
 - [queryClient.ts](file://client/src/lib/queryClient.ts#L30-L61)
 
 ### REST API Layer (chat-api.ts)
+
 - Provides typed DTOs for workspaces, channels, DMs, and messages
 - Centralized fetch helper with credentials and JSON handling
 - Functions:
@@ -237,12 +252,15 @@ class Partner {
 ```
 
 **Diagram sources**
+
 - [chat-api.ts](file://client/src/lib/chat-api.ts#L4-L42)
 
 **Section sources**
+
 - [chat-api.ts](file://client/src/lib/chat-api.ts#L44-L111)
 
 ### WebSocket Integration (use-chat-ws.ts)
+
 - Establishes WS connection with protocol derived from current location
 - Manages reconnection with exponential backoff, stops on 4001
 - Emits typed events: new_message, user_typing, message_read, user_presence
@@ -265,13 +283,16 @@ Hook-->>UI : onRead
 ```
 
 **Diagram sources**
+
 - [use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L95-L162)
 - [ChatThread.tsx](file://client/src/components/chat/ChatThread.tsx#L68-L103)
 
 **Section sources**
+
 - [use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L65-L217)
 
 ### ChatLayout: Server State Fetching and Merging
+
 - Fetches workspaces, channels, and DMs with TanStack Query
 - Transforms server channels to UI Conversation shape
 - Merges DM partner info and categorization
@@ -290,14 +311,17 @@ F --> |No| H["Use mock conversations"]
 ```
 
 **Diagram sources**
+
 - [ChatLayout.tsx](file://client/src/components/chat/ChatLayout.tsx#L46-L111)
 - [mockData.ts](file://client/src/data/mockData.ts#L178-L240)
 
 **Section sources**
+
 - [ChatLayout.tsx](file://client/src/components/chat/ChatLayout.tsx#L41-L184)
 - [mockData.ts](file://client/src/data/mockData.ts#L178-L240)
 
 ### ChatThread: Optimistic Updates, Pagination, and Real-Time Synchronization
+
 - Uses useQuery to fetch initial batch of messages with select transformation
 - Maintains optimistic messages appended via WebSocket
 - On new_message:
@@ -329,40 +353,49 @@ Render --> End(["Idle"])
 ```
 
 **Diagram sources**
+
 - [ChatThread.tsx](file://client/src/components/chat/ChatThread.tsx#L105-L175)
 - [use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L115-L142)
 
 **Section sources**
+
 - [ChatThread.tsx](file://client/src/components/chat/ChatThread.tsx#L47-L375)
 - [use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L65-L217)
 
 ### ConversationList: UI State and Interaction
+
 - Filters and groups conversations by category
 - Displays unread counts and last message previews
 - Handles selection to open thread view
 
 **Section sources**
+
 - [ConversationList.tsx](file://client/src/components/chat/ConversationList.tsx#L23-L161)
 
 ### Data Transformation and Type Safety
+
 - ServerMessage vs UI Message differences:
   - ServerMessage uses numeric IDs and different field names
   - UI Message normalizes to string IDs and consistent fields
 - Transformation helper ensures compatibility between server and UI shapes
 
 **Section sources**
+
 - [chat.ts](file://client/src/types/chat.ts#L18-L57)
 - [ChatThread.tsx](file://client/src/components/chat/ChatThread.tsx#L25-L45)
 
 ### User Data Management and Authentication
+
 - Firebase integration provides user profiles and auth state
 - Roles drive conversation categorization and UI behavior
 - Auth helpers centralize login, registration, and profile updates
 
 **Section sources**
+
 - [firebase.ts](file://client/src/lib/firebase.ts#L47-L212)
 
 ## Dependency Analysis
+
 - queryClient.ts defines the global cache policy and default queryFn
 - chat-api.ts encapsulates REST endpoints and DTOs
 - use-chat-ws.ts provides real-time event handling
@@ -385,6 +418,7 @@ P["messages.tsx"] --> L
 ```
 
 **Diagram sources**
+
 - [queryClient.ts](file://client/src/lib/queryClient.ts#L48-L61)
 - [chat-api.ts](file://client/src/lib/chat-api.ts#L44-L111)
 - [use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L65-L217)
@@ -395,6 +429,7 @@ P["messages.tsx"] --> L
 - [messages.tsx](file://client/src/pages/messages.tsx#L1-L15)
 
 **Section sources**
+
 - [queryClient.ts](file://client/src/lib/queryClient.ts#L48-L61)
 - [chat-api.ts](file://client/src/lib/chat-api.ts#L44-L111)
 - [use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L65-L217)
@@ -405,6 +440,7 @@ P["messages.tsx"] --> L
 - [messages.tsx](file://client/src/pages/messages.tsx#L1-L15)
 
 ## Performance Considerations
+
 - Caching
   - staleTime: Infinity enforces explicit cache invalidation
   - Manual invalidation on WS events prevents stale UI
@@ -423,6 +459,7 @@ P["messages.tsx"] --> L
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
+
 - Non-OK responses
   - queryClient.defaultOptions.queries.queryFn throws on non-OK responses
   - chat-api helpers throw with status and body text
@@ -437,9 +474,11 @@ P["messages.tsx"] --> L
   - Use setQueryData for targeted updates (e.g., readBy)
 
 **Section sources**
+
 - [queryClient.ts](file://client/src/lib/queryClient.ts#L30-L46)
 - [chat-api.ts](file://client/src/lib/chat-api.ts#L44-L55)
 - [use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L136-L161)
 
 ## Conclusion
+
 PersonalLearningPro integrates TanStack Query for robust server state management, complemented by a WebSocket layer for real-time updates. The system emphasizes explicit cache control, optimistic UI, and precise cache invalidation to keep the UI consistent with server state. REST helpers and typed DTOs ensure safe transformations, while UI components orchestrate loading states, pagination, and user interactions. This approach scales to large datasets and provides responsive, reliable experiences for chat and user data workflows.

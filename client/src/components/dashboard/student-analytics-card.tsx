@@ -29,16 +29,17 @@ export interface StudentAnalyticsSummary {
 export function StudentAnalyticsCard({ student }: { student: StudentAnalyticsSummary }) {
   const [expanded, setExpanded] = useState(false);
 
-  const scoreColor = student.averageScore >= 80
-    ? "text-emerald-600 dark:text-emerald-400"
-    : student.averageScore >= 60
-    ? "text-amber-600 dark:text-amber-400"
-    : "text-red-600 dark:text-red-400";
+  const scoreColor =
+    student.averageScore >= 80
+      ? "text-emerald-600 dark:text-emerald-400"
+      : student.averageScore >= 60
+        ? "text-amber-600 dark:text-amber-400"
+        : "text-red-600 dark:text-red-400";
 
   return (
     <Card
-      className="cursor-pointer hover:shadow-md transition-all duration-200 border border-border/60"
-      onClick={() => setExpanded(e => !e)}
+      className="cursor-pointer border border-border/60 transition-all duration-200 hover:shadow-md"
+      onClick={() => setExpanded((e) => !e)}
     >
       <CardContent className="p-4">
         <div className="flex items-center gap-3">
@@ -46,9 +47,9 @@ export function StudentAnalyticsCard({ student }: { student: StudentAnalyticsSum
             <AvatarImage src={student.avatar} />
             <AvatarFallback>{student.name.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
-          <div className="flex-1 min-w-0">
-            <div className="font-semibold text-sm truncate">{student.name}</div>
-            <div className="flex items-center gap-2 mt-0.5">
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-sm font-semibold">{student.name}</div>
+            <div className="mt-0.5 flex items-center gap-2">
               <span className={cn("text-xs font-bold", scoreColor)}>
                 {student.averageScore}% avg
               </span>
@@ -66,9 +67,11 @@ export function StudentAnalyticsCard({ student }: { student: StudentAnalyticsSum
           <div className="mt-4 space-y-3 border-t pt-3">
             {student.subjectBreakdown.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Subject Breakdown</p>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Subject Breakdown
+                </p>
                 <div className="flex flex-wrap gap-1.5">
-                  {student.subjectBreakdown.map(s => (
+                  {student.subjectBreakdown.map((s) => (
                     <Badge key={s.subject} variant="outline" className="text-xs">
                       {s.subject}: {Math.round(s.averageScore)}%
                     </Badge>
@@ -78,7 +81,9 @@ export function StudentAnalyticsCard({ student }: { student: StudentAnalyticsSum
             )}
             {student.recentAttempts.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Recent Tests</p>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Recent Tests
+                </p>
                 <div className="space-y-1">
                   {student.recentAttempts.map((a, i) => (
                     <div key={i} className="flex items-center justify-between text-xs">

@@ -27,7 +27,9 @@ export function OCRProcessing({ initialOCRText, testId }: OCRProcessingProps) {
     {
       id: "1",
       question: "Define Newton's Third Law of Motion",
-      text: initialOCRText || "Newton's third law states that for every action, there is an equal and opposite reaction.",
+      text:
+        initialOCRText ||
+        "Newton's third law states that for every action, there is an equal and opposite reaction.",
       confidence: 98,
       isEditing: false,
     },
@@ -41,7 +43,7 @@ export function OCRProcessing({ initialOCRText, testId }: OCRProcessingProps) {
   ]);
 
   const evaluateAnswerMutation = useMutation({
-    mutationFn: async ({ answerId, text }: { answerId: string, text: string }) => {
+    mutationFn: async ({ answerId, text }: { answerId: string; text: string }) => {
       // Simulate API call for now until we have actual answer IDs
       // In a real app, this would call the AI evaluation endpoint
       return apiRequest("POST", "/api/evaluate", { answerId, text });
@@ -68,28 +70,24 @@ export function OCRProcessing({ initialOCRText, testId }: OCRProcessingProps) {
   const toggleEditMode = (id: string) => {
     setRecognizedAnswers(
       recognizedAnswers.map((answer) =>
-        answer.id === id
-          ? { ...answer, isEditing: !answer.isEditing }
-          : answer
+        answer.id === id ? { ...answer, isEditing: !answer.isEditing } : answer
       )
     );
   };
 
   const handleTextChange = (id: string, text: string) => {
     setRecognizedAnswers(
-      recognizedAnswers.map((answer) =>
-        answer.id === id ? { ...answer, text } : answer
-      )
+      recognizedAnswers.map((answer) => (answer.id === id ? { ...answer, text } : answer))
     );
   };
 
   const saveEditedText = (id: string) => {
     const answer = recognizedAnswers.find((a) => a.id === id);
     if (!answer) return;
-    
+
     // In a real app, you'd save the edited text to the API
     toggleEditMode(id);
-    
+
     toast({
       title: "Answer Updated",
       description: "The recognized text has been updated.",
@@ -98,11 +96,11 @@ export function OCRProcessing({ initialOCRText, testId }: OCRProcessingProps) {
 
   const getConfidenceIcon = (confidence: number) => {
     if (confidence >= 90) {
-      return <CheckCircle className="text-secondary text-sm" />;
+      return <CheckCircle className="text-sm text-secondary" />;
     } else if (confidence >= 70) {
-      return <Info className="text-accent text-sm" />;
+      return <Info className="text-sm text-accent" />;
     } else {
-      return <AlertCircle className="text-destructive text-sm" />;
+      return <AlertCircle className="text-sm text-destructive" />;
     }
   };
 
@@ -118,26 +116,28 @@ export function OCRProcessing({ initialOCRText, testId }: OCRProcessingProps) {
 
   return (
     <div className="space-y-4">
-      <div className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-4 h-64 overflow-y-auto">
-        <div className="flex justify-between mb-4">
+      <div className="h-64 overflow-y-auto rounded-lg border border-neutral-200 p-4 dark:border-neutral-700">
+        <div className="mb-4 flex justify-between">
           <p className="text-sm font-medium">Answer Recognition</p>
           <span className="text-xs text-muted-foreground">AI-Powered</span>
         </div>
-        
+
         <div className="space-y-4">
           {recognizedAnswers.map((answer) => (
             <div
               key={answer.id}
               className={cn(
-                "p-3 rounded-md border-l-4 cursor-pointer transition-all",
+                "cursor-pointer rounded-md border-l-4 p-3 transition-all",
                 selectedAnswer === answer.id
                   ? "border-primary bg-primary/5 dark:bg-primary/10"
                   : "border-transparent hover:border-primary hover:bg-muted"
               )}
               onClick={() => handleSelectAnswer(answer.id)}
             >
-              <p className="text-sm font-medium">Q{answer.id}: {answer.question}</p>
-              
+              <p className="text-sm font-medium">
+                Q{answer.id}: {answer.question}
+              </p>
+
               {answer.isEditing ? (
                 <div className="mt-2">
                   <Textarea
@@ -145,7 +145,7 @@ export function OCRProcessing({ initialOCRText, testId }: OCRProcessingProps) {
                     onChange={(e) => handleTextChange(answer.id, e.target.value)}
                     className="min-h-24 text-sm"
                   />
-                  <div className="flex justify-end mt-2">
+                  <div className="mt-2 flex justify-end">
                     <Button
                       variant="outline"
                       size="sm"
@@ -154,24 +154,21 @@ export function OCRProcessing({ initialOCRText, testId }: OCRProcessingProps) {
                     >
                       Cancel
                     </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => saveEditedText(answer.id)}
-                    >
+                    <Button size="sm" onClick={() => saveEditedText(answer.id)}>
                       Save
                     </Button>
                   </div>
                 </div>
               ) : (
                 <>
-                  <div className="mt-2 bg-muted p-2 rounded text-sm">
+                  <div className="mt-2 rounded bg-muted p-2 text-sm">
                     <p className="text-muted-foreground">Recognized text:</p>
                     <p>{answer.text}</p>
                   </div>
-                  <div className="mt-2 flex justify-between items-center">
+                  <div className="mt-2 flex items-center justify-between">
                     <div className="flex items-center">
                       {getConfidenceIcon(answer.confidence)}
-                      <span className="text-xs ml-1">
+                      <span className="ml-1 text-xs">
                         AI Confidence: {getConfidenceText(answer.confidence)} ({answer.confidence}%)
                       </span>
                     </div>
@@ -179,13 +176,13 @@ export function OCRProcessing({ initialOCRText, testId }: OCRProcessingProps) {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-xs text-primary font-medium"
+                        className="text-xs font-medium text-primary"
                         onClick={(e) => {
                           e.stopPropagation();
                           toggleEditMode(answer.id);
                         }}
                       >
-                        <Pencil className="h-3 w-3 mr-1" />
+                        <Pencil className="mr-1 h-3 w-3" />
                         Edit
                       </Button>
                     </div>
@@ -196,20 +193,24 @@ export function OCRProcessing({ initialOCRText, testId }: OCRProcessingProps) {
           ))}
         </div>
       </div>
-      
-      <div className="flex justify-between items-center">
+
+      <div className="flex items-center justify-between">
         <div>
           <span className="text-sm font-medium">Process Status: </span>
-          <span className="text-secondary text-sm">
-            {recognizedAnswers.length > 0 
-              ? `${recognizedAnswers.length}/10 Answers Processed` 
+          <span className="text-sm text-secondary">
+            {recognizedAnswers.length > 0
+              ? `${recognizedAnswers.length}/10 Answers Processed`
               : "No answers processed yet"}
           </span>
         </div>
-        <Button onClick={() => toast({
-          title: "Review Initiated",
-          description: "All processed answers are now ready for review.",
-        })}>
+        <Button
+          onClick={() =>
+            toast({
+              title: "Review Initiated",
+              description: "All processed answers are now ready for review.",
+            })
+          }
+        >
           Review All Answers
         </Button>
       </div>

@@ -6,7 +6,9 @@ export const insertUserSchema = z.object({
   password: z.string().min(1),
   name: z.string().min(1),
   email: z.string().email(),
-  role: z.enum(["student", "teacher", "parent", "principal", "school_admin", "admin"]).default("student"),
+  role: z
+    .enum(["student", "teacher", "parent", "principal", "school_admin", "admin"])
+    .default("student"),
   status: z.enum(["active", "pending", "suspended", "rejected"]).default("active"),
   avatar: z.string().optional().nullable(),
   class: z.string().optional().nullable(),
@@ -73,9 +75,12 @@ export const insertAnalyticsSchema = z.object({
   insightDate: z.string().or(z.date()).optional(),
 });
 
-
 // Types inferred from Zod schemas
-export type User = z.infer<typeof insertUserSchema> & { id: number; createdAt?: Date; lastLoginAt?: Date };
+export type User = z.infer<typeof insertUserSchema> & {
+  id: number;
+  createdAt?: Date;
+  lastLoginAt?: Date;
+};
 export type InsertUser = z.infer<typeof insertUserSchema>;
 
 // ─── Authentication Schemas ──────────────────────────────────────────────────
@@ -162,10 +167,18 @@ export const insertMessageSchema = z.object({
 export type Workspace = z.infer<typeof insertWorkspaceSchema> & { id: number; createdAt: Date };
 export type InsertWorkspace = z.infer<typeof insertWorkspaceSchema>;
 
-export type Channel = z.infer<typeof insertChannelSchema> & { id: number; pinnedMessages: number[]; createdAt: Date };
+export type Channel = z.infer<typeof insertChannelSchema> & {
+  id: number;
+  pinnedMessages: number[];
+  createdAt: Date;
+};
 export type InsertChannel = z.infer<typeof insertChannelSchema>;
 
-export type Message = z.infer<typeof insertMessageSchema> & { id: number; isPinned: boolean; createdAt: Date };
+export type Message = z.infer<typeof insertMessageSchema> & {
+  id: number;
+  isPinned: boolean;
+  createdAt: Date;
+};
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 
 // ─── Live Classes Schemas ───────────────────────────────────────────────────
@@ -196,7 +209,9 @@ export const insertLiveSessionAttendanceSchema = z.object({
   durationMinutes: z.number().default(0),
 });
 
-export type LiveSessionAttendance = z.infer<typeof insertLiveSessionAttendanceSchema> & { id: number };
+export type LiveSessionAttendance = z.infer<typeof insertLiveSessionAttendanceSchema> & {
+  id: number;
+};
 export type InsertLiveSessionAttendance = z.infer<typeof insertLiveSessionAttendanceSchema>;
 
 export const insertFcmTokenSchema = z.object({
@@ -207,7 +222,6 @@ export const insertFcmTokenSchema = z.object({
 
 export type FcmToken = z.infer<typeof insertFcmTokenSchema> & { id: number; updatedAt: Date };
 export type InsertFcmToken = z.infer<typeof insertFcmTokenSchema>;
-
 
 // ─── Task Schemas ────────────────────────────────────────────────────────────
 
@@ -248,3 +262,16 @@ export const insertFocusSessionSchema = z.object({
 });
 export type InsertFocusSession = z.infer<typeof insertFocusSessionSchema>;
 export type FocusSession = InsertFocusSession & { id: number };
+
+// ─── AI Classroom Schemas ───────────────────────────────────────────────────
+
+export const insertAIClassroomSchema = z.object({
+  teacherId: z.number(),
+  topic: z.string().min(1),
+  studyArenaJobId: z.string().min(1),
+  classroomId: z.string().optional().nullable(),
+  status: z.enum(["pending", "generating", "ready", "error"]).default("pending"),
+  url: z.string().optional().nullable(),
+});
+export type InsertAIClassroom = z.infer<typeof insertAIClassroomSchema>;
+export type AIClassroom = InsertAIClassroom & { id: number; createdAt: Date };

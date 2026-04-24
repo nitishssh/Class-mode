@@ -13,6 +13,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -24,10 +25,13 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document provides comprehensive API documentation for the OCR processing endpoints, focusing on POST /api/ocr for extracting text from handwritten test scans. It covers request/response schemas, OCR processing workflows, response formats, image preprocessing requirements, supported image formats, accuracy considerations, integration examples with test creation, error handling, and performance optimization tips for large image processing.
 
 ## Project Structure
+
 The OCR functionality spans the server and client sides:
+
 - Server exposes the OCR endpoint and integrates with Tesseract.js for OCR processing.
 - Client provides UI components for uploading images, displaying OCR results, and integrating with test creation workflows.
 - Shared schemas define the data structures used across the stack.
@@ -56,29 +60,35 @@ Routes --> Storage
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L465-L485)
 - [tesseract.ts](file://server/lib/tesseract.ts#L1-L33)
 - [ocr-upload.tsx](file://client/src/components/test/ocr-upload.tsx#L32-L91)
 - [ocr-processing.tsx](file://client/src/components/test/ocr-processing.tsx#L23-L62)
 
 **Section sources**
+
 - [README.md](file://README.md#L1-L148)
 - [package.json](file://package.json#L82-L82)
 
 ## Core Components
+
 - OCR Endpoint: POST /api/ocr validates authentication, extracts base64 image data, and delegates to the OCR engine.
 - OCR Engine: processOCRImage() removes data URL prefixes, recognizes text using Tesseract.js, and returns extracted text and confidence.
 - Client Upload Component: Handles file selection/drop, reads as base64, enforces size/type constraints, and triggers OCR processing.
 - Client Processing Component: Displays recognized text and confidence, supports editing, and integrates with evaluation workflows.
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L465-L485)
 - [tesseract.ts](file://server/lib/tesseract.ts#L8-L32)
 - [ocr-upload.tsx](file://client/src/components/test/ocr-upload.tsx#L25-L196)
 - [ocr-processing.tsx](file://client/src/components/test/ocr-processing.tsx#L23-L97)
 
 ## Architecture Overview
+
 The OCR workflow follows a client-server pipeline:
+
 - Client uploads an image and sends base64 data to /api/ocr.
 - Server validates session, parses request body, and calls processOCRImage().
 - processOCRImage() strips data URLs, invokes Tesseract.js, and returns text and confidence.
@@ -100,12 +110,14 @@ Routes-->>Client : {text, confidence}
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L465-L485)
 - [tesseract.ts](file://server/lib/tesseract.ts#L8-L32)
 
 ## Detailed Component Analysis
 
 ### API Definition: POST /api/ocr
+
 - Method: POST
 - Path: /api/ocr
 - Authentication: Session required; unauthorized requests return 401.
@@ -134,14 +146,17 @@ Success --> |No| Resp500["Return 500 Internal Server Error"]
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L465-L485)
 - [tesseract.ts](file://server/lib/tesseract.ts#L8-L32)
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L465-L485)
 - [tesseract.ts](file://server/lib/tesseract.ts#L8-L32)
 
 ### OCR Processing Workflow
+
 - Base64 Handling:
   - Accepts raw base64 or data URLs (e.g., data:image/jpeg;base64,...).
   - Removes the data URL prefix to isolate pure base64 content.
@@ -168,12 +183,15 @@ TesseractEngine --> OCRResult : "produces"
 ```
 
 **Diagram sources**
+
 - [tesseract.ts](file://server/lib/tesseract.ts#L3-L32)
 
 **Section sources**
+
 - [tesseract.ts](file://server/lib/tesseract.ts#L8-L32)
 
 ### Client Integration: OCR Upload Component
+
 - Features:
   - Drag-and-drop and browse file selection.
   - Validates file type (JPG, PNG, PDF) and size (max 10 MB).
@@ -204,14 +222,17 @@ Uploader->>Uploader : Update file status and show toast
 ```
 
 **Diagram sources**
+
 - [ocr-upload.tsx](file://client/src/components/test/ocr-upload.tsx#L32-L91)
 - [routes.ts](file://server/routes.ts#L465-L485)
 - [tesseract.ts](file://server/lib/tesseract.ts#L8-L32)
 
 **Section sources**
+
 - [ocr-upload.tsx](file://client/src/components/test/ocr-upload.tsx#L25-L196)
 
 ### Client Integration: OCR Processing Component
+
 - Purpose:
   - Displays recognized OCR text and confidence.
   - Allows manual editing of recognized answers.
@@ -232,18 +253,23 @@ Evaluate --> Toast
 ```
 
 **Diagram sources**
+
 - [ocr-processing.tsx](file://client/src/components/test/ocr-processing.tsx#L23-L97)
 
 **Section sources**
+
 - [ocr-processing.tsx](file://client/src/components/test/ocr-processing.tsx#L23-L97)
 
 ### OCR Scan Page Integration
+
 - The page composes the upload and processing components, maintains OCR text and confidence state, and conditionally renders a confidence analysis card with tips for improving recognition quality.
 
 **Section sources**
+
 - [ocr-scan.tsx](file://client/src/pages/ocr-scan.tsx#L13-L95)
 
 ### Data Model Considerations
+
 - The shared schema defines Answer fields that can store OCR results:
   - text: string (optional)
   - ocrText: string (optional)
@@ -251,9 +277,11 @@ Evaluate --> Toast
 - These fields enable storing OCR-derived text alongside evaluation metadata.
 
 **Section sources**
+
 - [schema.ts](file://shared/schema.ts#L48-L59)
 
 ## Dependency Analysis
+
 - External Dependencies:
   - tesseract.js: OCR engine used by processOCRImage().
 - Internal Dependencies:
@@ -268,16 +296,19 @@ Tesseract --> TesseractJS["tesseract.js"]
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L6-L6)
 - [tesseract.ts](file://server/lib/tesseract.ts#L1-L1)
 - [package.json](file://package.json#L82-L82)
 
 **Section sources**
+
 - [package.json](file://package.json#L82-L82)
 - [routes.ts](file://server/routes.ts#L6-L6)
 - [tesseract.ts](file://server/lib/tesseract.ts#L1-L1)
 
 ## Performance Considerations
+
 - Image Size and Quality:
   - Limit file size to reduce processing time and memory usage. The client enforces a 10 MB cap.
   - Prefer high-resolution images with clear, legible handwriting for higher accuracy.
@@ -294,6 +325,7 @@ Tesseract --> TesseractJS["tesseract.js"]
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
+
 - Common Issues and Resolutions:
   - Invalid image data:
     - Symptom: 400 Bad Request on /api/ocr.
@@ -318,8 +350,10 @@ Tesseract --> TesseractJS["tesseract.js"]
   - Avoid smudges and overlapping text.
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L465-L485)
 - [ocr-upload.tsx](file://client/src/components/test/ocr-upload.tsx#L102-L120)
 
 ## Conclusion
+
 The OCR processing endpoint provides a streamlined workflow for converting handwritten test scans into editable, evaluable text. By adhering to supported formats and preprocessing guidelines, and by leveraging client-side feedback and confidence indicators, educators can efficiently digitize answer sheets and integrate OCR results into broader assessment workflows.

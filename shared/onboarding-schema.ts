@@ -14,14 +14,14 @@ export interface ISchool extends Document {
 }
 
 const SchoolSchema = new Schema<ISchool>({
-  name:               { type: String, required: true },
-  city:               { type: String, required: true },
-  board:              { type: String, enum: ["CBSE","ICSE","State","IB","Other"], required: true },
-  logo:               { type: String },
-  gradesOffered:      [{ type: String }],
-  createdBy:          { type: String, required: true },
+  name: { type: String, required: true },
+  city: { type: String, required: true },
+  board: { type: String, enum: ["CBSE", "ICSE", "State", "IB", "Other"], required: true },
+  logo: { type: String },
+  gradesOffered: [{ type: String }],
+  createdBy: { type: String, required: true },
   onboardingComplete: { type: Boolean, default: false },
-  createdAt:          { type: Date, default: Date.now },
+  createdAt: { type: Date, default: Date.now },
 });
 
 export const School = mongoose.models.School || mongoose.model<ISchool>("School", SchoolSchema);
@@ -43,14 +43,14 @@ export interface IInvite extends Document {
 }
 
 const InviteSchema = new Schema<IInvite>({
-  email:     { type: String, required: true },
-  name:      { type: String, required: true },
-  role:      { type: String, enum: ["teacher","student"], required: true },
-  schoolId:  { type: Schema.Types.ObjectId, ref: "School", required: true },
-  classId:   { type: Schema.Types.ObjectId, ref: "SchoolClass" },
-  grades:    [{ type: String }],
-  token:     { type: String, required: true, unique: true },
-  status:    { type: String, enum: ["pending","accepted","expired"], default: "pending" },
+  email: { type: String, required: true },
+  name: { type: String, required: true },
+  role: { type: String, enum: ["teacher", "student"], required: true },
+  schoolId: { type: Schema.Types.ObjectId, ref: "School", required: true },
+  classId: { type: Schema.Types.ObjectId, ref: "SchoolClass" },
+  grades: [{ type: String }],
+  token: { type: String, required: true, unique: true },
+  status: { type: String, enum: ["pending", "accepted", "expired"], default: "pending" },
   invitedBy: { type: String, required: true },
   expiresAt: { type: Date, required: true },
   createdAt: { type: Date, default: Date.now },
@@ -73,12 +73,13 @@ export interface ISchoolClass extends Document {
 }
 
 const SchoolClassSchema = new Schema<ISchoolClass>({
-  name:               { type: String, required: true },
-  grade:              { type: String, required: true },
+  name: { type: String, required: true },
+  grade: { type: String, required: true },
   teacherFirebaseUid: { type: String, required: true },
-  schoolId:           { type: Schema.Types.ObjectId, ref: "School", required: true },
-  students:           [{ type: String }],
-  createdAt:          { type: Date, default: Date.now },
+  schoolId: { type: Schema.Types.ObjectId, ref: "School", required: true },
+  students: [{ type: String }],
+  createdAt: { type: Date, default: Date.now },
 });
 
-export const SchoolClass = mongoose.models.SchoolClass || mongoose.model<ISchoolClass>("SchoolClass", SchoolClassSchema);
+export const SchoolClass =
+  mongoose.models.SchoolClass || mongoose.model<ISchoolClass>("SchoolClass", SchoolClassSchema);

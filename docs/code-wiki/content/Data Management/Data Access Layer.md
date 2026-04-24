@@ -14,6 +14,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -25,10 +26,13 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document explains the data access layer implementation, focusing on the unified storage interface and its MongoDB-backed implementation, alongside optional Cassandra-backed messaging. It covers the repository pattern usage, CRUD operations per entity, parameter validation, error handling, response formatting, Snowflake ID generation, legacy compatibility, data mapping, transaction handling, bulk operations, and performance optimization. It also clarifies how MongoDB and Cassandra operations are separated within a single interface.
 
 ## Project Structure
+
 The data access layer centers around a single storage interface and implementation, with supporting schemas and database initialization utilities:
+
 - Unified storage interface and implementation
 - Shared application schemas and Mongoose models
 - Optional Cassandra client and message store
@@ -65,6 +69,7 @@ MongoModels --> Mongo
 ```
 
 **Diagram sources**
+
 - [storage.ts](file://server/storage.ts#L33-L106)
 - [schema.ts](file://shared/schema.ts#L1-L142)
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L1-L159)
@@ -76,6 +81,7 @@ MongoModels --> Mongo
 - [routes.ts](file://server/routes.ts#L1-L800)
 
 **Section sources**
+
 - [storage.ts](file://server/storage.ts#L1-L519)
 - [schema.ts](file://shared/schema.ts#L1-L142)
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L1-L159)
@@ -87,6 +93,7 @@ MongoModels --> Mongo
 - [routes.ts](file://server/routes.ts#L1-L800)
 
 ## Core Components
+
 - IStorage: Defines the contract for all data operations across entities (users, tests, questions, attempts, answers, analytics, workspaces, channels, messages). It also exposes a session store for Express sessions.
 - MongoStorage: Implements IStorage using MongoDB for most entities and falls back to Cassandra for message operations when configured.
 - Shared Schemas: Define Zod validation schemas and TypeScript types for all domain entities.
@@ -95,6 +102,7 @@ MongoModels --> Mongo
 - Snowflake: Generates time-sorted, globally unique IDs suitable for Cassandra clustering.
 
 Key responsibilities:
+
 - Repository pattern: Each entity operation is encapsulated in MongoStorage methods, acting as repositories.
 - Validation: Route handlers parse and validate inputs using Zod schemas before delegating to storage.
 - Mapping: MongoStorage maps Mongoose documents to application types and vice versa.
@@ -102,6 +110,7 @@ Key responsibilities:
 - Hybrid backend: MongoDB for structured entities; Cassandra for scalable message history.
 
 **Section sources**
+
 - [storage.ts](file://server/storage.ts#L33-L106)
 - [storage.ts](file://server/storage.ts#L110-L519)
 - [schema.ts](file://shared/schema.ts#L1-L142)
@@ -111,7 +120,9 @@ Key responsibilities:
 - [snowflake.ts](file://server/lib/snowflake.ts#L1-L74)
 
 ## Architecture Overview
+
 The storage layer sits between route handlers and databases. Route handlers validate inputs, enforce authorization, and call storage methods. MongoStorage orchestrates:
+
 - MongoDB CRUD for most entities using Mongoose models and numeric auto-increment IDs.
 - Optional Cassandra integration for message operations when the Cassandra client is available.
 - Consistent response mapping to shared application types.
@@ -138,12 +149,14 @@ Routes-->>Client : JSON response
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L779-L800)
 - [storage.ts](file://server/storage.ts#L413-L422)
 - [cassandra-message-store.ts](file://server/lib/cassandra-message-store.ts#L36-L75)
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L132-L144)
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L1-L800)
 - [storage.ts](file://server/storage.ts#L413-L422)
 - [cassandra-message-store.ts](file://server/lib/cassandra-message-store.ts#L36-L75)
@@ -152,7 +165,9 @@ Routes-->>Client : JSON response
 ## Detailed Component Analysis
 
 ### IStorage Interface
+
 Defines CRUD operations for:
+
 - Users: get by id/username/email, create, list by role/class
 - Tests: create, get by id, list by teacher/status/class
 - Questions: create, get by id, list by test
@@ -167,15 +182,19 @@ Defines CRUD operations for:
 It also exposes a session store for Express sessions.
 
 **Section sources**
+
 - [storage.ts](file://server/storage.ts#L33-L106)
 
 ### MongoStorage Implementation
+
 MongoStorage implements IStorage using Mongoose models and numeric auto-increment IDs sourced from a Counter collection. It centralizes:
+
 - Data mapping: Removes internal fields and returns normalized application models.
 - Pagination and filtering: Uses MongoDB queries with sort and limit.
 - Conditional Cassandra fallback: For message operations, delegates to Cassandra when available.
 
 Entity operations overview:
+
 - Users: find by id/username/email, create with next sequence, list by role/class
 - Tests: create with next sequence, get/update by id, list by teacher/status/class
 - Questions: create with next sequence, get/update by id, list by test with ordering
@@ -188,75 +207,96 @@ Entity operations overview:
 - Messages: create with next sequence or delegate to Cassandra, list by channel with before pagination, delete, pin/unpin, get pinned, grade, mark read
 
 Error handling and validation:
+
 - Route handlers validate inputs using Zod schemas and return structured errors.
 - MongoStorage methods return undefined for missing entities and rely on route handlers to translate to HTTP 404/403/400 as appropriate.
 
 Response formatting:
+
 - All methods return normalized application models via mapping helpers.
 
 **Section sources**
+
 - [storage.ts](file://server/storage.ts#L110-L519)
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L94-L159)
 
 ### Data Mapping Functions
+
 MongoStorage uses a generic mapping helper to convert Mongoose documents to application models by:
+
 - Extracting internal fields (e.g., ObjectId, version key) and returning a clean object.
 - Returning undefined when input is null/undefined.
 
 This ensures route handlers receive normalized models without internal persistence details.
 
 **Section sources**
+
 - [storage.ts](file://server/storage.ts#L120-L124)
 
 ### Sequence Generation and Legacy Compatibility
+
 Numeric IDs for MongoDB entities are generated using a Counter collection and an atomic increment operation. This provides:
+
 - Monotonic numeric IDs for legacy compatibility and predictable sorting.
 - Atomicity via findOneAndUpdate with upsert.
 
 Cassandra messaging uses Snowflake IDs for:
+
 - Global uniqueness across nodes.
 - Time-sorted clustering for efficient reads.
 
 Hybrid approach:
+
 - MongoStorage delegates message operations to Cassandra when available; otherwise, it falls back to MongoDB with numeric IDs.
 
 **Section sources**
+
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L94-L108)
 - [snowflake.ts](file://server/lib/snowflake.ts#L1-L74)
 - [storage.ts](file://server/storage.ts#L413-L422)
 
 ### Transaction Handling Patterns
+
 - MongoDB: Mongoose operations are executed within a single request context. There is no explicit multi-document ACID transaction orchestration in the storage layer; updates are performed per-operation.
 - Cassandra: Operations are executed individually with prepared statements. There is no multi-table transaction support; callers should design around eventual consistency and idempotent writes.
 
 Bulk operations:
+
 - MongoDB: Queries return arrays; pagination is supported via limit and sort.
 - Cassandra: Prepared statements are used for inserts and updates; pagination uses partition and clustering key constraints.
 
 **Section sources**
+
 - [storage.ts](file://server/storage.ts#L149-L158)
 - [cassandra-message-store.ts](file://server/lib/cassandra-message-store.ts#L36-L75)
 
 ### Parameter Validation and Error Handling
+
 Validation:
+
 - Route handlers parse request bodies using Zod schemas and return structured validation errors.
 
 Error handling:
+
 - Route handlers catch validation errors and return HTTP 400 with error details.
 - General server errors are caught centrally and returned as HTTP 500.
 
 MongoStorage:
+
 - Returns undefined for missing entities; route handlers translate to 404.
 - Throws or returns false for failures (e.g., delete operations).
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L13-L47)
 - [routes.ts](file://server/routes.ts#L110-L132)
 - [routes.ts](file://server/routes.ts#L779-L800)
 - [index.ts](file://server/index.ts#L86-L92)
 
 ### Repository Pattern Usage
+
 Each entity CRUD method in MongoStorage acts as a repository method:
+
 - Encapsulates persistence logic
 - Normalizes inputs and outputs
 - Delegates to appropriate database backend (MongoDB or Cassandra)
@@ -264,9 +304,11 @@ Each entity CRUD method in MongoStorage acts as a repository method:
 This pattern promotes separation of concerns and testability.
 
 **Section sources**
+
 - [storage.ts](file://server/storage.ts#L126-L519)
 
 ### Class Diagram: IStorage and MongoStorage
+
 ```mermaid
 classDiagram
 class IStorage {
@@ -383,10 +425,12 @@ IStorage <|.. MongoStorage
 ```
 
 **Diagram sources**
+
 - [storage.ts](file://server/storage.ts#L33-L106)
 - [storage.ts](file://server/storage.ts#L110-L519)
 
 ### Sequence Diagram: Message Creation Flow
+
 ```mermaid
 sequenceDiagram
 participant Client as "Client"
@@ -409,12 +453,14 @@ Routes-->>Client : 201 JSON
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L779-L800)
 - [storage.ts](file://server/storage.ts#L413-L422)
 - [cassandra-message-store.ts](file://server/lib/cassandra-message-store.ts#L36-L75)
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L132-L144)
 
 ### Flowchart: Message Retrieval with Pagination
+
 ```mermaid
 flowchart TD
 Start(["Function Entry"]) --> CheckCassandra["Is Cassandra client available?"]
@@ -429,11 +475,13 @@ MapMongo --> Return
 ```
 
 **Diagram sources**
+
 - [storage.ts](file://server/storage.ts#L424-L437)
 - [cassandra-message-store.ts](file://server/lib/cassandra-message-store.ts#L79-L102)
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L132-L144)
 
 ## Dependency Analysis
+
 - Route handlers depend on IStorage for all persistence operations.
 - MongoStorage depends on:
   - Mongoose models for MongoDB entities
@@ -453,6 +501,7 @@ CStore --> Snowflake["server/lib/snowflake.ts"]
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L1-L800)
 - [storage.ts](file://server/storage.ts#L1-L519)
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L1-L159)
@@ -461,6 +510,7 @@ CStore --> Snowflake["server/lib/snowflake.ts"]
 - [snowflake.ts](file://server/lib/snowflake.ts#L1-L74)
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L1-L800)
 - [storage.ts](file://server/storage.ts#L1-L519)
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L1-L159)
@@ -469,6 +519,7 @@ CStore --> Snowflake["server/lib/snowflake.ts"]
 - [snowflake.ts](file://server/lib/snowflake.ts#L1-L74)
 
 ## Performance Considerations
+
 - Cassandra for messages:
   - Partition key: channel_id; clustering key: message_id (Snowflake) enables efficient range scans and pagination.
   - Prepared statements reduce parsing overhead.
@@ -484,7 +535,9 @@ CStore --> Snowflake["server/lib/snowflake.ts"]
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
+
 Common issues and resolutions:
+
 - Missing MongoDB URL:
   - Symptom: MongoDB connection error logged; server continues.
   - Resolution: Set MONGODB_URL environment variable.
@@ -502,6 +555,7 @@ Common issues and resolutions:
   - Resolution: Verify Cassandra availability and confirm channel metadata updates occur in MongoDB.
 
 **Section sources**
+
 - [db.ts](file://server/db.ts#L1-L21)
 - [cassandra.ts](file://server/lib/cassandra.ts#L13-L16)
 - [routes.ts](file://server/routes.ts#L13-L47)
@@ -509,4 +563,5 @@ Common issues and resolutions:
 - [storage.ts](file://server/storage.ts#L448-L475)
 
 ## Conclusion
+
 The data access layer employs a clean repository pattern via IStorage and MongoStorage, validating inputs at the route boundary and returning normalized application models. Numeric IDs for MongoDB entities ensure legacy compatibility, while Snowflake IDs power Cassandra messaging for scalability. The hybrid design allows optimal data stores per workload, with clear separation of concerns between MongoDB and Cassandra operations within a unified interface.

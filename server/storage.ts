@@ -1,33 +1,61 @@
 import {
-  type User, type InsertUser,
-  type Session, type InsertSession,
-  type Otp, type InsertOtp,
-  type Test, type InsertTest,
-  type Question, type InsertQuestion,
-  type TestAttempt, type InsertTestAttempt,
-  type Answer, type InsertAnswer,
-  type Analytics, type InsertAnalytics,
-  type TestAssignment, type InsertTestAssignment,
-  type Workspace, type InsertWorkspace,
-  type Channel, type InsertChannel,
-  type Message, type InsertMessage,
-  type LiveClass, type InsertLiveClass,
-  type LiveSessionAttendance, type InsertLiveSessionAttendance,
-  type FcmToken, type InsertFcmToken,
-  type Task, type InsertTask,
-  type Notification as AppNotification, type InsertNotification,
-  type FocusSession, type InsertFocusSession,
+  type User,
+  type InsertUser,
+  type Session,
+  type InsertSession,
+  type Otp,
+  type InsertOtp,
+  type Test,
+  type InsertTest,
+  type Question,
+  type InsertQuestion,
+  type TestAttempt,
+  type InsertTestAttempt,
+  type Answer,
+  type InsertAnswer,
+  type Analytics,
+  type InsertAnalytics,
+  type TestAssignment,
+  type InsertTestAssignment,
+  type Workspace,
+  type InsertWorkspace,
+  type Channel,
+  type InsertChannel,
+  type Message,
+  type InsertMessage,
+  type LiveClass,
+  type InsertLiveClass,
+  type LiveSessionAttendance,
+  type InsertLiveSessionAttendance,
+  type FcmToken,
+  type InsertFcmToken,
+  type Task,
+  type InsertTask,
+  type Notification as AppNotification,
+  type InsertNotification,
+  type FocusSession,
+  type InsertFocusSession,
 } from "@shared/schema";
 import {
-  MongoUser, MongoSession, MongoOtp,
-  MongoTest, MongoQuestion, MongoTestAttempt, MongoAnswer, MongoAnalytics,
+  MongoUser,
+  MongoSession,
+  MongoOtp,
+  MongoTest,
+  MongoQuestion,
+  MongoTestAttempt,
+  MongoAnswer,
+  MongoAnalytics,
   MongoTestAssignment,
-  MongoWorkspace, MongoChannel, MongoMessage,
-  MongoLiveClass, MongoLiveSessionAttendance, MongoFcmToken,
+  MongoWorkspace,
+  MongoChannel,
+  MongoMessage,
+  MongoLiveClass,
+  MongoLiveSessionAttendance,
+  MongoFcmToken,
   MongoTask,
   MongoNotification,
   MongoFocusSession,
-  getNextSequenceValue
+  getNextSequenceValue,
 } from "@shared/mongo-schema";
 import { getCassandraClient } from "./lib/cassandra";
 import {
@@ -86,7 +114,10 @@ export interface IStorage {
   getTestAttempt(id: number): Promise<TestAttempt | undefined>;
   getTestAttemptsByStudent(studentId: number): Promise<TestAttempt[]>;
   getTestAttemptsByTest(testId: number): Promise<TestAttempt[]>;
-  updateTestAttempt(id: number, attempt: Partial<InsertTestAttempt>): Promise<TestAttempt | undefined>;
+  updateTestAttempt(
+    id: number,
+    attempt: Partial<InsertTestAttempt>
+  ): Promise<TestAttempt | undefined>;
 
   // Answer operations
   createAnswer(answer: InsertAnswer): Promise<Answer>;
@@ -102,10 +133,20 @@ export interface IStorage {
   // Test Assignment operations
   createTestAssignment(assignment: InsertTestAssignment): Promise<TestAssignment>;
   getTestAssignment(id: number): Promise<TestAssignment | undefined>;
-  getTestAssignments(filters: { studentId?: number; testId?: number; status?: string }): Promise<TestAssignment[]>;
-  updateTestAssignment(id: number, update: Partial<InsertTestAssignment>): Promise<TestAssignment | undefined>;
+  getTestAssignments(filters: {
+    studentId?: number;
+    testId?: number;
+    status?: string;
+  }): Promise<TestAssignment[]>;
+  updateTestAssignment(
+    id: number,
+    update: Partial<InsertTestAssignment>
+  ): Promise<TestAssignment | undefined>;
   getTestAssignmentsByTest(testId: number): Promise<TestAssignment[]>;
-  getTestAssignmentByStudentAndTest(studentId: number, testId: number): Promise<TestAssignment | undefined>;
+  getTestAssignmentByStudentAndTest(
+    studentId: number,
+    testId: number
+  ): Promise<TestAssignment | undefined>;
 
   // Workspace operations
   createWorkspace(workspace: InsertWorkspace): Promise<Workspace>;
@@ -128,8 +169,16 @@ export interface IStorage {
   pinMessage(channelId: number, messageId: number): Promise<Channel | undefined>;
   unpinMessage(channelId: number, messageId: number): Promise<Channel | undefined>;
   getPinnedMessages(channelId: number): Promise<Message[]>;
-  gradeMessage(messageId: number, status: 'pending' | 'graded', channelId?: number): Promise<Message | undefined>;
-  markMessageAsRead(messageId: number, userId: number, channelId?: number): Promise<Message | undefined>;
+  gradeMessage(
+    messageId: number,
+    status: "pending" | "graded",
+    channelId?: number
+  ): Promise<Message | undefined>;
+  markMessageAsRead(
+    messageId: number,
+    userId: number,
+    channelId?: number
+  ): Promise<Message | undefined>;
 
   // Live Class operations
   createLiveClass(liveClass: InsertLiveClass): Promise<LiveClass>;
@@ -138,9 +187,14 @@ export interface IStorage {
   updateLiveClass(id: number, update: Partial<InsertLiveClass>): Promise<LiveClass | undefined>;
 
   // Live Session Attendance operations
-  createLiveSessionAttendance(attendance: InsertLiveSessionAttendance): Promise<LiveSessionAttendance>;
+  createLiveSessionAttendance(
+    attendance: InsertLiveSessionAttendance
+  ): Promise<LiveSessionAttendance>;
   getAttendanceBySession(sessionId: number): Promise<LiveSessionAttendance[]>;
-  updateLiveSessionAttendance(id: number, update: Partial<InsertLiveSessionAttendance>): Promise<LiveSessionAttendance | undefined>;
+  updateLiveSessionAttendance(
+    id: number,
+    update: Partial<InsertLiveSessionAttendance>
+  ): Promise<LiveSessionAttendance | undefined>;
 
   // FCM Token operations
   upsertFcmToken(token: InsertFcmToken): Promise<FcmToken>;
@@ -164,8 +218,6 @@ export interface IStorage {
   createFocusSession(session: InsertFocusSession): Promise<FocusSession>;
   getFocusSessionsByUser(userId: number): Promise<FocusSession[]>;
 }
-
-
 
 export class MongoStorage implements IStorage {
   sessionStore: session.Store;
@@ -213,7 +265,7 @@ export class MongoStorage implements IStorage {
   }
 
   async getUsersByClass(className: string): Promise<User[]> {
-    const users = await MongoUser.find({ role: 'student', class: className });
+    const users = await MongoUser.find({ role: "student", class: className });
     return users.map((u: any) => this.mapMongoDoc<User>(u));
   }
 
@@ -268,7 +320,7 @@ export class MongoStorage implements IStorage {
       userId,
       type,
       used: false,
-      expiresAt: { $gt: new Date() }
+      expiresAt: { $gt: new Date() },
     }).sort({ createdAt: -1 }); // Get latest
     return otpDoc ? this.mapMongoDoc<Otp>(otpDoc) : undefined;
   }
@@ -326,7 +378,10 @@ export class MongoStorage implements IStorage {
     const questions = await MongoQuestion.find({ testId }).sort({ order: 1 });
     return questions.map((q: any) => this.mapMongoDoc<Question>(q));
   }
-  async updateQuestion(id: number, questionUpdate: Partial<InsertQuestion>): Promise<Question | undefined> {
+  async updateQuestion(
+    id: number,
+    questionUpdate: Partial<InsertQuestion>
+  ): Promise<Question | undefined> {
     const question = await MongoQuestion.findOneAndUpdate({ id }, questionUpdate, { new: true });
     return question ? this.mapMongoDoc<Question>(question) : undefined;
   }
@@ -354,7 +409,10 @@ export class MongoStorage implements IStorage {
     return attempts.map((a: any) => this.mapMongoDoc<TestAttempt>(a));
   }
 
-  async updateTestAttempt(id: number, attemptUpdate: Partial<InsertTestAttempt>): Promise<TestAttempt | undefined> {
+  async updateTestAttempt(
+    id: number,
+    attemptUpdate: Partial<InsertTestAttempt>
+  ): Promise<TestAttempt | undefined> {
     const attempt = await MongoTestAttempt.findOneAndUpdate({ id }, attemptUpdate, { new: true });
     return attempt ? this.mapMongoDoc<TestAttempt>(attempt) : undefined;
   }
@@ -413,7 +471,11 @@ export class MongoStorage implements IStorage {
     return assignment ? this.mapMongoDoc<TestAssignment>(assignment) : undefined;
   }
 
-  async getTestAssignments(filters: { studentId?: number; testId?: number; status?: string }): Promise<TestAssignment[]> {
+  async getTestAssignments(filters: {
+    studentId?: number;
+    testId?: number;
+    status?: string;
+  }): Promise<TestAssignment[]> {
     const filter: any = {};
     if (filters.studentId !== undefined) filter.studentId = filters.studentId;
     if (filters.testId !== undefined) filter.testId = filters.testId;
@@ -422,7 +484,10 @@ export class MongoStorage implements IStorage {
     return assignments.map((a: any) => this.mapMongoDoc<TestAssignment>(a));
   }
 
-  async updateTestAssignment(id: number, update: Partial<InsertTestAssignment>): Promise<TestAssignment | undefined> {
+  async updateTestAssignment(
+    id: number,
+    update: Partial<InsertTestAssignment>
+  ): Promise<TestAssignment | undefined> {
     const assignment = await MongoTestAssignment.findOneAndUpdate({ id }, update, { new: true });
     return assignment ? this.mapMongoDoc<TestAssignment>(assignment) : undefined;
   }
@@ -432,7 +497,10 @@ export class MongoStorage implements IStorage {
     return assignments.map((a: any) => this.mapMongoDoc<TestAssignment>(a));
   }
 
-  async getTestAssignmentByStudentAndTest(studentId: number, testId: number): Promise<TestAssignment | undefined> {
+  async getTestAssignmentByStudentAndTest(
+    studentId: number,
+    testId: number
+  ): Promise<TestAssignment | undefined> {
     const assignment = await MongoTestAssignment.findOne({ studentId, testId });
     return assignment ? this.mapMongoDoc<TestAssignment>(assignment) : undefined;
   }
@@ -466,7 +534,10 @@ export class MongoStorage implements IStorage {
     return ws ? this.mapMongoDoc<Workspace>(ws) : undefined;
   }
 
-  async removeMemberFromWorkspace(workspaceId: number, userId: number): Promise<Workspace | undefined> {
+  async removeMemberFromWorkspace(
+    workspaceId: number,
+    userId: number
+  ): Promise<Workspace | undefined> {
     const ws = await MongoWorkspace.findOneAndUpdate(
       { id: workspaceId },
       { $pull: { members: userId } },
@@ -521,10 +592,7 @@ export class MongoStorage implements IStorage {
     const pattern = new RegExp(`^dm_.*${userId}(_|$)|^dm_${userId}_`);
     const dms = await MongoChannel.find({
       type: "dm",
-      $or: [
-        { name: new RegExp(`^dm_${userId}_`) },
-        { name: new RegExp(`^dm_.*_${userId}$`) }
-      ]
+      $or: [{ name: new RegExp(`^dm_${userId}_`) }, { name: new RegExp(`^dm_.*_${userId}$`) }],
     });
     return dms.map((d: any) => this.mapMongoDoc<Channel>(d));
   }
@@ -551,9 +619,7 @@ export class MongoStorage implements IStorage {
     if (before !== undefined) {
       filter.id = { $lt: before };
     }
-    const messages = await MongoMessage.find(filter)
-      .sort({ id: -1 })
-      .limit(limit);
+    const messages = await MongoMessage.find(filter).sort({ id: -1 }).limit(limit);
     return messages.reverse().map((m: any) => this.mapMongoDoc<Message>(m));
   }
 
@@ -604,11 +670,27 @@ export class MongoStorage implements IStorage {
     return messages.map((m: any) => this.mapMongoDoc<Message>(m));
   }
 
-  async gradeMessage(messageId: number, status: 'pending' | 'graded', channelId?: number): Promise<Message | undefined> {
+  async gradeMessage(
+    messageId: number,
+    status: "pending" | "graded",
+    channelId?: number
+  ): Promise<Message | undefined> {
     if (getCassandraClient() && channelId !== undefined) {
       await cassandraGradeMessage(channelId, messageId, status);
       // Return a minimal updated object — routes only check for truthiness
-      return { id: messageId, channelId, authorId: 0, content: "", type: "text", fileUrl: null, isPinned: false, isHomework: false, gradingStatus: status, readBy: [], createdAt: new Date() };
+      return {
+        id: messageId,
+        channelId,
+        authorId: 0,
+        content: "",
+        type: "text",
+        fileUrl: null,
+        isPinned: false,
+        isHomework: false,
+        gradingStatus: status,
+        readBy: [],
+        createdAt: new Date(),
+      };
     }
     // Fallback — MongoDB
     const msg = await MongoMessage.findOneAndUpdate(
@@ -619,10 +701,26 @@ export class MongoStorage implements IStorage {
     return msg ? this.mapMongoDoc<Message>(msg) : undefined;
   }
 
-  async markMessageAsRead(messageId: number, userId: number, channelId?: number): Promise<Message | undefined> {
+  async markMessageAsRead(
+    messageId: number,
+    userId: number,
+    channelId?: number
+  ): Promise<Message | undefined> {
     if (getCassandraClient() && channelId !== undefined) {
       await cassandraMarkMessageAsRead(channelId, messageId, userId);
-      return { id: messageId, channelId, authorId: 0, content: "", type: "text", fileUrl: null, isPinned: false, isHomework: false, gradingStatus: null, readBy: [userId], createdAt: new Date() };
+      return {
+        id: messageId,
+        channelId,
+        authorId: 0,
+        content: "",
+        type: "text",
+        fileUrl: null,
+        isPinned: false,
+        isHomework: false,
+        gradingStatus: null,
+        readBy: [userId],
+        createdAt: new Date(),
+      };
     }
     // Fallback — MongoDB
     const msg = await MongoMessage.findOneAndUpdate(
@@ -647,21 +745,29 @@ export class MongoStorage implements IStorage {
     return liveClass ? this.mapMongoDoc<LiveClass>(liveClass) : undefined;
   }
 
-  async getLiveClassesBySchoolAndClass(schoolCode: string, className: string): Promise<LiveClass[]> {
+  async getLiveClassesBySchoolAndClass(
+    schoolCode: string,
+    className: string
+  ): Promise<LiveClass[]> {
     // Note: If schoolCode filtering is needed later, we can join with User collection or add schoolCode to LiveClass
     // For now we filter by class name
     const classes = await MongoLiveClass.find({ class: className }).sort({ scheduledTime: -1 });
     return classes.map((c: any) => this.mapMongoDoc<LiveClass>(c));
   }
 
-  async updateLiveClass(id: number, update: Partial<InsertLiveClass>): Promise<LiveClass | undefined> {
+  async updateLiveClass(
+    id: number,
+    update: Partial<InsertLiveClass>
+  ): Promise<LiveClass | undefined> {
     const liveClass = await MongoLiveClass.findOneAndUpdate({ id }, update, { new: true });
     return liveClass ? this.mapMongoDoc<LiveClass>(liveClass) : undefined;
   }
 
   // ─── Live Session Attendance operations ──────────────────────────────────
 
-  async createLiveSessionAttendance(attendanceData: InsertLiveSessionAttendance): Promise<LiveSessionAttendance> {
+  async createLiveSessionAttendance(
+    attendanceData: InsertLiveSessionAttendance
+  ): Promise<LiveSessionAttendance> {
     const id = await getNextSequenceValue("attendance_id");
     const attendance = new MongoLiveSessionAttendance({ ...attendanceData, id });
     await attendance.save();
@@ -673,8 +779,13 @@ export class MongoStorage implements IStorage {
     return attendance.map((a: any) => this.mapMongoDoc<LiveSessionAttendance>(a));
   }
 
-  async updateLiveSessionAttendance(id: number, update: Partial<InsertLiveSessionAttendance>): Promise<LiveSessionAttendance | undefined> {
-    const attendance = await MongoLiveSessionAttendance.findOneAndUpdate({ id }, update, { new: true });
+  async updateLiveSessionAttendance(
+    id: number,
+    update: Partial<InsertLiveSessionAttendance>
+  ): Promise<LiveSessionAttendance | undefined> {
+    const attendance = await MongoLiveSessionAttendance.findOneAndUpdate({ id }, update, {
+      new: true,
+    });
     return attendance ? this.mapMongoDoc<LiveSessionAttendance>(attendance) : undefined;
   }
 
@@ -719,7 +830,11 @@ export class MongoStorage implements IStorage {
     return tasks.map((t: any) => this.mapMongoDoc<Task>(t));
   }
 
-  async updateTask(id: number, update: Partial<InsertTask>, userId: number): Promise<Task | undefined> {
+  async updateTask(
+    id: number,
+    update: Partial<InsertTask>,
+    userId: number
+  ): Promise<Task | undefined> {
     const existing = await MongoTask.findOne({ id });
     if (!existing) return undefined;
     if (existing.userId !== userId) return undefined;
@@ -753,7 +868,11 @@ export class MongoStorage implements IStorage {
     const existing = await MongoNotification.findOne({ id });
     if (!existing) return undefined;
     if (existing.userId !== userId) return undefined;
-    const updated = await MongoNotification.findOneAndUpdate({ id }, { isRead: true }, { new: true });
+    const updated = await MongoNotification.findOneAndUpdate(
+      { id },
+      { isRead: true },
+      { new: true }
+    );
     return updated ? this.mapMongoDoc<AppNotification>(updated) : undefined;
   }
 
@@ -784,7 +903,5 @@ export class MongoStorage implements IStorage {
     return sessions.map((s: any) => this.mapMongoDoc<FocusSession>(s));
   }
 }
-
-
 
 export const storage = new MongoStorage();

@@ -1,5 +1,5 @@
 /**
- * 
+ *
  * 42 bits for timestamp (ms since epoch)
  * 5 bits for worker ID
  * 5 bits for process ID
@@ -17,7 +17,8 @@ export class Snowflake {
 
   private static readonly WORKER_ID_SHIFT = Snowflake.SEQUENCE_BITS;
   private static readonly PROCESS_ID_SHIFT = Snowflake.SEQUENCE_BITS + Snowflake.WORKER_BITS;
-  private static readonly TIMESTAMP_SHIFT = Snowflake.SEQUENCE_BITS + Snowflake.WORKER_BITS + Snowflake.PROCESS_BITS;
+  private static readonly TIMESTAMP_SHIFT =
+    Snowflake.SEQUENCE_BITS + Snowflake.WORKER_BITS + Snowflake.PROCESS_BITS;
 
   private workerId: number;
   private processId: number;
@@ -53,10 +54,11 @@ export class Snowflake {
 
     this.lastTimestamp = timestamp;
 
-    const id = BigInt(timestamp - Snowflake.EPOCH) << BigInt(Snowflake.TIMESTAMP_SHIFT) |
-               BigInt(this.processId) << BigInt(Snowflake.PROCESS_ID_SHIFT) |
-               BigInt(this.workerId) << BigInt(Snowflake.WORKER_ID_SHIFT) |
-               BigInt(this.sequence);
+    const id =
+      (BigInt(timestamp - Snowflake.EPOCH) << BigInt(Snowflake.TIMESTAMP_SHIFT)) |
+      (BigInt(this.processId) << BigInt(Snowflake.PROCESS_ID_SHIFT)) |
+      (BigInt(this.workerId) << BigInt(Snowflake.WORKER_ID_SHIFT)) |
+      BigInt(this.sequence);
 
     return id.toString();
   }

@@ -15,6 +15,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -27,7 +28,9 @@
 10. [Appendices](#appendices)
 
 ## Introduction
+
 This document describes the reporting and export functionality for result analysis within the Personal Learning Pro platform. It covers:
+
 - Report generation capabilities for class performance summaries and individual progress reports
 - Export formats supported for sharing analytics data
 - Filtering and sorting options for customizing report content and time ranges
@@ -37,6 +40,7 @@ This document describes the reporting and export functionality for result analys
 - Access controls and permission systems for report visibility
 
 ## Project Structure
+
 The reporting and export features span the client-side analytics dashboards, server-side routes and storage, shared schemas, and supporting libraries for uploads and AI-powered insights.
 
 ```mermaid
@@ -69,6 +73,7 @@ S2 --> SH1
 ```
 
 **Diagram sources**
+
 - [analytics.tsx](file://client/src/pages/analytics.tsx#L1-L177)
 - [admin-dashboard.tsx](file://client/src/pages/admin-dashboard.tsx#L1-L302)
 - [student-directory.tsx](file://client/src/pages/student-directory.tsx#L268-L358)
@@ -81,6 +86,7 @@ S2 --> SH1
 - [schema.ts](file://shared/schema.ts#L61-L68)
 
 **Section sources**
+
 - [analytics.tsx](file://client/src/pages/analytics.tsx#L1-L177)
 - [admin-dashboard.tsx](file://client/src/pages/admin-dashboard.tsx#L1-L302)
 - [routes.ts](file://server/routes.ts#L1-L800)
@@ -93,6 +99,7 @@ S2 --> SH1
 - [principal-dashboard.tsx](file://client/src/pages/principal-dashboard.tsx#L195-L226)
 
 ## Core Components
+
 - Analytics dashboards render class performance summaries and top-performing students using charting libraries. These dashboards provide the foundation for reportable insights.
 - Server routes expose endpoints for retrieving analytics data and integrating AI insights, enabling backend-driven report generation.
 - Storage layer persists analytics records and supports queries by user and test, forming the data backbone for reports.
@@ -100,6 +107,7 @@ S2 --> SH1
 - OpenAI integrations power AI-generated insights that can be included in reports.
 
 **Section sources**
+
 - [analytics.tsx](file://client/src/pages/analytics.tsx#L1-L177)
 - [routes.ts](file://server/routes.ts#L1-L800)
 - [storage.ts](file://server/storage.ts#L264-L280)
@@ -107,6 +115,7 @@ S2 --> SH1
 - [openai.ts](file://server/lib/openai.ts#L107-L163)
 
 ## Architecture Overview
+
 The reporting pipeline connects client dashboards to server endpoints, storage, and optional export delivery.
 
 ```mermaid
@@ -128,6 +137,7 @@ API-->>UI : "Download link"
 ```
 
 **Diagram sources**
+
 - [analytics.tsx](file://client/src/pages/analytics.tsx#L1-L177)
 - [routes.ts](file://server/routes.ts#L1-L800)
 - [storage.ts](file://server/storage.ts#L264-L280)
@@ -137,6 +147,7 @@ API-->>UI : "Download link"
 ## Detailed Component Analysis
 
 ### Analytics Dashboards and Reportable Insights
+
 - Class performance summaries and top students panels provide the primary visualizations for reportable insights.
 - Filtering and sorting are present in related dashboards (e.g., student directory) and can be adapted for analytics contexts.
 
@@ -153,14 +164,17 @@ Deliver --> End
 ```
 
 **Diagram sources**
+
 - [analytics.tsx](file://client/src/pages/analytics.tsx#L1-L177)
 - [student-directory.tsx](file://client/src/pages/student-directory.tsx#L268-L358)
 
 **Section sources**
+
 - [analytics.tsx](file://client/src/pages/analytics.tsx#L1-L177)
 - [student-directory.tsx](file://client/src/pages/student-directory.tsx#L268-L358)
 
 ### Server Routes and Access Controls
+
 - Routes define endpoints for user, test, and analytics operations with role-based access checks.
 - Access controls ensure that only authorized users can view or generate reports for specific contexts (e.g., teacher-owned tests, student class access).
 
@@ -180,14 +194,17 @@ Routes-->>Client : "Test details"
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L134-L209)
 - [storage.ts](file://server/storage.ts#L282-L293)
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L134-L209)
 - [storage.ts](file://server/storage.ts#L282-L293)
 
 ### Analytics Data Model and Persistence
+
 - Analytics records capture user-level insights, including weak and strong topics, recommended resources, and timestamps.
 - Storage layer supports creation and retrieval of analytics entries by user and test.
 
@@ -205,14 +222,17 @@ date insightDate
 ```
 
 **Diagram sources**
+
 - [schema.ts](file://shared/schema.ts#L61-L68)
 - [storage.ts](file://server/storage.ts#L264-L280)
 
 **Section sources**
+
 - [schema.ts](file://shared/schema.ts#L61-L68)
 - [storage.ts](file://server/storage.ts#L264-L280)
 
 ### Export Formats and Delivery
+
 - Supported export formats include PDF, CSV, and images, aligned with allowed MIME types for uploads.
 - Delivery is performed via server-side artifact preparation and download links.
 
@@ -227,12 +247,15 @@ Link --> Done(["Return download link"])
 ```
 
 **Diagram sources**
+
 - [upload.ts](file://server/lib/upload.ts#L30-L68)
 
 **Section sources**
+
 - [upload.ts](file://server/lib/upload.ts#L30-L68)
 
 ### AI-Enhanced Insights for Reports
+
 - OpenAI integrations can enrich reports with AI-generated insights and recommendations.
 - These insights can be embedded into exported documents alongside visual charts.
 
@@ -251,16 +274,19 @@ Routes-->>UI : "Updated report data"
 ```
 
 **Diagram sources**
+
 - [openai.ts](file://server/lib/openai.ts#L107-L163)
 - [routes.ts](file://server/routes.ts#L1-L800)
 - [storage.ts](file://server/storage.ts#L264-L280)
 
 **Section sources**
+
 - [openai.ts](file://server/lib/openai.ts#L107-L163)
 - [routes.ts](file://server/routes.ts#L1-L800)
 - [storage.ts](file://server/storage.ts#L264-L280)
 
 ### Filtering and Sorting Options
+
 - Filtering and sorting are exemplified in the student directory dashboard and can be extended to analytics contexts.
 - Typical options include standard/group/state filters and reset controls.
 
@@ -274,12 +300,15 @@ Export --> End(["Done"])
 ```
 
 **Diagram sources**
+
 - [student-directory.tsx](file://client/src/pages/student-directory.tsx#L268-L358)
 
 **Section sources**
+
 - [student-directory.tsx](file://client/src/pages/student-directory.tsx#L268-L358)
 
 ### Sharing Mechanisms and Automation
+
 - Admin dashboard surfaces recent reports and provides download actions, indicating a sharing mechanism for stakeholders.
 - Automation for scheduled report generation can be implemented by invoking analytics endpoints and exporting artifacts on a schedule.
 
@@ -297,16 +326,19 @@ Routes-->>Admin : "Download link"
 ```
 
 **Diagram sources**
+
 - [admin-dashboard.tsx](file://client/src/pages/admin-dashboard.tsx#L211-L237)
 - [routes.ts](file://server/routes.ts#L1-L800)
 - [upload.ts](file://server/lib/upload.ts#L30-L68)
 
 **Section sources**
+
 - [admin-dashboard.tsx](file://client/src/pages/admin-dashboard.tsx#L211-L237)
 - [routes.ts](file://server/routes.ts#L1-L800)
 - [upload.ts](file://server/lib/upload.ts#L30-L68)
 
 ### Access Controls and Permission Systems
+
 - Routes enforce role-based access for analytics and report-related operations.
 - Teachers can manage their own tests and associated analytics; students can access analytics for their class.
 - Workspaces and channels further refine access boundaries.
@@ -320,12 +352,15 @@ Allowed --> |No| Deny["Return 403/401"]
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L110-L173)
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L110-L173)
 
 ## Dependency Analysis
+
 - Client dashboards depend on charting libraries and UI components to render analytics.
 - Server routes depend on storage and schemas for data operations and on upload utilities for export delivery.
 - OpenAI integrations augment analytics with AI insights.
@@ -340,6 +375,7 @@ ST --> SCH["Schemas"]
 ```
 
 **Diagram sources**
+
 - [analytics.tsx](file://client/src/pages/analytics.tsx#L1-L177)
 - [routes.ts](file://server/routes.ts#L1-L800)
 - [storage.ts](file://server/storage.ts#L70-L293)
@@ -348,6 +384,7 @@ ST --> SCH["Schemas"]
 - [schema.ts](file://shared/schema.ts#L61-L68)
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L1-L800)
 - [storage.ts](file://server/storage.ts#L70-L293)
 - [schema.ts](file://shared/schema.ts#L61-L68)
@@ -355,24 +392,29 @@ ST --> SCH["Schemas"]
 - [openai.ts](file://server/lib/openai.ts#L107-L163)
 
 ## Performance Considerations
+
 - Use efficient filtering and pagination on the server to avoid large payloads.
 - Cache frequently accessed analytics datasets to reduce database load.
 - Optimize chart rendering by limiting data granularity and leveraging responsive containers.
 - Minimize export sizes by compressing artifacts and selecting appropriate image resolutions.
 
 ## Troubleshooting Guide
+
 - Authentication failures: Ensure session-based checks pass and roles are correctly set.
 - Access denied errors: Verify ownership and class membership for tests and analytics.
 - Export failures: Confirm allowed MIME types and artifact generation steps.
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L49-L85)
 - [routes.ts](file://server/routes.ts#L194-L203)
 - [upload.ts](file://server/lib/upload.ts#L43-L54)
 
 ## Conclusion
+
 The platform provides a robust foundation for analytics reporting and export, with role-based access controls, extensible filtering, and integration points for AI-enhanced insights. By leveraging the existing routes, storage, and upload utilities, teams can implement comprehensive report generation, scheduling, and distribution workflows tailored to stakeholders across roles.
 
 ## Appendices
+
 - Example export formats: PDF, CSV, Image
 - Representative UI components: Analytics dashboard, Admin dashboard, Student directory, Principal dashboard, Teacher dashboard

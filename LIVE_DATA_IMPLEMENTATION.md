@@ -11,15 +11,18 @@ All analytics, progress charts, and admin dashboards now use real data from Mong
 **Location:** `server/routes.ts` (lines added after line 1000)
 
 **What it does:**
+
 - Queries `TestAttempt` collection for completed tests
 - Groups by subject from the `Test` collection
 - Returns average score per subject
 
 **Authorization:**
+
 - Students can only view their own data
 - Teachers/admins can view any student
 
 **Response format:**
+
 ```json
 [
   { "subject": "Mathematics", "avgScore": 85.5 },
@@ -34,6 +37,7 @@ All analytics, progress charts, and admin dashboards now use real data from Mong
 ### Frontend: `client/src/pages/analytics.tsx`
 
 **Changes made:**
+
 1. Added `useQuery` hook to fetch real analytics data
 2. Integrated with `useFirebaseAuth` to get current student ID
 3. Replaced static chart data with API response
@@ -52,12 +56,14 @@ All analytics, progress charts, and admin dashboards now use real data from Mong
 **Location:** `server/routes.ts`
 
 **What it does:**
+
 - MongoDB aggregation pipeline on `TestAttempt` collection
 - Groups by month using `$dateToString` on `endTime` field
 - Calculates average score per month
 - Sorts ascending by month
 
 **Response format:**
+
 ```json
 [
   { "month": "2025-01", "avgScore": 74.3 },
@@ -73,6 +79,7 @@ All analytics, progress charts, and admin dashboards now use real data from Mong
 ### Frontend: `client/src/pages/my-progress.tsx`
 
 **Changes made:**
+
 1. Added `useQuery` to fetch monthly progress data
 2. Added month name mapping (2025-01 → "Jan")
 3. Created new "Monthly Progress Trend" card with LineChart
@@ -91,6 +98,7 @@ All analytics, progress charts, and admin dashboards now use real data from Mong
 **Location:** `server/routes.ts`
 
 **What it does:**
+
 - Runs 4 parallel MongoDB count queries using `Promise.all`:
   1. `Users.countDocuments({ role: "student" })`
   2. `Users.countDocuments({ role: "teacher" })`
@@ -100,6 +108,7 @@ All analytics, progress charts, and admin dashboards now use real data from Mong
 **Authorization:** Only `admin`, `principal`, or `school_admin` roles
 
 **Response format:**
+
 ```json
 {
   "totalStudents": 245,
@@ -114,6 +123,7 @@ All analytics, progress charts, and admin dashboards now use real data from Mong
 ### Frontend: `client/src/pages/admin-dashboard.tsx`
 
 **Changes made:**
+
 1. Added `useQuery` to fetch admin stats
 2. Added 4 stat cards at the top of the page
 3. Each card shows skeleton loader while fetching
@@ -131,11 +141,13 @@ All analytics, progress charts, and admin dashboards now use real data from Mong
 ### Existing Endpoints:
 
 **`GET /api/messages/:channelId`** — Already implemented in `server/routes.ts`
+
 - Fetches last 50 messages from Cassandra
 - Ordered by `created_at DESC`, returned in ascending order
 - Authorization checks workspace membership
 
 **`GET /api/channels/:id/unread`** — Already implemented
+
 - Counts unread messages in last 50 messages
 - Filters by `readBy` array
 
@@ -154,24 +166,28 @@ The MessagePal UI already uses these endpoints. To ensure it loads real history:
 ## 🎯 Testing Checklist
 
 ### Analytics Page
+
 - [ ] Student logs in and sees their own test scores by subject
 - [ ] Empty state shows when no tests completed
 - [ ] Loading skeleton appears during fetch
 - [ ] Chart renders with real subject names (not hardcoded)
 
 ### Progress Page
+
 - [ ] Monthly line chart shows real test score trends
 - [ ] Month labels are short ("Jan", "Feb", not "2025-01")
 - [ ] Empty state shows if < 2 months of data
 - [ ] Loading skeleton appears
 
 ### Admin Dashboard
+
 - [ ] Admin sees real counts for students, teachers, tests, submissions
 - [ ] Stats update when new users/tests are added
 - [ ] Only admin/principal/school_admin can access
 - [ ] Skeleton loaders show during fetch
 
 ### MessagePal
+
 - [ ] Chat history loads on conversation open
 - [ ] No fake/mock threads appear
 - [ ] Unread badge shows real count
@@ -182,19 +198,23 @@ The MessagePal UI already uses these endpoints. To ensure it loads real history:
 ## 🔧 Implementation Notes
 
 ### No Hardcoded Data
+
 - All subject names derived from database queries
 - No static arrays for test scores or monthly data
 - Admin stats calculated in real-time
 
 ### Loading States
+
 - Every API call has a skeleton loader
 - Prevents showing 0 or empty UI during fetch
 
 ### Empty States
+
 - Clear messaging when no data exists
 - Encourages user action ("Complete some tests to see your performance")
 
 ### Authorization
+
 - Students can only view their own analytics/progress
 - Admin endpoints gated by role check middleware
 - 403 Forbidden returned for unauthorized access

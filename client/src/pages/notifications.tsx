@@ -34,7 +34,10 @@ interface AppNotification {
   createdAt: string;
 }
 
-const typeConfig: Record<NotificationType, { icon: ReactNode; color: string; bg: string; label: string }> = {
+const typeConfig: Record<
+  NotificationType,
+  { icon: ReactNode; color: string; bg: string; label: string }
+> = {
   test: {
     icon: <BookOpen className="h-5 w-5" />,
     color: "text-blue-500",
@@ -80,28 +83,31 @@ export default function NotificationsPage() {
   const [activeTab, setActiveTab] = useState<TabFilter>("all");
 
   // ── Fetch ──────────────────────────────────────────────────────────────
-  const { data: notifications = [], isLoading, isError, error, refetch } = useQuery<AppNotification[]>({
+  const {
+    data: notifications = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery<AppNotification[]>({
     queryKey: ["/api/notifications"],
   });
 
   // ── Mark single read ───────────────────────────────────────────────────
   const markReadMutation = useMutation({
-    mutationFn: (id: number) =>
-      apiRequest("PATCH", `/api/notifications/${id}/read`),
+    mutationFn: (id: number) => apiRequest("PATCH", `/api/notifications/${id}/read`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/notifications"] }),
   });
 
   // ── Dismiss ────────────────────────────────────────────────────────────
   const dismissMutation = useMutation({
-    mutationFn: (id: number) =>
-      apiRequest("DELETE", `/api/notifications/${id}`),
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/notifications/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/notifications"] }),
   });
 
   // ── Mark all read ──────────────────────────────────────────────────────
   const markAllReadMutation = useMutation({
-    mutationFn: () =>
-      apiRequest("PATCH", "/api/notifications/read-all"),
+    mutationFn: () => apiRequest("PATCH", "/api/notifications/read-all"),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/notifications"] }),
   });
 
@@ -131,11 +137,11 @@ export default function NotificationsPage() {
           className="animate-fade-in-up"
           breadcrumbs={[{ label: "Dashboard", href: "/" }, { label: "Notifications" }]}
         />
-        <div className="space-y-3 mt-6">
+        <div className="mt-6 space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
             <Card key={i}>
-              <CardContent className="p-4 flex items-start gap-4">
-                <Skeleton className="h-10 w-10 rounded-xl flex-shrink-0" />
+              <CardContent className="flex items-start gap-4 p-4">
+                <Skeleton className="h-10 w-10 flex-shrink-0 rounded-xl" />
                 <div className="flex-1 space-y-2">
                   <Skeleton className="h-4 w-1/3" />
                   <Skeleton className="h-3 w-2/3" />
@@ -160,8 +166,8 @@ export default function NotificationsPage() {
           breadcrumbs={[{ label: "Dashboard", href: "/" }, { label: "Notifications" }]}
         />
         <Card className="mt-6">
-          <CardContent className="p-16 flex flex-col items-center justify-center gap-3 text-center">
-            <div className="p-4 rounded-2xl bg-destructive/10">
+          <CardContent className="flex flex-col items-center justify-center gap-3 p-16 text-center">
+            <div className="rounded-2xl bg-destructive/10 p-4">
               <AlertCircle className="h-8 w-8 text-destructive" />
             </div>
             <p className="font-semibold">Failed to load notifications</p>
@@ -200,7 +206,10 @@ export default function NotificationsPage() {
       </PageHeader>
 
       {/* Stats strip */}
-      <div className="flex items-center gap-4 px-5 py-3 mb-6 rounded-2xl bg-gradient-to-r from-primary/5 via-primary/8 to-violet-500/5 border border-primary/15 animate-fade-in-up" style={{ animationDelay: "50ms" }}>
+      <div
+        className="via-primary/8 animate-fade-in-up mb-6 flex items-center gap-4 rounded-2xl border border-primary/15 bg-gradient-to-r from-primary/5 to-violet-500/5 px-5 py-3"
+        style={{ animationDelay: "50ms" }}
+      >
         <span className="flex items-center gap-2 text-sm font-medium">
           <BellRing className="h-4 w-4 text-primary" />
           <span className="font-bold text-foreground">{unreadCount}</span>
@@ -217,21 +226,24 @@ export default function NotificationsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide mb-5 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
+      <div
+        className="scrollbar-hide animate-fade-in-up mb-5 flex gap-2 overflow-x-auto pb-2"
+        style={{ animationDelay: "100ms" }}
+      >
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              "flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-all",
+              "flex-shrink-0 rounded-xl px-4 py-2 text-sm font-medium transition-all",
               activeTab === tab.id
                 ? "bg-primary text-primary-foreground shadow-sm"
-                : "bg-card border border-border/60 text-muted-foreground hover:text-foreground hover:border-border"
+                : "border border-border/60 bg-card text-muted-foreground hover:border-border hover:text-foreground"
             )}
           >
             {tab.label}
             {tab.id === "unread" && unreadCount > 0 && (
-              <span className="ml-2 px-1.5 py-0.5 rounded-full bg-primary-foreground/20 text-[10px] font-bold">
+              <span className="ml-2 rounded-full bg-primary-foreground/20 px-1.5 py-0.5 text-[10px] font-bold">
                 {unreadCount}
               </span>
             )}
@@ -240,16 +252,18 @@ export default function NotificationsPage() {
       </div>
 
       {/* Notification List */}
-      <div className="space-y-3 animate-fade-in-up" style={{ animationDelay: "150ms" }}>
+      <div className="animate-fade-in-up space-y-3" style={{ animationDelay: "150ms" }}>
         {filtered.length === 0 ? (
           <Card>
-            <CardContent className="p-16 flex flex-col items-center justify-center gap-3 text-center">
-              <div className="p-4 rounded-2xl bg-muted">
+            <CardContent className="flex flex-col items-center justify-center gap-3 p-16 text-center">
+              <div className="rounded-2xl bg-muted p-4">
                 <Bell className="h-8 w-8 text-muted-foreground" />
               </div>
               <p className="font-semibold">No notifications here</p>
               <p className="text-sm text-muted-foreground">
-                {activeTab === "unread" ? "You're all caught up!" : "Nothing to show in this category."}
+                {activeTab === "unread"
+                  ? "You're all caught up!"
+                  : "Nothing to show in this category."}
               </p>
             </CardContent>
           </Card>
@@ -260,38 +274,45 @@ export default function NotificationsPage() {
               <Card
                 key={notification.id}
                 className={cn(
-                  "group transition-all duration-200 hover:shadow-md border cursor-pointer",
+                  "group cursor-pointer border transition-all duration-200 hover:shadow-md",
                   !notification.isRead
-                    ? "border-primary/20 bg-primary/3 dark:bg-primary/5"
+                    ? "bg-primary/3 border-primary/20 dark:bg-primary/5"
                     : "border-border/60 bg-card"
                 )}
                 onClick={() => !notification.isRead && markReadMutation.mutate(notification.id)}
               >
-                <CardContent className="p-4 flex items-start gap-4">
+                <CardContent className="flex items-start gap-4 p-4">
                   {/* Unread dot */}
-                  <div className="flex-shrink-0 mt-1 relative">
-                    <div className={cn("p-2.5 rounded-xl", cfg.bg)}>
+                  <div className="relative mt-1 flex-shrink-0">
+                    <div className={cn("rounded-xl p-2.5", cfg.bg)}>
                       <span className={cfg.color}>{cfg.icon}</span>
                     </div>
                     {!notification.isRead && (
-                      <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-primary rounded-full border-2 border-background" />
+                      <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-primary" />
                     )}
                   </div>
 
                   {/* Content */}
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className={cn("text-sm font-semibold leading-tight", !notification.isRead ? "text-foreground" : "text-foreground/90")}>
+                        <p
+                          className={cn(
+                            "text-sm font-semibold leading-tight",
+                            !notification.isRead ? "text-foreground" : "text-foreground/90"
+                          )}
+                        >
                           {notification.title}
                         </p>
-                        <p className="text-sm text-muted-foreground mt-0.5 leading-relaxed">
+                        <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
                           {notification.body}
                         </p>
                       </div>
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <div className="flex flex-shrink-0 items-center gap-1.5">
                         {notification.meta && (
-                          <Badge className={cn("text-[10px] font-bold border-0", cfg.bg, cfg.color)}>
+                          <Badge
+                            className={cn("border-0 text-[10px] font-bold", cfg.bg, cfg.color)}
+                          >
                             {notification.meta}
                           </Badge>
                         )}
@@ -300,22 +321,28 @@ export default function NotificationsPage() {
                             e.stopPropagation();
                             dismissMutation.mutate(notification.id);
                           }}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground"
+                          className="rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground group-hover:opacity-100"
                         >
                           <X className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 mt-2">
-                      <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full", cfg.bg, cfg.color)}>
+                    <div className="mt-2 flex items-center gap-3">
+                      <span
+                        className={cn(
+                          "rounded-full px-2 py-0.5 text-xs font-medium",
+                          cfg.bg,
+                          cfg.color
+                        )}
+                      >
                         {cfg.label}
                       </span>
                       <span className="text-xs text-muted-foreground">
                         {new Date(notification.createdAt).toLocaleDateString()}
                       </span>
                       {!notification.isRead && (
-                        <span className="text-xs text-primary font-semibold">• New</span>
+                        <span className="text-xs font-semibold text-primary">• New</span>
                       )}
                     </div>
                   </div>
@@ -327,7 +354,7 @@ export default function NotificationsPage() {
       </div>
 
       {filtered.length > 0 && (
-        <p className="text-center text-xs text-muted-foreground mt-8">
+        <p className="mt-8 text-center text-xs text-muted-foreground">
           {filtered.length} notification{filtered.length !== 1 ? "s" : ""} shown
         </p>
       )}

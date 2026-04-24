@@ -11,6 +11,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -22,7 +23,9 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document provides comprehensive API documentation for message management endpoints focused on retrieving and sending messages within channels. It covers:
+
 - Message retrieval via GET endpoints with pagination support using limit and before parameters
 - Message sending via POST endpoint
 - Access control mechanisms distinguishing workspace channels from direct messages (DMs)
@@ -30,7 +33,9 @@ This document provides comprehensive API documentation for message management en
 - Request/response schemas, error handling, and pagination parameters
 
 ## Project Structure
+
 The message management feature spans server-side routing, storage abstraction, and client-side API consumption:
+
 - Server routes define the HTTP endpoints and enforce access control
 - Storage abstraction supports both MongoDB and Cassandra backends
 - Client library consumes the endpoints and manages pagination parameters
@@ -45,6 +50,7 @@ Routes --> Schema["Shared Schemas<br/>schema.ts"]
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L722-L777)
 - [storage.ts](file://server/storage.ts#L33-L106)
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L110-L159)
@@ -53,6 +59,7 @@ Routes --> Schema["Shared Schemas<br/>schema.ts"]
 - [chat-api.ts](file://client/src/lib/chat-api.ts#L1-L112)
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L722-L777)
 - [storage.ts](file://server/storage.ts#L33-L106)
 - [schema.ts](file://shared/schema.ts#L105-L142)
@@ -61,6 +68,7 @@ Routes --> Schema["Shared Schemas<br/>schema.ts"]
 - [chat-api.ts](file://client/src/lib/chat-api.ts#L1-L112)
 
 ## Core Components
+
 - Message retrieval endpoints:
   - GET /api/channels/:id/messages
   - GET /api/messages/:channelId (alias)
@@ -74,10 +82,12 @@ Routes --> Schema["Shared Schemas<br/>schema.ts"]
   - Direct messages (DMs) require the authenticated user to be present in the channel name pattern
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L722-L777)
 - [storage.ts](file://server/storage.ts#L424-L437)
 
 ## Architecture Overview
+
 The message management flow integrates client requests, server validation, and backend storage:
 
 ```mermaid
@@ -112,6 +122,7 @@ Routes-->>Client : 201 Created + JSON
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L722-L777)
 - [storage.ts](file://server/storage.ts#L413-L437)
 - [cassandra-message-store.ts](file://server/lib/cassandra-message-store.ts#L36-L102)
@@ -122,6 +133,7 @@ Routes-->>Client : 201 Created + JSON
 ### Message Retrieval Endpoints
 
 #### Endpoint: GET /api/channels/:id/messages
+
 - Purpose: Retrieve paginated message history for a specific channel
 - Authentication: Required (session-based)
 - Path Parameters:
@@ -150,14 +162,17 @@ FetchMsgs --> Return200["Return 200 OK + Messages"]
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L722-L745)
 - [storage.ts](file://server/storage.ts#L424-L437)
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L722-L745)
 - [storage.ts](file://server/storage.ts#L424-L437)
 
 #### Endpoint: GET /api/messages/:channelId (Alias)
+
 - Purpose: Retrieve paginated message history for a channel with DM-aware access control
 - Authentication: Required (session-based)
 - Path Parameters:
@@ -189,16 +204,19 @@ FetchMsgs --> Return200["Return 200 OK + Messages"]
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L747-L777)
 - [storage.ts](file://server/storage.ts#L424-L437)
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L747-L777)
 - [storage.ts](file://server/storage.ts#L424-L437)
 
 ### Message Sending Endpoint
 
 #### Endpoint: POST /api/messages
+
 - Purpose: Create a new message in a channel
 - Authentication: Required (session-based)
 - Request Body: Message payload with author auto-assigned from session
@@ -227,17 +245,20 @@ Routes-->>Client : 201 Created + JSON
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L779-L800)
 - [storage.ts](file://server/storage.ts#L413-L422)
 - [cassandra-message-store.ts](file://server/lib/cassandra-message-store.ts#L36-L75)
 - [schema.ts](file://shared/schema.ts#L122-L131)
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L779-L800)
 - [storage.ts](file://server/storage.ts#L413-L422)
 - [schema.ts](file://shared/schema.ts#L122-L131)
 
 ### Pagination Parameters
+
 - limit
   - Default value: 50
   - Maximum cap: 100
@@ -248,12 +269,14 @@ Routes-->>Client : 201 Created + JSON
   - Backend converts numeric ID to appropriate internal representation for the selected storage engine
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L737-L738)
 - [routes.ts](file://server/routes.ts#L769-L770)
 - [cassandra-message-store.ts](file://server/lib/cassandra-message-store.ts#L79-L102)
 - [storage.ts](file://server/storage.ts#L424-L437)
 
 ### Access Control Mechanisms
+
 - Workspace channels
   - Requires the authenticated user to be a member of the workspace that owns the channel
   - Enforced by loading the workspace and checking membership
@@ -262,12 +285,14 @@ Routes-->>Client : 201 Created + JSON
   - Channel names for DMs follow a specific pattern derived from participant IDs
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L731-L735)
 - [routes.ts](file://server/routes.ts#L756-L767)
 
 ### Request/Response Schemas
 
 #### Shared Message Schema (Server-Side Validation)
+
 - Fields:
   - channelId: number
   - authorId: number (auto-filled from session on create)
@@ -279,9 +304,11 @@ Routes-->>Client : 201 Created + JSON
   - readBy: number[] (default [])
 
 **Section sources**
+
 - [schema.ts](file://shared/schema.ts#L122-L131)
 
 #### Client-Side Message Model
+
 - Fields:
   - id: number
   - channelId: number
@@ -296,23 +323,29 @@ Routes-->>Client : 201 Created + JSON
   - createdAt: string
 
 **Section sources**
+
 - [chat-api.ts](file://client/src/lib/chat-api.ts#L21-L33)
 
 ### Error Handling
+
 Common HTTP responses:
+
 - 401 Unauthorized: Missing or invalid session
 - 403 Forbidden: Access denied due to workspace membership or DM access validation
 - 404 Not Found: Channel does not exist
 - 500 Internal Server Error: General failure during processing
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L725-L725)
 - [routes.ts](file://server/routes.ts#L731-L735)
 - [routes.ts](file://server/routes.ts#L756-L767)
 - [routes.ts](file://server/routes.ts#L782-L782)
 
 ## Dependency Analysis
+
 Message retrieval depends on:
+
 - Route handlers for validation and parameter parsing
 - Storage abstraction for cross-backend compatibility
 - Backend-specific implementations (MongoDB and Cassandra)
@@ -327,6 +360,7 @@ Client["chat-api.ts"] --> Routes
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L722-L777)
 - [storage.ts](file://server/storage.ts#L33-L106)
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L110-L159)
@@ -335,6 +369,7 @@ Client["chat-api.ts"] --> Routes
 - [chat-api.ts](file://client/src/lib/chat-api.ts#L1-L112)
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L722-L777)
 - [storage.ts](file://server/storage.ts#L33-L106)
 - [schema.ts](file://shared/schema.ts#L105-L142)
@@ -343,6 +378,7 @@ Client["chat-api.ts"] --> Routes
 - [chat-api.ts](file://client/src/lib/chat-api.ts#L1-L112)
 
 ## Performance Considerations
+
 - Pagination limits:
   - Default 50 messages per page with a hard cap of 100 to prevent excessive loads
 - Backend selection:
@@ -352,12 +388,14 @@ Client["chat-api.ts"] --> Routes
   - The before parameter enables efficient backward pagination by constraining the query to earlier messages
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L737-L738)
 - [routes.ts](file://server/routes.ts#L769-L770)
 - [cassandra-message-store.ts](file://server/lib/cassandra-message-store.ts#L79-L102)
 - [storage.ts](file://server/storage.ts#L424-L437)
 
 ## Troubleshooting Guide
+
 - 401 Unauthorized:
   - Ensure the session cookie is included with the request
 - 403 Forbidden:
@@ -370,10 +408,12 @@ Client["chat-api.ts"] --> Routes
   - For DMs, ensure the channel name pattern matches your user ID
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L725-L725)
 - [routes.ts](file://server/routes.ts#L731-L735)
 - [routes.ts](file://server/routes.ts#L756-L767)
 - [routes.ts](file://server/routes.ts#L782-L782)
 
 ## Conclusion
+
 The message management endpoints provide robust, paginated access to channel messages with clear access control for both workspace channels and direct messages. The storage abstraction ensures compatibility with multiple backends while maintaining consistent behavior and performance characteristics.

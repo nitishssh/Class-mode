@@ -1,20 +1,13 @@
 import { useState } from "react";
 import { useLocation, Link } from "wouter";
-import { 
-  Home, 
-  BookOpen, 
-  FileText, 
-  BarChart2, 
-  MessageSquare, 
-  UserCircle 
-} from "lucide-react";
+import { Home, BookOpen, FileText, BarChart2, MessageSquare, UserCircle } from "lucide-react";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { cn } from "@/lib/utils";
 
 export function MobileNav() {
   const [location] = useLocation();
   const { currentUser } = useFirebaseAuth();
-  const userRole = currentUser?.profile?.role || 'student';
+  const userRole = currentUser?.profile?.role || "student";
 
   const teacherNavItems = [
     { href: "/dashboard", label: "Dashboard", icon: Home },
@@ -48,11 +41,14 @@ export function MobileNav() {
     { href: "/profile", label: "Profile", icon: UserCircle },
   ];
 
-  const navItems = 
-    userRole === 'teacher' ? teacherNavItems :
-    userRole === 'principal' ? principalNavItems :
-    userRole === 'admin' ? adminNavItems :
-    studentNavItems;
+  const navItems =
+    userRole === "teacher"
+      ? teacherNavItems
+      : userRole === "principal"
+        ? principalNavItems
+        : userRole === "admin"
+          ? adminNavItems
+          : studentNavItems;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background md:hidden">

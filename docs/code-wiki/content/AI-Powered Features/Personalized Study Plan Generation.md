@@ -13,6 +13,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [System Architecture](#system-architecture)
 3. [Core Components](#core-components)
@@ -70,6 +71,7 @@ STORAGE --> MONGO[(MongoDB)]
 ```
 
 **Diagram sources**
+
 - [server/index.ts](file://server/index.ts#L1-L114)
 - [server/routes.ts](file://server/routes.ts#L1-L1104)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L1-L217)
@@ -105,6 +107,7 @@ StudyPlan --> Resource : "contains"
 ```
 
 **Diagram sources**
+
 - [client/src/pages/study-plan.tsx](file://client/src/pages/study-plan.tsx#L1-L113)
 
 ### Backend Implementation
@@ -138,10 +141,12 @@ OpenAIIntegration --> OpenAI : "integrates with"
 ```
 
 **Diagram sources**
+
 - [server/lib/openai.ts](file://server/lib/openai.ts#L1-L217)
 - [server/storage.ts](file://server/storage.ts#L1-L519)
 
 **Section sources**
+
 - [client/src/pages/study-plan.tsx](file://client/src/pages/study-plan.tsx#L1-L113)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L1-L217)
 - [server/storage.ts](file://server/storage.ts#L1-L519)
@@ -173,6 +178,7 @@ CheckNext --> GenerateInsights
 ```
 
 **Diagram sources**
+
 - [server/lib/openai.ts](file://server/lib/openai.ts#L165-L216)
 
 ### Topic Analysis Features
@@ -185,6 +191,7 @@ The analysis engine processes multiple aspects of student performance:
 - **Comparative Analysis**: Benchmarks individual performance against class averages
 
 **Section sources**
+
 - [server/lib/openai.ts](file://server/lib/openai.ts#L165-L216)
 - [shared/schema.ts](file://shared/schema.ts#L61-L88)
 
@@ -212,6 +219,7 @@ API->>Client : Return study plan with resources
 ```
 
 **Diagram sources**
+
 - [server/routes.ts](file://server/routes.ts#L1-L1104)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L107-L163)
 
@@ -219,14 +227,15 @@ API->>Client : Return study plan with resources
 
 Resources are categorized using a multi-dimensional classification approach:
 
-| Category | Subcategories | Examples |
-|----------|---------------|----------|
-| **Format** | Video, Article, Practice, Interactive | YouTube lectures, Khan Academy, Quizlet |
-| **Complexity** | Beginner, Intermediate, Advanced | Foundation concepts, mixed difficulty, challenging problems |
-| **Learning Style** | Visual, Auditory, Kinesthetic, Reading/Writing | Diagrams, podcasts, hands-on activities, textbooks |
-| **Duration** | Short (5-15 min), Medium (15-30 min), Long (30+ min) | Quick reviews, comprehensive lessons, extended tutorials |
+| Category           | Subcategories                                        | Examples                                                    |
+| ------------------ | ---------------------------------------------------- | ----------------------------------------------------------- |
+| **Format**         | Video, Article, Practice, Interactive                | YouTube lectures, Khan Academy, Quizlet                     |
+| **Complexity**     | Beginner, Intermediate, Advanced                     | Foundation concepts, mixed difficulty, challenging problems |
+| **Learning Style** | Visual, Auditory, Kinesthetic, Reading/Writing       | Diagrams, podcasts, hands-on activities, textbooks          |
+| **Duration**       | Short (5-15 min), Medium (15-30 min), Long (30+ min) | Quick reviews, comprehensive lessons, extended tutorials    |
 
 **Section sources**
+
 - [server/lib/openai.ts](file://server/lib/openai.ts#L107-L163)
 - [shared/schema.ts](file://shared/schema.ts#L61-L88)
 
@@ -253,6 +262,7 @@ ConstraintCheck --> FeasibilityCheck["Verify Time Requirements"]
 ```
 
 **Diagram sources**
+
 - [server/lib/openai.ts](file://server/lib/openai.ts#L107-L163)
 
 ### Optimization Factors
@@ -266,6 +276,7 @@ The scheduling algorithm considers multiple factors to create effective study pl
 - **External Commitments**: Respects existing schedule constraints
 
 **Section sources**
+
 - [server/lib/openai.ts](file://server/lib/openai.ts#L107-L163)
 
 ## JSON Response Parsing and Content Filtering
@@ -295,6 +306,7 @@ CleanContent --> ApplySafety
 ```
 
 **Diagram sources**
+
 - [server/lib/openai.ts](file://server/lib/openai.ts#L107-L163)
 
 ### Content Filtering Mechanisms
@@ -308,6 +320,7 @@ The system employs multiple layers of content filtering:
 - **Error Recovery**: Provides fallback responses for malformed data
 
 **Section sources**
+
 - [server/lib/openai.ts](file://server/lib/openai.ts#L107-L163)
 
 ## Resource Categorization Logic
@@ -358,6 +371,7 @@ STUDENT_PROFILE ||--o{ RECOMMENDATION : "generates"
 ```
 
 **Diagram sources**
+
 - [shared/schema.ts](file://shared/schema.ts#L61-L88)
 
 ### Categorization Criteria
@@ -371,6 +385,7 @@ Resources are classified using comprehensive criteria:
 - **Accessibility**: Considers disabilities and special needs requirements
 
 **Section sources**
+
 - [shared/schema.ts](file://shared/schema.ts#L61-L88)
 
 ## Study Plan Generation Workflows
@@ -403,6 +418,7 @@ FinalizePlan --> End([Study Plan Complete])
 ```
 
 **Diagram sources**
+
 - [client/src/pages/study-plan.tsx](file://client/src/pages/study-plan.tsx#L17-L59)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L107-L163)
 
@@ -416,6 +432,7 @@ The study plan generation integrates with existing platform features:
 - **User Profile Integration**: Incorporates learning style and preference data
 
 **Section sources**
+
 - [client/src/pages/study-plan.tsx](file://client/src/pages/study-plan.tsx#L17-L59)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L107-L163)
 
@@ -425,13 +442,13 @@ The system provides extensive customization capabilities to accommodate diverse 
 
 ### Personalization Features
 
-| Customization Area | Options | Benefits |
-|-------------------|---------|----------|
-| **Learning Style** | Visual, Auditory, Reading/Writing, Kinesthetic | Optimizes content delivery method |
-| **Pacing** | Fast, Standard, Slow | Accommodates different learning speeds |
-| **Difficulty Level** | Beginner, Intermediate, Advanced | Matches current ability level |
-| **Time Commitment** | 1-2 hours, 2-4 hours, 4+ hours | Fits into various schedules |
-| **Subject Focus** | Mathematics, Science, Humanities, Languages | Targets specific areas of need |
+| Customization Area   | Options                                        | Benefits                               |
+| -------------------- | ---------------------------------------------- | -------------------------------------- |
+| **Learning Style**   | Visual, Auditory, Reading/Writing, Kinesthetic | Optimizes content delivery method      |
+| **Pacing**           | Fast, Standard, Slow                           | Accommodates different learning speeds |
+| **Difficulty Level** | Beginner, Intermediate, Advanced               | Matches current ability level          |
+| **Time Commitment**  | 1-2 hours, 2-4 hours, 4+ hours                 | Fits into various schedules            |
+| **Subject Focus**    | Mathematics, Science, Humanities, Languages    | Targets specific areas of need         |
 
 ### Adaptive Parameters
 
@@ -443,6 +460,7 @@ The system dynamically adjusts recommendations based on:
 - **Content Preferences**: Refines recommendations based on previously successful resources
 
 **Section sources**
+
 - [server/lib/openai.ts](file://server/lib/openai.ts#L107-L163)
 - [shared/schema.ts](file://shared/schema.ts#L61-L88)
 
@@ -480,6 +498,7 @@ ContentMatcher --> PreferenceOptimizer
 ```
 
 **Diagram sources**
+
 - [server/lib/openai.ts](file://server/lib/openai.ts#L107-L163)
 
 ### Style-Specific Adaptations
@@ -492,6 +511,7 @@ The system tailors content delivery based on identified learning styles:
 - **Reading/Writing Learners**: Excel with textbooks, articles, note-taking, and written exercises
 
 **Section sources**
+
 - [server/lib/openai.ts](file://server/lib/openai.ts#L107-L163)
 
 ## Adaptive Recommendation Strategies
@@ -518,6 +538,7 @@ MLModel->>Database : Store New Patterns
 ```
 
 **Diagram sources**
+
 - [server/storage.ts](file://server/storage.ts#L264-L280)
 
 ### Adaptation Mechanisms
@@ -539,6 +560,7 @@ The system tracks multiple metrics to measure recommendation effectiveness:
 - **User Satisfaction**: Collects explicit feedback on recommendation quality
 
 **Section sources**
+
 - [server/storage.ts](file://server/storage.ts#L264-L280)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L107-L163)
 
@@ -549,11 +571,13 @@ Common issues and their resolutions when working with the study plan generation 
 ### API Integration Issues
 
 **Problem**: Study plan generation fails with API errors
+
 - **Solution**: Verify OPENAI_API_KEY environment variable is properly configured
 - **Check**: Ensure network connectivity to OpenAI services
 - **Debug**: Review server logs for specific error messages
 
 **Problem**: JSON parsing errors in study plan responses
+
 - **Solution**: Implement proper error handling and fallback mechanisms
 - **Check**: Validate response format consistency
 - **Debug**: Log raw API responses for analysis
@@ -561,11 +585,13 @@ Common issues and their resolutions when working with the study plan generation 
 ### Performance Issues
 
 **Problem**: Slow response times for study plan generation
+
 - **Solution**: Implement caching for frequently accessed recommendations
 - **Check**: Monitor OpenAI API latency and rate limits
 - **Optimize**: Batch requests and implement request queuing
 
 **Problem**: Inaccurate topic analysis results
+
 - **Solution**: Validate test data quality and completeness
 - **Check**: Ensure sufficient sample size for reliable analysis
 - **Debug**: Review data preprocessing and normalization steps
@@ -573,11 +599,13 @@ Common issues and their resolutions when working with the study plan generation 
 ### Frontend Display Issues
 
 **Problem**: Study plan content not displaying correctly
+
 - **Solution**: Verify HTML sanitization and content rendering
 - **Check**: Ensure proper state management for loading states
 - **Debug**: Test cross-browser compatibility and responsiveness
 
 **Section sources**
+
 - [server/lib/openai.ts](file://server/lib/openai.ts#L107-L163)
 - [client/src/pages/study-plan.tsx](file://client/src/pages/study-plan.tsx#L17-L59)
 

@@ -30,9 +30,9 @@
   </a>
 </div>
 
-| 🎓 Student Dashboard | 🧑‍🏫 Teacher Dashboard | 💬 MessagePal |
-|---|---|---|
-| *(screenshot)* | *(screenshot)* | *(screenshot)* |
+| 🎓 Student Dashboard | 🧑‍🏫 Teacher Dashboard | 💬 MessagePal  |
+| -------------------- | -------------------- | -------------- |
+| _(screenshot)_       | _(screenshot)_       | _(screenshot)_ |
 
 > Drop screenshots into `assets/screenshots/` and update the table above.
 
@@ -47,15 +47,17 @@ Most school platforms are either too simple or too expensive. EduAI is **open-so
 ## 🚀 Features at a Glance
 
 ### 🤖 AI-Powered Learning
-| Feature | What it does |
-|---|---|
-| **AI Tutor** | Subject-aware chat tutor with markdown & LaTeX math rendering |
-| **Test Generation** | Auto-generate MCQ, short-answer, and essay questions from any topic |
-| **Answer Evaluation** | AI grades subjective answers with detailed feedback |
-| **Performance Analysis** | Identifies weak topics and recommends resources per student |
-| **Study Plan Generator** | Builds a personalized weekly study schedule |
+
+| Feature                  | What it does                                                        |
+| ------------------------ | ------------------------------------------------------------------- |
+| **AI Tutor**             | Subject-aware chat tutor with markdown & LaTeX math rendering       |
+| **Test Generation**      | Auto-generate MCQ, short-answer, and essay questions from any topic |
+| **Answer Evaluation**    | AI grades subjective answers with detailed feedback                 |
+| **Performance Analysis** | Identifies weak topics and recommends resources per student         |
+| **Study Plan Generator** | Builds a personalized weekly study schedule                         |
 
 ### 💬 Real-Time Messaging — MessagePal
+
 - ⚡ WebSocket-based live chat with typing indicators and read receipts
 - 🗄️ Message history persisted in **Apache Cassandra** for scale
 - 📎 File & image attachments via `multer`
@@ -63,6 +65,7 @@ Most school platforms are either too simple or too expensive. EduAI is **open-so
 - 🌐 REST fallback API for history and uploads
 
 ### 🏫 School Management
+
 - **👥 Role-Based Access** — Student, Teacher, Principal, School Admin, Platform Admin, Parent
 - **🧭 Onboarding Wizard** — School setup → invite teachers → invite students, fully guided
 - **📋 Test Management** — Create, distribute, auto-grade, and review tests
@@ -75,6 +78,7 @@ Most school platforms are either too simple or too expensive. EduAI is **open-so
 - **🌓 Dark Mode** — Full dark/light theme with system preference detection
 
 ### 🎥 Live Classrooms
+
 - Video sessions powered by **Daily.co** / **BigBlueButton**
 - In-session chat panel, participant list, and screen sharing
 - Session recording and replay support
@@ -83,19 +87,19 @@ Most school platforms are either too simple or too expensive. EduAI is **open-so
 
 ## 🛠️ Tech Stack
 
-| Layer | Technology |
-|---|---|
-| **Frontend** | React 18, Vite, TypeScript, Tailwind CSS, shadcn/ui, Framer Motion |
-| **Backend** | Node.js, Express, TypeScript |
-| **Auth** | Firebase Authentication (Google + email/password) |
-| **Primary DB** | MongoDB Atlas + Mongoose |
-| **Message Store** | Apache Cassandra |
-| **AI** | OpenAI GPT-4o |
-| **OCR** | Tesseract.js |
-| **Real-time** | WebSockets (ws) |
-| **Email** | Nodemailer (SMTP) |
-| **Video** | Daily.co / BigBlueButton |
-| **DevOps** | Docker, Kubernetes, Terraform, GitHub Actions |
+| Layer             | Technology                                                         |
+| ----------------- | ------------------------------------------------------------------ |
+| **Frontend**      | React 18, Vite, TypeScript, Tailwind CSS, shadcn/ui, Framer Motion |
+| **Backend**       | Node.js, Express, TypeScript                                       |
+| **Auth**          | Firebase Authentication (Google + email/password)                  |
+| **Primary DB**    | MongoDB Atlas + Mongoose                                           |
+| **Message Store** | Apache Cassandra                                                   |
+| **AI**            | OpenAI GPT-4o                                                      |
+| **OCR**           | Tesseract.js                                                       |
+| **Real-time**     | WebSockets (ws)                                                    |
+| **Email**         | Nodemailer (SMTP)                                                  |
+| **Video**         | Daily.co / BigBlueButton                                           |
+| **DevOps**        | Docker, Kubernetes, Terraform, GitHub Actions                      |
 
 ---
 
@@ -176,14 +180,14 @@ Every role sees their onboarding wizard until their stage is complete — then l
 
 ## 👥 Role Dashboards
 
-| Role | Dashboard | Key Capabilities |
-|---|---|---|
-| 🎓 **Student** | `/student-dashboard` | AI Tutor, Tests, Progress, Achievements, Focus Mode |
-| 🧑‍🏫 **Teacher** | `/dashboard` | Create Tests, OCR Scan, Analytics, Live Classes, MessagePal |
-| 🏫 **Principal** | `/principal-dashboard` | School-wide analytics, Student Directory, Staff overview |
-| 🔧 **School Admin** | `/school-admin-dashboard` | School setup, Teacher/Student management, Reports |
-| ⚙️ **Platform Admin** | `/admin-dashboard` | All-school oversight, User management |
-| 👨‍👩‍👧 **Parent** | `/parent-dashboard` | Child progress, Teacher messages, Calendar |
+| Role                  | Dashboard                 | Key Capabilities                                            |
+| --------------------- | ------------------------- | ----------------------------------------------------------- |
+| 🎓 **Student**        | `/student-dashboard`      | AI Tutor, Tests, Progress, Achievements, Focus Mode         |
+| 🧑‍🏫 **Teacher**        | `/dashboard`              | Create Tests, OCR Scan, Analytics, Live Classes, MessagePal |
+| 🏫 **Principal**      | `/principal-dashboard`    | School-wide analytics, Student Directory, Staff overview    |
+| 🔧 **School Admin**   | `/school-admin-dashboard` | School setup, Teacher/Student management, Reports           |
+| ⚙️ **Platform Admin** | `/admin-dashboard`        | All-school oversight, User management                       |
+| 👨‍👩‍👧 **Parent**         | `/parent-dashboard`       | Child progress, Teacher messages, Calendar                  |
 
 ---
 

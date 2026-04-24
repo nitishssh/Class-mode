@@ -13,6 +13,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -25,9 +26,11 @@
 10. [Appendices](#appendices)
 
 ## Introduction
+
 This document explains the complete test creation workflow in PersonalLearningPro, from initiating a new assessment to publishing it. It covers the multi-step process across three tabs: Test Details, Add Questions, and Settings & Review. It documents the TestDetailsForm component for capturing test metadata, duration, and grading criteria, along with state management for test ID generation, question ordering, and tab navigation. It also details the integration between frontend components and backend routes for test persistence, validation rules, error handling, and user experience flow for creating assessments. Finally, it provides examples of test creation scenarios and best practices for effective assessment design.
 
 ## Project Structure
+
 The test creation feature spans the client-side UI and server-side APIs:
 
 - Frontend:
@@ -67,6 +70,7 @@ QF --> UT
 ```
 
 **Diagram sources**
+
 - [create-test.tsx](file://client/src/pages/create-test.tsx#L15-L121)
 - [test-details-form.tsx](file://client/src/components/test/test-details-form.tsx#L44-L324)
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L55-L389)
@@ -77,10 +81,12 @@ QF --> UT
 - [use-toast.ts](file://client/src/hooks/use-toast.ts#L142-L192)
 
 **Section sources**
+
 - [create-test.tsx](file://client/src/pages/create-test.tsx#L1-L122)
 - [routes.ts](file://server/routes.ts#L110-L316)
 
 ## Core Components
+
 - CreateTest page: Manages active tab, test ID state, and question order. Enables/disables tabs based on test creation status.
 - TestDetailsForm: Validates and submits test metadata to the backend, then navigates to the Add Questions tab.
 - QuestionForm: Handles question creation with type-specific validation (MCQ correctness, numerical answers, rubrics), maintains order, and resets form state upon success.
@@ -90,6 +96,7 @@ QF --> UT
 - Toast hook: Provides user feedback for success and error states.
 
 **Section sources**
+
 - [create-test.tsx](file://client/src/pages/create-test.tsx#L15-L121)
 - [test-details-form.tsx](file://client/src/components/test/test-details-form.tsx#L44-L324)
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L55-L389)
@@ -99,7 +106,9 @@ QF --> UT
 - [use-toast.ts](file://client/src/hooks/use-toast.ts#L142-L192)
 
 ## Architecture Overview
+
 The workflow follows a clear separation of concerns:
+
 - Frontend collects user input, validates locally, and sends requests to backend endpoints.
 - Backend validates payloads, enforces authorization, persists data, and returns structured responses.
 - Frontend updates UI state, invalidates caches, and guides users through the next steps.
@@ -129,6 +138,7 @@ CT->>CT : Enable Add Questions and Review tabs
 ```
 
 **Diagram sources**
+
 - [create-test.tsx](file://client/src/pages/create-test.tsx#L15-L121)
 - [test-details-form.tsx](file://client/src/components/test/test-details-form.tsx#L64-L97)
 - [routes.ts](file://server/routes.ts#L110-L132)
@@ -139,6 +149,7 @@ CT->>CT : Enable Add Questions and Review tabs
 ## Detailed Component Analysis
 
 ### CreateTest Page
+
 - Responsibilities:
   - Manages active tab state.
   - Stores the newly created test ID and enables subsequent tabs.
@@ -165,12 +176,15 @@ AddQuestions --> End
 ```
 
 **Diagram sources**
+
 - [create-test.tsx](file://client/src/pages/create-test.tsx#L15-L121)
 
 **Section sources**
+
 - [create-test.tsx](file://client/src/pages/create-test.tsx#L15-L121)
 
 ### TestDetailsForm Component
+
 - Purpose: Capture test metadata and initiate test creation.
 - Validation rules:
   - Title: Minimum length constraint.
@@ -207,18 +221,21 @@ Redirect --> End
 ```
 
 **Diagram sources**
+
 - [test-details-form.tsx](file://client/src/components/test/test-details-form.tsx#L30-L42)
 - [test-details-form.tsx](file://client/src/components/test/test-details-form.tsx#L64-L97)
 - [routes.ts](file://server/routes.ts#L110-L132)
 - [schema.ts](file://shared/schema.ts#L15-L26)
 
 **Section sources**
+
 - [test-details-form.tsx](file://client/src/components/test/test-details-form.tsx#L30-L42)
 - [test-details-form.tsx](file://client/src/components/test/test-details-form.tsx#L64-L97)
 - [routes.ts](file://server/routes.ts#L110-L132)
 - [schema.ts](file://shared/schema.ts#L15-L26)
 
 ### QuestionForm Component
+
 - Purpose: Add questions to an existing test with type-specific validation.
 - Validation rules:
   - Common: testId, type, text (minimum length), marks (minimum 1), order, optional aiRubric.
@@ -265,6 +282,7 @@ ToastErr --> End
 ```
 
 **Diagram sources**
+
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L36-L45)
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L77-L126)
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L162-L204)
@@ -272,6 +290,7 @@ ToastErr --> End
 - [schema.ts](file://shared/schema.ts#L28-L37)
 
 **Section sources**
+
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L36-L45)
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L77-L126)
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L162-L204)
@@ -279,6 +298,7 @@ ToastErr --> End
 - [schema.ts](file://shared/schema.ts#L28-L37)
 
 ### Backend Integration and Persistence
+
 - Test creation endpoint:
   - Requires teacher role and session.
   - Validates payload with Zod schema.
@@ -331,6 +351,7 @@ Routes --> Question : "validates and persists"
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L110-L132)
 - [routes.ts](file://server/routes.ts#L250-L278)
 - [schema.ts](file://shared/schema.ts#L15-L26)
@@ -339,6 +360,7 @@ Routes --> Question : "validates and persists"
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L40-L50)
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L110-L132)
 - [routes.ts](file://server/routes.ts#L250-L278)
 - [schema.ts](file://shared/schema.ts#L15-L26)
@@ -347,6 +369,7 @@ Routes --> Question : "validates and persists"
 - [mongo-schema.ts](file://shared/mongo-schema.ts#L40-L50)
 
 ## Dependency Analysis
+
 - Frontend-to-backend dependencies:
   - TestDetailsForm depends on QueryClient for API requests and Zod schemas for validation.
   - QuestionForm depends on QueryClient and Zod schemas for validation.
@@ -367,6 +390,7 @@ QF --> UT
 ```
 
 **Diagram sources**
+
 - [test-details-form.tsx](file://client/src/components/test/test-details-form.tsx#L6-L8)
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L7-L8)
 - [queryClient.ts](file://client/src/lib/queryClient.ts#L10-L28)
@@ -376,6 +400,7 @@ QF --> UT
 - [use-toast.ts](file://client/src/hooks/use-toast.ts#L142-L192)
 
 **Section sources**
+
 - [test-details-form.tsx](file://client/src/components/test/test-details-form.tsx#L6-L8)
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L7-L8)
 - [queryClient.ts](file://client/src/lib/queryClient.ts#L10-L28)
@@ -385,6 +410,7 @@ QF --> UT
 - [use-toast.ts](file://client/src/hooks/use-toast.ts#L142-L192)
 
 ## Performance Considerations
+
 - Caching:
   - React Query invalidates relevant caches after successful mutations to keep UI in sync with backend state.
 - Network efficiency:
@@ -397,6 +423,7 @@ QF --> UT
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
+
 - Common validation errors:
   - Test Details: Title too short, missing subject/class, invalid date, duration below minimum, total marks below minimum, no question types selected.
   - Question Form: MCQ requires at least one correct option and all options must have text; numerical requires a correct answer.
@@ -409,6 +436,7 @@ QF --> UT
   - Error toasts display actionable messages for correction.
 
 **Section sources**
+
 - [test-details-form.tsx](file://client/src/components/test/test-details-form.tsx#L30-L42)
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L31-L45)
 - [routes.ts](file://server/routes.ts#L112-L131)
@@ -416,6 +444,7 @@ QF --> UT
 - [use-toast.ts](file://client/src/hooks/use-toast.ts#L142-L192)
 
 ## Conclusion
+
 The test creation workflow in PersonalLearningPro is designed for clarity and robustness. The CreateTest page orchestrates a smooth progression from capturing test metadata to adding questions and reviewing the assessment. Strict validation at both frontend and backend ensures data integrity, while role-based access controls protect resource ownership. The modular components and centralized API utilities provide a scalable foundation for extending assessment features.
 
 [No sources needed since this section summarizes without analyzing specific files]
@@ -423,6 +452,7 @@ The test creation workflow in PersonalLearningPro is designed for clarity and ro
 ## Appendices
 
 ### Best Practices for Effective Assessment Design
+
 - Choose question types aligned with learning objectives (e.g., MCQ for recall, short/long for comprehension, numerical for problem-solving).
 - Ensure clear rubrics for subjective questions to enable AI scoring consistency.
 - Distribute marks proportionally across question types and difficulty levels.

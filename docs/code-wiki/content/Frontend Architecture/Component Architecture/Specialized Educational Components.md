@@ -19,6 +19,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -31,7 +32,9 @@
 10. [Appendices](#appendices)
 
 ## Introduction
+
 This document describes PersonalLearningPro’s specialized educational components for the learning platform ecosystem. It focuses on:
+
 - Real-time chat: messaging, conversation management, presence, and typing indicators
 - Dashboard: performance charts, quick actions, recent tests, and top performers
 - Test management: question creation, OCR upload and processing, and assessment workflows
@@ -40,7 +43,9 @@ This document describes PersonalLearningPro’s specialized educational componen
 - Reusability, customization, and integration with the broader educational platform
 
 ## Project Structure
+
 The components are organized by feature areas:
+
 - Chat: UI and WebSocket integration for real-time messaging
 - Dashboard: analytics and quick action cards
 - Test: assessment creation and OCR workflows
@@ -76,6 +81,7 @@ CA --> CT
 ```
 
 **Diagram sources**
+
 - [ConversationList.tsx](file://client/src/components/chat/ConversationList.tsx#L1-L162)
 - [MessageBubble.tsx](file://client/src/components/chat/MessageBubble.tsx#L1-L157)
 - [MessageInput.tsx](file://client/src/components/chat/MessageInput.tsx#L1-L143)
@@ -91,6 +97,7 @@ CA --> CT
 - [ocr-processing.tsx](file://client/src/components/test/ocr-processing.tsx#L1-L219)
 
 **Section sources**
+
 - [ChatLayout.tsx](file://client/src/components/chat/ChatLayout.tsx#L1-L185)
 - [ConversationList.tsx](file://client/src/components/chat/ConversationList.tsx#L1-L162)
 - [MessageBubble.tsx](file://client/src/components/chat/MessageBubble.tsx#L1-L157)
@@ -107,6 +114,7 @@ CA --> CT
 - [ocr-processing.tsx](file://client/src/components/test/ocr-processing.tsx#L1-L219)
 
 ## Core Components
+
 - ChatLayout orchestrates conversation discovery, selection, and real-time thread rendering
 - ConversationList groups and filters conversations by category and role-aware metadata
 - MessageBubble renders rich message types (text, image, announcement, assignment, doubt)
@@ -118,6 +126,7 @@ CA --> CT
 - Types define consistent shapes for messages, conversations, and users
 
 **Section sources**
+
 - [ChatLayout.tsx](file://client/src/components/chat/ChatLayout.tsx#L1-L185)
 - [ConversationList.tsx](file://client/src/components/chat/ConversationList.tsx#L1-L162)
 - [MessageBubble.tsx](file://client/src/components/chat/MessageBubble.tsx#L1-L157)
@@ -134,7 +143,9 @@ CA --> CT
 - [ocr-processing.tsx](file://client/src/components/test/ocr-processing.tsx#L1-L219)
 
 ## Architecture Overview
+
 The chat system integrates REST and WebSocket layers:
+
 - REST endpoints supply conversation metadata and messages
 - WebSocket maintains real-time updates for new messages, typing, read receipts, and presence
 - UI components coordinate selection, rendering, and user actions
@@ -166,6 +177,7 @@ API-->>CH : messages[]
 ```
 
 **Diagram sources**
+
 - [ConversationList.tsx](file://client/src/components/chat/ConversationList.tsx#L102-L151)
 - [ChatLayout.tsx](file://client/src/components/chat/ChatLayout.tsx#L129-L132)
 - [use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L95-L162)
@@ -174,6 +186,7 @@ API-->>CH : messages[]
 ## Detailed Component Analysis
 
 ### Chat System Components
+
 - ChatLayout
   - Resolves workspaces, channels, and DMs via REST queries
   - Converts server channels to UI conversations with categories and participant metadata
@@ -227,11 +240,13 @@ Conversation "1" --> "*" User : "participants"
 ```
 
 **Diagram sources**
+
 - [chat.ts](file://client/src/types/chat.ts#L69-L82)
 - [chat.ts](file://client/src/types/chat.ts#L34-L57)
 - [chat.ts](file://client/src/types/chat.ts#L59-L67)
 
 **Section sources**
+
 - [ChatLayout.tsx](file://client/src/components/chat/ChatLayout.tsx#L1-L185)
 - [ConversationList.tsx](file://client/src/components/chat/ConversationList.tsx#L1-L162)
 - [MessageBubble.tsx](file://client/src/components/chat/MessageBubble.tsx#L1-L157)
@@ -239,6 +254,7 @@ Conversation "1" --> "*" User : "participants"
 - [chat.ts](file://client/src/types/chat.ts#L1-L83)
 
 ### Real-Time Messaging and Presence
+
 - WebSocket events handled:
   - new_message: append to thread and update read status
   - user_typing: show typing indicators per conversation
@@ -274,14 +290,17 @@ Close --> |No| End([Unmount])
 ```
 
 **Diagram sources**
+
 - [use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L95-L162)
 - [use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L180-L195)
 - [use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L144-L157)
 
 **Section sources**
+
 - [use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L1-L218)
 
 ### Dashboard Components
+
 - PerformanceChart
   - Renders bar charts comparing class vs school averages
   - Uses theme-aware colors and responsive container
@@ -304,18 +323,21 @@ TS["TopStudents"] --> Avatars["Avatars"]
 ```
 
 **Diagram sources**
+
 - [performance-chart.tsx](file://client/src/components/dashboard/performance-chart.tsx#L21-L98)
 - [quick-action-card.tsx](file://client/src/components/dashboard/quick-action-card.tsx#L14-L39)
 - [recent-tests-table.tsx](file://client/src/components/dashboard/recent-tests-table.tsx#L33-L150)
 - [top-students.tsx](file://client/src/components/dashboard/top-students.tsx#L14-L55)
 
 **Section sources**
+
 - [performance-chart.tsx](file://client/src/components/dashboard/performance-chart.tsx#L1-L98)
 - [quick-action-card.tsx](file://client/src/components/dashboard/quick-action-card.tsx#L1-L39)
 - [recent-tests-table.tsx](file://client/src/components/dashboard/recent-tests-table.tsx#L1-L234)
 - [top-students.tsx](file://client/src/components/dashboard/top-students.tsx#L1-L74)
 
 ### Test Management Components
+
 - QuestionForm
   - Zod-based validation for question types (MCQ, short, long, numerical)
   - Dynamic options for MCQ with correctness flags
@@ -345,15 +367,18 @@ QF->>QF : Reset form/cache invalidation
 ```
 
 **Diagram sources**
+
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L77-L126)
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L162-L204)
 
 **Section sources**
+
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L1-L390)
 - [ocr-upload.tsx](file://client/src/components/test/ocr-upload.tsx#L1-L309)
 - [ocr-processing.tsx](file://client/src/components/test/ocr-processing.tsx#L1-L219)
 
 ### MessagePal AI Integration
+
 - MessagePal panel and WebSocket hook enable AI-assisted chat experiences
 - WebSocket patterns mirror the chat system: connect on mount, join channel, route events, reconnect with backoff
 - UI panel integrates with the chat thread and leverages presence/typing indicators for conversational context
@@ -361,6 +386,7 @@ QF->>QF : Reset form/cache invalidation
 [No sources needed since this section summarizes integration patterns without analyzing specific files]
 
 ## Dependency Analysis
+
 - UI-to-API
   - REST endpoints for workspaces, channels, DMs, messages, and uploads
   - Typed interfaces ensure consistency between server and UI
@@ -385,6 +411,7 @@ API --> Types["chat.ts"]
 ```
 
 **Diagram sources**
+
 - [use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L65-L217)
 - [ChatLayout.tsx](file://client/src/components/chat/ChatLayout.tsx#L1-L185)
 - [ConversationList.tsx](file://client/src/components/chat/ConversationList.tsx#L1-L162)
@@ -394,11 +421,13 @@ API --> Types["chat.ts"]
 - [chat.ts](file://client/src/types/chat.ts#L1-L83)
 
 **Section sources**
+
 - [chat-api.ts](file://client/src/lib/chat-api.ts#L1-L112)
 - [chat.ts](file://client/src/types/chat.ts#L1-L83)
 - [use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L1-L218)
 
 ## Performance Considerations
+
 - Debounce and memoization
   - Conversation merging and grouping computed via useMemo to avoid unnecessary re-renders
 - Efficient list rendering
@@ -413,6 +442,7 @@ API --> Types["chat.ts"]
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
+
 - WebSocket errors
   - Unauthorized disconnects (code 4001) halt reconnection attempts
   - On-close exponential backoff ensures resilience
@@ -424,17 +454,20 @@ API --> Types["chat.ts"]
   - Enable skeleton loaders while data is pending
 
 **Section sources**
+
 - [use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L144-L157)
 - [chat-api.ts](file://client/src/lib/chat-api.ts#L44-L55)
 - [ocr-upload.tsx](file://client/src/components/test/ocr-upload.tsx#L102-L120)
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L119-L125)
 
 ## Conclusion
+
 PersonalLearningPro’s educational components combine robust real-time messaging, role-aware dashboards, and intelligent test workflows. The chat system’s WebSocket-first design, strong typing, and reusable hooks enable scalable, maintainable UI. Dashboard and test components emphasize performance, accessibility, and clear feedback loops. Together, these components form a cohesive foundation for an adaptive learning platform.
 
 [No sources needed since this section summarizes without analyzing specific files]
 
 ## Appendices
+
 - State management patterns
   - Local component state for UI flags (mobile view, doubt mode)
   - Global query cache for server data; invalidate on mutations

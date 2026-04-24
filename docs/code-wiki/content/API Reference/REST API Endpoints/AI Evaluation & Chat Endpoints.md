@@ -12,6 +12,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -23,12 +24,16 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document provides comprehensive API documentation for AI-powered endpoints focused on manual AI evaluation of subjective answers and conversational AI interactions. It covers:
+
 - POST /api/evaluate for manual AI evaluation of subjective answers, including request parameters, AI evaluation response structure, rubric-based scoring, and integration with the assessment system.
 - POST /api/ai-chat for conversational AI interactions with message history handling, including request/response schemas, chat interaction patterns, and error handling for AI service failures.
 
 ## Project Structure
+
 The AI evaluation and chat features are implemented in the server module with clear separation of concerns:
+
 - Routes define HTTP endpoints and orchestrate business logic.
 - OpenAI library encapsulates AI model interactions and response parsing.
 - Storage layer manages persistence and retrieval of assessment and chat data.
@@ -55,6 +60,7 @@ S --> SH
 ```
 
 **Diagram sources**
+
 - [server/routes.ts](file://server/routes.ts#L487-L580)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L19-L105)
 - [server/storage.ts](file://server/storage.ts#L33-L106)
@@ -63,6 +69,7 @@ S --> SH
 - [client/src/lib/queryClient.ts](file://client/src/lib/queryClient.ts#L10-L28)
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L1-L1104)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L1-L217)
 - [server/storage.ts](file://server/storage.ts#L1-L519)
@@ -71,6 +78,7 @@ S --> SH
 - [client/src/lib/queryClient.ts](file://client/src/lib/queryClient.ts#L1-L112)
 
 ## Core Components
+
 - AI Evaluation Endpoint
   - Endpoint: POST /api/evaluate
   - Purpose: Manually trigger AI evaluation of a subjective answer using question rubric and maximum marks.
@@ -83,11 +91,14 @@ S --> SH
   - Response: { content: string }
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L487-L580)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L19-L42)
 
 ## Architecture Overview
+
 The AI evaluation and chat endpoints follow a layered architecture:
+
 - HTTP layer: Routes validate requests, enforce permissions, and delegate to AI services.
 - AI layer: OpenAI library constructs prompts, invokes the model, and parses structured responses.
 - Persistence layer: Storage retrieves related assessment data and updates answer records.
@@ -118,6 +129,7 @@ end
 ```
 
 **Diagram sources**
+
 - [server/routes.ts](file://server/routes.ts#L487-L580)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L19-L105)
 - [server/storage.ts](file://server/storage.ts#L241-L262)
@@ -125,6 +137,7 @@ end
 ## Detailed Component Analysis
 
 ### AI Evaluation Endpoint: POST /api/evaluate
+
 - Purpose
   - Enable teachers to manually trigger AI evaluation of a subjective answer.
 - Request
@@ -176,16 +189,19 @@ UpdateAnswer --> Success["200 OK with Updated Answer"]
 ```
 
 **Diagram sources**
+
 - [server/routes.ts](file://server/routes.ts#L487-L559)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L50-L105)
 - [server/storage.ts](file://server/storage.ts#L241-L262)
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L487-L559)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L50-L105)
 - [shared/schema.ts](file://shared/schema.ts#L48-L59)
 
 ### AI Chat Endpoint: POST /api/ai-chat
+
 - Purpose
   - Provide conversational AI interactions with a persistent message history.
 - Request
@@ -222,15 +238,18 @@ R-->>C : {content}
 ```
 
 **Diagram sources**
+
 - [server/routes.ts](file://server/routes.ts#L561-L580)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L19-L42)
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L561-L580)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L19-L42)
 - [client/src/pages/ai-tutor.tsx](file://client/src/pages/ai-tutor.tsx#L122-L191)
 
 ### AI Evaluation Criteria and Rubric-Based Scoring
+
 - Evaluation Inputs
   - Student answer text (answer.text or answer.ocrText).
   - Question text and rubric (question.aiRubric).
@@ -244,10 +263,12 @@ R-->>C : {content}
   - JSON parsing fallback returns zeroed metrics with manual review guidance.
 
 **Section sources**
+
 - [server/lib/openai.ts](file://server/lib/openai.ts#L50-L105)
 - [shared/schema.ts](file://shared/schema.ts#L28-L37)
 
 ### Chat Interaction Patterns
+
 - Message History
   - Clients send an ordered array of messages with roles: system, user, assistant.
   - The system role is optional; if omitted, a default system prompt is injected.
@@ -256,10 +277,12 @@ R-->>C : {content}
   - On success, it appends the assistant’s response to the conversation.
 
 **Section sources**
+
 - [server/lib/openai.ts](file://server/lib/openai.ts#L19-L42)
 - [client/src/pages/ai-tutor.tsx](file://client/src/pages/ai-tutor.tsx#L122-L191)
 
 ### Integration with Assessment System
+
 - Data Retrieval
   - The evaluation endpoint loads the answer, question, test attempt, and test to ensure proper authorization and context.
 - Update Persistence
@@ -301,17 +324,20 @@ TestAttempt --> Test : "belongsTo"
 ```
 
 **Diagram sources**
+
 - [shared/schema.ts](file://shared/schema.ts#L48-L59)
 - [shared/schema.ts](file://shared/schema.ts#L28-L37)
 - [shared/schema.ts](file://shared/schema.ts#L39-L46)
 - [shared/schema.ts](file://shared/schema.ts#L15-L26)
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L500-L531)
 - [server/storage.ts](file://server/storage.ts#L241-L262)
 - [shared/schema.ts](file://shared/schema.ts#L48-L59)
 
 ## Dependency Analysis
+
 - Route Dependencies
   - Routes import evaluateSubjectiveAnswer and aiChat from the OpenAI library.
   - Routes depend on storage for CRUD operations on assessments and chat data.
@@ -330,6 +356,7 @@ QC --> R
 ```
 
 **Diagram sources**
+
 - [server/routes.ts](file://server/routes.ts#L7-L9)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L1-L9)
 - [server/storage.ts](file://server/storage.ts#L1-L31)
@@ -338,6 +365,7 @@ QC --> R
 - [client/src/lib/queryClient.ts](file://client/src/lib/queryClient.ts#L10-L28)
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L1-L11)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L1-L9)
 - [server/storage.ts](file://server/storage.ts#L1-L31)
@@ -346,6 +374,7 @@ QC --> R
 - [client/src/lib/queryClient.ts](file://client/src/lib/queryClient.ts#L10-L28)
 
 ## Performance Considerations
+
 - Model Invocation Costs
   - Each AI evaluation and chat invocation incurs cost proportional to input length and model pricing.
 - Response Parsing
@@ -356,6 +385,7 @@ QC --> R
   - Batch multiple chat requests where feasible and apply rate limiting to maintain service stability.
 
 ## Troubleshooting Guide
+
 - AI Service Failures
   - Symptoms: 500 Internal Server Error on /api/ai-chat or /api/evaluate.
   - Causes: OpenAI API timeouts, invalid API key, or service unavailability.
@@ -372,10 +402,12 @@ QC --> R
   - Chat endpoint expects a messages array; malformed or missing messages result in 400 errors.
 
 **Section sources**
+
 - [server/lib/openai.ts](file://server/lib/openai.ts#L38-L42)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L96-L105)
 - [server/routes.ts](file://server/routes.ts#L569-L571)
 - [server/routes.ts](file://server/routes.ts#L496-L498)
 
 ## Conclusion
+
 The AI evaluation and chat endpoints provide robust mechanisms for manual AI-assisted assessment and conversational tutoring. By adhering to the documented request/response schemas, handling errors gracefully, and integrating with the assessment and storage layers, developers can build reliable AI-powered educational features. Ensure proper environment configuration, monitor AI service health, and consider performance optimizations for production deployments.

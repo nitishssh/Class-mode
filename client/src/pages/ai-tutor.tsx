@@ -13,35 +13,38 @@ export default function AiTutor() {
 
   // Use real subjects from profile or fallback
   const userSubjects = currentUser?.profile?.subjects || [];
-  
-  const subjects = userSubjects.length > 0 
-    ? userSubjects.map(s => ({
-        id: s.toLowerCase(),
-        name: s,
-        description: `Your enrolled ${s} module.`,
-        tag: "ENROLLED",
-        progress: 0,
-        icon: <GraduationCap className="w-16 h-16 text-accent" strokeWidth={1.5} />,
-        isLocked: false
-      }))
-    : [
-        {
-          id: "general",
-          name: "General Study",
-          description: "Ask anything about your curriculum.",
-          tag: "GUEST",
+
+  const subjects =
+    userSubjects.length > 0
+      ? userSubjects.map((s) => ({
+          id: s.toLowerCase(),
+          name: s,
+          description: `Your enrolled ${s} module.`,
+          tag: "ENROLLED",
           progress: 0,
-          icon: <Sparkles className="w-16 h-16 text-accent" strokeWidth={1.5} />,
-          isLocked: false
-        }
-      ];
+          icon: <GraduationCap className="h-16 w-16 text-accent" strokeWidth={1.5} />,
+          isLocked: false,
+        }))
+      : [
+          {
+            id: "general",
+            name: "General Study",
+            description: "Ask anything about your curriculum.",
+            tag: "GUEST",
+            progress: 0,
+            icon: <Sparkles className="h-16 w-16 text-accent" strokeWidth={1.5} />,
+            isLocked: false,
+          },
+        ];
 
   const handleAction = (subjectName: string, action: "revise" | "practice" | "chat") => {
     setActiveSubject(subjectName);
     if (action === "chat") {
       setInitialPrompt("");
     } else if (action === "revise") {
-      setInitialPrompt(`I want to revise the key concepts for ${subjectName}. Where should I start?`);
+      setInitialPrompt(
+        `I want to revise the key concepts for ${subjectName}. Where should I start?`
+      );
     } else if (action === "practice") {
       setInitialPrompt(`Give me a quick 3-question practice quiz for ${subjectName}.`);
     }
@@ -49,33 +52,39 @@ export default function AiTutor() {
   };
 
   return (
-    <div className="space-y-10 animate-fade-in-up">
+    <div className="animate-fade-in-up space-y-10">
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-soft border border-accent/10 mb-5">
-            <Sparkles className="w-3.5 h-3.5 text-accent" />
-            <span className="text-[10px] font-bold tracking-widest text-accent uppercase">AI Intelligent Tutor</span>
+          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-accent/10 bg-accent-soft px-3 py-1">
+            <Sparkles className="h-3.5 w-3.5 text-accent" />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-accent">
+              AI Intelligent Tutor
+            </span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-display text-foreground leading-tight mb-4">
-            Welcome back, {currentUser?.profile?.displayName?.split(' ')[0] || "Scholar"}.
+          <h1 className="mb-4 font-display text-4xl leading-tight text-foreground md:text-5xl">
+            Welcome back, {currentUser?.profile?.displayName?.split(" ")[0] || "Scholar"}.
           </h1>
-          <p className="text-lg text-muted-foreground font-body max-w-2xl leading-relaxed">
-            Your personalized learning journey is evolving. Ask EduAI to clarify complex theories or generate practice paths tailored to your recent progress.
+          <p className="max-w-2xl font-body text-lg leading-relaxed text-muted-foreground">
+            Your personalized learning journey is evolving. Ask EduAI to clarify complex theories or
+            generate practice paths tailored to your recent progress.
           </p>
         </div>
       </div>
 
       {/* Hero Section */}
-      <section className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+      <section className="animate-fade-in-up" style={{ animationDelay: "100ms" }}>
         <BentoHeroCard
           title="Focus Session: Physics"
           description="You've mastered 65% of Advanced Mechanics. EduAI suggests focusing on Rotational Motion today to bridge the gap in your recent quiz performance."
           ctaText="Start Learning Session"
           visual={
-            <div className="relative group">
-              <div className="absolute inset-0 bg-accent/20 blur-3xl rounded-full scale-75 group-hover:scale-100 transition-transform duration-700" />
-              <Rocket className="w-24 h-24 text-accent relative z-10 drop-shadow-sm transition-transform duration-500 group-hover:-translate-y-2" strokeWidth={1.5} />
+            <div className="group relative">
+              <div className="absolute inset-0 scale-75 rounded-full bg-accent/20 blur-3xl transition-transform duration-700 group-hover:scale-100" />
+              <Rocket
+                className="relative z-10 h-24 w-24 text-accent drop-shadow-sm transition-transform duration-500 group-hover:-translate-y-2"
+                strokeWidth={1.5}
+              />
             </div>
           }
           onCtaClick={() => handleAction("Physics", "chat")}
@@ -83,20 +92,24 @@ export default function AiTutor() {
       </section>
 
       {/* Subjects Section */}
-      <section className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-        <div className="flex items-center justify-between mb-6 border-b border-border pb-4">
-          <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+      <section className="animate-fade-in-up" style={{ animationDelay: "200ms" }}>
+        <div className="mb-6 flex items-center justify-between border-b border-border pb-4">
+          <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
             <GraduationCap className="h-4 w-4 text-accent" />
             Academic Curriculum
           </h2>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 bg-muted/50 px-2 py-1 rounded-md">
+          <span className="rounded-md bg-muted/50 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
             {subjects.length} Active Modules
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {subjects.map((subject, index) => (
-            <div key={subject.id} className="animate-fade-in-up" style={{ animationDelay: `${250 + index * 50}ms` }}>
+            <div
+              key={subject.id}
+              className="animate-fade-in-up"
+              style={{ animationDelay: `${250 + index * 50}ms` }}
+            >
               <BentoSubjectCard
                 title={subject.name}
                 description={subject.description}

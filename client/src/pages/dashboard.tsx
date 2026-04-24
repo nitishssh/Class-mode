@@ -43,7 +43,7 @@ export default function Dashboard() {
     stats = { activeTests: 0, totalStudents: 0, avgScore: 0, classesCount: 0 },
     tests = [],
     pendingSubmissions = [],
-    liveClasses = []
+    liveClasses = [],
   } = dashboardData || {};
 
   const quickActions = [
@@ -98,58 +98,93 @@ export default function Dashboard() {
   ];
 
   const statCards = [
-    { label: "Active Tests", value: stats.activeTests.toString(), icon: <ClipboardCheck className="h-5 w-5" />, trend: "Real-time", color: "text-accent" },
-    { label: "Total Students", value: stats.totalStudents.toString(), icon: <Users className="h-5 w-5" />, trend: "Enrolled", color: "text-emerald-700" },
-    { label: "Avg. Score", value: `${stats.avgScore}%`, icon: <TrendingUp className="h-5 w-5" />, trend: "Overall", color: "text-amber-700" },
-    { label: "Classes Today", value: stats.classesCount.toString(), icon: <BookOpen className="h-5 w-5" />, trend: "Scheduled", color: "text-purple-700" },
+    {
+      label: "Active Tests",
+      value: stats.activeTests.toString(),
+      icon: <ClipboardCheck className="h-5 w-5" />,
+      trend: "Real-time",
+      color: "text-accent",
+    },
+    {
+      label: "Total Students",
+      value: stats.totalStudents.toString(),
+      icon: <Users className="h-5 w-5" />,
+      trend: "Enrolled",
+      color: "text-emerald-700",
+    },
+    {
+      label: "Avg. Score",
+      value: `${stats.avgScore}%`,
+      icon: <TrendingUp className="h-5 w-5" />,
+      trend: "Overall",
+      color: "text-amber-700",
+    },
+    {
+      label: "Classes Today",
+      value: stats.classesCount.toString(),
+      icon: <BookOpen className="h-5 w-5" />,
+      trend: "Scheduled",
+      color: "text-purple-700",
+    },
   ];
 
   return (
     <>
       <PageHeader
-        title={`Welcome, ${currentUser?.profile?.displayName } 👋`}
+        title={`Welcome, ${currentUser?.profile?.displayName} 👋`}
         subtitle="Your teaching hub is updated with today's student insights and class goals."
         className="animate-fade-in-up"
       >
         <div className="flex gap-3">
-          <Button variant="outline" className="h-10 text-xs font-bold uppercase tracking-widest" asChild>
+          <Button
+            variant="outline"
+            className="h-10 text-xs font-bold uppercase tracking-widest"
+            asChild
+          >
             <Link href="/analytics">
-              <BarChart3 className="h-4 w-4 mr-2" />
+              <BarChart3 className="mr-2 h-4 w-4" />
               Overview
             </Link>
           </Button>
           <Button className="h-10 text-xs font-bold uppercase tracking-widest shadow-soft" asChild>
             <Link href="/create-test">
-              <PlusCircle className="h-4 w-4 mr-2" />
+              <PlusCircle className="mr-2 h-4 w-4" />
               New Test
             </Link>
           </Button>
         </div>
       </PageHeader>
 
-      <section className="mb-10 grid grid-cols-2 lg:grid-cols-4 gap-5">
+      <section className="mb-10 grid grid-cols-2 gap-5 lg:grid-cols-4">
         {statCards.map((stat, index) => (
-          <Card key={stat.label} className="animate-fade-in-up hover:shadow-card transition-all duration-300 border-border bg-card">
+          <Card
+            key={stat.label}
+            className="animate-fade-in-up border-border bg-card transition-all duration-300 hover:shadow-card"
+          >
             <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className={`p-2.5 rounded-xl bg-muted ${stat.color} shadow-soft`}>
+              <div className="mb-4 flex items-center justify-between">
+                <div className={`rounded-xl bg-muted p-2.5 ${stat.color} shadow-soft`}>
                   {stat.icon}
                 </div>
-                <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground bg-muted px-2 py-1 rounded-md">{stat.trend}</div>
+                <div className="rounded-md bg-muted px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  {stat.trend}
+                </div>
               </div>
-              <div className="text-3xl font-display text-foreground leading-none">{stat.value}</div>
-              <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground mt-2">{stat.label}</div>
+              <div className="font-display text-3xl leading-none text-foreground">{stat.value}</div>
+              <div className="mt-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                {stat.label}
+              </div>
             </CardContent>
           </Card>
         ))}
       </section>
 
-      <section className="mb-10 animate-fade-in-up">
-        <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-5 flex items-center gap-2">
+      <section className="animate-fade-in-up mb-10">
+        <h2 className="mb-5 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
           <Sparkles className="h-4 w-4 text-accent" />
           Teaching Toolkit
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           {quickActions.map((action) => (
             <QuickActionCard
               key={action.href}
@@ -164,55 +199,76 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <section className="mb-10 animate-fade-in-up">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+      <section className="animate-fade-in-up mb-10">
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
             <ClipboardCheck className="h-4 w-4 text-accent" />
             Recent Assessments
           </h2>
-          <Link href="/tests" className="text-xs font-bold uppercase tracking-widest text-accent hover:underline">
+          <Link
+            href="/tests"
+            className="text-xs font-bold uppercase tracking-widest text-accent hover:underline"
+          >
             View Archive
           </Link>
         </div>
-        <Card className="border-border bg-card shadow-soft overflow-hidden">
+        <Card className="overflow-hidden border-border bg-card shadow-soft">
           <RecentTestsTable data={tests} />
         </Card>
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
-        <div className="lg:col-span-2 space-y-8">
+      <div className="mb-10 grid grid-cols-1 gap-8 lg:grid-cols-3">
+        <div className="space-y-8 lg:col-span-2">
           <Card className="animate-fade-in-up border-border bg-card shadow-soft">
             <CardHeader className="pb-0">
-              <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Class Performance Benchmark</CardTitle>
+              <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                Class Performance Benchmark
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <PerformanceChart />
             </CardContent>
           </Card>
 
-          <Card className="animate-fade-in-up border-border bg-card shadow-soft overflow-hidden">
-            <CardHeader className="pb-4 bg-muted/50 border-b border-border">
+          <Card className="animate-fade-in-up overflow-hidden border-border bg-card shadow-soft">
+            <CardHeader className="border-b border-border bg-muted/50 pb-4">
               <div className="flex items-center gap-2">
                 <Brain className="h-4 w-4 text-accent" />
-                <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Recent Submissions to Review</CardTitle>
+                <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                  Recent Submissions to Review
+                </CardTitle>
               </div>
             </CardHeader>
             <CardContent className="p-0">
               {pendingSubmissions.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground">No submissions to review yet.</div>
+                <div className="p-8 text-center text-muted-foreground">
+                  No submissions to review yet.
+                </div>
               ) : (
                 <div className="divide-y divide-cream-400">
                   {pendingSubmissions.map((submission: any, index: number) => (
-                    <div key={index} className="p-5 bg-background hover:bg-muted/50 transition-colors group">
+                    <div
+                      key={index}
+                      className="group bg-background p-5 transition-colors hover:bg-muted/50"
+                    >
                       <div className="flex items-start justify-between gap-4">
                         <div>
-                          <div className="font-display text-base text-foreground mb-1 group-hover:text-accent transition-colors">
+                          <div className="mb-1 font-display text-base text-foreground transition-colors group-hover:text-accent">
                             {submission.studentId?.displayName || submission.studentId?.name}
                           </div>
-                          <p className="text-sm text-muted-foreground font-body">Submitted test #{submission.testId}</p>
+                          <p className="font-body text-sm text-muted-foreground">
+                            Submitted test #{submission.testId}
+                          </p>
                         </div>
-                        <Button size="sm" variant="outline" className="h-8 text-[10px] font-bold uppercase tracking-widest shrink-0" asChild>
-                          <Link href={`/tests/${submission.testId}/review/${submission.id}`}>Review</Link>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 shrink-0 text-[10px] font-bold uppercase tracking-widest"
+                          asChild
+                        >
+                          <Link href={`/tests/${submission.testId}/review/${submission.id}`}>
+                            Review
+                          </Link>
                         </Button>
                       </div>
                     </div>
@@ -225,18 +281,30 @@ export default function Dashboard() {
 
         <div className="space-y-8">
           <Card className="animate-fade-in-up border-border bg-card shadow-soft">
-            <CardHeader className="pb-4 border-b border-border">
-              <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Today's Live Classes</CardTitle>
+            <CardHeader className="border-b border-border pb-4">
+              <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                Today's Live Classes
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-4">
               {liveClasses.length === 0 ? (
-                <div className="text-center py-4 text-muted-foreground text-sm">No live classes scheduled for today.</div>
+                <div className="py-4 text-center text-sm text-muted-foreground">
+                  No live classes scheduled for today.
+                </div>
               ) : (
                 <div className="space-y-3">
                   {liveClasses.map((cls: any, i: number) => (
-                    <div key={i} className="p-4 rounded-xl border border-border bg-card hover:shadow-soft transition-all">
+                    <div
+                      key={i}
+                      className="rounded-xl border border-border bg-card p-4 transition-all hover:shadow-soft"
+                    >
                       <div className="font-display text-sm text-foreground">{cls.title}</div>
-                      <div className="text-xs text-muted-foreground mt-1">{new Date(cls.scheduledTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {new Date(cls.scheduledTime).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -251,12 +319,14 @@ export default function Dashboard() {
 
 function DashboardSkeleton() {
   return (
-    <div className="space-y-8 animate-pulse p-8">
-      <div className="h-20 bg-muted rounded-xl w-full" />
+    <div className="animate-pulse space-y-8 p-8">
+      <div className="h-20 w-full rounded-xl bg-muted" />
       <div className="grid grid-cols-4 gap-6">
-        {[1, 2, 3, 4].map(i => <div key={i} className="h-32 bg-muted rounded-xl" />)}
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="h-32 rounded-xl bg-muted" />
+        ))}
       </div>
-      <div className="h-64 bg-muted rounded-xl w-full" />
+      <div className="h-64 w-full rounded-xl bg-muted" />
     </div>
   );
 }

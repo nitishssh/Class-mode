@@ -14,6 +14,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -25,10 +26,13 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document describes the WebSocket API powering real-time chat in PersonalLearningPro. It covers connection lifecycle, authentication via sessions, message broadcasting, presence updates, typing indicators, read receipts, and rate limiting. It also documents client-server protocols, error handling, reconnection logic, and practical scenarios such as group chat, direct messaging, and collaborative workspaces.
 
 ## Project Structure
+
 The WebSocket stack consists of:
+
 - A primary chat WebSocket server under the `/ws/chat` path
 - A secondary MessagePal WebSocket server under the `/messagepal` path
 - A gateway WebSocket for membership-aware broadcasts
@@ -60,6 +64,7 @@ H --> F
 ```
 
 **Diagram sources**
+
 - [server/index.ts](file://server/index.ts#L76-L84)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L119-L120)
 - [server/message/index.ts](file://server/message/index.ts#L262-L266)
@@ -68,21 +73,25 @@ H --> F
 - [client/src/hooks/use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L95-L103)
 
 **Section sources**
+
 - [server/index.ts](file://server/index.ts#L76-L84)
 
 ## Core Components
+
 - Chat WebSocket server: Handles join/leave channels, send message, typing, read receipts, presence, and heartbeat.
 - MessagePal WebSocket server: Handles direct messaging, typing, read receipts, and conversation history.
 - Gateway WebSocket: Provides membership-aware broadcasts and readiness handshake.
 - Client hook: Manages connection, reconnection, and dispatches events to UI components.
 
 **Section sources**
+
 - [server/chat-ws.ts](file://server/chat-ws.ts#L119-L120)
 - [server/message/index.ts](file://server/message/index.ts#L262-L266)
 - [server/lib/gateway.ts](file://server/lib/gateway.ts#L10-L11)
 - [client/src/hooks/use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L65-L82)
 
 ## Architecture Overview
+
 The WebSocket servers are attached to the same HTTP server and share session-based authentication. The chat server organizes users into channels and broadcasts to channel subscribers. The MessagePal server routes messages to individual users. The gateway supports membership-aware broadcasts.
 
 ```mermaid
@@ -117,6 +126,7 @@ ChatWS-->>Others : "{type : 'message_read', messageId, userId}"
 ```
 
 **Diagram sources**
+
 - [server/chat-ws.ts](file://server/chat-ws.ts#L122-L155)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L185-L246)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L248-L340)
@@ -126,6 +136,7 @@ ChatWS-->>Others : "{type : 'message_read', messageId, userId}"
 ## Detailed Component Analysis
 
 ### Chat WebSocket Server
+
 - Path: `/ws/chat`
 - Authentication: Session cookie-based; validates `connect.sid`, resolves user ID from session store, and loads user metadata.
 - Channels: Users join/leave channels; server tracks subscribers per channel.
@@ -166,16 +177,19 @@ MarkRead --> Ack["Persist read, broadcast read ack"]
 ```
 
 **Diagram sources**
+
 - [server/chat-ws.ts](file://server/chat-ws.ts#L94-L115)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L119-L168)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L185-L375)
 
 **Section sources**
+
 - [server/chat-ws.ts](file://server/chat-ws.ts#L94-L115)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L119-L168)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L185-L375)
 
 ### MessagePal WebSocket Server
+
 - Path: `/messagepal`
 - Authentication: Session cookie validated similarly; registers user metadata.
 - Routing: Messages are stored and broadcast to both conversation participants.
@@ -207,6 +221,7 @@ MPServer-->>MPHook : "{type : 'message_read', payload}"
 ```
 
 **Diagram sources**
+
 - [server/message/index.ts](file://server/message/index.ts#L276-L306)
 - [server/message/index.ts](file://server/message/index.ts#L105-L152)
 - [server/message/index.ts](file://server/message/index.ts#L154-L168)
@@ -214,11 +229,13 @@ MPServer-->>MPHook : "{type : 'message_read', payload}"
 - [server/message/index.ts](file://server/message/index.ts#L193-L224)
 
 **Section sources**
+
 - [server/message/index.ts](file://server/message/index.ts#L71-L101)
 - [server/message/index.ts](file://server/message/index.ts#L105-L191)
 - [server/message/index.ts](file://server/message/index.ts#L193-L258)
 
 ### Gateway WebSocket
+
 - Path: `/gateway`
 - Purpose: Membership-aware broadcasting and readiness handshake.
 - Heartbeat: Responds to HEARTBEAT with HEARTBEAT_ACK.
@@ -237,12 +254,15 @@ end
 ```
 
 **Diagram sources**
+
 - [server/lib/gateway.ts](file://server/lib/gateway.ts#L10-L68)
 
 **Section sources**
+
 - [server/lib/gateway.ts](file://server/lib/gateway.ts#L10-L68)
 
 ### Client Hook: use-chat-ws
+
 - Establishes WebSocket connection using the current origin with `wss` over HTTPS.
 - Automatically joins a provided channel on connect and leaves on unmount.
 - Reconnects on close with exponential backoff, capped at 30 seconds.
@@ -260,9 +280,11 @@ OnOpen --> OnError["On error: close and reconnect"]
 ```
 
 **Diagram sources**
+
 - [client/src/hooks/use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L95-L162)
 
 **Section sources**
+
 - [client/src/hooks/use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L65-L82)
 - [client/src/hooks/use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L95-L162)
 - [client/src/hooks/use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L199-L214)
@@ -270,6 +292,7 @@ OnOpen --> OnError["On error: close and reconnect"]
 ### Message Payload Schemas
 
 #### Chat Events
+
 - connected
   - Fields: type, userId, username
 - joined_channel
@@ -288,6 +311,7 @@ OnOpen --> OnError["On error: close and reconnect"]
   - Fields: type, message
 
 #### MessagePal Events
+
 - connected
   - Fields: type, payload.userId, payload.username, payload.role, payload.serverTime, timestamp
 - message_received
@@ -304,6 +328,7 @@ OnOpen --> OnError["On error: close and reconnect"]
   - Fields: type, message
 
 **Section sources**
+
 - [client/src/hooks/use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L42-L50)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L286-L296)
 - [server/message/index.ts](file://server/message/index.ts#L297-L306)
@@ -317,29 +342,36 @@ OnOpen --> OnError["On error: close and reconnect"]
 ### Real-Time Interaction Patterns
 
 #### Group Chat
+
 - Join a channel, send messages, receive echoes and broadcasts, see typing indicators, and mark read.
 
 **Section sources**
+
 - [server/chat-ws.ts](file://server/chat-ws.ts#L185-L246)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L248-L340)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L342-L370)
 
 #### Direct Messaging (MessagePal)
+
 - Establish a conversation ID between two users, send messages, receive them on both sides, and exchange typing/read receipts.
 
 **Section sources**
+
 - [server/message/index.ts](file://server/message/index.ts#L105-L152)
 - [server/message/index.ts](file://server/message/index.ts#L154-L168)
 - [server/message/index.ts](file://server/message/index.ts#L170-L191)
 
 #### Collaborative Workspaces
+
 - Use the gateway to broadcast to workspace members; use chat channels for topic-specific collaboration.
 
 **Section sources**
+
 - [server/lib/gateway.ts](file://server/lib/gateway.ts#L10-L68)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L185-L246)
 
 ## Dependency Analysis
+
 - Server initialization attaches both WebSocket servers to the HTTP server and wires session middleware.
 - Chat and MessagePal servers depend on the shared storage layer for persistence and membership checks.
 - Client hook depends on browser WebSocket APIs and React lifecycle.
@@ -355,6 +387,7 @@ Hook["client/src/hooks/use-chat-ws.ts"] --> ChatWS
 ```
 
 **Diagram sources**
+
 - [server/index.ts](file://server/index.ts#L76-L84)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L119-L120)
 - [server/message/index.ts](file://server/message/index.ts#L262-L266)
@@ -362,21 +395,25 @@ Hook["client/src/hooks/use-chat-ws.ts"] --> ChatWS
 - [client/src/hooks/use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L95-L103)
 
 **Section sources**
+
 - [server/index.ts](file://server/index.ts#L76-L84)
 - [server/storage.ts](file://server/storage.ts#L33-L106)
 
 ## Performance Considerations
+
 - Connection limits: No explicit per-user or per-channel limits are enforced in code; scale depends on server resources and network capacity.
 - Rate limiting: Chat server enforces a token bucket (5 tokens, 5-second refill) to throttle message bursts.
 - Heartbeats: Both servers ping clients periodically; inactive connections are terminated to reclaim resources.
 - Persistence: Messages are persisted to Cassandra when available, otherwise MongoDB, with fallbacks.
 
 **Section sources**
+
 - [server/chat-ws.ts](file://server/chat-ws.ts#L147-L149)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L161-L168)
 - [server/storage.ts](file://server/storage.ts#L413-L422)
 
 ## Troubleshooting Guide
+
 - Unauthorized errors (code 4001): Occur when session validation fails. The client will not reconnect automatically for this code.
 - Invalid JSON payload: Server responds with an error event; ensure clients send properly formatted JSON.
 - Channel not found or access denied: Join attempts on non-existent or inaccessible channels fail with error events.
@@ -384,10 +421,12 @@ Hook["client/src/hooks/use-chat-ws.ts"] --> ChatWS
 - Reconnection behavior: The client reconnects with exponential backoff up to 30 seconds; verify network connectivity and server logs.
 
 **Section sources**
+
 - [client/src/hooks/use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L144-L157)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L175-L180)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L189-L198)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L269-L272)
 
 ## Conclusion
+
 PersonalLearningPro’s WebSocket API provides robust, session-authenticated real-time chat with channel-based broadcasting, presence, typing indicators, read receipts, and rate limiting. The dual server model supports both group collaboration and direct messaging. Clients benefit from resilient reconnection logic and clear event schemas. For production scaling, monitor resource usage, consider connection quotas, and ensure reliable session stores.

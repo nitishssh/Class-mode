@@ -18,6 +18,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -30,10 +31,13 @@
 10. [Appendices](#appendices)
 
 ## Introduction
+
 This document describes the result analysis and tracking system in PersonalLearningPro. It covers the analytics dashboard components for individual and class performance metrics, the data aggregation processes for grades and averages, visualization components for charts and trends, result export/report generation capabilities, integration with learning analytics for knowledge gap identification, filtering and sorting options, and privacy/access controls aligned with user roles.
 
 ## Project Structure
+
 The analytics and result tracking functionality spans client-side dashboards and server-side storage and AI analysis:
+
 - Client dashboards render performance charts, recent tests, and top students.
 - Server-side storage persists analytics records and exposes operations for retrieving analytics by user or test.
 - AI integration computes insights from test performance data.
@@ -69,6 +73,7 @@ F --> I
 ```
 
 **Diagram sources**
+
 - [analytics.tsx](file://client/src/pages/analytics.tsx#L1-L177)
 - [performance-chart.tsx](file://client/src/components/dashboard/performance-chart.tsx#L1-L98)
 - [top-students.tsx](file://client/src/components/dashboard/top-students.tsx#L1-L74)
@@ -82,6 +87,7 @@ F --> I
 - [schema.ts](file://shared/schema.ts#L61-L68)
 
 **Section sources**
+
 - [analytics.tsx](file://client/src/pages/analytics.tsx#L1-L177)
 - [performance-chart.tsx](file://client/src/components/dashboard/performance-chart.tsx#L1-L98)
 - [top-students.tsx](file://client/src/components/dashboard/top-students.tsx#L1-L74)
@@ -95,6 +101,7 @@ F --> I
 - [routes.ts](file://server/routes.ts#L1-L29)
 
 ## Core Components
+
 - Analytics dashboard page renders class performance by subject, top students, completion rates, subject distribution, and AI-generated insights.
 - Performance chart displays class vs school averages per subject using bar charts.
 - Top students panel lists high-achieving students with scores.
@@ -104,6 +111,7 @@ F --> I
 - Shared schema defines the analytics record shape.
 
 **Section sources**
+
 - [analytics.tsx](file://client/src/pages/analytics.tsx#L15-L177)
 - [performance-chart.tsx](file://client/src/components/dashboard/performance-chart.tsx#L15-L98)
 - [top-students.tsx](file://client/src/components/dashboard/top-students.tsx#L6-L74)
@@ -113,7 +121,9 @@ F --> I
 - [schema.ts](file://shared/schema.ts#L61-L68)
 
 ## Architecture Overview
+
 The analytics pipeline integrates client dashboards, server storage, and AI insights:
+
 - Client dashboards fetch data via React Query and render charts and tables.
 - Server routes expose endpoints for user and test operations; analytics persistence is handled by storage.
 - AI analysis consumes test results to produce insights and recommendations.
@@ -135,6 +145,7 @@ OA-->>U : Insights and recommendations
 ```
 
 **Diagram sources**
+
 - [analytics.tsx](file://client/src/pages/analytics.tsx#L1-L177)
 - [performance-chart.tsx](file://client/src/components/dashboard/performance-chart.tsx#L25-L43)
 - [storage.ts](file://server/storage.ts#L264-L293)
@@ -143,6 +154,7 @@ OA-->>U : Insights and recommendations
 ## Detailed Component Analysis
 
 ### Analytics Dashboard Page
+
 - Purpose: Aggregates multiple analytics widgets into a single view.
 - Features:
   - Class performance by subject via a bar chart component.
@@ -167,12 +179,15 @@ Insights --> End
 ```
 
 **Diagram sources**
+
 - [analytics.tsx](file://client/src/pages/analytics.tsx#L40-L177)
 
 **Section sources**
+
 - [analytics.tsx](file://client/src/pages/analytics.tsx#L15-L177)
 
 ### Performance Chart Component
+
 - Purpose: Visualizes class average versus school average per subject.
 - Data model: Accepts an array of objects with subject, classAverage, and schoolAverage.
 - Behavior:
@@ -195,23 +210,28 @@ PerformanceChart --> Storage : "queries analytics"
 ```
 
 **Diagram sources**
+
 - [performance-chart.tsx](file://client/src/components/dashboard/performance-chart.tsx#L15-L98)
 - [storage.ts](file://server/storage.ts#L264-L293)
 
 **Section sources**
+
 - [performance-chart.tsx](file://client/src/components/dashboard/performance-chart.tsx#L15-L98)
 - [storage.ts](file://server/storage.ts#L264-L293)
 
 ### Top Students Component
+
 - Purpose: Displays top-performing students with avatar, name, class, and score.
 - Behavior:
   - Disabled by default until backend endpoint is implemented; uses mock data.
   - Skeleton loading while data is fetching.
 
 **Section sources**
+
 - [top-students.tsx](file://client/src/components/dashboard/top-students.tsx#L6-L74)
 
 ### Recent Tests Table
+
 - Purpose: Lists recent tests with status, completion rate, and average score.
 - Features:
   - Status badges for completed, in-progress, scheduled, canceled.
@@ -222,18 +242,22 @@ PerformanceChart --> Storage : "queries analytics"
   - Shows empty state with a link to create a test.
 
 **Section sources**
+
 - [recent-tests-table.tsx](file://client/src/components/dashboard/recent-tests-table.tsx#L22-L234)
 
 ### Dashboard Pages Integration
+
 - Dashboard pages integrate performance charts and recent tests tables for quick insights.
 - Admin and parent dashboards include additional analytics visuals (e.g., academic progression line chart).
 
 **Section sources**
+
 - [dashboard.tsx](file://client/src/pages/dashboard.tsx#L197-L219)
 - [admin-dashboard.tsx](file://client/src/pages/admin-dashboard.tsx#L161-L236)
 - [parent-dashboard.tsx](file://client/src/pages/parent-dashboard.tsx#L150-L180)
 
 ### Storage and Analytics Records
+
 - Storage operations:
   - Create analytics record.
   - Retrieve analytics by user or test.
@@ -254,14 +278,17 @@ date insightDate
 ```
 
 **Diagram sources**
+
 - [storage.ts](file://server/storage.ts#L264-L293)
 - [schema.ts](file://shared/schema.ts#L61-L68)
 
 **Section sources**
+
 - [storage.ts](file://server/storage.ts#L264-L293)
 - [schema.ts](file://shared/schema.ts#L61-L68)
 
 ### AI-Generated Learning Insights
+
 - Functionality: analyzeTestPerformance computes average score, identifies hardest questions, and generates recommendations.
 - Inputs: Array of student results with studentId, score, and answers.
 - Output: averageScore, hardestQuestions, recommendations.
@@ -279,14 +306,17 @@ R-->>C : JSON response
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L1-L29)
 - [openai.ts](file://server/lib/openai.ts#L165-L216)
 
 **Section sources**
+
 - [openai.ts](file://server/lib/openai.ts#L165-L216)
 - [routes.ts](file://server/routes.ts#L1-L29)
 
 ### Data Aggregation Processes
+
 - Class vs School Averages:
   - Aggregated per subject from analytics records.
   - Visualized using bar charts.
@@ -297,21 +327,25 @@ R-->>C : JSON response
   - Computed either by AI analysis or fallback logic.
 
 **Section sources**
+
 - [performance-chart.tsx](file://client/src/components/dashboard/performance-chart.tsx#L30-L43)
 - [analytics.tsx](file://client/src/pages/analytics.tsx#L25-L38)
 - [openai.ts](file://server/lib/openai.ts#L165-L216)
 
 ### Visualization Components
+
 - Bar charts for class vs school averages.
 - Pie charts for completion rates and subject distributions.
 - Line charts for academic progression (parent dashboard).
 - Tabbed UI for class vs individual insights.
 
 **Section sources**
+
 - [analytics.tsx](file://client/src/pages/analytics.tsx#L71-L133)
 - [parent-dashboard.tsx](file://client/src/pages/parent-dashboard.tsx#L162-L180)
 
 ### Filtering and Sorting Options
+
 - Filtering:
   - Dropdown menus for grouping and state filters in student directory.
   - Cohort-based comparisons can be achieved by selecting specific classes or groups.
@@ -321,20 +355,24 @@ R-->>C : JSON response
   - Academic progression line chart enables trend analysis over time.
 
 **Section sources**
+
 - [analytics.tsx](file://client/src/pages/analytics.tsx#L141-L174)
 - [parent-dashboard.tsx](file://client/src/pages/parent-dashboard.tsx#L150-L180)
 - [mockData.ts](file://client/src/data/mockData.ts#L191-L231)
 - [config.ts](file://client/src/config.ts#L1-L7)
 
 ### Result Export, Report Generation, and Sharing
+
 - Admin dashboard includes report generation cards for academic performance, attendance, exam results, and calendar.
 - Download actions for recent reports are exposed in the admin UI.
 - Sharing capabilities are not implemented in the current codebase; future enhancements can leverage these report endpoints.
 
 **Section sources**
+
 - [admin-dashboard.tsx](file://client/src/pages/admin-dashboard.tsx#L161-L236)
 
 ### Privacy and Access Controls
+
 - Role-specific data configuration:
   - Defines role-specific attributes such as classId, subjects, institutionId, studentId.
 - Access patterns:
@@ -342,10 +380,12 @@ R-->>C : JSON response
   - Storage operations support retrieving analytics by user or test, enabling role-based filtering.
 
 **Section sources**
+
 - [config.ts](file://client/src/config.ts#L1-L7)
 - [storage.ts](file://server/storage.ts#L272-L279)
 
 ## Dependency Analysis
+
 - Client dashboards depend on:
   - React Query for data fetching.
   - Recharts for visualization.
@@ -366,6 +406,7 @@ SC["schema.ts"] --> ST
 ```
 
 **Diagram sources**
+
 - [performance-chart.tsx](file://client/src/components/dashboard/performance-chart.tsx#L1-L14)
 - [top-students.tsx](file://client/src/components/dashboard/top-students.tsx#L1-L4)
 - [recent-tests-table.tsx](file://client/src/components/dashboard/recent-tests-table.tsx#L1-L20)
@@ -375,6 +416,7 @@ SC["schema.ts"] --> ST
 - [schema.ts](file://shared/schema.ts#L61-L68)
 
 **Section sources**
+
 - [performance-chart.tsx](file://client/src/components/dashboard/performance-chart.tsx#L1-L14)
 - [top-students.tsx](file://client/src/components/dashboard/top-students.tsx#L1-L4)
 - [recent-tests-table.tsx](file://client/src/components/dashboard/recent-tests-table.tsx#L1-L20)
@@ -384,6 +426,7 @@ SC["schema.ts"] --> ST
 - [schema.ts](file://shared/schema.ts#L61-L68)
 
 ## Performance Considerations
+
 - Client-side:
   - Use skeletons during data fetches to maintain responsiveness.
   - Defer chart rendering until data is available to avoid unnecessary computations.
@@ -394,6 +437,7 @@ SC["schema.ts"] --> ST
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
+
 - Charts not rendering:
   - Verify query keys and ensure backend endpoints are implemented.
   - Confirm theme context is applied for chart colors.
@@ -405,18 +449,22 @@ SC["schema.ts"] --> ST
   - Inspect fallback logic for average score calculation.
 
 **Section sources**
+
 - [performance-chart.tsx](file://client/src/components/dashboard/performance-chart.tsx#L25-L43)
 - [storage.ts](file://server/storage.ts#L264-L293)
 - [openai.ts](file://server/lib/openai.ts#L165-L216)
 
 ## Conclusion
+
 PersonalLearningPro’s result analysis and tracking system combines client-side dashboards with server-side analytics storage and AI insights. While several endpoints are currently disabled for demonstration, the architecture supports scalable aggregation, visualization, and reporting. Future enhancements can focus on implementing backend endpoints, expanding filtering/sorting, and adding export/share capabilities.
 
 [No sources needed since this section summarizes without analyzing specific files]
 
 ## Appendices
+
 - Example analytics record fields:
   - userId, testId, weakTopics, strongTopics, recommendedResources, insightDate.
 
 **Section sources**
+
 - [schema.ts](file://shared/schema.ts#L61-L68)

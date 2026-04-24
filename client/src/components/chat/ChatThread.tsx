@@ -1,15 +1,15 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Conversation, Message, ServerMessage } from '@/types/chat';
-import { mockMessages, users as allUsers } from '@/data/mockData';
-import { useRole } from '@/contexts/chat-role-context';
-import { useChatWs, ChatWsEvent } from '@/hooks/use-chat-ws';
-import { fetchMessages } from '@/lib/chat-api';
-import MessageBubble from './MessageBubble';
-import MessageInput from './MessageInput';
-import TypingIndicator from './TypingIndicator';
-import ChatHeader from './ChatHeader';
-import { format, isToday, isYesterday } from 'date-fns';
+import { useEffect, useRef, useState, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Conversation, Message, ServerMessage } from "@/types/chat";
+import { mockMessages, users as allUsers } from "@/data/mockData";
+import { useRole } from "@/contexts/chat-role-context";
+import { useChatWs, ChatWsEvent } from "@/hooks/use-chat-ws";
+import { fetchMessages } from "@/lib/chat-api";
+import MessageBubble from "./MessageBubble";
+import MessageInput from "./MessageInput";
+import TypingIndicator from "./TypingIndicator";
+import ChatHeader from "./ChatHeader";
+import { format, isToday, isYesterday } from "date-fns";
 
 interface ChatThreadProps {
   conversation: Conversation;
@@ -17,26 +17,27 @@ interface ChatThreadProps {
 }
 
 function getDayLabel(date: Date) {
-  if (isToday(date)) return 'Today';
-  if (isYesterday(date)) return 'Yesterday';
-  return format(date, 'MMMM d, yyyy');
+  if (isToday(date)) return "Today";
+  if (isYesterday(date)) return "Yesterday";
+  return format(date, "MMMM d, yyyy");
 }
 
 // The WS new_message payload uses `messageType` while the API uses `type`.
 // This function handles both shapes.
 function toUIMessage(
-  srv: ServerMessage | (Omit<ServerMessage, 'type'> & { messageType?: string }),
-  conversationId: string,
+  srv: ServerMessage | (Omit<ServerMessage, "type"> & { messageType?: string }),
+  conversationId: string
 ): Message {
-  const msgType = 'type' in srv ? (srv as ServerMessage).type : (srv as { messageType?: string }).messageType;
+  const msgType =
+    "type" in srv ? (srv as ServerMessage).type : (srv as { messageType?: string }).messageType;
   return {
     id: String(srv.id),
     conversationId,
     senderId: String(srv.authorId),
-    senderRole: 'student',
-    type: msgType === 'image' ? 'image' : 'text',
+    senderRole: "student",
+    type: msgType === "image" ? "image" : "text",
     content: srv.content,
-    status: 'read',
+    status: "read",
     timestamp: new Date(srv.createdAt),
     deliveredTo: [],
     readBy: srv.readBy.map(String),
@@ -69,51 +70,56 @@ const ChatThread = ({ conversation, onBack }: ChatThreadProps) => {
   const { sendMessage, sendTyping, markRead } = useChatWs({
     channelId: isServerChannel ? numericId : undefined,
 
-    onEvent: useCallback((event: ChatWsEvent) => {
-      switch (event.type) {
-        case 'new_message': {
-          if (!event.message) break;
-          const uiMsg = toUIMessage(event.message, conversation.id);
-          // Deduplicate: if we already have it as opt. message, replace it
-          setOptimisticMessages((prev) =>
-            prev.map((m) => (m.content === uiMsg.content && m.senderId === uiMsg.senderId ? uiMsg : m)),
-          );
-          // Also invalidate the React Query cache so a refetch has fresh data
-          qc.invalidateQueries({ queryKey: ['messages', numericId] });
-          break;
+    onEvent: useCallback(
+      (event: ChatWsEvent) => {
+        switch (event.type) {
+          case "new_message": {
+            if (!event.message) break;
+            const uiMsg = toUIMessage(event.message, conversation.id);
+            // Deduplicate: if we already have it as opt. message, replace it
+            setOptimisticMessages((prev) =>
+              prev.map((m) =>
+                m.content === uiMsg.content && m.senderId === uiMsg.senderId ? uiMsg : m
+              )
+            );
+            // Also invalidate the React Query cache so a refetch has fresh data
+            qc.invalidateQueries({ queryKey: ["messages", numericId] });
+            break;
+          }
+          case "user_typing": {
+            if (!event.userId || !event.displayName) break;
+            const uId = event.userId;
+            setTypingUsers((prev) => ({ ...prev, [uId]: event.displayName! }));
+            // Clear typing for this user after 3 s of silence
+            setTimeout(() => {
+              setTypingUsers((prev) => {
+                const next = { ...prev };
+                delete next[uId];
+                return next;
+              });
+            }, 3000);
+            break;
+          }
+          case "message_read": {
+            if (!event.messageId || !event.userId) break;
+            qc.setQueryData<Message[]>(["messages", numericId], (old) =>
+              old?.map((m) =>
+                m.id === String(event.messageId)
+                  ? { ...m, readBy: [...(m.readBy ?? []), String(event.userId)] }
+                  : m
+              )
+            );
+            break;
+          }
         }
-        case 'user_typing': {
-          if (!event.userId || !event.displayName) break;
-          const uId = event.userId;
-          setTypingUsers((prev) => ({ ...prev, [uId]: event.displayName! }));
-          // Clear typing for this user after 3 s of silence
-          setTimeout(() => {
-            setTypingUsers((prev) => {
-              const next = { ...prev };
-              delete next[uId];
-              return next;
-            });
-          }, 3000);
-          break;
-        }
-        case 'message_read': {
-          if (!event.messageId || !event.userId) break;
-          qc.setQueryData<Message[]>(['messages', numericId], (old) =>
-            old?.map((m) =>
-              m.id === String(event.messageId)
-                ? { ...m, readBy: [...(m.readBy ?? []), String(event.userId)] }
-                : m,
-            ),
-          );
-          break;
-        }
-      }
-    }, [conversation.id, numericId, qc]),
+      },
+      [conversation.id, numericId, qc]
+    ),
   } as any);
 
   // ── React Query: initial 50 messages ──────────────────────────────────────
   const { data: serverMessages, isLoading } = useQuery<Message[]>({
-    queryKey: ['messages', numericId],
+    queryKey: ["messages", numericId],
     queryFn: async () => {
       const raw = await fetchMessages(numericId, 50);
       return raw.map((m: any) => toUIMessage(m, conversation.id));
@@ -132,7 +138,7 @@ const ChatThread = ({ conversation, onBack }: ChatThreadProps) => {
 
   // ── Fall back to mock if not a real server channel (empty list = dev mode) ──
   const [messages, setMessages] = useState<Message[]>(() =>
-    isServerChannel ? [] : (mockMessages[conversation.id] || []),
+    isServerChannel ? [] : mockMessages[conversation.id] || []
   );
 
   // Sync server messages + optimistic appends into single list
@@ -157,7 +163,7 @@ const ChatThread = ({ conversation, onBack }: ChatThreadProps) => {
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
   // ── Infinite scroll: load older messages ─────────────────────────────────
@@ -170,17 +176,21 @@ const ChatThread = ({ conversation, onBack }: ChatThreadProps) => {
       async ([entry]) => {
         if (!entry.isIntersecting || oldestId == null) return;
         const older: any[] = await fetchMessages(numericId, 50, oldestId);
-        if (older.length === 0) { setHasMore(false); return; }
+        if (older.length === 0) {
+          setHasMore(false);
+          return;
+        }
         setHasMore(older.length === 50);
         const oldestFetched = older[0].id;
         if (oldestFetched != null) setOldestId(Number(oldestFetched));
 
         const uiOlder = older.map((m: any) => toUIMessage(m, conversation.id));
-        qc.setQueryData<Message[]>(['messages', numericId], (prev) =>
-          [...uiOlder, ...(prev ?? [])],
-        );
+        qc.setQueryData<Message[]>(["messages", numericId], (prev) => [
+          ...uiOlder,
+          ...(prev ?? []),
+        ]);
       },
-      { root: scrollRef.current, threshold: 0.1 },
+      { root: scrollRef.current, threshold: 0.1 }
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
@@ -191,7 +201,7 @@ const ChatThread = ({ conversation, onBack }: ChatThreadProps) => {
   useEffect(() => {
     if (!isServerChannel) return;
     const allUnread = messages.filter(
-      (m) => !m.readBy?.includes(currentUser.id) && m.senderId !== currentUser.id,
+      (m) => !m.readBy?.includes(currentUser.id) && m.senderId !== currentUser.id
     );
     if (allUnread.length === 0) return;
 
@@ -211,7 +221,7 @@ const ChatThread = ({ conversation, onBack }: ChatThreadProps) => {
             obs.disconnect();
           }
         },
-        { root: scrollRef.current, threshold: 0.5 },
+        { root: scrollRef.current, threshold: 0.5 }
       );
       obs.observe(el);
       observers.push(obs);
@@ -222,11 +232,13 @@ const ChatThread = ({ conversation, onBack }: ChatThreadProps) => {
   }, [messages, currentUser.id, isServerChannel, numericId, markRead]);
 
   // Clear read-receipt set when conversation changes
-  useEffect(() => { observedReadRefs.current.clear(); }, [conversation.id]);
+  useEffect(() => {
+    observedReadRefs.current.clear();
+  }, [conversation.id]);
 
   // ── Send handler ───────────────────────────────────────────────────────────
   const handleSend = useCallback(
-    (content: string, type?: 'text' | 'doubt', fileUrl?: string) => {
+    (content: string, type?: "text" | "doubt", fileUrl?: string) => {
       if (isServerChannel) {
         // Optimistic UI
         const optimistic: Message = {
@@ -234,9 +246,9 @@ const ChatThread = ({ conversation, onBack }: ChatThreadProps) => {
           conversationId: conversation.id,
           senderId: currentUser.id,
           senderRole: currentUser.role,
-          type: type || 'text',
+          type: type || "text",
           content,
-          status: 'sending',
+          status: "sending",
           timestamp: new Date(),
           deliveredTo: [],
           readBy: [],
@@ -244,14 +256,14 @@ const ChatThread = ({ conversation, onBack }: ChatThreadProps) => {
         setOptimisticMessages((prev) => [...prev, optimistic]);
 
         const sent = sendMessage(numericId, content, {
-          messageType: fileUrl ? 'file' : type || 'text',
+          messageType: fileUrl ? "file" : type || "text",
           fileUrl,
         });
         if (!sent) {
           // WS not ready — fall back to mock status progression
           setTimeout(() => {
             setOptimisticMessages((prev) =>
-              prev.map((m) => (m.id === optimistic.id ? { ...m, status: 'sent' as const } : m)),
+              prev.map((m) => (m.id === optimistic.id ? { ...m, status: "sent" as const } : m))
             );
           }, 400);
         }
@@ -262,27 +274,33 @@ const ChatThread = ({ conversation, onBack }: ChatThreadProps) => {
           conversationId: conversation.id,
           senderId: currentUser.id,
           senderRole: currentUser.role,
-          type: type || 'text',
+          type: type || "text",
           content,
-          status: 'sending',
+          status: "sending",
           timestamp: new Date(),
           deliveredTo: [],
           readBy: [],
-          isDoubtAnswered: type === 'doubt' ? false : undefined,
+          isDoubtAnswered: type === "doubt" ? false : undefined,
         };
         setMessages((prev) => [...prev, newMsg]);
         setTimeout(() => {
-          setMessages((prev) => prev.map((m) => (m.id === newMsg.id ? { ...m, status: 'sent' as const } : m)));
+          setMessages((prev) =>
+            prev.map((m) => (m.id === newMsg.id ? { ...m, status: "sent" as const } : m))
+          );
         }, 400);
         setTimeout(() => {
-          setMessages((prev) => prev.map((m) => (m.id === newMsg.id ? { ...m, status: 'delivered' as const } : m)));
+          setMessages((prev) =>
+            prev.map((m) => (m.id === newMsg.id ? { ...m, status: "delivered" as const } : m))
+          );
         }, 1200);
         setTimeout(() => {
-          setMessages((prev) => prev.map((m) => (m.id === newMsg.id ? { ...m, status: 'read' as const } : m)));
+          setMessages((prev) =>
+            prev.map((m) => (m.id === newMsg.id ? { ...m, status: "read" as const } : m))
+          );
         }, 3000);
       }
     },
-    [isServerChannel, conversation.id, currentUser, numericId, sendMessage],
+    [isServerChannel, conversation.id, currentUser, numericId, sendMessage]
   );
 
   // ── Typing event from MessageInput ────────────────────────────────────────
@@ -291,19 +309,27 @@ const ChatThread = ({ conversation, onBack }: ChatThreadProps) => {
     sendTyping(numericId);
     // Stop typing after 2 s of inactivity (timer resets on every keystroke)
     if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
-    typingTimerRef.current = setTimeout(() => {/* typing auto-expires server-side */ }, 2000);
+    typingTimerRef.current = setTimeout(() => {
+      /* typing auto-expires server-side */
+    }, 2000);
   }, [isServerChannel, numericId, sendTyping]);
 
   // ── Name map for sender lookup ────────────────────────────────────────────
   const nameMap: Record<string, string> = {};
-  conversation.participants.forEach((p) => { nameMap[p.id] = p.name; });
+  conversation.participants.forEach((p) => {
+    nameMap[p.id] = p.name;
+  });
   nameMap[currentUser.id] = currentUser.name;
-  Object.values(allUsers).forEach((u) => { nameMap[u.id] = u.name; });
+  Object.values(allUsers).forEach((u) => {
+    nameMap[u.id] = u.name;
+  });
 
   // Group messages by day
-  let lastDay = '';
+  let lastDay = "";
   const msgById: Record<string, Message> = {};
-  messages.forEach((m) => { msgById[m.id] = m; });
+  messages.forEach((m) => {
+    msgById[m.id] = m;
+  });
 
   // Typing display
   const typingNames = Object.values(typingUsers);
@@ -311,16 +337,18 @@ const ChatThread = ({ conversation, onBack }: ChatThreadProps) => {
 
   // Also show mock typing from conv data (for mock mode)
   const mockTypingUserId = conversation.typing?.[0];
-  const mockTypingName = mockTypingUserId ? (allUsers[mockTypingUserId]?.name || typingUserName) : typingUserName;
+  const mockTypingName = mockTypingUserId
+    ? allUsers[mockTypingUserId]?.name || typingUserName
+    : typingUserName;
 
-  const isReadOnly = conversation.isReadOnly && currentUser.role !== 'teacher';
+  const isReadOnly = conversation.isReadOnly && currentUser.role !== "teacher";
 
   if (isLoading && isServerChannel) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex h-full flex-col">
         <ChatHeader conversation={conversation} onBack={onBack} />
-        <div className="flex-1 flex items-center justify-center text-muted-foreground">
-          <span className="text-sm animate-pulse">Loading messages…</span>
+        <div className="flex flex-1 items-center justify-center text-muted-foreground">
+          <span className="animate-pulse text-sm">Loading messages…</span>
         </div>
         <MessageInput onSend={handleSend} onTyping={handleTyping} isReadOnly={isReadOnly} />
       </div>
@@ -328,10 +356,10 @@ const ChatThread = ({ conversation, onBack }: ChatThreadProps) => {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       <ChatHeader conversation={conversation} onBack={onBack} />
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin py-3">
+      <div ref={scrollRef} className="scrollbar-thin flex-1 overflow-y-auto py-3">
         <div className="flex flex-col gap-0.5">
           {/* Top sentinel for infinite scroll */}
           {isServerChannel && hasMore && (
@@ -343,8 +371,8 @@ const ChatThread = ({ conversation, onBack }: ChatThreadProps) => {
             const showSender =
               conversation.isGroup &&
               !isOwn &&
-              msg.type !== 'announcement' &&
-              msg.type !== 'assignment' &&
+              msg.type !== "announcement" &&
+              msg.type !== "assignment" &&
               (i === 0 || messages[i - 1].senderId !== msg.senderId);
 
             const dayLabel = getDayLabel(msg.timestamp);
@@ -354,13 +382,15 @@ const ChatThread = ({ conversation, onBack }: ChatThreadProps) => {
               showDaySep = true;
             }
 
-            const replyContent = msg.replyTo ? msgById[msg.replyTo]?.content?.slice(0, 60) : undefined;
+            const replyContent = msg.replyTo
+              ? msgById[msg.replyTo]?.content?.slice(0, 60)
+              : undefined;
 
             return (
               <div key={msg.id} id={`msg-${msg.id}`}>
                 {showDaySep && (
-                  <div className="flex justify-center my-3">
-                    <span className="text-[11px] text-muted-foreground bg-muted px-3 py-1 rounded-full">
+                  <div className="my-3 flex justify-center">
+                    <span className="rounded-full bg-muted px-3 py-1 text-[11px] text-muted-foreground">
                       {dayLabel}
                     </span>
                   </div>
@@ -376,7 +406,8 @@ const ChatThread = ({ conversation, onBack }: ChatThreadProps) => {
             );
           })}
 
-          {(typingUserName || (!isServerChannel && conversation.typing && conversation.typing.length > 0)) && (
+          {(typingUserName ||
+            (!isServerChannel && conversation.typing && conversation.typing.length > 0)) && (
             <TypingIndicator name={typingUserName || mockTypingName} />
           )}
         </div>

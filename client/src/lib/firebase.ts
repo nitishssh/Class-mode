@@ -9,9 +9,16 @@ import {
   sendPasswordResetEmail,
   updateProfile,
   onAuthStateChanged,
-  User
+  User,
 } from "firebase/auth";
-import { initializeFirestore, doc, setDoc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import {
+  initializeFirestore,
+  doc,
+  setDoc,
+  getDoc,
+  updateDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -20,23 +27,22 @@ const firebaseConfig = {
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   // New Firebase projects use .firebasestorage.app; old ones use .appspot.com.
   // We try .firebasestorage.app first and fall back gracefully.
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET
-    || `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebasestorage.app`,
+  storageBucket:
+    import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ||
+    `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebasestorage.app`,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-
 // Graceful fallback: allow running without Firebase credentials
-export const firebaseEnabled =
-  !!firebaseConfig.apiKey && firebaseConfig.apiKey.startsWith("AIza");
+export const firebaseEnabled = !!firebaseConfig.apiKey && firebaseConfig.apiKey.startsWith("AIza");
 
 if (!firebaseEnabled) {
   console.warn(
     "⚠️  Firebase is not configured. Auth features will be disabled.\n" +
-    "   To enable Firebase, copy .env.example to .env and fill in your credentials.\n" +
-    "   See README.md for details."
+      "   To enable Firebase, copy .env.example to .env and fill in your credentials.\n" +
+      "   See README.md for details."
   );
 }
 
@@ -44,12 +50,10 @@ if (!firebaseEnabled) {
 const app = firebaseEnabled ? initializeApp(firebaseConfig) : null;
 export const auth = app ? getAuth(app) : null;
 export const db = app ? initializeFirestore(app, { experimentalForceLongPolling: true }) : null;
-export const googleProvider = firebaseEnabled
-  ? new GoogleAuthProvider()
-  : null;
+export const googleProvider = firebaseEnabled ? new GoogleAuthProvider() : null;
 
 // User role types
-export type UserRole = 'student' | 'teacher' | 'school_admin' | 'admin' | 'principal' | 'parent';
+export type UserRole = "student" | "teacher" | "school_admin" | "admin" | "principal" | "parent";
 
 // User profile interface
 export interface UserProfile {
@@ -57,7 +61,7 @@ export interface UserProfile {
   email: string;
   displayName: string;
   role: UserRole;
-  status: 'active' | 'pending' | 'suspended' | 'rejected';
+  status: "active" | "pending" | "suspended" | "rejected";
   photoURL?: string;
   // Role-specific fields
   school_code?: string;
@@ -90,7 +94,9 @@ const firebaseErrorMap: Record<string, string> = {
 
 export function mapFirebaseError(error: any): string {
   const code = error?.code || "";
-  return firebaseErrorMap[code] || error?.message || "An unexpected error occurred. Please try again.";
+  return (
+    firebaseErrorMap[code] || error?.message || "An unexpected error occurred. Please try again."
+  );
 }
 
 // Authentication functions
@@ -101,7 +107,7 @@ export const loginWithEmail = async (email: string, password: string) => {
     // Update last login — don't fail the login if Firestore is unreachable
     updateDoc(doc(db, "users", userCredential.user.uid), {
       lastLogin: serverTimestamp(),
-    }).catch(() => { });
+    }).catch(() => {});
     return userCredential.user;
   } catch (error: any) {
     const friendlyMsg = mapFirebaseError(error);
@@ -134,11 +140,11 @@ export const registerWithEmail = async (
       email: user.email || email,
       displayName,
       role,
-      status: role === 'student' ? 'active' : 'pending',
+      status: role === "student" ? "active" : "pending",
       photoURL: user.photoURL || "",
       createdAt: serverTimestamp(),
       lastLogin: serverTimestamp(),
-      ...additionalData
+      ...additionalData,
     };
 
     await setDoc(doc(db, "users", user.uid), userData);
@@ -154,7 +160,8 @@ export const registerWithEmail = async (
 };
 
 export const loginWithGoogle = async () => {
-  if (!firebaseEnabled || !auth || !db || !googleProvider) throw new Error("Firebase is not configured");
+  if (!firebaseEnabled || !auth || !db || !googleProvider)
+    throw new Error("Firebase is not configured");
   try {
     const result = await signInWithPopup(auth, googleProvider);
     const user = result.user;
@@ -168,7 +175,7 @@ export const loginWithGoogle = async () => {
       return {
         user,
         profile: null,
-        isNewUser: true
+        isNewUser: true,
       };
     } else {
       // Existing user - update last login
@@ -179,7 +186,7 @@ export const loginWithGoogle = async () => {
       return {
         user,
         profile: userData,
-        isNewUser: false
+        isNewUser: false,
       };
     }
   } catch (error: any) {
@@ -203,11 +210,11 @@ export const completeGoogleSignUp = async (
       email: user.email || "",
       displayName: user.displayName || "",
       role,
-      status: role === 'student' ? 'active' : 'pending',
+      status: role === "student" ? "active" : "pending",
       photoURL: user.photoURL || "",
       createdAt: serverTimestamp(),
       lastLogin: serverTimestamp(),
-      ...additionalData
+      ...additionalData,
     };
 
     await setDoc(doc(db, "users", user.uid), userData);

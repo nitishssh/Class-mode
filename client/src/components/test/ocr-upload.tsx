@@ -42,14 +42,14 @@ export function OCRUpload({ onOCRComplete }: OCRUploadProps) {
           prev.map((file) =>
             file.id === fileId
               ? {
-                ...file,
-                status: "complete",
-                progress: 100,
-                data: {
-                  text: data.text,
-                  confidence: data.confidence,
-                },
-              }
+                  ...file,
+                  status: "complete",
+                  progress: 100,
+                  data: {
+                    text: data.text,
+                    confidence: data.confidence,
+                  },
+                }
               : file
           )
         );
@@ -73,10 +73,10 @@ export function OCRUpload({ onOCRComplete }: OCRUploadProps) {
           prev.map((file) =>
             file.id === fileId
               ? {
-                ...file,
-                status: "error",
-                progress: 100,
-              }
+                  ...file,
+                  status: "error",
+                  progress: 100,
+                }
               : file
           )
         );
@@ -84,7 +84,8 @@ export function OCRUpload({ onOCRComplete }: OCRUploadProps) {
 
       toast({
         title: "OCR Processing Failed",
-        description: error instanceof Error ? error.message : "An error occurred during OCR processing",
+        description:
+          error instanceof Error ? error.message : "An error occurred during OCR processing",
         variant: "destructive",
       });
     },
@@ -135,32 +136,20 @@ export function OCRUpload({ onOCRComplete }: OCRUploadProps) {
       const reader = new FileReader();
       reader.onloadstart = () => {
         // Update progress to 10%
-        setFiles((prev) =>
-          prev.map((f) =>
-            f.id === fileId ? { ...f, progress: 10 } : f
-          )
-        );
+        setFiles((prev) => prev.map((f) => (f.id === fileId ? { ...f, progress: 10 } : f)));
       };
 
       reader.onprogress = (event) => {
         if (event.lengthComputable) {
           const progress = Math.round((event.loaded / event.total) * 50);
-          setFiles((prev) =>
-            prev.map((f) =>
-              f.id === fileId ? { ...f, progress } : f
-            )
-          );
+          setFiles((prev) => prev.map((f) => (f.id === fileId ? { ...f, progress } : f)));
         }
       };
 
       reader.onload = () => {
         // Update progress to 60% and status to processing
         setFiles((prev) =>
-          prev.map((f) =>
-            f.id === fileId
-              ? { ...f, status: "processing", progress: 60 }
-              : f
-          )
+          prev.map((f) => (f.id === fileId ? { ...f, status: "processing", progress: 60 } : f))
         );
 
         // Get base64 data
@@ -174,11 +163,7 @@ export function OCRUpload({ onOCRComplete }: OCRUploadProps) {
 
       reader.onerror = () => {
         setFiles((prev) =>
-          prev.map((f) =>
-            f.id === fileId
-              ? { ...f, status: "error", progress: 100 }
-              : f
-          )
+          prev.map((f) => (f.id === fileId ? { ...f, status: "error", progress: 100 } : f))
         );
 
         toast({
@@ -244,12 +229,12 @@ export function OCRUpload({ onOCRComplete }: OCRUploadProps) {
   return (
     <div className="space-y-4">
       <div
-        className="border-2 border-dashed border-neutral-300 dark:border-neutral-700 rounded-lg p-6 text-center"
+        className="rounded-lg border-2 border-dashed border-neutral-300 p-6 text-center dark:border-neutral-700"
         onDrop={handleDrop}
         onDragOver={handleDragOver}
       >
         <div className="flex flex-col items-center">
-          <Upload className="h-10 w-10 text-muted-foreground mb-2" />
+          <Upload className="mb-2 h-10 w-10 text-muted-foreground" />
           <p className="mb-2 text-sm">Drag and drop answer sheets or</p>
           <div>
             <input
@@ -260,9 +245,7 @@ export function OCRUpload({ onOCRComplete }: OCRUploadProps) {
               className="hidden"
               onChange={handleFileChange}
             />
-            <Button
-              onClick={() => document.getElementById("file-upload")?.click()}
-            >
+            <Button onClick={() => document.getElementById("file-upload")?.click()}>
               Browse Files
             </Button>
           </div>
@@ -274,19 +257,14 @@ export function OCRUpload({ onOCRComplete }: OCRUploadProps) {
 
       {files.length > 0 && (
         <div>
-          <h4 className="font-medium mb-2">Uploaded Files</h4>
+          <h4 className="mb-2 font-medium">Uploaded Files</h4>
           <div className="space-y-2">
             {files.map((file) => (
-              <div
-                key={file.id}
-                className="flex items-center p-3 bg-muted rounded-md"
-              >
-                <div className="mr-3 text-primary">
-                  {getFileIcon(file)}
-                </div>
+              <div key={file.id} className="flex items-center rounded-md bg-muted p-3">
+                <div className="mr-3 text-primary">{getFileIcon(file)}</div>
                 <div className="flex-1">
                   <div className="flex justify-between">
-                    <p className="font-medium text-sm">{file.name}</p>
+                    <p className="text-sm font-medium">{file.name}</p>
                     <p className="text-xs text-muted-foreground">
                       {(file.size / 1024).toFixed(1)} KB
                     </p>
@@ -294,9 +272,7 @@ export function OCRUpload({ onOCRComplete }: OCRUploadProps) {
                   <div className="mt-1">
                     <Progress value={file.progress} className="h-1" />
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {getStatusText(file)}
-                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">{getStatusText(file)}</p>
                 </div>
               </div>
             ))}

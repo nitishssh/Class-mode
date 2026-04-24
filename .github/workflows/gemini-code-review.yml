@@ -37,28 +37,28 @@ jobs:
         with:
           script: |
             const diff = `${{ steps.diff.outputs.diff }}`;
-            
+
             const reviewComment = `## 🤖 AI Code Review
-            
+
             **Automated review of changes in this PR**
-            
+
             ### 📊 Summary
             - Files changed: Check the Files tab
             - Lines of code: ${diff.split('\n').length} lines reviewed
-            
+
             ### ✅ Checklist
             - [ ] Code follows project style guidelines
             - [ ] No obvious bugs or security issues
             - [ ] Tests added/updated for new features
             - [ ] Documentation updated if needed
             - [ ] No sensitive data exposed
-            
+
             ### 💡 Suggestions
             - Review error handling in new code
             - Ensure TypeScript types are properly defined
             - Check for potential performance issues
             - Verify accessibility compliance
-            
+
             ---
             *This is an automated review. Human review is still required.*`;
 

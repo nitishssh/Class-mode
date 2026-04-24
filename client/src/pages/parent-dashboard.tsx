@@ -15,7 +15,7 @@ import {
   GraduationCap,
   Clock,
   ArrowUpRight,
-  CheckCircle2
+  CheckCircle2,
 } from "lucide-react";
 import {
   LineChart,
@@ -24,7 +24,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer
+  ResponsiveContainer,
 } from "recharts";
 
 /**
@@ -41,7 +41,7 @@ export default function ParentDashboard() {
 
   const { data: childrenData, isLoading: isLoadingChildren } = useQuery<any[]>({
     queryKey: ["/api/users/children"],
-    queryFn: () => apiRequest("GET", "/api/users/children").then(r => r.json()),
+    queryFn: () => apiRequest("GET", "/api/users/children").then((r) => r.json()),
   });
 
   const fallbackChildren = [
@@ -52,7 +52,7 @@ export default function ParentDashboard() {
       avgGrade: "92%",
       progress: 88,
       status: "Excellent",
-      color: "blue"
+      color: "blue",
     },
     {
       name: "Leo Johnson",
@@ -61,21 +61,22 @@ export default function ParentDashboard() {
       avgGrade: "85%",
       progress: 72,
       status: "Good",
-      color: "emerald"
-    }
+      color: "emerald",
+    },
   ];
 
-  const children = (childrenData && childrenData.length > 0)
-    ? childrenData.map((c: any) => ({
-        name: c.displayName || c.name || "Unknown",
-        grade: c.grade || "N/A",
-        attendance: c.attendance || "N/A",
-        avgGrade: c.avgGrade || "N/A",
-        progress: c.progress || 0,
-        status: c.status || "N/A",
-        color: c.color || "blue",
-      }))
-    : fallbackChildren;
+  const children =
+    childrenData && childrenData.length > 0
+      ? childrenData.map((c: any) => ({
+          name: c.displayName || c.name || "Unknown",
+          grade: c.grade || "N/A",
+          attendance: c.attendance || "N/A",
+          avgGrade: c.avgGrade || "N/A",
+          progress: c.progress || 0,
+          status: c.status || "N/A",
+          color: c.color || "blue",
+        }))
+      : fallbackChildren;
 
   const performanceData = [
     { month: "Sep", sarah: 88, leo: 78 },
@@ -86,9 +87,24 @@ export default function ParentDashboard() {
   ];
 
   const events = [
-    { title: "Parent-Teacher Meeting", subject: "Sarah - Mathematics", date: "Feb 25, 4:00 PM", icon: <Calendar className="h-4 w-4" /> },
-    { title: "Science Fair", subject: "Leo - Project Presentation", date: "Mar 02, 10:00 AM", icon: <Trophy className="h-4 w-4" /> },
-    { title: "Term Exam Results", subject: "Sarah - Physics", date: "Mar 05, All Day", icon: <CheckCircle2 className="h-4 w-4" /> },
+    {
+      title: "Parent-Teacher Meeting",
+      subject: "Sarah - Mathematics",
+      date: "Feb 25, 4:00 PM",
+      icon: <Calendar className="h-4 w-4" />,
+    },
+    {
+      title: "Science Fair",
+      subject: "Leo - Project Presentation",
+      date: "Mar 02, 10:00 AM",
+      icon: <Trophy className="h-4 w-4" />,
+    },
+    {
+      title: "Term Exam Results",
+      subject: "Sarah - Physics",
+      date: "Mar 05, All Day",
+      icon: <CheckCircle2 className="h-4 w-4" />,
+    },
   ];
 
   return (
@@ -97,18 +113,15 @@ export default function ParentDashboard() {
         title={`Welcome, ${currentUser?.profile?.displayName || "Parent"} 👋`}
         subtitle="Stay updated with your children's academic journey."
         className="animate-fade-in-up"
-        breadcrumbs={[
-          { label: "Dashboard", href: "/" },
-          { label: "Parent Dashboard" }
-        ]}
+        breadcrumbs={[{ label: "Dashboard", href: "/" }, { label: "Parent Dashboard" }]}
       >
         <div className="flex gap-2">
           <Button variant="outline" size="sm">
-            <MessageSquare className="h-4 w-4 mr-2" />
+            <MessageSquare className="mr-2 h-4 w-4" />
             Contact Teachers
           </Button>
           <Button size="sm">
-            <Calendar className="h-4 w-4 mr-2" />
+            <Calendar className="mr-2 h-4 w-4" />
             School Calendar
           </Button>
         </div>
@@ -116,75 +129,89 @@ export default function ParentDashboard() {
 
       {/* Children Overview */}
       <section className="mb-8">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+        <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
           <Users className="h-5 w-5 text-primary" />
           Children's Overview
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {isLoadingChildren ? (
-            Array.from({ length: 2 }).map((_, i) => (
-              <Card key={i} className="animate-fade-in-up">
-                <CardHeader className="pb-2">
-                  <Skeleton className="h-12 w-full" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-24 w-full mb-4" />
-                  <Skeleton className="h-4 w-full" />
-                </CardContent>
-              </Card>
-            ))
-          ) : children.map((child, i) => (
-            <Card key={child.name} className="animate-fade-in-up hover:shadow-md transition-all duration-300" style={{ animationDelay: `${i * 100}ms` }}>
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
-                  <div className="flex gap-4">
-                    <div className={`h-12 w-12 rounded-full bg-${child.color}-500/10 flex items-center justify-center`}>
-                      <GraduationCap className={`h-6 w-6 text-${child.color}-600 dark:text-${child.color}-400`} />
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          {isLoadingChildren
+            ? Array.from({ length: 2 }).map((_, i) => (
+                <Card key={i} className="animate-fade-in-up">
+                  <CardHeader className="pb-2">
+                    <Skeleton className="h-12 w-full" />
+                  </CardHeader>
+                  <CardContent>
+                    <Skeleton className="mb-4 h-24 w-full" />
+                    <Skeleton className="h-4 w-full" />
+                  </CardContent>
+                </Card>
+              ))
+            : children.map((child, i) => (
+                <Card
+                  key={child.name}
+                  className="animate-fade-in-up transition-all duration-300 hover:shadow-md"
+                  style={{ animationDelay: `${i * 100}ms` }}
+                >
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between">
+                      <div className="flex gap-4">
+                        <div
+                          className={`h-12 w-12 rounded-full bg-${child.color}-500/10 flex items-center justify-center`}
+                        >
+                          <GraduationCap
+                            className={`h-6 w-6 text-${child.color}-600 dark:text-${child.color}-400`}
+                          />
+                        </div>
+                        <div>
+                          <CardTitle className="text-xl">{child.name}</CardTitle>
+                          <CardDescription>{child.grade}</CardDescription>
+                        </div>
+                      </div>
+                      <Badge variant={child.status === "Excellent" ? "default" : "default"}>
+                        {child.status}
+                      </Badge>
                     </div>
-                    <div>
-                      <CardTitle className="text-xl">{child.name}</CardTitle>
-                      <CardDescription>{child.grade}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="mb-4 mt-2 grid grid-cols-2 gap-4">
+                      <div className="rounded-lg border border-border/50 bg-muted/50 p-3">
+                        <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                          Attendance
+                        </div>
+                        <div className="mt-1 text-lg font-bold">{child.attendance}</div>
+                      </div>
+                      <div className="rounded-lg border border-border/50 bg-muted/50 p-3">
+                        <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                          Avg. Grade
+                        </div>
+                        <div className="mt-1 text-lg font-bold text-primary">{child.avgGrade}</div>
+                      </div>
                     </div>
-                  </div>
-                  <Badge variant={child.status === "Excellent" ? "default" : "default"}>
-                    {child.status}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4 mb-4 mt-2">
-                  <div className="p-3 rounded-lg bg-muted/50 border border-border/50">
-                    <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Attendance</div>
-                    <div className="text-lg font-bold mt-1">{child.attendance}</div>
-                  </div>
-                  <div className="p-3 rounded-lg bg-muted/50 border border-border/50">
-                    <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Avg. Grade</div>
-                    <div className="text-lg font-bold mt-1 text-primary">{child.avgGrade}</div>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground font-medium">Curriculum Completion</span>
-                    <span className="font-semibold">{child.progress}%</span>
-                  </div>
-                  <Progress value={child.progress} className="h-2" />
-                </div>
-                <Button variant="ghost" size="sm" className="w-full mt-4 group">
-                  View Detailed Report
-                  <ArrowUpRight className="h-3 w-3 ml-2 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="font-medium text-muted-foreground">
+                          Curriculum Completion
+                        </span>
+                        <span className="font-semibold">{child.progress}%</span>
+                      </div>
+                      <Progress value={child.progress} className="h-2" />
+                    </div>
+                    <Button variant="ghost" size="sm" className="group mt-4 w-full">
+                      View Detailed Report
+                      <ArrowUpRight className="ml-2 h-3 w-3 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
         </div>
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Academic Progression */}
-        <Card className="lg:col-span-2 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+        <Card className="animate-fade-in-up lg:col-span-2" style={{ animationDelay: "200ms" }}>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-primary/10">
+              <div className="rounded-lg bg-primary/10 p-1.5">
                 <TrendingUp className="h-4 w-4 text-primary" />
               </div>
               <CardTitle className="text-lg font-semibold">Academic Progression</CardTitle>
@@ -194,7 +221,11 @@ export default function ParentDashboard() {
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={performanceData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="hsl(var(--border))"
+                  />
                   <XAxis
                     dataKey="month"
                     stroke="hsl(var(--muted-foreground))"
@@ -212,10 +243,10 @@ export default function ParentDashboard() {
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      borderColor: 'hsl(var(--border))',
-                      borderRadius: '0.75rem',
-                      fontSize: '12px'
+                      backgroundColor: "hsl(var(--card))",
+                      borderColor: "hsl(var(--border))",
+                      borderRadius: "0.75rem",
+                      fontSize: "12px",
                     }}
                   />
                   <Line
@@ -243,10 +274,10 @@ export default function ParentDashboard() {
         </Card>
 
         {/* Upcoming Events */}
-        <Card className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+        <Card className="animate-fade-in-up" style={{ animationDelay: "300ms" }}>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-amber-500/10">
+              <div className="rounded-lg bg-amber-500/10 p-1.5">
                 <Calendar className="h-4 w-4 text-amber-500" />
               </div>
               <CardTitle className="text-lg font-semibold">Upcoming Schedule</CardTitle>
@@ -255,14 +286,17 @@ export default function ParentDashboard() {
           <CardContent>
             <div className="space-y-4">
               {events.map((event, i) => (
-                <div key={i} className="flex gap-3 p-3 rounded-lg border border-border/50 hover:bg-muted/50 transition-colors">
-                  <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                <div
+                  key={i}
+                  className="flex gap-3 rounded-lg border border-border/50 p-3 transition-colors hover:bg-muted/50"
+                >
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-muted">
                     {event.icon}
                   </div>
                   <div>
-                    <div className="font-semibold text-sm">{event.title}</div>
-                    <div className="text-xs text-muted-foreground font-medium">{event.subject}</div>
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1 bg-muted/80 px-2 py-0.5 rounded-full w-fit">
+                    <div className="text-sm font-semibold">{event.title}</div>
+                    <div className="text-xs font-medium text-muted-foreground">{event.subject}</div>
+                    <div className="mt-1 flex w-fit items-center gap-1.5 rounded-full bg-muted/80 px-2 py-0.5 text-xs text-muted-foreground">
                       <Clock className="h-3 w-3 text-primary" />
                       {event.date}
                     </div>
@@ -307,5 +341,5 @@ function Trophy(props: any) {
       <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
       <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
     </svg>
-  )
+  );
 }

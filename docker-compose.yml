@@ -22,7 +22,6 @@ x-app-base: &app-base
 
 # ── Services ──────────────────────────────────────────────────────
 services:
-
   # ── Development ─────────────────────────────────────────────────
   app:
     <<: *app-base
@@ -50,7 +49,7 @@ services:
       # Preserve the container's node_modules — never overwrite with host's
       - /app/node_modules
     healthcheck:
-      test: [ "CMD", "wget", "-qO-", "http://localhost:5001/api/health" ]
+      test: ["CMD", "wget", "-qO-", "http://localhost:5001/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -79,7 +78,7 @@ services:
     environment:
       NODE_ENV: production
     healthcheck:
-      test: [ "CMD", "wget", "-qO-", "http://localhost:5001/api/health" ]
+      test: ["CMD", "wget", "-qO-", "http://localhost:5001/api/health"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -96,6 +95,39 @@ services:
         max_attempts: 3
     profiles:
       - prod
+
+  # ── AI Classroom Feature ────────────────────────────────────────
+  iniclaw:
+    build:
+      context: ./features/ai-classroom/ini_claw
+      dockerfile: Dockerfile
+    ports:
+      - "7070:7070"
+    environment:
+      - BRIDGE_SECRET=${BRIDGE_SECRET}
+      - INICLAW_PORT=7070
+    volumes:
+      - ./features/ai-classroom/ini_claw/.classroom-cache:/app/.classroom-cache
+    restart: always
+    networks:
+      - app-net
+
+  study-arena:
+    build:
+      context: ./features/ai-classroom/studyArena
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - INICLAW_GATEWAY_URL=http://iniclaw:7070
+      - BRIDGE_SECRET=${BRIDGE_SECRET}
+      - USE_INICLAW=true
+      - PORT=3000
+    depends_on:
+      - iniclaw
+    restart: always
+    networks:
+      - app-net
 
 # ── Networks ──────────────────────────────────────────────────────
 networks:

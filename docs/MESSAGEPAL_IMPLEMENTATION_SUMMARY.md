@@ -113,6 +113,7 @@ server/messagepal/
 ### 📝 Documentation
 
 Comprehensive documentation provided in `server/messagepal/README.md` covering:
+
 - Installation and setup
 - API reference
 - Database schema
@@ -125,6 +126,7 @@ Comprehensive documentation provided in `server/messagepal/README.md` covering:
 The MessagePal service is now fully implemented and integrated into the PersonalLearningPro system. It provides enterprise-grade real-time messaging capabilities specifically designed for educational environments.
 
 The system handles:
+
 - Student-teacher communication
 - Parent-teacher messaging
 - Administrative oversight

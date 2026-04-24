@@ -1,4 +1,4 @@
-import ChatLayout from '@/components/chat/ChatLayout';
+import ChatLayout from "@/components/chat/ChatLayout";
 
 /**
  * Messages page — renders the full-screen chat layout.
@@ -6,9 +6,9 @@ import ChatLayout from '@/components/chat/ChatLayout';
  * so no extra context setup is needed here.
  */
 export default function MessagesPage() {
-    return (
-        <div className="flex flex-col h-full">
-            <ChatLayout />
-        </div>
-    );
+  return (
+    <div className="flex h-full flex-col">
+      <ChatLayout />
+    </div>
+  );
 }

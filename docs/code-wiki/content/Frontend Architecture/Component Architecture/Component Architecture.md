@@ -19,6 +19,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -31,10 +32,13 @@
 10. [Appendices](#appendices)
 
 ## Introduction
+
 This document describes the component architecture of PersonalLearningPro’s React application. It explains the component hierarchy, reusable UI components, and page-level components. It also covers composition patterns, how prop drilling is prevented using context providers, lifecycle management, and the custom component library built with Radix UI primitives. Specialized educational components such as chat bubbles and performance charts are documented alongside naming conventions, folder organization, testing strategies, accessibility, and responsive design patterns.
 
 ## Project Structure
+
 The client application is organized by feature and layer:
+
 - Pages: route-level views such as dashboards and feature pages
 - Components: reusable UI building blocks grouped by domain (layout, chat, dashboard, ui)
 - Contexts: cross-cutting concerns (authentication, theme, chat role)
@@ -90,6 +94,7 @@ CHAT_LAYOUT --> ROLE_CTX
 ```
 
 **Diagram sources**
+
 - [main.tsx](file://client/src/main.tsx#L1-L8)
 - [App.tsx](file://client/src/App.tsx#L1-L165)
 - [dashboard.tsx](file://client/src/pages/dashboard.tsx#L1-L338)
@@ -104,16 +109,19 @@ CHAT_LAYOUT --> ROLE_CTX
 - [chat-role-context.tsx](file://client/src/contexts/chat-role-context.tsx#L1-L59)
 
 **Section sources**
+
 - [main.tsx](file://client/src/main.tsx#L1-L8)
 - [App.tsx](file://client/src/App.tsx#L1-L165)
 
 ## Core Components
+
 - App and Routing: The application bootstraps via main.tsx and renders App.tsx. App.tsx defines a provider stack (React Query, Theme, Firebase Auth) and a role-aware Router that conditionally renders pages and applies a layout wrapper.
 - Layout Wrapper: AppLayout centralizes sidebar and main content margins, supporting full-width and constrained layouts.
 - Authentication and Theme Contexts: FirebaseAuthProvider and ThemeProvider encapsulate auth state and theme persistence, exposing hooks for consumption.
 - UI Library: A set of Radix UI–based components (button, form, input, etc.) with Tailwind-based variants and consistent APIs.
 
 Key responsibilities:
+
 - App.tsx: Routing orchestration, role-based dashboard selection, loading/auth UI, and layout wrapping
 - AppLayout: Container with sidebar width control and responsive constraints
 - FirebaseAuthProvider: Auth state, profile hydration, and toast-driven UX
@@ -121,6 +129,7 @@ Key responsibilities:
 - UI components: Consistent variants, slots, and accessibility attributes
 
 **Section sources**
+
 - [App.tsx](file://client/src/App.tsx#L1-L165)
 - [main.tsx](file://client/src/main.tsx#L1-L8)
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L1-L267)
@@ -129,7 +138,9 @@ Key responsibilities:
 - [form.tsx](file://client/src/components/ui/form.tsx#L1-L177)
 
 ## Architecture Overview
+
 The app follows a layered architecture:
+
 - Entry point initializes React root and providers
 - Routing layer decides which page to render based on role and route
 - Layout layer composes header and sidebar around page content
@@ -150,6 +161,7 @@ DOMAIN --> UI["UI Library<br/>(Radix + Tailwind)"]
 ```
 
 **Diagram sources**
+
 - [main.tsx](file://client/src/main.tsx#L1-L8)
 - [App.tsx](file://client/src/App.tsx#L1-L165)
 - [header.tsx](file://client/src/components/layout/header.tsx#L1-L133)
@@ -161,6 +173,7 @@ DOMAIN --> UI["UI Library<br/>(Radix + Tailwind)"]
 ## Detailed Component Analysis
 
 ### Routing and Layout Composition
+
 - App.tsx orchestrates:
   - Provider stack: React Query, Theme, Firebase Auth
   - Router: role-aware selection of dashboard and feature routes
@@ -189,13 +202,16 @@ Layout->>Page : render children
 ```
 
 **Diagram sources**
+
 - [main.tsx](file://client/src/main.tsx#L1-L8)
 - [App.tsx](file://client/src/App.tsx#L1-L165)
 
 **Section sources**
+
 - [App.tsx](file://client/src/App.tsx#L1-L165)
 
 ### Authentication and Theme Contexts
+
 - FirebaseAuthProvider:
   - Subscribes to auth state, hydrates profile, and exposes login/register/logout/reset helpers
   - Toasts provide feedback; loading state prevents UI flicker
@@ -218,14 +234,17 @@ UI->>ThemeCtx : useTheme()
 ```
 
 **Diagram sources**
+
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L1-L267)
 - [theme-context.tsx](file://client/src/contexts/theme-context.tsx#L1-L72)
 
 **Section sources**
+
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L1-L267)
 - [theme-context.tsx](file://client/src/contexts/theme-context.tsx#L1-L72)
 
 ### Chat Domain: Conversations and Message Bubbles
+
 - ChatLayout:
   - Provides role-aware context for chat
   - Fetches workspaces, channels, and DMs; merges with mock data
@@ -252,14 +271,17 @@ Bubble --> End(["Done"])
 ```
 
 **Diagram sources**
+
 - [ChatLayout.tsx](file://client/src/components/chat/ChatLayout.tsx#L1-L185)
 - [MessageBubble.tsx](file://client/src/components/chat/MessageBubble.tsx#L1-L157)
 
 **Section sources**
+
 - [ChatLayout.tsx](file://client/src/components/chat/ChatLayout.tsx#L1-L185)
 - [MessageBubble.tsx](file://client/src/components/chat/MessageBubble.tsx#L1-L157)
 
 ### Dashboard Page Composition
+
 - dashboard.tsx composes:
   - PageHeader, stats cards, quick actions, class schedule, recent tests, performance chart, top students, notifications, and resource suggestions
   - Uses UI primitives (Button, Card, Badge) and educational components (PerformanceChart, TopStudents)
@@ -280,13 +302,16 @@ PAGE --> UI["UI Primitives (Button, Card, Badge)"]
 ```
 
 **Diagram sources**
+
 - [dashboard.tsx](file://client/src/pages/dashboard.tsx#L1-L338)
 - [button.tsx](file://client/src/components/ui/button.tsx#L1-L57)
 
 **Section sources**
+
 - [dashboard.tsx](file://client/src/pages/dashboard.tsx#L1-L338)
 
 ### UI Primitive Library: Button and Form
+
 - Button:
   - Variants and sizes via class-variance-authority
   - Accepts asChild to render semantic elements
@@ -315,14 +340,17 @@ Button <.. Form : "used within forms"
 ```
 
 **Diagram sources**
+
 - [button.tsx](file://client/src/components/ui/button.tsx#L1-L57)
 - [form.tsx](file://client/src/components/ui/form.tsx#L1-L177)
 
 **Section sources**
+
 - [button.tsx](file://client/src/components/ui/button.tsx#L1-L57)
 - [form.tsx](file://client/src/components/ui/form.tsx#L1-L177)
 
 ### Layout Components: Header and Sidebar
+
 - Header:
   - Responsive search toggle, theme toggle, notifications, messages, and user dropdown
   - Uses theme and auth contexts; integrates with sidebar toggle via custom event dispatch
@@ -343,16 +371,19 @@ Sidebar->>Sidebar : update CSS var (--sidebar-width)
 ```
 
 **Diagram sources**
+
 - [header.tsx](file://client/src/components/layout/header.tsx#L1-L133)
 - [sidebar.tsx](file://client/src/components/layout/sidebar.tsx#L1-L332)
 - [theme-context.tsx](file://client/src/contexts/theme-context.tsx#L1-L72)
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L1-L267)
 
 **Section sources**
+
 - [header.tsx](file://client/src/components/layout/header.tsx#L1-L133)
 - [sidebar.tsx](file://client/src/components/layout/sidebar.tsx#L1-L332)
 
 ## Dependency Analysis
+
 - Provider stack: App.tsx wraps children in QueryClientProvider, ThemeProvider, FirebaseAuthProvider
 - Context coupling:
   - ChatLayout depends on ChatRoleProvider (derived from auth)
@@ -376,6 +407,7 @@ ROLE --> AUTH
 ```
 
 **Diagram sources**
+
 - [App.tsx](file://client/src/App.tsx#L1-L165)
 - [theme-context.tsx](file://client/src/contexts/theme-context.tsx#L1-L72)
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L1-L267)
@@ -384,10 +416,12 @@ ROLE --> AUTH
 - [sidebar.tsx](file://client/src/components/layout/sidebar.tsx#L1-L332)
 
 **Section sources**
+
 - [App.tsx](file://client/src/App.tsx#L1-L165)
 - [chat-role-context.tsx](file://client/src/contexts/chat-role-context.tsx#L1-L59)
 
 ## Performance Considerations
+
 - Memoization and stable wrappers:
   - AppLayout wrapper memoization avoids recreating components on each render
   - ChatLayout uses useMemo and useCallback to stabilize derived values and handlers
@@ -401,6 +435,7 @@ ROLE --> AUTH
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
+
 - Authentication flow:
   - If auth state hangs, check onAuthStateChanged subscription and profile hydration timeouts
   - Toast feedback helps diagnose login/register/logout failures
@@ -412,13 +447,16 @@ ROLE --> AUTH
   - Ensure CSS variable for sidebar width is set and Tailwind utilities are applied
 
 **Section sources**
+
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L1-L267)
 - [theme-context.tsx](file://client/src/contexts/theme-context.tsx#L1-L72)
 - [ChatLayout.tsx](file://client/src/components/chat/ChatLayout.tsx#L1-L185)
 - [sidebar.tsx](file://client/src/components/layout/sidebar.tsx#L1-L332)
 
 ## Conclusion
+
 PersonalLearningPro’s component architecture emphasizes:
+
 - Clear separation of concerns across routing, layout, domain, and UI layers
 - Context-based composition to prevent prop drilling and centralize cross-cutting concerns
 - A robust UI primitive library built on Radix UI and Tailwind for accessibility and consistency
@@ -429,22 +467,25 @@ PersonalLearningPro’s component architecture emphasizes:
 ## Appendices
 
 ### Naming Conventions and Folder Organization
+
 - Feature-first grouping:
   - components/layout, components/chat, components/dashboard, components/test, components/ui
 - Page-level components:
-  - pages/*.tsx for route-level views
+  - pages/\*.tsx for route-level views
 - Contexts and hooks:
-  - contexts/* for providers, hooks/* for custom hooks
+  - contexts/_ for providers, hooks/_ for custom hooks
 - Utilities and types:
-  - lib/* for shared utilities/API clients, types/* for TS types
+  - lib/_ for shared utilities/API clients, types/_ for TS types
 - Tokens and animations:
   - index.css defines CSS variables and Tailwind layers for themes, charts, and chat tokens
 
 **Section sources**
+
 - [index.css](file://client/src/index.css#L1-L344)
 - [config.ts](file://client/src/config.ts#L1-L8)
 
 ### Accessibility Implementation
+
 - Semantic markup and labels:
   - Buttons, inputs, and form controls use proper roles and labels
   - Radix UI primitives provide accessible defaults
@@ -456,11 +497,13 @@ PersonalLearningPro’s component architecture emphasizes:
   - Dark/light variants and chart tokens ensure readability across modes
 
 **Section sources**
+
 - [button.tsx](file://client/src/components/ui/button.tsx#L1-L57)
 - [form.tsx](file://client/src/components/ui/form.tsx#L1-L177)
 - [index.css](file://client/src/index.css#L1-L344)
 
 ### Responsive Design Patterns
+
 - Breakpoints and spacing:
   - Tailwind utilities for responsive grids and paddings
 - Sidebar behavior:
@@ -469,6 +512,7 @@ PersonalLearningPro’s component architecture emphasizes:
   - Responsive typography scales and card layouts adapt to screen sizes
 
 **Section sources**
+
 - [sidebar.tsx](file://client/src/components/layout/sidebar.tsx#L1-L332)
 - [dashboard.tsx](file://client/src/pages/dashboard.tsx#L1-L338)
 - [index.css](file://client/src/index.css#L1-L344)

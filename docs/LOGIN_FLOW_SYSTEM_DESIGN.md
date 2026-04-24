@@ -1,15 +1,17 @@
 # 🔐 Login Flow System Design
+
 ## AI-Powered Personalized Learning App — Firebase Implementation
 
 ---
 
 ## 👥 User Roles
-| Role | Access Level | Firebase Custom Claim |
-|------|-------------|----------------------|
-| Student | Personal dashboard, tests, chatbot, leaderboard | `role: "student"` |
-| Teacher | Classroom dashboard, test creation, analytics | `role: "teacher"` |
-| School Admin | School-wide reports, teacher management | `role: "school_admin"` |
-| Admin | Full system access, institution management | `role: "admin"` |
+
+| Role         | Access Level                                    | Firebase Custom Claim  |
+| ------------ | ----------------------------------------------- | ---------------------- |
+| Student      | Personal dashboard, tests, chatbot, leaderboard | `role: "student"`      |
+| Teacher      | Classroom dashboard, test creation, analytics   | `role: "teacher"`      |
+| School Admin | School-wide reports, teacher management         | `role: "school_admin"` |
+| Admin        | Full system access, institution management      | `role: "admin"`        |
 
 > Roles are set using **Firebase Custom Claims** via Admin SDK on the backend.
 
@@ -387,17 +389,17 @@ service cloud.firestore {
 
 ## 🔒 Security Summary
 
-| Rule | Firebase Implementation |
-|------|------------------------|
-| Account Lockout | Automatic via `auth/too-many-requests` |
-| OTP Expiry | Firebase Phone Auth manages automatically |
-| Password Reset Expiry | Firebase manages action code TTL |
-| ID Token TTL | 1 hour (auto-refreshed by SDK) |
-| Refresh Token | Managed by Firebase, revocable via Admin SDK |
-| 2FA | Firebase Identity Platform (Blaze plan) or custom via Twilio + Cloud Functions |
-| RBAC | Firebase Custom Claims + Firestore Security Rules |
-| Password Hashing | Firebase Authentication handles internally |
-| Email Verification | `sendEmailVerification()` built-in |
+| Rule                  | Firebase Implementation                                                        |
+| --------------------- | ------------------------------------------------------------------------------ |
+| Account Lockout       | Automatic via `auth/too-many-requests`                                         |
+| OTP Expiry            | Firebase Phone Auth manages automatically                                      |
+| Password Reset Expiry | Firebase manages action code TTL                                               |
+| ID Token TTL          | 1 hour (auto-refreshed by SDK)                                                 |
+| Refresh Token         | Managed by Firebase, revocable via Admin SDK                                   |
+| 2FA                   | Firebase Identity Platform (Blaze plan) or custom via Twilio + Cloud Functions |
+| RBAC                  | Firebase Custom Claims + Firestore Security Rules                              |
+| Password Hashing      | Firebase Authentication handles internally                                     |
+| Email Verification    | `sendEmailVerification()` built-in                                             |
 
 ---
 
@@ -433,27 +435,27 @@ Fields:
 
 ## 🔄 Firebase Auth Methods Reference
 
-| Flow | Firebase Method |
-|------|----------------|
-| Register with Email | `createUserWithEmailAndPassword(auth, email, password)` |
-| Email Verification | `sendEmailVerification(user)` |
-| Phone OTP Send | `signInWithPhoneNumber(auth, phone, appVerifier)` |
-| Phone OTP Confirm | `confirmationResult.confirm(otpCode)` |
-| Login with Email | `signInWithEmailAndPassword(auth, email, password)` |
-| Login with Google | `signInWithPopup(auth, new GoogleAuthProvider())` |
-| Login with Apple | `signInWithPopup(auth, new OAuthProvider('apple.com'))` |
-| Forgot Password | `sendPasswordResetEmail(auth, email)` |
-| Confirm Password Reset | `confirmPasswordReset(auth, actionCode, newPassword)` |
-| Get ID Token | `user.getIdToken()` |
-| Get Claims | `user.getIdTokenResult()` → `.claims.role` |
-| Auth State Listener | `onAuthStateChanged(auth, callback)` |
-| Set Persistence | `setPersistence(auth, browserLocalPersistence)` |
-| Logout | `signOut(auth)` |
-| Revoke All Sessions | `admin.auth().revokeRefreshTokens(uid)` ← Admin SDK |
-| Set Custom Claims | `admin.auth().setCustomUserClaims(uid, { role })` ← Admin SDK |
-| Verify ID Token (Backend) | `admin.auth().verifyIdToken(idToken)` ← Admin SDK |
+| Flow                      | Firebase Method                                               |
+| ------------------------- | ------------------------------------------------------------- |
+| Register with Email       | `createUserWithEmailAndPassword(auth, email, password)`       |
+| Email Verification        | `sendEmailVerification(user)`                                 |
+| Phone OTP Send            | `signInWithPhoneNumber(auth, phone, appVerifier)`             |
+| Phone OTP Confirm         | `confirmationResult.confirm(otpCode)`                         |
+| Login with Email          | `signInWithEmailAndPassword(auth, email, password)`           |
+| Login with Google         | `signInWithPopup(auth, new GoogleAuthProvider())`             |
+| Login with Apple          | `signInWithPopup(auth, new OAuthProvider('apple.com'))`       |
+| Forgot Password           | `sendPasswordResetEmail(auth, email)`                         |
+| Confirm Password Reset    | `confirmPasswordReset(auth, actionCode, newPassword)`         |
+| Get ID Token              | `user.getIdToken()`                                           |
+| Get Claims                | `user.getIdTokenResult()` → `.claims.role`                    |
+| Auth State Listener       | `onAuthStateChanged(auth, callback)`                          |
+| Set Persistence           | `setPersistence(auth, browserLocalPersistence)`               |
+| Logout                    | `signOut(auth)`                                               |
+| Revoke All Sessions       | `admin.auth().revokeRefreshTokens(uid)` ← Admin SDK           |
+| Set Custom Claims         | `admin.auth().setCustomUserClaims(uid, { role })` ← Admin SDK |
+| Verify ID Token (Backend) | `admin.auth().verifyIdToken(idToken)` ← Admin SDK             |
 
 ---
 
-*Built on Firebase Authentication + Firestore + Firebase Admin SDK + Cloud Functions.*
-*Custom Claims power RBAC. Firestore Security Rules enforce access control at the data layer.*
+_Built on Firebase Authentication + Firestore + Firebase Admin SDK + Cloud Functions._
+_Custom Claims power RBAC. Firestore Security Rules enforce access control at the data layer._

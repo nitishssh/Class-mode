@@ -8,7 +8,7 @@ if (!process.env.OPENAI_API_KEY) {
 }
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || ""
+  apiKey: process.env.OPENAI_API_KEY || "",
 });
 
 interface ChatMessage {
@@ -29,46 +29,55 @@ const EvaluationSchema = z.object({
 
 const StudyPlanSchema = z.object({
   plan: z.string(),
-  resources: z.array(z.object({
-    title: z.string(),
-    type: z.string(),
-    url: z.string().optional(),
-  })),
+  resources: z.array(
+    z.object({
+      title: z.string(),
+      type: z.string(),
+      url: z.string().optional(),
+    })
+  ),
 });
 
 const PerformanceAnalysisSchema = z.object({
   averageScore: z.number(),
-  hardestQuestions: z.array(z.object({
-    questionId: z.number(),
-    question: z.string(),
-    avgScore: z.number(),
-  })),
+  hardestQuestions: z.array(
+    z.object({
+      questionId: z.number(),
+      question: z.string(),
+      avgScore: z.number(),
+    })
+  ),
   recommendations: z.string(),
 });
 
-
 // ── OpenAI error normaliser ───────────────────────────────────────────────────
 function handleOpenAIError(err: any): never {
-  if (err?.status === 429) throw Object.assign(new Error("AI rate limit reached, try again shortly"), { status: 503 });
-  if (err?.status === 503 || err?.code === "ECONNREFUSED") throw Object.assign(new Error("AI is unavailable right now"), { status: 503 });
+  if (err?.status === 429)
+    throw Object.assign(new Error("AI rate limit reached, try again shortly"), { status: 503 });
+  if (err?.status === 503 || err?.code === "ECONNREFUSED")
+    throw Object.assign(new Error("AI is unavailable right now"), { status: 503 });
   throw Object.assign(new Error("AI is unavailable right now"), { status: 503 });
 }
 
-export async function aiChat(messages: ChatMessage[], systemPrompt?: string): Promise<ChatResponse> {
+export async function aiChat(
+  messages: ChatMessage[],
+  systemPrompt?: string
+): Promise<ChatResponse> {
   try {
     // Use provided system prompt or default
     if (systemPrompt) {
       // Check if system message already exists, if so update it, otherwise unshift
-      const existingSystemIndex = messages.findIndex(msg => msg.role === "system");
+      const existingSystemIndex = messages.findIndex((msg) => msg.role === "system");
       if (existingSystemIndex !== -1) {
         messages[existingSystemIndex].content = systemPrompt;
       } else {
         messages.unshift({ role: "system", content: systemPrompt });
       }
-    } else if (!messages.some(msg => msg.role === "system")) {
+    } else if (!messages.some((msg) => msg.role === "system")) {
       messages.unshift({
         role: "system",
-        content: "You are an AI tutor for high school students. You're knowledgeable about physics, chemistry, mathematics, biology, and computer science. Provide clear, concise explanations. Include examples when helpful. For math problems, show step-by-step solutions. Keep explanations appropriate for high school level understanding. Be encouraging and supportive."
+        content:
+          "You are an AI tutor for high school students. You're knowledgeable about physics, chemistry, mathematics, biology, and computer science. Provide clear, concise explanations. Include examples when helpful. For math problems, show step-by-step solutions. Keep explanations appropriate for high school level understanding. Be encouraging and supportive.",
       });
     }
 
@@ -78,7 +87,7 @@ export async function aiChat(messages: ChatMessage[], systemPrompt?: string): Pr
     });
 
     return {
-      content: response.choices[0].message.content || "I don't have a response for that."
+      content: response.choices[0].message.content || "I don't have a response for that.",
     };
   } catch (error) {
     logger.error("AI chat error:", error);
@@ -110,14 +119,14 @@ export async function evaluateSubjectiveAnswer(
           2. A confidence level between 0 and 100 indicating how certain you are of your evaluation
           3. Constructive feedback explaining the score
           
-          Respond with JSON in this format: { "score": number, "confidence": number, "feedback": string }`
+          Respond with JSON in this format: { "score": number, "confidence": number, "feedback": string }`,
         },
         {
           role: "user",
-          content: `Question: ${question}\nRubric: ${rubric}\nStudent Answer: ${studentAnswer}`
-        }
+          content: `Question: ${question}\nRubric: ${rubric}\nStudent Answer: ${studentAnswer}`,
+        },
       ],
-      response_format: { type: "json_object" }
+      response_format: { type: "json_object" },
     });
 
     const content = response.choices[0]?.message?.content || "{}";
@@ -128,14 +137,14 @@ export async function evaluateSubjectiveAnswer(
       return {
         score: Math.min(maxMarks, result.score),
         confidence: result.confidence,
-        feedback: result.feedback
+        feedback: result.feedback,
       };
     } catch (parseError) {
       logger.error("AI evaluation schema validation error:", parseError);
       return {
         score: 0,
         confidence: 0,
-        feedback: "Error processing evaluation. Please review manually."
+        feedback: "Error processing evaluation. Please review manually.",
       };
     }
   } catch (error) {
@@ -143,7 +152,7 @@ export async function evaluateSubjectiveAnswer(
     return {
       score: 0,
       confidence: 0,
-      feedback: "The AI service is currently unavailable. Please check back later."
+      feedback: "The AI service is currently unavailable. Please check back later.",
     };
   }
 }
@@ -152,7 +161,7 @@ export async function generateStudyPlan(
   weakTopics: string[],
   strongTopics: string[],
   subject: string
-): Promise<{ plan: string, resources: Array<{ title: string, type: string, url?: string }> }> {
+): Promise<{ plan: string; resources: Array<{ title: string; type: string; url?: string }> }> {
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -164,16 +173,16 @@ export async function generateStudyPlan(
           1. "plan": a structured study plan with bullet points and time estimates
           2. "resources": an array of recommended resources, each with "title", "type" (video, article, practice), and optional "url"
           
-          Keep the response concise and focused on actionable advice.`
+          Keep the response concise and focused on actionable advice.`,
         },
         {
           role: "user",
           content: `Subject: ${subject}
           Weak Topics: ${weakTopics.join(", ")}
-          Strong Topics: ${strongTopics.join(", ")}`
-        }
+          Strong Topics: ${strongTopics.join(", ")}`,
+        },
       ],
-      response_format: { type: "json_object" }
+      response_format: { type: "json_object" },
     });
 
     const content = response.choices[0]?.message?.content || "{}";
@@ -184,24 +193,28 @@ export async function generateStudyPlan(
       logger.error("AI study plan schema validation error:", parseError);
       return {
         plan: "Error generating study plan. Please try again later.",
-        resources: [{ title: "General review resources", type: "general" }]
+        resources: [{ title: "General review resources", type: "general" }],
       };
     }
   } catch (error) {
     logger.error("Study plan generation error:", error);
     return {
       plan: "Study plan generation failed. Please focus on reviewing the weak topics identified in your assessment.",
-      resources: [{ title: "General review resources", type: "general" }]
+      resources: [{ title: "General review resources", type: "general" }],
     };
   }
 }
 
 export async function analyzeTestPerformance(
-  testResults: Array<{ studentId: number, score: number, answers: Array<{ questionId: number, score: number, question: string }> }>
+  testResults: Array<{
+    studentId: number;
+    score: number;
+    answers: Array<{ questionId: number; score: number; question: string }>;
+  }>
 ): Promise<{
-  averageScore: number,
-  hardestQuestions: Array<{ questionId: number, question: string, avgScore: number }>,
-  recommendations: string
+  averageScore: number;
+  hardestQuestions: Array<{ questionId: number; question: string; avgScore: number }>;
+  recommendations: string;
 }> {
   try {
     const response = await openai.chat.completions.create({
@@ -213,14 +226,14 @@ export async function analyzeTestPerformance(
           Return a JSON object with:
           1. "averageScore": the calculated average score
           2. "hardestQuestions": an array of questions with lowest average scores (max 3)
-          3. "recommendations": teaching recommendations based on the results`
+          3. "recommendations": teaching recommendations based on the results`,
         },
         {
           role: "user",
-          content: `Test Data: ${JSON.stringify(testResults)}`
-        }
+          content: `Test Data: ${JSON.stringify(testResults)}`,
+        },
       ],
-      response_format: { type: "json_object" }
+      response_format: { type: "json_object" },
     });
 
     const content = response.choices[0]?.message?.content || "{}";
@@ -230,9 +243,10 @@ export async function analyzeTestPerformance(
     } catch (parseError) {
       logger.error("AI test performance analysis schema validation error:", parseError);
       return {
-        averageScore: testResults.reduce((sum, result) => sum + result.score, 0) / testResults.length,
+        averageScore:
+          testResults.reduce((sum, result) => sum + result.score, 0) / testResults.length,
         hardestQuestions: [],
-        recommendations: "Error analyzing test performance. Please review individual results."
+        recommendations: "Error analyzing test performance. Please review individual results.",
       };
     }
   } catch (error) {
@@ -240,7 +254,7 @@ export async function analyzeTestPerformance(
     return {
       averageScore: testResults.reduce((sum, result) => sum + result.score, 0) / testResults.length,
       hardestQuestions: [],
-      recommendations: "Performance analysis failed. Please review individual student results."
+      recommendations: "Performance analysis failed. Please review individual student results.",
     };
   }
 }

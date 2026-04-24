@@ -14,6 +14,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -25,9 +26,11 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document provides comprehensive REST API documentation for PersonalLearningPro’s HTTP endpoints. It covers authentication, user management, assessments (tests, questions, attempts, answers), AI-powered evaluation and chat, OCR processing, and the integrated chat system (workspaces, channels, messages). For each endpoint, you will find HTTP methods, URL patterns, request/response schemas, authentication requirements, parameter specifications, validation rules, and response codes. Practical examples and troubleshooting guidance are included to help developers integrate and operate the API effectively.
 
 ## Project Structure
+
 The API is implemented in a Node.js/Express server with TypeScript. Routes are registered centrally and validated using Zod schemas. Sessions are used for authentication and authorization. MongoDB stores most entities, while Cassandra is used for message history and related operations. OpenAI is used for AI chat and evaluation, and Tesseract is used for OCR.
 
 ```mermaid
@@ -43,6 +46,7 @@ Express --> Session["Session Store<br/>(MemoryStore)"]
 ```
 
 **Diagram sources**
+
 - [server/index.ts](file://server/index.ts#L1-L114)
 - [server/routes.ts](file://server/routes.ts#L1-L1104)
 - [server/storage.ts](file://server/storage.ts#L1-L200)
@@ -50,10 +54,12 @@ Express --> Session["Session Store<br/>(MemoryStore)"]
 - [server/lib/tesseract.ts](file://server/lib/tesseract.ts#L1-L33)
 
 **Section sources**
+
 - [server/index.ts](file://server/index.ts#L1-L114)
 - [server/routes.ts](file://server/routes.ts#L1-L1104)
 
 ## Core Components
+
 - Authentication and session management: Login, logout, and session-based access control.
 - User management: Registration, profile retrieval, and role-based access.
 - Assessment lifecycle: Tests, questions, test attempts, and answers.
@@ -62,12 +68,14 @@ Express --> Session["Session Store<br/>(MemoryStore)"]
 - Chat system: Workspaces, channels, messages, read status, pinning, grading, and uploads.
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L11-L1104)
 - [shared/schema.ts](file://shared/schema.ts#L1-L142)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L1-L217)
 - [server/lib/tesseract.ts](file://server/lib/tesseract.ts#L1-L33)
 
 ## Architecture Overview
+
 The API is organized by feature areas with strict session-based authentication and role checks. Validation is enforced via Zod schemas. Responses are JSON with consistent error handling.
 
 ```mermaid
@@ -89,6 +97,7 @@ S-->>C : HTTP Response
 ```
 
 **Diagram sources**
+
 - [server/index.ts](file://server/index.ts#L1-L114)
 - [server/routes.ts](file://server/routes.ts#L1-L1104)
 - [server/storage.ts](file://server/storage.ts#L1-L200)
@@ -98,11 +107,13 @@ S-->>C : HTTP Response
 ## Detailed Component Analysis
 
 ### Authentication and Session
+
 - Purpose: Establish and terminate user sessions; enforce session-based access.
 - Authentication requirement: Cookie-based session (credentials: include).
 - Roles: student, teacher.
 
 Endpoints
+
 - POST /api/auth/register
   - Request body: User registration payload validated by insertUserSchema.
   - Response: User object without password; sets session with userId and role.
@@ -116,30 +127,37 @@ Endpoints
   - Errors: 500 failure.
 
 Validation and schemas
+
 - insertUserSchema defines required fields and defaults.
 
 Security considerations
+
 - Session cookie configured with secure flag in production.
 - Session store uses in-memory store; consider Redis in production.
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L13-L85)
 - [shared/schema.ts](file://shared/schema.ts#L4-L13)
 - [server/index.ts](file://server/index.ts#L35-L44)
 
 ### User Management
+
 - GET /api/users/me
   - Authentication: Requires session.
   - Response: Current user object without password.
   - Errors: 401 not authenticated; 404 user not found; 500 failure.
 
 Notes
+
 - Role-based access is enforced elsewhere (e.g., teacher-only endpoints).
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L87-L107)
 
 ### Assessments: Tests
+
 - POST /api/tests
   - Authentication: Requires session; role must be teacher.
   - Request body: Test payload validated by insertTestSchema; teacherId must match session userId.
@@ -170,13 +188,16 @@ Notes
   - Errors: 401/403; 400 invalid input; 404 not found; 500 failure.
 
 Validation and schemas
+
 - insertTestSchema defines fields and enums.
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L110-L247)
 - [shared/schema.ts](file://shared/schema.ts#L15-L26)
 
 ### Assessments: Questions
+
 - POST /api/questions
   - Authentication: Requires session; role must be teacher.
   - Request body: Question payload validated by insertQuestionSchema; testId must belong to the teacher.
@@ -192,13 +213,16 @@ Validation and schemas
   - Errors: 401/403; 400 invalid ID; 404 not found; 500 failure.
 
 Validation and schemas
+
 - insertQuestionSchema defines fields and enums.
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L250-L316)
 - [shared/schema.ts](file://shared/schema.ts#L28-L37)
 
 ### Assessments: Test Attempts
+
 - POST /api/test-attempts
   - Authentication: Requires session; role must be student.
   - Request body: Test attempt validated by insertTestAttemptSchema; studentId must match session userId.
@@ -218,13 +242,16 @@ Validation and schemas
   - Errors: 401/403; 400 invalid input; 404 not found; 500 failure.
 
 Validation and schemas
+
 - insertTestAttemptSchema defines fields and enums.
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L319-L414)
 - [shared/schema.ts](file://shared/schema.ts#L39-L46)
 
 ### Assessments: Answers
+
 - POST /api/answers
   - Authentication: Requires session; role must be student.
   - Request body: Answer validated by insertAnswerSchema; attemptId must belong to the student; attempt must not be completed.
@@ -234,13 +261,16 @@ Validation and schemas
   - Errors: 401/403; 400 invalid input or attempt completed; 404 not found; 500 failure.
 
 Validation and schemas
+
 - insertAnswerSchema defines fields and optional AI fields.
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L417-L463)
 - [shared/schema.ts](file://shared/schema.ts#L48-L59)
 
 ### OCR
+
 - POST /api/ocr
   - Authentication: Requires session.
   - Request body: { imageData } (base64 or data URL).
@@ -248,10 +278,12 @@ Validation and schemas
   - Errors: 401 not authenticated; 400 missing image data; 500 failure.
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L466-L485)
 - [server/lib/tesseract.ts](file://server/lib/tesseract.ts#L1-L33)
 
 ### AI Evaluation
+
 - POST /api/evaluate
   - Authentication: Requires session; role must be teacher.
   - Request body: { answerId }.
@@ -263,10 +295,12 @@ Validation and schemas
   - Errors: 401/403; 400 invalid input; 404 not found; 500 failure.
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L488-L559)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L50-L105)
 
 ### AI Chat
+
 - POST /api/ai-chat
   - Authentication: No session required; relies on client-side Firebase auth.
   - Request body: { messages: array of chat messages }.
@@ -274,10 +308,12 @@ Validation and schemas
   - Errors: 400 invalid messages; 500 failure.
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L562-L580)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L20-L42)
 
 ### Workspaces
+
 - POST /api/workspaces
   - Authentication: Requires session.
   - Request body: Workspace payload validated by insertWorkspaceSchema; ownerId set to session userId; members default empty.
@@ -308,13 +344,16 @@ Validation and schemas
   - Errors: 401/403; 404 not found; 500 failure.
 
 Validation and schemas
+
 - insertWorkspaceSchema defines fields.
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L584-L675)
 - [shared/schema.ts](file://shared/schema.ts#L107-L112)
 
 ### Channels
+
 - POST /api/workspaces/:id/channels
   - Authentication: Requires session; role must be teacher.
   - Path parameter: id.
@@ -344,13 +383,16 @@ Validation and schemas
   - Errors: 500 failure.
 
 Validation and schemas
+
 - insertChannelSchema defines fields.
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L679-L866)
 - [shared/schema.ts](file://shared/schema.ts#L114-L120)
 
 ### Messages
+
 - GET /api/channels/:id/messages
   - Authentication: Requires session.
   - Path parameter: id.
@@ -421,13 +463,16 @@ Validation and schemas
   - Errors: 401 not authenticated; 400 no file; 500 failure.
 
 Validation and schemas
+
 - insertMessageSchema defines fields.
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L722-L1095)
 - [shared/schema.ts](file://shared/schema.ts#L122-L131)
 
 ### MessagePal HTTP API (External)
+
 - GET /api/message/conversations/:userId
   - Response: User conversations.
   - Errors: 400 invalid user ID; 500 failure.
@@ -459,10 +504,13 @@ Validation and schemas
   - Errors: 400 missing IDs; 500 failure.
 
 **Section sources**
+
 - [server/message/routes.ts](file://server/message/routes.ts#L1-L194)
 
 ## Dependency Analysis
+
 Key dependencies and relationships:
+
 - Routes depend on storage for data access and on OpenAI/Tesseract for AI/OCR.
 - Validation is centralized via Zod schemas in shared/schema.ts.
 - Session middleware enforces authentication and authorization across routes.
@@ -480,6 +528,7 @@ Middleware["server/middleware.ts"] --> Routes
 ```
 
 **Diagram sources**
+
 - [server/routes.ts](file://server/routes.ts#L1-L1104)
 - [server/storage.ts](file://server/storage.ts#L1-L200)
 - [server/lib/openai.ts](file://server/lib/openai.ts#L1-L217)
@@ -488,11 +537,13 @@ Middleware["server/middleware.ts"] --> Routes
 - [server/middleware.ts](file://server/middleware.ts#L1-L18)
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L1-L1104)
 - [server/storage.ts](file://server/storage.ts#L1-L200)
 - [shared/schema.ts](file://shared/schema.ts#L1-L142)
 
 ## Performance Considerations
+
 - Pagination: Message endpoints accept limit and before parameters; limit is capped at 100.
 - Read status: Efficiently computed from last N messages for unread counts.
 - AI calls: OpenAI requests incur latency; consider caching or batching evaluations.
@@ -502,7 +553,9 @@ Middleware["server/middleware.ts"] --> Routes
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
+
 Common errors and resolutions:
+
 - 401 Not authenticated
   - Cause: Missing or invalid session cookie.
   - Resolution: Ensure login and include credentials in requests.
@@ -520,11 +573,14 @@ Common errors and resolutions:
   - Resolution: Check server logs; verify database connectivity and external service keys.
 
 Validation and schemas
+
 - Zod schemas define precise validation rules for all endpoints.
 
 **Section sources**
+
 - [server/routes.ts](file://server/routes.ts#L1-L1104)
 - [shared/schema.ts](file://shared/schema.ts#L1-L142)
 
 ## Conclusion
+
 PersonalLearningPro’s API provides a robust, session-based REST interface covering authentication, assessment lifecycle, AI evaluation and chat, OCR, and a comprehensive chat system. Strict validation, role-based access control, and clear error responses facilitate reliable integrations. For production deployments, consider securing sessions with Redis, enabling HTTPS, and monitoring AI and OCR service reliability.

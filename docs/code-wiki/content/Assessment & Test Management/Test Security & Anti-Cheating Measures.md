@@ -17,6 +17,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -29,7 +30,9 @@
 10. [Appendices](#appendices)
 
 ## Introduction
+
 This document details the test security and anti-cheating measures implemented in PersonalLearningPro. It focuses on maintaining test integrity, integrating authentication for access validation, enabling OCR-based answer recognition, and establishing a foundation for session monitoring, suspicious activity detection, and audit trails. The current implementation emphasizes:
+
 - Authentication and authorization for test lifecycle operations
 - OCR processing for scanned answer sheets
 - AI-assisted evaluation for subjective answers
@@ -39,7 +42,9 @@ This document details the test security and anti-cheating measures implemented i
 Areas such as randomized question ordering, dynamic answer masking, time-based restrictions, copy-paste prevention, screenshot detection, browser lockdown, and proctoring mechanisms are not present in the current codebase and are therefore not documented here.
 
 ## Project Structure
+
 The test security and anti-cheating functionality spans both backend and frontend components:
+
 - Backend routes define access control and orchestrate test lifecycle operations
 - Storage layer persists test, attempt, and answer data
 - Authentication is integrated via Firebase on the client and session-based middleware on the server
@@ -78,6 +83,7 @@ IDX --> WS
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L11-L800)
 - [storage.ts](file://server/storage.ts#L110-L519)
 - [index.ts](file://server/index.ts#L35-L84)
@@ -92,6 +98,7 @@ IDX --> WS
 - [ocr-processing.tsx](file://client/src/components/test/ocr-processing.tsx#L23-L219)
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L11-L800)
 - [storage.ts](file://server/storage.ts#L110-L519)
 - [index.ts](file://server/index.ts#L35-L84)
@@ -106,6 +113,7 @@ IDX --> WS
 - [ocr-processing.tsx](file://client/src/components/test/ocr-processing.tsx#L23-L219)
 
 ## Core Components
+
 - Authentication and Authorization
   - Client-side authentication via Firebase with role-aware dialogs and context providers
   - Server-side session middleware and route guards enforcing roles and ownership
@@ -120,6 +128,7 @@ IDX --> WS
   - Global middleware logs API requests for audit trail
 
 **Section sources**
+
 - [firebase-auth-dialog.tsx](file://client/src/components/auth/firebase-auth-dialog.tsx#L39-L500)
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L38-L267)
 - [routes.ts](file://server/routes.ts#L110-L463)
@@ -129,7 +138,9 @@ IDX --> WS
 - [chat-ws.ts](file://server/chat-ws.ts#L119-L146)
 
 ## Architecture Overview
+
 The system enforces security through layered controls:
+
 - Client authentication via Firebase ensures identity and role
 - Server routes validate session, roles, and resource ownership
 - Storage encapsulates persistence and supports analytics and messaging
@@ -159,6 +170,7 @@ SRV-->>C : "Evaluated answer"
 ```
 
 **Diagram sources**
+
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L73-L166)
 - [routes.ts](file://server/routes.ts#L110-L132)
 - [routes.ts](file://server/routes.ts#L466-L485)
@@ -169,6 +181,7 @@ SRV-->>C : "Evaluated answer"
 ## Detailed Component Analysis
 
 ### Authentication and Access Validation
+
 - Client-side
   - The Firebase authentication dialog supports email/password and Google sign-in, including a flow for new Google users to select a role
   - The Firebase auth context manages loading states, user profiles, and exposes login/register/google flows
@@ -193,6 +206,7 @@ Persist --> Done(["Response"])
 ```
 
 **Diagram sources**
+
 - [firebase-auth-dialog.tsx](file://client/src/components/auth/firebase-auth-dialog.tsx#L98-L185)
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L73-L166)
 - [index.ts](file://server/index.ts#L35-L44)
@@ -201,6 +215,7 @@ Persist --> Done(["Response"])
 - [routes.ts](file://server/routes.ts#L417-L463)
 
 **Section sources**
+
 - [firebase-auth-dialog.tsx](file://client/src/components/auth/firebase-auth-dialog.tsx#L39-L500)
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L38-L267)
 - [index.ts](file://server/index.ts#L35-L44)
@@ -209,6 +224,7 @@ Persist --> Done(["Response"])
 - [routes.ts](file://server/routes.ts#L417-L463)
 
 ### Test Integrity Controls
+
 - Test creation and retrieval
   - Teachers can create tests; ownership is enforced
   - Retrieval checks class membership for students
@@ -222,12 +238,14 @@ Persist --> Done(["Response"])
 Note: Randomized question ordering, dynamic answer masking, and time-based restrictions are not implemented in the current codebase.
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L110-L173)
 - [routes.ts](file://server/routes.ts#L250-L316)
 - [routes.ts](file://server/routes.ts#L319-L414)
 - [storage.ts](file://server/storage.ts#L204-L207)
 
 ### OCR Processing and AI Evaluation
+
 - OCR pipeline
   - Client uploads images/PDFs with drag-and-drop support and validation
   - Base64-encoded image is sent to the server’s OCR endpoint
@@ -254,12 +272,14 @@ EvalRoute-->>Client : "Updated answer"
 ```
 
 **Diagram sources**
+
 - [ocr-upload.tsx](file://client/src/components/test/ocr-upload.tsx#L32-L91)
 - [routes.ts](file://server/routes.ts#L466-L485)
 - [tesseract.ts](file://server/lib/tesseract.ts#L8-L32)
 - [routes.ts](file://server/routes.ts#L488-L559)
 
 **Section sources**
+
 - [ocr-upload.tsx](file://client/src/components/test/ocr-upload.tsx#L25-L309)
 - [ocr-processing.tsx](file://client/src/components/test/ocr-processing.tsx#L23-L219)
 - [routes.ts](file://server/routes.ts#L466-L485)
@@ -267,6 +287,7 @@ EvalRoute-->>Client : "Updated answer"
 - [routes.ts](file://server/routes.ts#L488-L559)
 
 ### Session Monitoring and Suspicious Activity Detection
+
 - Session management
   - Sessions are stored in memory with a 24-hour max age and secure cookies in production
 - WebSocket authentication
@@ -277,11 +298,13 @@ EvalRoute-->>Client : "Updated answer"
   - No copy-paste prevention, screenshot detection, or browser lockdown features
 
 **Section sources**
+
 - [index.ts](file://server/index.ts#L35-L44)
 - [chat-ws.ts](file://server/chat-ws.ts#L119-L146)
 - [chat-ws.ts](file://server/chat-ws.ts#L257-L284)
 
 ### Audit Trail Functionality
+
 - API request logging
   - Middleware intercepts JSON responses and logs method, path, status, duration, and response payload
 - Data persistence
@@ -290,10 +313,12 @@ EvalRoute-->>Client : "Updated answer"
   - Current code does not implement a dedicated security incident log table or event stream
 
 **Section sources**
+
 - [index.ts](file://server/index.ts#L46-L74)
 - [storage.ts](file://server/storage.ts#L264-L280)
 
 ### Policy Enforcement, Violation Handling, and Appeals
+
 - Policy enforcement
   - Role-based access control and ownership checks are enforced in routes
 - Violation handling
@@ -302,20 +327,24 @@ EvalRoute-->>Client : "Updated answer"
   - No appeals workflow is present in the current codebase
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L110-L132)
 - [routes.ts](file://server/routes.ts#L319-L370)
 - [routes.ts](file://server/routes.ts#L417-L463)
 
 ### Accessibility Considerations
+
 - Authentication UI supports keyboard navigation and screen readers via standard form components
 - File upload components provide visual feedback and progress indicators
 - No specific accessibility features for OCR or evaluation are implemented beyond standard UI patterns
 
 **Section sources**
+
 - [firebase-auth-dialog.tsx](file://client/src/components/auth/firebase-auth-dialog.tsx#L235-L500)
 - [ocr-upload.tsx](file://client/src/components/test/ocr-upload.tsx#L244-L309)
 
 ## Dependency Analysis
+
 The following diagram shows key dependencies among components involved in test security and anti-cheating:
 
 ```mermaid
@@ -331,6 +360,7 @@ WS --> S
 ```
 
 **Diagram sources**
+
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L38-L267)
 - [firebase-auth-dialog.tsx](file://client/src/components/auth/firebase-auth-dialog.tsx#L39-L500)
 - [routes.ts](file://server/routes.ts#L11-L800)
@@ -341,6 +371,7 @@ WS --> S
 - [chat-ws.ts](file://server/chat-ws.ts#L119-L284)
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L11-L800)
 - [storage.ts](file://server/storage.ts#L110-L519)
 - [index.ts](file://server/index.ts#L35-L84)
@@ -351,6 +382,7 @@ WS --> S
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L38-L267)
 
 ## Performance Considerations
+
 - OCR processing
   - Tesseract.js runs synchronously; consider offloading to a worker or queue for scalability
 - Rate limiting
@@ -361,6 +393,7 @@ WS --> S
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
+
 - Authentication failures
   - Verify Firebase configuration and user profile retrieval timeouts
   - Confirm session cookie settings and store initialization
@@ -374,6 +407,7 @@ WS --> S
   - Ensure session IDs are present and valid; confirm session store configuration
 
 **Section sources**
+
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L43-L71)
 - [firebase-auth-context.tsx](file://client/src/contexts/firebase-auth-context.tsx#L73-L166)
 - [index.ts](file://server/index.ts#L35-L44)
@@ -384,17 +418,20 @@ WS --> S
 - [chat-ws.ts](file://server/chat-ws.ts#L119-L146)
 
 ## Conclusion
+
 PersonalLearningPro implements robust authentication and authorization controls for test lifecycle operations, integrates OCR for scanned answer processing, and leverages AI for subjective evaluation. Session management and WebSocket authentication provide foundational monitoring capabilities, while middleware-based logging establishes an audit trail. Areas such as randomized question ordering, dynamic answer masking, time-based restrictions, copy-paste prevention, screenshot detection, browser lockdown, and comprehensive proctoring are not present in the current codebase and would require additional development to achieve full anti-cheating coverage.
 
 [No sources needed since this section summarizes without analyzing specific files]
 
 ## Appendices
+
 - Test creation and question management UI components
   - Test details form and question form enable teachers to build assessments with validation and defaults
 - OCR upload and processing UI components
   - Drag-and-drop upload with progress and confidence display; editable recognized text for manual review
 
 **Section sources**
+
 - [test-details-form.tsx](file://client/src/components/test/test-details-form.tsx#L44-L325)
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L55-L390)
 - [ocr-upload.tsx](file://client/src/components/test/ocr-upload.tsx#L25-L309)

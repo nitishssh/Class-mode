@@ -1,0 +1,28 @@
+name: study-arena
+description: Default security policy for Study Arena agents
+version: 1
+
+network_policies:
+  - host: maic.chat
+    reason: Study Arena core services
+  - host: open.maic.chat
+    reason: Study Arena hosted gateway
+  - host: anthropic.com
+    reason: Direct LLM access (Claude)
+  - host: openai.com
+    reason: Direct LLM access (GPT)
+  - host: google.com
+    reason: Direct LLM access (Gemini)
+  - host: build.nvidia.com
+    reason: NVIDIA cloud inference
+  - host: integrate.api.nvidia.com
+    reason: NVIDIA NIM endpoints
+
+filesystem_policies:
+  - path: /sandbox/.classroom-cache
+    mode: rw
+    reason: Persistent storage for classroom generation artifacts and audit logs
+
+process_policies:
+  - name: openclaw
+    reason: Allow running the OpenClaw CLI

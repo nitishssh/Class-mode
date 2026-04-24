@@ -1,8 +1,8 @@
 import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
-  host:   process.env.SMTP_HOST   || "smtp.gmail.com",
-  port:   Number(process.env.SMTP_PORT || 587),
+  host: process.env.SMTP_HOST || "smtp.gmail.com",
+  port: Number(process.env.SMTP_PORT || 587),
   secure: false,
   auth: {
     user: process.env.SMTP_USER,
@@ -11,9 +11,14 @@ const transporter = nodemailer.createTransport({
 });
 
 const APP_URL = process.env.APP_URL || "http://localhost:5001";
-const FROM    = process.env.SMTP_FROM || "EduAI Platform <no-reply@eduai.app>";
+const FROM = process.env.SMTP_FROM || "EduAI Platform <no-reply@eduai.app>";
 
-export async function sendTeacherInvite(email: string, name: string, schoolName: string, token: string) {
+export async function sendTeacherInvite(
+  email: string,
+  name: string,
+  schoolName: string,
+  token: string
+) {
   const link = `${APP_URL}/accept-invite?token=${token}`;
   await transporter.sendMail({
     from: FROM,

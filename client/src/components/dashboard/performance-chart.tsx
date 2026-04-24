@@ -7,7 +7,7 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer
+  ResponsiveContainer,
 } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTheme } from "@/contexts/theme-context";
@@ -45,41 +45,43 @@ export function PerformanceChart() {
   return (
     <div className="h-[320px] w-full pt-4">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart
-          data={chartData}
-          margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
-          barGap={8}
-        >
+        <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }} barGap={8}>
           <CartesianGrid strokeDasharray="3 3" stroke="#E6E0D4" vertical={false} />
           <XAxis
             dataKey="subject"
-            tick={{ fontSize: 10, fill: '#6B6A68', fontWeight: 600 }}
+            tick={{ fontSize: 10, fill: "#6B6A68", fontWeight: 600 }}
             tickLine={false}
-            axisLine={{ stroke: '#E6E0D4' }}
+            axisLine={{ stroke: "#E6E0D4" }}
             dy={10}
           />
           <YAxis
-            tick={{ fontSize: 10, fill: '#6B6A68', fontWeight: 600 }}
+            tick={{ fontSize: 10, fill: "#6B6A68", fontWeight: 600 }}
             tickLine={false}
-            axisLine={{ stroke: '#E6E0D4' }}
+            axisLine={{ stroke: "#E6E0D4" }}
             domain={[0, 100]}
           />
           <Tooltip
-            cursor={{ fill: '#FFF9F0', opacity: 0.4 }}
+            cursor={{ fill: "#FFF9F0", opacity: 0.4 }}
             contentStyle={{
               backgroundColor: "#FFF9F0",
               border: "1px solid #E6E0D4",
               borderRadius: "1rem",
               boxShadow: "0 4px 20px -4px rgba(0,0,0,0.1)",
               fontSize: "12px",
-              padding: "12px"
+              padding: "12px",
             }}
           />
           <Legend
             verticalAlign="top"
             align="right"
             iconType="circle"
-            wrapperStyle={{ paddingBottom: 20, fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}
+            wrapperStyle={{
+              paddingBottom: 20,
+              fontSize: "11px",
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+            }}
           />
           <Bar
             dataKey="classAverage"

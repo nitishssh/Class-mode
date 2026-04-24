@@ -11,6 +11,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -22,10 +23,13 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document explains the subjective answer evaluation system used to automatically score descriptive and constructed-response questions. It covers the evaluateSubjectiveAnswer function implementation, prompt engineering for rubric-based assessment, scoring and confidence mechanisms, feedback generation, JSON response format and validation, integration with question rubrics and maximum marks, partial credit handling, examples of evaluation prompts across subjects, and error handling with manual review fallback.
 
 ## Project Structure
+
 The evaluation pipeline spans backend and frontend components:
+
 - Backend: OpenAI integration, route orchestration, and persistent storage
 - Frontend: Question creation UI enabling rubric authoring and OCR-assisted text capture
 
@@ -50,6 +54,7 @@ RT --> |Updates answer with| ST
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L487-L559)
 - [openai.ts](file://server/lib/openai.ts#L50-L105)
 - [schema.ts](file://shared/schema.ts#L28-L59)
@@ -58,6 +63,7 @@ RT --> |Updates answer with| ST
 - [ocr-scan.tsx](file://client/src/pages/ocr-scan.tsx#L31-L95)
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L487-L559)
 - [openai.ts](file://server/lib/openai.ts#L50-L105)
 - [schema.ts](file://shared/schema.ts#L28-L59)
@@ -66,6 +72,7 @@ RT --> |Updates answer with| ST
 - [ocr-scan.tsx](file://client/src/pages/ocr-scan.tsx#L31-L95)
 
 ## Core Components
+
 - evaluateSubjectiveAnswer: Orchestrates rubric-based evaluation using OpenAI, validates JSON output, clamps scores/confidence to configured bounds, and returns feedback.
 - Evaluation route: Validates permissions, loads answer and question context, selects OCR text if available, invokes evaluation, and persists results.
 - Storage integration: Loads answers, questions, attempts, and tests; updates answers with score, confidence, and feedback.
@@ -73,6 +80,7 @@ RT --> |Updates answer with| ST
 - OCR text ingestion: Supplies recognized text for scanned answer sheets.
 
 **Section sources**
+
 - [openai.ts](file://server/lib/openai.ts#L50-L105)
 - [routes.ts](file://server/routes.ts#L487-L559)
 - [storage.ts](file://server/storage.ts#L44-L262)
@@ -80,6 +88,7 @@ RT --> |Updates answer with| ST
 - [ocr-scan.tsx](file://client/src/pages/ocr-scan.tsx#L31-L95)
 
 ## Architecture Overview
+
 The evaluation flow integrates teacher-defined rubrics, question context, and student answer text to produce a score, confidence, and feedback.
 
 ```mermaid
@@ -103,6 +112,7 @@ BE-->>FE : "JSON response"
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L487-L559)
 - [openai.ts](file://server/lib/openai.ts#L50-L105)
 - [storage.ts](file://server/storage.ts#L44-L262)
@@ -110,6 +120,7 @@ BE-->>FE : "JSON response"
 ## Detailed Component Analysis
 
 ### evaluateSubjectiveAnswer Implementation
+
 - Purpose: Accepts student answer, question text, rubric, and maximum marks; returns a validated evaluation result.
 - Prompt engineering:
   - System message establishes the evaluator persona and required JSON schema.
@@ -135,12 +146,15 @@ Clamp --> ReturnRes["Return {score, confidence, feedback}"]
 ```
 
 **Diagram sources**
+
 - [openai.ts](file://server/lib/openai.ts#L50-L105)
 
 **Section sources**
+
 - [openai.ts](file://server/lib/openai.ts#L50-L105)
 
 ### Evaluation Route Orchestration
+
 - Permission checks: Ensures the requesting teacher owns the test associated with the answer attempt.
 - Context loading: Retrieves answer, question, attempt, and test to validate ownership and load rubric/marks.
 - Text selection: Prefers OCR text if available; otherwise uses typed answer text.
@@ -171,15 +185,18 @@ Routes-->>Client : "JSON answer"
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L487-L559)
 - [storage.ts](file://server/storage.ts#L44-L262)
 - [openai.ts](file://server/lib/openai.ts#L50-L105)
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L487-L559)
 - [storage.ts](file://server/storage.ts#L44-L262)
 
 ### Data Model and Validation
+
 - Answer schema fields used for evaluation persistence:
   - score: numeric score assigned by AI
   - aiConfidence: numeric confidence percentage
@@ -212,29 +229,36 @@ ANSWER }o--|| QUESTION : "references"
 ```
 
 **Diagram sources**
+
 - [schema.ts](file://shared/schema.ts#L48-L59)
 - [schema.ts](file://shared/schema.ts#L28-L37)
 
 **Section sources**
+
 - [schema.ts](file://shared/schema.ts#L28-L59)
 
 ### Frontend Rubric Authoring
+
 - During question creation, teachers can specify an AI rubric for short/long questions.
 - The rubric is stored with the question and used by the evaluation pipeline.
 
 **Section sources**
+
 - [question-form.tsx](file://client/src/components/test/question-form.tsx#L354-L372)
 - [schema.ts](file://shared/schema.ts#L28-L37)
 
 ### OCR Text Integration
+
 - OCR recognition supplies text extracted from scanned answer sheets.
 - The evaluation route prefers OCR text when available.
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L533-L538)
 - [ocr-scan.tsx](file://client/src/pages/ocr-scan.tsx#L31-L95)
 
 ## Dependency Analysis
+
 - Routes depend on Storage for data retrieval and updates.
 - Storage depends on shared schemas for type safety.
 - OpenAI integration encapsulates LLM calls and response parsing/validation.
@@ -251,6 +275,7 @@ OA --> ST
 ```
 
 **Diagram sources**
+
 - [routes.ts](file://server/routes.ts#L487-L559)
 - [openai.ts](file://server/lib/openai.ts#L50-L105)
 - [schema.ts](file://shared/schema.ts#L28-L59)
@@ -259,18 +284,22 @@ OA --> ST
 - [ocr-scan.tsx](file://client/src/pages/ocr-scan.tsx#L31-L95)
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L487-L559)
 - [openai.ts](file://server/lib/openai.ts#L50-L105)
 - [schema.ts](file://shared/schema.ts#L28-L59)
 - [storage.ts](file://server/storage.ts#L44-L262)
 
 ## Performance Considerations
+
 - Single synchronous OpenAI call per evaluation; keep rubric length reasonable to minimize latency.
 - JSON parsing and range clamping are O(1); negligible overhead.
 - Consider batching evaluations server-side if scaling to many simultaneous grading tasks.
 
 ## Troubleshooting Guide
+
 Common failure modes and remedies:
+
 - OpenAI service unavailable or rate-limited:
   - Behavior: evaluateSubjectiveAnswer returns fallback result with score and confidence at zero and guidance to manual review.
   - Action: Retry later or instruct teacher to review manually.
@@ -285,8 +314,10 @@ Common failure modes and remedies:
   - Action: Confirm answerId and related identifiers are valid.
 
 **Section sources**
+
 - [openai.ts](file://server/lib/openai.ts#L89-L104)
 - [routes.ts](file://server/routes.ts#L503-L531)
 
 ## Conclusion
+
 The subjective answer evaluation system combines teacher-authored rubrics, question-specific maximum marks, and AI-powered reasoning to produce a score, confidence, and feedback. Robust validation and error handling ensure resilient operation, while manual review remains available as a fallback. The design cleanly separates concerns across frontend rubric authoring, backend orchestration, and persistent storage.

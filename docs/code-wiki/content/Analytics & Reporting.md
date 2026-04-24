@@ -16,6 +16,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -28,9 +29,11 @@
 10. [Appendices](#appendices)
 
 ## Introduction
+
 This document describes the analytics and reporting capabilities of PersonalLearningPro with a focus on performance tracking, visualization, and AI-driven insights. It covers dashboard components, chart implementations, metrics collection, trend analysis, comparative reporting, interactive features, filtering, export readiness, data aggregation, real-time update pathways, historical analysis, customizable layouts, user preferences, report generation workflows, and the integration between analytics data and AI insights for predictive learning recommendations.
 
 ## Project Structure
+
 The analytics surface is primarily implemented in the client under the pages and components directories, while backend routes and data access are provided by the server. Shared schemas define the analytics data model. The UI leverages reusable chart primitives and React Query for data fetching.
 
 ```mermaid
@@ -63,6 +66,7 @@ F --> J
 ```
 
 **Diagram sources**
+
 - [analytics.tsx](file://client/src/pages/analytics.tsx#L1-L177)
 - [performance-chart.tsx](file://client/src/components/dashboard/performance-chart.tsx#L1-L98)
 - [top-students.tsx](file://client/src/components/dashboard/top-students.tsx#L1-L74)
@@ -76,6 +80,7 @@ F --> J
 - [schema.ts](file://shared/schema.ts#L61-L68)
 
 **Section sources**
+
 - [analytics.tsx](file://client/src/pages/analytics.tsx#L1-L177)
 - [performance-chart.tsx](file://client/src/components/dashboard/performance-chart.tsx#L1-L98)
 - [top-students.tsx](file://client/src/components/dashboard/top-students.tsx#L1-L74)
@@ -89,6 +94,7 @@ F --> J
 - [schema.ts](file://shared/schema.ts#L61-L68)
 
 ## Core Components
+
 - Performance Analytics Dashboard: A responsive grid layout combining a bar chart of class vs school averages, a top-performing students panel, pie charts for test completion and subject distribution, and an AI-generated insights tabbed card.
 - PerformanceChart: A Recharts bar chart component that renders class and school averages per subject with tooltips, legends, and theme-aware styling. It currently uses mocked data and includes a disabled React Query hook placeholder for API integration.
 - TopStudents: A ranked list of top students with avatars and scores, backed by a similar disabled React Query hook pattern.
@@ -96,6 +102,7 @@ F --> J
 - Chart Utilities: A reusable chart container and tooltip/legend helpers that support theming and consistent styling across visualizations.
 
 **Section sources**
+
 - [analytics.tsx](file://client/src/pages/analytics.tsx#L15-L177)
 - [performance-chart.tsx](file://client/src/components/dashboard/performance-chart.tsx#L15-L98)
 - [top-students.tsx](file://client/src/components/dashboard/top-students.tsx#L6-L74)
@@ -103,6 +110,7 @@ F --> J
 - [chart.tsx](file://client/src/components/ui/chart.tsx#L6-L364)
 
 ## Architecture Overview
+
 The analytics pipeline integrates client-side dashboards with server-side data access and AI insights. The client renders charts and tables, while the server exposes REST endpoints for test and analytics data and provides AI-powered analysis functions.
 
 ```mermaid
@@ -140,6 +148,7 @@ Note over API,AI : AI insights available via analyzeTestPerformance()
 ```
 
 **Diagram sources**
+
 - [analytics.tsx](file://client/src/pages/analytics.tsx#L22-L177)
 - [performance-chart.tsx](file://client/src/components/dashboard/performance-chart.tsx#L25-L43)
 - [recent-tests-table.tsx](file://client/src/components/dashboard/recent-tests-table.tsx#L34-L73)
@@ -151,6 +160,7 @@ Note over API,AI : AI insights available via analyzeTestPerformance()
 ## Detailed Component Analysis
 
 ### Performance Analytics Dashboard
+
 - Layout: Grid-based composition with a primary bar chart, a secondary top students panel, and two pie charts for completion and subject distribution. Includes an AI insights tabbed card.
 - Interactivity: Responsive containers, tooltips, legends, and theme-aware styling.
 - Data: Uses sample datasets for pie charts and a mocked dataset for the bar chart. Includes a disabled React Query hook for class performance data.
@@ -174,12 +184,15 @@ Col1 --> Mock["Use Mock Data Until API Ready"]
 ```
 
 **Diagram sources**
+
 - [analytics.tsx](file://client/src/pages/analytics.tsx#L40-L177)
 
 **Section sources**
+
 - [analytics.tsx](file://client/src/pages/analytics.tsx#L15-L177)
 
 ### PerformanceChart Component
+
 - Purpose: Visualize class average versus school average per subject.
 - Implementation: Recharts BarChart with CartesianGrid, X/Y axes, tooltip, legend, and theme-aware colors.
 - Data Fetching: React Query hook configured with a placeholder endpoint; defaults to mock data when disabled.
@@ -201,12 +214,15 @@ PerformanceChart --> PerformanceData : "consumes"
 ```
 
 **Diagram sources**
+
 - [performance-chart.tsx](file://client/src/components/dashboard/performance-chart.tsx#L15-L98)
 
 **Section sources**
+
 - [performance-chart.tsx](file://client/src/components/dashboard/performance-chart.tsx#L15-L98)
 
 ### TopStudents Component
+
 - Purpose: Display top-performing students with avatar, class, and score.
 - Implementation: React Query hook with a placeholder endpoint; skeleton loader during loading.
 - Data Model: TopStudentProps with id, name, class, avatar, and score.
@@ -220,12 +236,15 @@ TS_Render --> TS_Item["Avatar + Name + Class + Score"]
 ```
 
 **Diagram sources**
+
 - [top-students.tsx](file://client/src/components/dashboard/top-students.tsx#L14-L74)
 
 **Section sources**
+
 - [top-students.tsx](file://client/src/components/dashboard/top-students.tsx#L6-L74)
 
 ### RecentTestsTable Component
+
 - Purpose: Present recent tests with status, completion rate, average score, and actions.
 - Implementation: Recharts-based progress bars, status badges, and skeleton loaders.
 - Data Model: Test interface with id, title, subject, class, testDate, status, completionRate, averageScore.
@@ -248,14 +267,17 @@ RQ-->>RT : Render table rows
 ```
 
 **Diagram sources**
+
 - [recent-tests-table.tsx](file://client/src/components/dashboard/recent-tests-table.tsx#L34-L150)
 - [routes.ts](file://server/routes.ts#L134-L173)
 - [storage.ts](file://server/storage.ts#L68-L281)
 
 **Section sources**
+
 - [recent-tests-table.tsx](file://client/src/components/dashboard/recent-tests-table.tsx#L22-L150)
 
 ### Chart Utilities (Reusable Primitives)
+
 - ChartContainer: Provides theming and responsive container behavior for Recharts.
 - ChartTooltipContent: Customized tooltip with label formatting and indicators.
 - ChartLegendContent: Customized legend rendering.
@@ -281,12 +303,15 @@ ChartContainer --> ChartLegendContent : "uses"
 ```
 
 **Diagram sources**
+
 - [chart.tsx](file://client/src/components/ui/chart.tsx#L35-L364)
 
 **Section sources**
+
 - [chart.tsx](file://client/src/components/ui/chart.tsx#L6-L364)
 
 ### AI-Generated Learning Insights
+
 - Current State: The analytics page includes an AI insights card with tabs for class and individual views. The individual tab is marked as a future enhancement.
 - AI Capabilities: The server exposes an AI analysis function that evaluates test performance and returns average scores, hardest questions, and recommendations. This can power the “Class Insights” tab.
 
@@ -306,15 +331,18 @@ API-->>Client : JSON response for insights
 ```
 
 **Diagram sources**
+
 - [openai.ts](file://server/lib/openai.ts#L165-L216)
 - [routes.ts](file://server/routes.ts#L1-L1104)
 - [storage.ts](file://server/storage.ts#L68-L281)
 
 **Section sources**
+
 - [analytics.tsx](file://client/src/pages/analytics.tsx#L135-L174)
 - [openai.ts](file://server/lib/openai.ts#L165-L216)
 
 ## Dependency Analysis
+
 - Client-side:
   - Analytics page depends on PerformanceChart, TopStudents, and RecentTestsTable.
   - Charts depend on Recharts and the reusable chart utilities.
@@ -343,6 +371,7 @@ ST --> SCH["schema.ts"]
 ```
 
 **Diagram sources**
+
 - [analytics.tsx](file://client/src/pages/analytics.tsx#L1-L177)
 - [performance-chart.tsx](file://client/src/components/dashboard/performance-chart.tsx#L1-L98)
 - [top-students.tsx](file://client/src/components/dashboard/top-students.tsx#L1-L74)
@@ -356,11 +385,13 @@ ST --> SCH["schema.ts"]
 - [schema.ts](file://shared/schema.ts#L61-L68)
 
 **Section sources**
+
 - [routes.ts](file://server/routes.ts#L1-L1104)
 - [storage.ts](file://server/storage.ts#L68-L281)
 - [schema.ts](file://shared/schema.ts#L61-L68)
 
 ## Performance Considerations
+
 - Data Fetching:
   - React Query caching and stale-while-revalidate strategies can reduce redundant network calls.
   - Placeholder endpoints are disabled; enable them to avoid unnecessary initial loads.
@@ -375,6 +406,7 @@ ST --> SCH["schema.ts"]
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
+
 - Missing API Endpoints:
   - The PerformanceChart and TopStudents components currently disable their React Query hooks. Enable the query keys and implement server endpoints to populate data.
 - Empty or Missing Data:
@@ -385,6 +417,7 @@ ST --> SCH["schema.ts"]
   - OPENAI_API_KEY must be configured; otherwise, AI features will log warnings and fall back to manual evaluation.
 
 **Section sources**
+
 - [performance-chart.tsx](file://client/src/components/dashboard/performance-chart.tsx#L25-L28)
 - [top-students.tsx](file://client/src/components/dashboard/top-students.tsx#L15-L18)
 - [routes.ts](file://server/routes.ts#L134-L173)
@@ -392,6 +425,7 @@ ST --> SCH["schema.ts"]
 - [openai.ts](file://server/lib/openai.ts#L4-L9)
 
 ## Conclusion
+
 PersonalLearningPro’s analytics and reporting layer combines responsive dashboards, reusable chart primitives, and AI-driven insights to deliver actionable performance data. While several endpoints are currently placeholders, the architecture supports scalable data fetching, theming, and AI integration. Future enhancements should focus on enabling backend endpoints, implementing filtering and export capabilities, and expanding individual student analytics.
 
 [No sources needed since this section summarizes without analyzing specific files]
@@ -399,6 +433,7 @@ PersonalLearningPro’s analytics and reporting layer combines responsive dashbo
 ## Appendices
 
 ### Data Models and Aggregation Strategies
+
 - Analytics Entity:
   - Fields include user identifier, test identifier, weak topics, strong topics, recommended resources, and insight date.
   - Used by the storage layer to persist and retrieve analytics insights.
@@ -444,16 +479,19 @@ TEST_ATTEMPT ||--o{ ANSWER : "contains"
 ```
 
 **Diagram sources**
+
 - [schema.ts](file://shared/schema.ts#L61-L68)
 - [schema.ts](file://shared/schema.ts#L39-L46)
 - [schema.ts](file://shared/schema.ts#L48-L59)
 - [storage.ts](file://server/storage.ts#L68-L281)
 
 **Section sources**
+
 - [schema.ts](file://shared/schema.ts#L61-L68)
 - [storage.ts](file://server/storage.ts#L68-L281)
 
 ### Report Generation Workflow
+
 - Data Collection:
   - Gather test results and answers from storage.
 - AI Analysis:
@@ -473,9 +511,11 @@ E --> F
 ```
 
 **Diagram sources**
+
 - [openai.ts](file://server/lib/openai.ts#L165-L216)
 - [routes.ts](file://server/routes.ts#L1-L1104)
 
 **Section sources**
+
 - [openai.ts](file://server/lib/openai.ts#L165-L216)
 - [routes.ts](file://server/routes.ts#L1-L1104)

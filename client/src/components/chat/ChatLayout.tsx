@@ -1,35 +1,35 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Conversation, ConversationCategory } from '@/types/chat';
-import { useRole, ChatRoleProvider } from '@/contexts/chat-role-context';
-import { fetchWorkspaces, fetchChannels, fetchDMs, ApiChannel } from '@/lib/chat-api';
-import { useChatWs } from '@/hooks/use-chat-ws';
-import ConversationList from './ConversationList';
-import ChatThread from './ChatThread';
-import { MessageSquare } from 'lucide-react';
-import { WsReconnectBanner } from './WsReconnectBanner';
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Conversation, ConversationCategory } from "@/types/chat";
+import { useRole, ChatRoleProvider } from "@/contexts/chat-role-context";
+import { fetchWorkspaces, fetchChannels, fetchDMs, ApiChannel } from "@/lib/chat-api";
+import { useChatWs } from "@/hooks/use-chat-ws";
+import ConversationList from "./ConversationList";
+import ChatThread from "./ChatThread";
+import { MessageSquare } from "lucide-react";
+import { WsReconnectBanner } from "./WsReconnectBanner";
 
 // ─── Convert a server ApiChannel into the UI Conversation shape ───────────────
 
 function channelToConversation(ch: ApiChannel): Conversation {
   // Derive category heuristically from channel type / name
   let category: ConversationCategory;
-  if (ch.type === 'announcement') {
-    category = 'announcement';
-  } else if (ch.type === 'dm') {
-    category = 'teacher'; // fallback; enriched below for DM partner roles
+  if (ch.type === "announcement") {
+    category = "announcement";
+  } else if (ch.type === "dm") {
+    category = "teacher"; // fallback; enriched below for DM partner roles
   } else if (ch.subject || ch.class) {
-    category = 'class';
+    category = "class";
   } else {
-    category = 'friend';
+    category = "friend";
   }
 
   return {
     id: String(ch.id), // numeric → string for existing UI
     name: ch.name,
     category,
-    isGroup: ch.type !== 'dm',
-    isReadOnly: ch.type === 'announcement',
+    isGroup: ch.type !== "dm",
+    isReadOnly: ch.type === "announcement",
     participants: [],
     unreadCount: 0,
     subject: ch.subject,
@@ -45,7 +45,7 @@ const ChatLayoutInner = () => {
 
   // ── Fetch workspaces the user belongs to ──────────────────────────────────
   const { data: workspaces } = useQuery({
-    queryKey: ['workspaces'],
+    queryKey: ["workspaces"],
     queryFn: fetchWorkspaces,
     staleTime: 60_000,
     retry: 1,
@@ -53,7 +53,7 @@ const ChatLayoutInner = () => {
 
   // ── Fetch channels for all workspaces ────────────────────────────────────
   const { data: channelsByWs } = useQuery({
-    queryKey: ['channels', workspaces?.map((w) => w.id)],
+    queryKey: ["channels", workspaces?.map((w) => w.id)],
     queryFn: async () => {
       if (!workspaces || workspaces.length === 0) return [] as ApiChannel[];
       const arrays = await Promise.all(workspaces.map((ws) => fetchChannels(ws.id)));
@@ -66,7 +66,7 @@ const ChatLayoutInner = () => {
 
   // ── Fetch DMs ────────────────────────────────────────────────────────────
   const { data: dms } = useQuery({
-    queryKey: ['dms'],
+    queryKey: ["dms"],
     queryFn: fetchDMs,
     staleTime: 60_000,
     retry: 1,
@@ -88,18 +88,20 @@ const ChatLayoutInner = () => {
       dms.forEach((dm) => {
         const conv = channelToConversation(dm);
         // Set category based on partner role
-        if (dm.partner?.role === 'teacher') conv.category = 'teacher';
-        else if (dm.partner?.role === 'parent') conv.category = 'parent';
-        else conv.category = 'friend';
+        if (dm.partner?.role === "teacher") conv.category = "teacher";
+        else if (dm.partner?.role === "parent") conv.category = "parent";
+        else conv.category = "friend";
         // Use partner name if available
         if (dm.partner) {
           conv.name = dm.partner.username;
-          conv.participants = [{
-            id: String(dm.partner.id),
-            name: dm.partner.username,
-            role: (dm.partner.role as 'student' | 'teacher' | 'parent') || 'student',
-            isOnline: false,
-          }];
+          conv.participants = [
+            {
+              id: String(dm.partner.id),
+              name: dm.partner.username,
+              role: (dm.partner.role as "student" | "teacher" | "parent") || "student",
+              isOnline: false,
+            },
+          ];
         }
         serverConvs.push(conv);
       });
@@ -120,7 +122,7 @@ const ChatLayoutInner = () => {
   const activeChannelIdArg = activeConv ? Number(activeConv.id) : undefined;
   const { status: wsStatus } = useChatWs({
     activeChannelId: isNaN(activeChannelIdArg!) ? undefined : activeChannelIdArg,
-    onEvent: () => { }
+    onEvent: () => {},
   });
 
   const handleSelect = useCallback((conv: Conversation) => {
@@ -133,44 +135,45 @@ const ChatLayoutInner = () => {
   }, []);
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden h-full">
+    <div className="flex h-full flex-1 flex-col overflow-hidden">
       <WsReconnectBanner status={wsStatus} />
       <div className="flex flex-1 overflow-hidden">
-      {/* Conversation sidebar */}
-      <div
-        className={`${showList ? 'flex' : 'hidden'
-          } md:flex w-full md:w-[320px] lg:w-[360px] flex-shrink-0 border-r border-border bg-sidebar`}
-      >
-        <div className="w-full">
-          <ConversationList
-            conversations={conversations}
-            activeId={activeConv?.id}
-            onSelect={handleSelect}
-          />
+        {/* Conversation sidebar */}
+        <div
+          className={`${
+            showList ? "flex" : "hidden"
+          } bg-sidebar w-full flex-shrink-0 border-r border-border md:flex md:w-[320px] lg:w-[360px]`}
+        >
+          <div className="w-full">
+            <ConversationList
+              conversations={conversations}
+              activeId={activeConv?.id}
+              onSelect={handleSelect}
+            />
+          </div>
+        </div>
+
+        {/* Chat area */}
+        <div className={`${!showList ? "flex" : "hidden"} min-w-0 flex-1 flex-col md:flex`}>
+          {activeConv ? (
+            <ChatThread conversation={activeConv} onBack={handleBack} />
+          ) : (
+            <div className="flex flex-1 items-center justify-center">
+              <div className="text-center text-muted-foreground">
+                <MessageSquare className="mx-auto mb-4 h-16 w-16 opacity-20" />
+                <p className="text-lg font-medium">Select a conversation</p>
+                <p className="mt-1 text-sm">
+                  {currentRole === "student"
+                    ? "Choose from your classes, teachers, or friends"
+                    : currentRole === "teacher"
+                      ? "Choose from your classes, students, or parents"
+                      : "Choose from your teachers or announcements"}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Chat area */}
-      <div className={`${!showList ? 'flex' : 'hidden'} md:flex flex-1 flex-col min-w-0`}>
-        {activeConv ? (
-          <ChatThread conversation={activeConv} onBack={handleBack} />
-        ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center text-muted-foreground">
-              <MessageSquare className="h-16 w-16 mx-auto mb-4 opacity-20" />
-              <p className="text-lg font-medium">Select a conversation</p>
-              <p className="text-sm mt-1">
-                {currentRole === 'student'
-                  ? 'Choose from your classes, teachers, or friends'
-                  : currentRole === 'teacher'
-                    ? 'Choose from your classes, students, or parents'
-                    : 'Choose from your teachers or announcements'}
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
     </div>
   );
 };

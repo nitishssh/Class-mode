@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  iniclaw:
+    build:
+      context: ./ini_claw
+      dockerfile: Dockerfile
+    ports:
+      - "7070:7070"
+    environment:
+      - BRIDGE_SECRET=${BRIDGE_SECRET}
+      - INICLAW_PORT=7070
+    volumes:
+      - ./ini_claw/.classroom-cache:/app/.classroom-cache
+    restart: always
+
+  study-arena:
+    build:
+      context: ./studyArena
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - INICLAW_GATEWAY_URL=http://iniclaw:7070
+      - BRIDGE_SECRET=${BRIDGE_SECRET}
+      - USE_INICLAW=true
+      - PORT=3000
+    depends_on:
+      - iniclaw
+    restart: always

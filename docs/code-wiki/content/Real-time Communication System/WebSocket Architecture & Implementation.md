@@ -14,6 +14,7 @@
 </cite>
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
@@ -25,10 +26,13 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
+
 This document explains the WebSocket architecture powering PersonalLearningPro’s real-time communication systems. It covers the chat WebSocket server built with the ws library, connection lifecycle management, session-based authentication, client metadata management, channel subscription patterns, heartbeat-based health monitoring, rate limiting, and automatic cleanup. It also documents the MessagePal WebSocket server for direct messaging and outlines scalability, memory management, and performance optimization strategies for handling multiple concurrent connections.
 
 ## Project Structure
+
 The WebSocket implementation spans backend and frontend modules:
+
 - Backend
   - Chat WebSocket server: server/chat-ws.ts
   - MessagePal WebSocket server: server/message/index.ts
@@ -62,6 +66,7 @@ G --> C
 ```
 
 **Diagram sources**
+
 - [server/index.ts](file://server/index.ts#L76-L84)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L119-L120)
 - [server/message/index.ts](file://server/message/index.ts#L262-L266)
@@ -71,6 +76,7 @@ G --> C
 - [client/src/components/message/use-messagepal-ws.ts](file://client/src/components/message/use-messagepal-ws.ts#L43-L48)
 
 **Section sources**
+
 - [server/index.ts](file://server/index.ts#L76-L84)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L119-L120)
 - [server/message/index.ts](file://server/message/index.ts#L262-L266)
@@ -80,6 +86,7 @@ G --> C
 - [client/src/components/message/use-messagepal-ws.ts](file://client/src/components/message/use-messagepal-ws.ts#L43-L48)
 
 ## Core Components
+
 - Chat WebSocket Server
   - Path: /ws/chat
   - Authentication: session-based via express-session store
@@ -101,6 +108,7 @@ G --> C
   - useMessagePalWebSocket: React hook for MessagePal WebSocket with conversation management
 
 **Section sources**
+
 - [server/chat-ws.ts](file://server/chat-ws.ts#L13-L36)
 - [server/message/index.ts](file://server/message/index.ts#L12-L44)
 - [server/storage.ts](file://server/storage.ts#L33-L106)
@@ -108,7 +116,9 @@ G --> C
 - [client/src/components/message/use-messagepal-ws.ts](file://client/src/components/message/use-messagepal-ws.ts#L32-L295)
 
 ## Architecture Overview
+
 The system integrates two WebSocket servers under a single HTTP server:
+
 - Chat WebSocket: supports channels, presence, typing indicators, read receipts, and AI assistant triggers
 - MessagePal WebSocket: supports direct messaging, conversation history, and user presence
 
@@ -145,6 +155,7 @@ MsgWS-->>FE : "message_read {...}"
 ```
 
 **Diagram sources**
+
 - [server/index.ts](file://server/index.ts#L76-L84)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L119-L156)
 - [server/message/index.ts](file://server/message/index.ts#L262-L306)
@@ -155,6 +166,7 @@ MsgWS-->>FE : "message_read {...}"
 ## Detailed Component Analysis
 
 ### Chat WebSocket Server
+
 - Setup and Integration
   - Attaches to HTTP server at path /ws/chat
   - Integrates with express-session store for authentication
@@ -196,17 +208,20 @@ OnClose["On Close/Error"] --> Cleanup["Remove from Channels<br/>Notify Offline<b
 ```
 
 **Diagram sources**
+
 - [server/chat-ws.ts](file://server/chat-ws.ts#L119-L168)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L172-L376)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L71-L90)
 
 **Section sources**
+
 - [server/chat-ws.ts](file://server/chat-ws.ts#L94-L115)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L119-L168)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L172-L376)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L71-L90)
 
 ### MessagePal WebSocket Server
+
 - Upgrade and Connection Handling
   - Uses noServer mode with manual upgrade for /messagepal path
   - Validates session and registers client metadata (userId, username, role, connectedAt)
@@ -246,18 +261,21 @@ WS-->>FE : "history_response {messages}"
 ```
 
 **Diagram sources**
+
 - [server/message/index.ts](file://server/message/index.ts#L262-L274)
 - [server/message/index.ts](file://server/message/index.ts#L276-L306)
 - [server/message/index.ts](file://server/message/index.ts#L105-L152)
 - [server/message/index.ts](file://server/message/index.ts#L349-L366)
 
 **Section sources**
+
 - [server/message/index.ts](file://server/message/index.ts#L71-L93)
 - [server/message/index.ts](file://server/message/index.ts#L262-L306)
 - [server/message/index.ts](file://server/message/index.ts#L105-L152)
 - [server/message/index.ts](file://server/message/index.ts#L349-L366)
 
 ### Client Hooks and Usage Patterns
+
 - use-chat-ws
   - Builds WebSocket URL from current origin
   - Auto-reconnect with exponential backoff
@@ -287,17 +305,20 @@ API-->>Hook : "Message persisted"
 ```
 
 **Diagram sources**
+
 - [client/src/hooks/use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L95-L112)
 - [client/src/hooks/use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L115-L142)
 - [client/src/hooks/use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L199-L214)
 - [server/routes.ts](file://server/routes.ts#L779-L800)
 
 **Section sources**
+
 - [client/src/hooks/use-chat-ws.ts](file://client/src/hooks/use-chat-ws.ts#L65-L217)
 - [client/src/components/message/use-messagepal-ws.ts](file://client/src/components/message/use-messagepal-ws.ts#L32-L295)
 - [server/routes.ts](file://server/routes.ts#L779-L800)
 
 ## Dependency Analysis
+
 - Express server initialization sets up session middleware and routes, then attaches WebSocket servers
 - Both WebSocket servers depend on storage for authentication and persistence
 - Client hooks depend on WebSocket servers for real-time updates
@@ -313,6 +334,7 @@ FEMessage["client/src/components/message/use-messagepal-ws.ts"] --> MsgWS
 ```
 
 **Diagram sources**
+
 - [server/index.ts](file://server/index.ts#L76-L84)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L119-L120)
 - [server/message/index.ts](file://server/message/index.ts#L262-L266)
@@ -321,6 +343,7 @@ FEMessage["client/src/components/message/use-messagepal-ws.ts"] --> MsgWS
 - [client/src/components/message/use-messagepal-ws.ts](file://client/src/components/message/use-messagepal-ws.ts#L43-L48)
 
 **Section sources**
+
 - [server/index.ts](file://server/index.ts#L76-L84)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L119-L120)
 - [server/message/index.ts](file://server/message/index.ts#L262-L266)
@@ -329,6 +352,7 @@ FEMessage["client/src/components/message/use-messagepal-ws.ts"] --> MsgWS
 - [client/src/components/message/use-messagepal-ws.ts](file://client/src/components/message/use-messagepal-ws.ts#L43-L48)
 
 ## Performance Considerations
+
 - Connection scaling
   - Use a reverse proxy/load balancer to distribute connections across instances
   - Consider sticky sessions for session-based auth if scaling horizontally
@@ -349,6 +373,7 @@ FEMessage["client/src/components/message/use-messagepal-ws.ts"] --> MsgWS
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
+
 - Authentication failures
   - Verify SESSION_SECRET is set in production; ensure connect.sid cookie is present and valid
   - Check session store connectivity and session retrieval
@@ -364,10 +389,12 @@ FEMessage["client/src/components/message/use-messagepal-ws.ts"] --> MsgWS
   - Inspect exponential backoff behavior and unauthorized close codes
 
 **Section sources**
+
 - [server/index.ts](file://server/index.ts#L30-L44)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L122-L138)
 - [server/chat-ws.ts](file://server/chat-ws.ts#L194-L213)
 - [server/message/index.ts](file://server/message/index.ts#L279-L284)
 
 ## Conclusion
+
 PersonalLearningPro’s WebSocket architecture combines a robust chat system with a dedicated MessagePal service. The design leverages session-based authentication, structured client metadata, channel subscriptions, heartbeat monitoring, and rate limiting to ensure reliable real-time communication. With proper scaling, memory management, and persistence strategies, the system can efficiently support numerous concurrent connections while maintaining performance and reliability.
