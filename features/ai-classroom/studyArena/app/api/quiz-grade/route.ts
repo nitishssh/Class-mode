@@ -54,21 +54,39 @@ ${commentPrompt ? `Grading guidance: ${commentPrompt}\n` : ''}Student answer: ${
       'quiz-grade',
     );
 
-    // Parse the LLM response as JSON
+    // Parse the LLM response as JSON.
+    // Strategy: try direct parse, then scan all flat {...} objects in reverse
+    // order (last match is most likely the final answer when the LLM adds
+    // preamble). The old greedy /\{[\s\S]*\}/ was wrong: it matched from the
+    // first { to the very last }, producing invalid JSON when multiple objects
+    // appeared in the response.
     const text = result.text.trim();
     let gradeResult: GradeResponse;
 
     try {
-      // Try to extract JSON from the response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('No JSON found');
-      const parsed = JSON.parse(jsonMatch[0]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let parsed: Record<string, any> | null = null;
+
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        // Not pure JSON — scan for embedded flat objects (no nesting).
+        const candidates = [...text.matchAll(/\{[^{}]+\}/g)].reverse();
+        for (const m of candidates) {
+          try {
+            const candidate = JSON.parse(m[0]);
+            if ('score' in candidate) { parsed = candidate; break; }
+          } catch { /* try next */ }
+        }
+      }
+
+      if (!parsed || !('score' in parsed)) throw new Error('No scoreable JSON found');
+
       gradeResult = {
         score: Math.max(0, Math.min(points, Math.round(Number(parsed.score)))),
         comment: String(parsed.comment || ''),
       };
     } catch {
-      // Fallback: give partial credit with a generic comment
       const isZh = language === 'zh' || language === 'zh-CN';
       gradeResult = {
         score: Math.round(points * 0.5),

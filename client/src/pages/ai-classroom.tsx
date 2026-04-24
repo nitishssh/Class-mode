@@ -58,6 +58,8 @@ export default function AIClassroom() {
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Tracks consecutive fetch failures; polling stops after 10 (≈ 50 s of silence).
+  const pollErrorCount = useRef(0);
 
   // Clean up polling on unmount
   useEffect(() => {
@@ -72,12 +74,14 @@ export default function AIClassroom() {
       pollingRef.current = null;
     }
     setActiveJobId(null);
+    pollErrorCount.current = 0;
   }, []);
 
   const startPolling = useCallback(
     (jobId: string) => {
       setActiveJobId(jobId);
       setJobStatus({ jobId, status: "pending", done: false, step: "Queued" });
+      pollErrorCount.current = 0;
 
       // Clear any existing poll
       if (pollingRef.current) clearInterval(pollingRef.current);
@@ -85,8 +89,9 @@ export default function AIClassroom() {
       const poll = async () => {
         try {
           const res = await fetch(`/api/ai-classroom/job/${jobId}`);
-          if (!res.ok) throw new Error("Poll failed");
+          if (!res.ok) throw new Error(`Poll returned ${res.status}`);
           const data: JobStatus = await res.json();
+          pollErrorCount.current = 0;
           setJobStatus(data);
 
           if (data.done) {
@@ -99,8 +104,6 @@ export default function AIClassroom() {
                 description: "Your AI classroom has been generated successfully.",
               });
 
-              // Auto-open in iframe if we have a URL
-              // Fetch the updated record from our DB to get the persisted URL
               const historyRes = await fetch("/api/ai-classroom/my-classrooms");
               if (historyRes.ok) {
                 const classrooms: ClassroomRecord[] = await historyRes.json();
@@ -118,7 +121,18 @@ export default function AIClassroom() {
             }
           }
         } catch {
-          // Silently retry on next interval
+          pollErrorCount.current += 1;
+          if (pollErrorCount.current >= 10) {
+            stopPolling();
+            setJobStatus((prev) =>
+              prev ? { ...prev, done: true, status: "failed", error: "Lost contact with generation service." } : prev
+            );
+            toast({
+              title: "Connection Lost",
+              description: "Could not reach the generation service. Please refresh and try again.",
+              variant: "destructive",
+            });
+          }
         }
       };
 

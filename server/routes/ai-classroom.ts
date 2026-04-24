@@ -128,6 +128,9 @@ router.get("/job/:jobId", async (req: Request, res: Response) => {
       const classroomUrl = classroomId
         ? `${studyArenaBaseUrl}/classroom/${classroomId}`
         : undefined;
+      if (!classroomId) {
+        console.warn(`[ai-classroom] Job ${jobId} succeeded but result had no classroomId — URL will be null`);
+      }
 
       await MongoAIClassroom.findOneAndUpdate(
         { studyArenaJobId: jobId },

@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
             .join('\n')}`
         : '';
 
-    const systemPrompt = `${agent.system_prompt}${issueContext}${recentContext}${userRole ? `\n\nThe student's role is: ${userRole}` : ''}`;
+    const systemPrompt = `${agent.system_prompt ?? ''}${issueContext}${recentContext}${userRole ? `\n\nThe student's role is: ${userRole}` : ''}`;
 
     const result = await callLLM(
       {
