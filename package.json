@@ -81,6 +81,7 @@
     "mongodb": "^7.1.0",
     "mongoose": "^9.2.1",
     "multer": "^2.1.1",
+    "nanoid": "^5.1.9",
     "nodemailer": "^8.0.5",
     "openai": "^4.91.0",
     "passport": "^0.7.0",
