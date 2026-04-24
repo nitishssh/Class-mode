@@ -146,6 +146,8 @@ export interface IStorage {
   upsertFcmToken(token: InsertFcmToken): Promise<FcmToken>;
   getFcmTokensByUser(userId: number): Promise<FcmToken[]>;
   removeFcmToken(token: string): Promise<boolean>;
+  savePushToken(userId: number, token: string, deviceType: string | null): Promise<FcmToken>;
+  deletePushToken(userId: number, token: string): Promise<boolean>;
 
   // Task operations
   createTask(task: InsertTask): Promise<Task>;
@@ -702,6 +704,16 @@ export class MongoStorage implements IStorage {
 
   async removeFcmToken(tokenStr: string): Promise<boolean> {
     const result = await MongoFcmToken.deleteMany({ token: tokenStr });
+    return result.deletedCount > 0;
+  }
+
+  // Wrapper methods for API endpoints
+  async savePushToken(userId: number, token: string, deviceType: string | null): Promise<FcmToken> {
+    return this.upsertFcmToken({ userId, token, deviceType });
+  }
+
+  async deletePushToken(userId: number, token: string): Promise<boolean> {
+    const result = await MongoFcmToken.deleteOne({ userId, token });
     return result.deletedCount > 0;
   }
 

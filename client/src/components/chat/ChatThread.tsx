@@ -67,7 +67,7 @@ const ChatThread = ({ conversation, onBack }: ChatThreadProps) => {
 
   // ── WebSocket ──────────────────────────────────────────────────────────────
   const { sendMessage, sendTyping, markRead } = useChatWs({
-    channelId: isServerChannel ? numericId : undefined,
+    activeChannelId: isServerChannel ? numericId : undefined,
 
     onEvent: useCallback((event: ChatWsEvent) => {
       switch (event.type) {

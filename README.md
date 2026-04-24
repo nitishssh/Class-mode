@@ -79,20 +79,33 @@ Most school platforms are either too simple or too expensive. EduAI is **open-so
 - In-session chat panel, participant list, and screen sharing
 - Session recording and replay support
 
+### 📱 Mobile App (iOS & Android) - ✅ COMPLETE
+- **Native mobile experience** built with React Native + Expo
+- **Full feature parity** with web app
+- **Offline support** with automatic sync when online
+- **Push notifications** for messages, tests, and announcements
+- **OCR scanning** with camera integration
+- **Real-time messaging** with WebSocket support
+- **Optimized performance** with FlatList and memoization
+- **Dark mode ready** (coming soon)
+
 ---
 
 ## 🛠️ Tech Stack
 
 | Layer | Technology |
 |---|---|
-| **Frontend** | React 18, Vite, TypeScript, Tailwind CSS, shadcn/ui, Framer Motion |
+| **Frontend (Web)** | React 18, Vite, TypeScript, Tailwind CSS, shadcn/ui, Framer Motion |
+| **Frontend (Mobile)** | React Native 0.81, Expo SDK 54, TypeScript, NativeWind, React Native Paper |
 | **Backend** | Node.js, Express, TypeScript |
 | **Auth** | Firebase Authentication (Google + email/password) |
 | **Primary DB** | MongoDB Atlas + Mongoose |
 | **Message Store** | Apache Cassandra |
+| **Mobile Storage** | AsyncStorage (offline caching) |
 | **AI** | OpenAI GPT-4o |
-| **OCR** | Tesseract.js |
+| **OCR** | Tesseract.js (web), Expo Camera + backend OCR (mobile) |
 | **Real-time** | WebSockets (ws) |
+| **Push Notifications** | Expo Notifications |
 | **Email** | Nodemailer (SMTP) |
 | **Video** | Daily.co / BigBlueButton |
 | **DevOps** | Docker, Kubernetes, Terraform, GitHub Actions |
@@ -129,26 +142,45 @@ Open [http://localhost:5001](http://localhost:5001)
 ### 🔑 Required Environment Variables
 
 ```env
-# MongoDB
+# MongoDB (Required)
 MONGODB_URL=mongodb+srv://...
 
-# Firebase
+# Firebase (Required for authentication)
 VITE_FIREBASE_API_KEY=
 VITE_FIREBASE_PROJECT_ID=
 VITE_FIREBASE_APP_ID=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_MEASUREMENT_ID=
 FIREBASE_SERVICE_ACCOUNT_JSON=   # base64-encoded service account
 
-# OpenAI
+# OpenAI (Required for AI features)
 OPENAI_API_KEY=
 
-# Email (for invite system)
+# Email (Required for invite system)
 SMTP_HOST=smtp.gmail.com
 SMTP_USER=
 SMTP_PASS=
 APP_URL=http://localhost:5001
+
+# Cassandra (Optional - for MessagePal chat history)
+CASSANDRA_CONTACT_POINTS=
+CASSANDRA_LOCAL_DATA_CENTER=
+CASSANDRA_KEYSPACE=chat_db
+CASSANDRA_USERNAME=
+CASSANDRA_PASSWORD=
+
+# Session (Auto-generated in dev, set in production)
+SESSION_SECRET=your_random_session_secret
+
+# Mobile App (mobile/.env)
+EXPO_PUBLIC_API_URL=http://localhost:5001
+EXPO_PUBLIC_FIREBASE_API_KEY=
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=
+EXPO_PUBLIC_FIREBASE_APP_ID=
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
 ```
 
-See [`.env.example`](.env.example) for the full list.
+See [`.env.example`](.env.example) and [`mobile/.env.example`](mobile/.env.example) for the full list.
 
 ---
 
@@ -190,21 +222,39 @@ Every role sees their onboarding wizard until their stage is complete — then l
 ## 📂 Project Structure
 
 ```
-├── client/          # React + Vite frontend
+├── client/          # React + Vite frontend (web)
 │   └── src/
 │       ├── pages/       # Route-level page components
-│       ├── components/  # Reusable UI components
-│       ├── contexts/    # React context providers (auth, theme)
+│       ├── components/  # Reusable UI components (shadcn/ui)
+│       ├── contexts/    # React context providers (auth, theme, chat)
 │       ├── hooks/       # Custom hooks
 │       └── lib/         # API client, Firebase, utilities
+├── mobile/          # React Native + Expo mobile app ✅ COMPLETE
+│   ├── app/         # Expo Router pages (auth, tabs, modals)
+│   ├── components/  # Mobile UI components
+│   ├── lib/         # API client, Firebase, offline storage, notifications
+│   ├── hooks/       # Custom hooks (network status, etc.)
+│   └── types/       # TypeScript type definitions
 ├── server/          # Node.js + Express backend
 │   ├── routes/      # Express route handlers
 │   ├── lib/         # Firebase Admin, OpenAI, mailer, upload
-│   └── message/     # MessagePal WebSocket + Cassandra layer
-├── shared/          # Zod schemas + Mongoose models (shared)
-├── docs/            # Architecture docs, API reference, changelogs
+│   ├── message/     # MessagePal WebSocket + Cassandra layer
+│   ├── services/    # Business logic services
+│   └── tests/       # Backend tests
+├── shared/          # Zod schemas + Mongoose models (shared by web, mobile, server)
+│   ├── schema.ts    # Main Zod schemas
+│   ├── mongo-schema.ts  # Mongoose models
+│   └── cassandra-schema.ts  # Cassandra schemas
+├── .agent/          # AI agent context and workflows
+│   ├── spec/        # Feature specifications
+│   ├── prompts/     # Agent workflow templates
+│   ├── wiki/        # Architecture documentation
+│   └── rules/       # Coding policies
+├── docs/            # Documentation
 │   ├── DATABASE.md  # Complete database schema & best practices
-│   └── DATABASE_IMPROVEMENTS.md  # Recent performance optimizations
+│   ├── DATABASE_IMPROVEMENTS.md  # Recent performance optimizations
+│   ├── LOCAL_SETUP.md  # Local development guide
+│   └── CONTRIBUTING.md  # Contribution guidelines
 ├── k8s/             # Kubernetes manifests
 ├── terraform/       # Infrastructure as Code
 └── scripts/         # Seed scripts, CI utilities
@@ -214,23 +264,41 @@ Every role sees their onboarding wizard until their stage is complete — then l
 
 ## 📚 Documentation
 
-- **[Local Setup Guide](docs/LOCAL_SETUP.md)** - Get started in 5 minutes
+- **[Local Setup Guide](docs/LOCAL_SETUP.md)** - Get started in 5 minutes (web + mobile)
+- **[Mobile App README](mobile/README.md)** - Mobile-specific setup and features
+- **[Mobile Migration Status](MOBILE_MIGRATION_STATUS.md)** - Mobile app completion status (100%)
 - **[Database Architecture](docs/DATABASE.md)** - Schema, indexes, and best practices
 - **[Database Improvements](docs/DATABASE_IMPROVEMENTS.md)** - Recent performance optimizations
 - **[Contributing Guide](docs/CONTRIBUTING.md)** - How to contribute
 - **[API Reference](docs/)** - REST API documentation
 - **[Changelog](docs/CHANGELOG.md)** - Version history
+- **[Agent Instructions](AGENTS.md)** - For AI coding agents
 
 ---
 
 ## 🧪 Development Commands
 
+### Web App
 ```bash
-npm run dev      # Start frontend + backend (Vite + Express)
-npm run check    # TypeScript type check
-npm test         # Run Vitest test suite
-npm run lint     # ESLint
-npm run build    # Production build
+npm run dev          # Start frontend + backend (Vite + Express on port 5001)
+npm run check        # TypeScript type check
+npm test             # Run Vitest test suite
+npm run lint         # ESLint
+npm run lint:fix     # ESLint with auto-fix
+npm run format       # Prettier format
+npm run format:check # Prettier check
+npm run build        # Production build
+npm start            # Run production build
+```
+
+### Mobile App
+```bash
+cd mobile
+npm start            # Start Expo development server
+npm run android      # Run on Android
+npm run ios          # Run on iOS
+npm run web          # Run on web
+npm run type-check   # TypeScript type check
 ```
 
 ---

@@ -129,13 +129,24 @@ If you are using an AI coding agent (like Gemini CLI, Cursor, or Aider) to contr
 ## 🏛️ Architecture Notes
 
 - **📦 Monolith server** — Express serves both the API and the Vite-powered React frontend on **port 5001** 🖥️
-- **💾 Hybrid storage** — Uses PostgreSQL for structured data and MongoDB for analytics 📊
+- **💾 Hybrid storage** — Uses MongoDB for structured data and Cassandra for message history 📊
+- **📱 Mobile app** — React Native + Expo with full offline support and push notifications 📲
 - **🔥 Firebase (optional)** — Used for authentication; the app runs without it (auth features disabled) 🔐
 - **🤖 OpenAI (optional)** — Powers AI features; the app runs without it 🧠💡
+- **⚡ Cassandra (optional)** — Powers MessagePal chat history; the app runs without it (chat history disabled) 💬
 
 ## 🎨 Coding Style
 
-This project does not currently have a code formatter (like Prettier) or a linter (like ESLint) configured. Please follow the existing code style in the files you are editing to maintain consistency. 📏✨
+This project uses **ESLint** and **Prettier** for code formatting and linting. Please run these commands before committing:
+
+```bash
+npm run lint        # Check for linting errors
+npm run lint:fix    # Auto-fix linting errors
+npm run format      # Format code with Prettier
+npm run check       # TypeScript type checking
+```
+
+Follow the existing code style in the files you are editing to maintain consistency. 📏✨
 
 ## 🐞 Reporting Bugs
 

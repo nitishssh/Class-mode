@@ -119,7 +119,7 @@ const ChatLayoutInner = () => {
   // ── Shared WebSocket (connected for the duration of the layout) ───────────
   const activeChannelIdArg = activeConv ? Number(activeConv.id) : undefined;
   const { status: wsStatus } = useChatWs({
-    activeChannelId: isNaN(activeChannelIdArg!) ? undefined : activeChannelIdArg,
+    activeChannelId: activeChannelIdArg && !isNaN(activeChannelIdArg) ? activeChannelIdArg : undefined,
     onEvent: () => { }
   });
 
