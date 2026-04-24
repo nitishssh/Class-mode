@@ -7,7 +7,7 @@ import { MongoUser } from "../../shared/mongo-schema";
 // Mock dependencies
 vi.mock("../lib/firebase-admin", () => ({
   verifyFirebaseToken: vi.fn(),
-  setCustomUserClaims: vi.fn(),
+  setCustomUserClaims: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("../../shared/mongo-schema", () => {

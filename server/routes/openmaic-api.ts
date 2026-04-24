@@ -127,8 +127,8 @@ openmaicApiRouter.get('/classroom/:classroomId', async (req: Request, res: Respo
       });
     }
 
-    // Get classroom from OpenMAIC
-    const classroom = await client.getClassroom(classroomId);
+    // Get classroom from Study Arena
+    const classroom = await client.getClassroom(classroomId) as any;
 
     // Generate classroom URL
     const classroomUrl = generateOpenMAICClassroomUrl(classroomId, openmaicToken);
@@ -136,10 +136,10 @@ openmaicApiRouter.get('/classroom/:classroomId', async (req: Request, res: Respo
     res.status(200).json({
       success: true,
       classroom: {
-        id: classroom.classroomId,
-        status: classroom.status,
+        id: classroom?.classroomId ?? classroomId,
+        status: classroom?.status,
         url: classroomUrl,
-        scenes: classroom.scenes,
+        scenes: classroom?.scenes,
       },
     });
   } catch (error) {

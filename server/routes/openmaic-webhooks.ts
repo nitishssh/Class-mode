@@ -55,9 +55,10 @@ openmaicWebhookRouter.post('/lesson-completed', async (req: Request, res: Respon
 
     // Update user's study plan with identified weaknesses
     if (payload.data.weaknesses && payload.data.weaknesses.length > 0) {
-      (user as any).studyPlan = (user as any).studyPlan || {};
-      payload.data.weaknesses.forEach((weakness) => {
-        (user as any).studyPlan![weakness] = ((user as any).studyPlan![weakness] || 0) + 1;
+      const u = user as any;
+      u.studyPlan = u.studyPlan || {};
+      payload.data.weaknesses.forEach((weakness: string) => {
+        u.studyPlan[weakness] = (u.studyPlan[weakness] || 0) + 1;
       });
       await user.save();
     }
