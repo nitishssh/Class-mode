@@ -15,6 +15,8 @@ import { liveRouter } from "./routes/live";
 import aiClassroomRoutes from "./routes/ai-classroom";
 import onboardingRoutes from "./routes/onboarding";
 import healthRoutes from "./routes/health";
+import { openmaicApiRouter } from "./routes/openmaic-api";
+import { openmaicWebhookRouter } from "./routes/openmaic-webhooks";
 
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -125,6 +127,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount AI Classroom routes (OpenMAIC integration)
   app.use("/api/ai-classroom", authenticateToken, aiClassroomRoutes);
+
+  // Mount OpenMAIC API routes (classroom creation, quiz generation, etc.)
+  app.use("/api/openmaic", openmaicApiRouter);
+
+  // Mount OpenMAIC webhook routes (lesson completion, quiz results, etc.)
+  app.use("/api/webhooks/openmaic", openmaicWebhookRouter);
 
   // Mount Health check routes
   app.use("/api/health", healthRoutes);
