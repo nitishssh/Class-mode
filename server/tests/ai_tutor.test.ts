@@ -167,7 +167,7 @@ describe("POST /api/ai-chat — AI Tutor", () => {
       .set("Authorization", `Bearer ${makeStudentToken()}`)
       .send({ messages });
 
-    expect(mockAiChat).toHaveBeenCalledWith(messages);
+    expect(mockAiChat.mock.calls[0][0]).toEqual(messages);
   });
 
   // ── CASE 6: AI service throws → 500 ───────────────────────────────────────
