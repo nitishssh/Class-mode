@@ -294,7 +294,7 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed bottom-0 left-0 top-0 z-50 flex h-screen flex-col border-r border-border bg-muted/30 transition-all duration-300 ease-in-out",
+          "fixed bottom-0 left-0 top-0 z-[60] flex h-screen flex-col border-r border-border bg-muted/30 transition-all duration-300 ease-in-out",
           isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
           isCollapsed ? "w-16 md:w-16" : "w-64 md:w-64",
           className
