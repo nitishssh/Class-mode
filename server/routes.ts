@@ -153,8 +153,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/live", authenticateToken, liveRouter);
 
 
-  // Mount AI Classroom routes (Study Arena integration — auth required)
-  app.use("/api/ai-classroom", authenticateToken, aiClassroomRoutes);
+  // Mount AI Classroom routes (Study Arena integration)
+  app.use("/api/ai-classroom", aiClassroomRoutes);
 
   // Mount OpenMAIC API routes (classroom creation, quiz generation, etc.)
   app.use("/api/openmaic", openmaicApiRouter);

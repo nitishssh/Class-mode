@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { z } from "zod";
 import { logger } from "./logger";
+import { geminiChat, streamGeminiChat } from "./gemini";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 if (!process.env.OPENAI_API_KEY) {
@@ -63,8 +64,29 @@ export async function aiChat(
   messages: ChatMessage[],
   systemPrompt?: string
 ): Promise<ChatResponse> {
+  const hasGemini = !!process.env.GOOGLE_API_KEY;
+  const hasOpenAI = !!process.env.OPENAI_API_KEY;
+
   try {
-    // Use provided system prompt or default
+    // Process system prompt
+    let processedSystemPrompt = systemPrompt || "";
+    if (!processedSystemPrompt) {
+      const existingSystem = messages.find((msg) => msg.role === "system");
+      processedSystemPrompt = existingSystem ? existingSystem.content : "You are an AI tutor for high school students. You're knowledgeable about physics, chemistry, mathematics, biology, and computer science. Provide clear, concise explanations. Include examples when helpful. For math problems, show step-by-step solutions. Keep explanations appropriate for high school level understanding. Be encouraging and supportive.";
+    }
+
+    if (hasGemini) {
+      const userPrompt = messages.filter(m => m.role !== 'system').map(m => `${m.role}: ${m.content}`).join('\n');
+      try {
+        const content = await geminiChat(processedSystemPrompt, userPrompt);
+        return { content };
+      } catch (err) {
+        logger.warn("[AI] Gemini call failed, falling back to OpenAI if available:", err);
+        if (!hasOpenAI) throw err;
+      }
+    }
+
+    // Fallback to OpenAI
     if (systemPrompt) {
       // Check if system message already exists, if so update it, otherwise unshift
       const existingSystemIndex = messages.findIndex((msg) => msg.role === "system");
@@ -262,7 +284,28 @@ export async function* streamAIChat(
   messages: ChatMessage[],
   systemPrompt?: string
 ): AsyncGenerator<string> {
+  const hasGemini = !!process.env.GOOGLE_API_KEY;
+  const hasOpenAI = !!process.env.OPENAI_API_KEY;
+
   try {
+    // Process system prompt
+    let processedSystemPrompt = systemPrompt || "";
+    if (!processedSystemPrompt) {
+      const existingSystem = messages.find((msg) => msg.role === "system");
+      processedSystemPrompt = existingSystem ? existingSystem.content : "You are an AI tutor for high school students...";
+    }
+
+    if (hasGemini) {
+      const userPrompt = messages.filter(m => m.role !== 'system').map(m => `${m.role}: ${m.content}`).join('\n');
+      try {
+        yield* streamGeminiChat(processedSystemPrompt, userPrompt);
+        return;
+      } catch (err) {
+        logger.warn("[AI] Gemini stream failed, falling back to OpenAI if available:", err);
+        if (!hasOpenAI) throw err;
+      }
+    }
+
     if (systemPrompt) {
       const existingSystemIndex = messages.findIndex((msg) => msg.role === "system");
       if (existingSystemIndex !== -1) {

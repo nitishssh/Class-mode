@@ -16,6 +16,7 @@ import {
 } from '@shared/study-arena';
 
 import { AISdkLangGraphAdapter } from './ai-sdk-adapter';
+import { GeminiLangGraphAdapter } from './gemini-adapter';
 import {
   buildStructuredPrompt,
   summarizeConversation,
@@ -53,6 +54,13 @@ const OrchestratorState = Annotation.Root({
 });
 
 type OrchestratorStateType = typeof OrchestratorState.State;
+
+// ==================== Helper ====================
+
+function getAdapter() {
+  const hasGemini = !!process.env.GOOGLE_API_KEY;
+  return hasGemini ? new GeminiLangGraphAdapter() : new AISdkLangGraphAdapter();
+}
 
 // ==================== Director Node ====================
 
@@ -101,7 +109,7 @@ async function directorNode(
     state.storeState.whiteboardOpen,
   );
 
-  const adapter = new AISdkLangGraphAdapter();
+  const adapter = getAdapter();
 
   try {
     const result = await adapter._generate([
@@ -156,7 +164,7 @@ async function agentGenerateNode(
     },
   });
 
-  const adapter = new AISdkLangGraphAdapter();
+  const adapter = getAdapter();
   const systemPrompt = buildStructuredPrompt(
     agentConfig,
     state.storeState,

@@ -5,6 +5,7 @@ import { MongoAIClassroom, getNextSequenceValue } from "../../shared/mongo-schem
 import { orchestrateChat } from '../services/study-arena/orchestrator';
 import { StatelessChatRequest } from '../services/study-arena/types';
 import { logger } from '../lib/logger';
+import { authenticateToken } from "../routes";
 
 const router = Router();
 
@@ -17,12 +18,21 @@ const createClassroomSchema = z.object({
   sceneTypes: z.array(z.enum(["slides", "quiz", "simulation", "pbl"])).optional(),
 });
 
+/**
+ * GET /api/ai-classroom/health
+ * Public health check for the Study Arena service
+ */
 router.get("/health", async (req, res) => {
   res.json({
     available: true,
-    message: "AI Classroom (Native) is available",
+    status: "healthy",
+    service: "study-arena-native",
+    timestamp: new Date().toISOString(),
   });
 });
+
+// Middleware to protect subsequent routes
+router.use(authenticateToken);
 
 router.post("/create", async (req: Request, res: Response) => {
   try {
@@ -46,7 +56,7 @@ router.post("/create", async (req: Request, res: Response) => {
   }
 });
 
-router.get("/job/:jobId", async (req: Request, res: Response) => {
+router.get("/status/:jobId", async (req: Request, res: Response) => {
   try {
     const { jobId } = req.params;
     const jobStatus = await studyArenaInternalService.pollJob(jobId);

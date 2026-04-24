@@ -17,6 +17,7 @@ import OpenAI from "openai";
 import { nanoid } from "nanoid";
 import { logger } from "../../lib/logger";
 import { buildPrompt } from "../../lib/prompt-loader";
+import { geminiChat } from "../../lib/gemini";
 import type {
   AgentInfo,
   SceneOutline,
@@ -32,7 +33,19 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "" });
 // Replaces callLLM (Vercel AI SDK) with OpenAI SDK
 
 function createAICallFn(): AICallFn {
+  const hasGemini = !!process.env.GOOGLE_API_KEY;
+  const hasOpenAI = !!process.env.OPENAI_API_KEY;
+
   return async (systemPrompt: string, userPrompt: string): Promise<string> => {
+    if (hasGemini) {
+      try {
+        return await geminiChat(systemPrompt, userPrompt);
+      } catch (err) {
+        logger.warn("[StudyArena] Gemini call failed, falling back to OpenAI if available:", err);
+        if (!hasOpenAI) throw err;
+      }
+    }
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [

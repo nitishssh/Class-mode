@@ -48,12 +48,13 @@ export const connectMongoDB = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URL, {
       tls: process.env.MONGODB_URL.includes("+srv"),
-      tlsAllowInvalidCertificates: process.env.MONGODB_URL.includes("+srv") ? true : undefined,
+      tlsAllowInvalidCertificates: true, // Help with local proxies
       // Connection pool configuration
       maxPoolSize: 10,
       minPoolSize: 2,
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 30000,
       socketTimeoutMS: 45000,
+      family: 4, // Force IPv4 to avoid logic delay in some environments
       // Retry configuration
       retryWrites: true,
       retryReads: true,
