@@ -10,3 +10,9 @@ GEMINI.md
 .vscode/
 .env.example
 .kiro
+
+# Mobile (React Native / Expo)
+mobile/.expo/
+mobile/dist/
+mobile/web-build/
+mobile/.env

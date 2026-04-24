@@ -23,7 +23,7 @@ interface ChatResponse {
 // Validation schemas
 const EvaluationSchema = z.object({
   score: z.number().min(0),
-  confidence: z.number().min(0).max(100),
+  confidence: z.number().min(0),
   feedback: z.string().min(1),
 });
 
@@ -136,7 +136,7 @@ export async function evaluateSubjectiveAnswer(
 
       return {
         score: Math.min(maxMarks, result.score),
-        confidence: result.confidence,
+        confidence: Math.min(100, result.confidence),
         feedback: result.feedback,
       };
     } catch (parseError) {

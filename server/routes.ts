@@ -37,6 +37,8 @@ import messageRoutes from "./message/routes";
 import { liveRouter } from "./routes/live";
 import aiClassroomRoutes from "./routes/ai-classroom";
 import healthRoutes from "./routes/health";
+import { openmaicApiRouter } from "./routes/openmaic-api";
+import { openmaicWebhookRouter } from "./routes/openmaic-webhooks";
 
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -177,6 +179,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount AI Classroom routes (Study Arena integration — auth required)
   app.use("/api/ai-classroom", authenticateToken, aiClassroomRoutes);
+
+  // Mount OpenMAIC API routes (classroom creation, quiz generation, etc.)
+  app.use("/api/openmaic", openmaicApiRouter);
+
+  // Mount OpenMAIC webhook routes (lesson completion, quiz results, etc.)
+  app.use("/api/webhooks/openmaic", openmaicWebhookRouter);
 
   // Mount Health check routes
   app.use("/api/health", healthRoutes);
@@ -2431,6 +2439,78 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
       return res.status(204).send();
     } catch {
       return res.status(500).json({ message: "Failed to delete notification" });
+    }
+  });
+
+  // ─── Push Token routes ────────────────────────────────────────────────────
+
+  // POST /api/push-tokens — register or update push token for mobile notifications
+  app.post("/api/push-tokens", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      const { token, deviceType } = req.body;
+      if (!token || typeof token !== "string") {
+        return res.status(400).json({ message: "Token is required" });
+      }
+      await storage.savePushToken(req.session.userId, token, deviceType || null);
+      return res.status(200).json({ message: "Push token registered successfully" });
+    } catch (error) {
+      console.error("Failed to save push token:", error);
+      return res.status(500).json({ message: "Failed to register push token" });
+    }
+  });
+
+  // DELETE /api/push-tokens — remove push token (on logout)
+  app.delete("/api/push-tokens", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      const { token } = req.body;
+      if (!token || typeof token !== "string") {
+        return res.status(400).json({ message: "Token is required" });
+      }
+      await storage.deletePushToken(req.session.userId, token);
+      return res.status(200).json({ message: "Push token removed successfully" });
+    } catch (error) {
+      console.error("Failed to delete push token:", error);
+      return res.status(500).json({ message: "Failed to remove push token" });
+    }
+  });
+
+  // ─── OCR routes ───────────────────────────────────────────────────────────
+
+  // POST /api/ocr/extract — extract text from image using OCR
+  app.post("/api/ocr/extract", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      const { image } = req.body;
+      if (!image || typeof image !== "string") {
+        return res.status(400).json({ message: "Image data is required" });
+      }
+
+      // TODO: Implement actual OCR processing
+      // Options:
+      // 1. Use Tesseract.js for client-side OCR
+      // 2. Use Google Cloud Vision API
+      // 3. Use AWS Textract
+      // 4. Use Azure Computer Vision
+      
+      // For now, return a mock response
+      const mockText = "Sample extracted text from image.\n\nThis is a placeholder response. In production, this would contain the actual OCR-extracted text from the image.";
+      
+      return res.status(200).json({ 
+        text: mockText,
+        confidence: 0.95,
+        language: "en"
+      });
+    } catch (error) {
+      console.error("OCR processing error:", error);
+      return res.status(500).json({ message: "Failed to process image" });
     }
   });
 

@@ -10,6 +10,8 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.ts"],
+    exclude: ["tests/setup.ts"],
+    setupFiles: ["./tests/setup.ts"],
     alias: {
       "@shared": path.resolve(__dirname, "../shared"),
     },

@@ -1,40 +1,58 @@
 # ══════════════════════════════════════════════════════════════════
-#  docker-compose.yml — PersonalLearningPro
+#  docker-compose.yml — PersonalLearningPro Microservices
+#
+#  Unified orchestration for:
+#    - EduAI (main web app + backend)
+#    - OpenMAIC (studyArena Next.js AI classroom)
+#    - IniClaw (agent gateway runtime)
+#    - Supporting services (MongoDB, Cassandra, Redis)
 #
 #  Usage:
-#    Development (default):  docker compose up
-#    Production:             docker compose --profile prod up
+#    Development:  docker compose up
+#    Production:   docker compose --profile prod up
 # ══════════════════════════════════════════════════════════════════
 
 name: personallearningpro
 
 # ── Shared defaults ───────────────────────────────────────────────
 x-app-base: &app-base
-  build:
-    context: .
-    args:
-      NODE_VERSION: "20-alpine"
   env_file:
     - .env
   restart: unless-stopped
   networks:
     - app-net
 
+x-healthcheck-http: &healthcheck-http
+  test: ["CMD", "wget", "-qO-", "http://localhost:${PORT:-5001}/api/health"]
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 20s
+
 # ── Services ──────────────────────────────────────────────────────
 services:
-  # ── Development ─────────────────────────────────────────────────
-  app:
+  # ─────────────────────────────────────────────────────────────────
+  # CORE SERVICES
+  # ─────────────────────────────────────────────────────────────────
+
+  # ── EduAI Main App (React + Express) ──────────────────────────────
+  eduai-app:
     <<: *app-base
     build:
       context: .
       target: development
+      dockerfile: Dockerfile
       args:
         NODE_VERSION: "20-alpine"
-    container_name: plp-dev
+    container_name: eduai-dev
     ports:
       - "${PORT:-5001}:5001"
     environment:
       NODE_ENV: development
+      SERVICE_NAME: eduai-app
+      OPENMAIC_INTERNAL_URL: http://openmaic-web:3000
+      INICLAW_GATEWAY_URL: http://iniclaw-gateway:4000
+      MESSAGEPAL_PORT: 5002
     volumes:
       # Hot-reload: bind-mount only source directories
       - ./client:/app/client
@@ -46,14 +64,15 @@ services:
       - ./postcss.config.js:/app/postcss.config.js
       - ./tsconfig.json:/app/tsconfig.json
       - ./theme.json:/app/theme.json
-      # Preserve the container's node_modules — never overwrite with host's
+      # Preserve the container's node_modules
       - /app/node_modules
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:5001/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 20s
+      <<: *healthcheck-http
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      cassandra:
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -61,38 +80,273 @@ services:
         reservations:
           memory: 256m
     profiles:
-      - "" # default profile — runs with plain `docker compose up`
+      - "" # default profile
       - dev
 
-  # ── Production ──────────────────────────────────────────────────
-  app-prod:
+  # ── OpenMAIC Web (Next.js AI Classroom) ──────────────────────────
+  openmaic-web:
+    <<: *app-base
+    build:
+      context: ./services/openmaic
+      dockerfile: Dockerfile
+      args:
+        NODE_VERSION: "20-alpine"
+    container_name: openmaic-web
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      SERVICE_NAME: openmaic-web
+      NEXT_PUBLIC_FIREBASE_API_KEY: ${VITE_FIREBASE_API_KEY}
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${VITE_FIREBASE_PROJECT_ID}
+      NEXT_PUBLIC_FIREBASE_APP_ID: ${VITE_FIREBASE_APP_ID}
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${FIREBASE_SERVICE_ACCOUNT_JSON}
+      INICLAW_GATEWAY_URL: http://iniclaw-gateway:4000
+      EDUAI_API_URL: http://eduai-app:5001
+    volumes:
+      - ./services/openmaic:/app
+      - /app/node_modules
+      - /app/.next
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    depends_on:
+      - iniclaw-gateway
+    profiles:
+      - "" # default profile
+      - dev
+
+  # ── IniClaw Gateway (Agent Runtime) ──────────────────────────────
+  iniclaw-gateway:
+    <<: *app-base
+    build:
+      context: ./services/iniclaw
+      dockerfile: Dockerfile
+      args:
+        NODE_VERSION: "20-alpine"
+    container_name: iniclaw-gateway
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: development
+      SERVICE_NAME: iniclaw-gateway
+      GATEWAY_PORT: 4000
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${FIREBASE_SERVICE_ACCOUNT_JSON}
+      VITE_FIREBASE_PROJECT_ID: ${VITE_FIREBASE_PROJECT_ID}
+      EDUAI_WEBHOOK_URL: http://eduai-app:5001/api/webhooks/openmaic
+      BRIDGE_SECRET: ${BRIDGE_SECRET:-bridge-secret-dev}
+    volumes:
+      - ./services/iniclaw:/app
+      - /app/node_modules
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    depends_on:
+      - eduai-app
+    profiles:
+      - "" # default profile
+      - dev
+
+  # ─────────────────────────────────────────────────────────────────
+  # SUPPORTING SERVICES
+  # ─────────────────────────────────────────────────────────────────
+
+  # ── MongoDB (Structured Data) ────────────────────────────────────
+  mongodb:
+    image: mongo:7-alpine
+    container_name: eduai-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-password}
+      MONGO_INITDB_DATABASE: eduai
+    volumes:
+      - mongodb-data:/data/db
+      - mongodb-config:/data/configdb
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - app-net
+    profiles:
+      - "" # default profile
+      - dev
+      - prod
+
+  # ── Cassandra (Message Storage) ──────────────────────────────────
+  cassandra:
+    image: cassandra:5-alpine
+    container_name: eduai-cassandra
+    ports:
+      - "9042:9042"
+    environment:
+      CASSANDRA_CLUSTER_NAME: EduAI
+      CASSANDRA_DC: datacenter1
+      CASSANDRA_RACK: rack1
+      CASSANDRA_SEEDS: cassandra
+    volumes:
+      - cassandra-data:/var/lib/cassandra
+    healthcheck:
+      test: ["CMD", "cqlsh", "-e", "describe cluster"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    networks:
+      - app-net
+    profiles:
+      - "" # default profile
+      - dev
+      - prod
+
+  # ── Redis (Caching & Sessions) ───────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: eduai-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-net
+    profiles:
+      - "" # default profile
+      - dev
+      - prod
+
+  # ── Nginx Reverse Proxy ──────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: eduai-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx-ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - eduai-app
+      - openmaic-web
+      - iniclaw-gateway
+    networks:
+      - app-net
+    profiles:
+      - "" # default profile
+      - dev
+      - prod
+
+  # ─────────────────────────────────────────────────────────────────
+  # PRODUCTION SERVICES
+  # ─────────────────────────────────────────────────────────────────
+
+  # ── EduAI Production Build ───────────────────────────────────────
+  eduai-app-prod:
     <<: *app-base
     build:
       context: .
       target: production
+      dockerfile: Dockerfile
       args:
         NODE_VERSION: "20-alpine"
-    container_name: plp-prod
+    container_name: eduai-prod
     ports:
       - "${PORT:-5001}:5001"
     environment:
       NODE_ENV: production
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:5001/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
+      SERVICE_NAME: eduai-app
+      OPENMAIC_INTERNAL_URL: http://openmaic-web:3000
+      INICLAW_GATEWAY_URL: http://iniclaw-gateway:4000
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      cassandra:
+        condition: service_healthy
     deploy:
       resources:
         limits:
-          memory: 512m
+          memory: 2g
         reservations:
-          memory: 128m
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
+          memory: 512m
+    profiles:
+      - prod
+
+  # ── OpenMAIC Production Build ────────────────────────────────────
+  openmaic-web-prod:
+    <<: *app-base
+    build:
+      context: ./services/openmaic
+      target: production
+      dockerfile: Dockerfile
+      args:
+        NODE_VERSION: "20-alpine"
+    container_name: openmaic-web-prod
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      SERVICE_NAME: openmaic-web
+      NEXT_PUBLIC_FIREBASE_API_KEY: ${VITE_FIREBASE_API_KEY}
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${VITE_FIREBASE_PROJECT_ID}
+      NEXT_PUBLIC_FIREBASE_APP_ID: ${VITE_FIREBASE_APP_ID}
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${FIREBASE_SERVICE_ACCOUNT_JSON}
+      INICLAW_GATEWAY_URL: http://iniclaw-gateway:4000
+      EDUAI_API_URL: http://eduai-app:5001
+    depends_on:
+      - iniclaw-gateway
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+        reservations:
+          memory: 256m
+    profiles:
+      - prod
+
+  # ── IniClaw Production Build ─────────────────────────────────────
+  iniclaw-gateway-prod:
+    <<: *app-base
+    build:
+      context: ./services/iniclaw
+      target: production
+      dockerfile: Dockerfile
+      args:
+        NODE_VERSION: "20-alpine"
+    container_name: iniclaw-gateway-prod
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: production
+      SERVICE_NAME: iniclaw-gateway
+      GATEWAY_PORT: 4000
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${FIREBASE_SERVICE_ACCOUNT_JSON}
+      VITE_FIREBASE_PROJECT_ID: ${VITE_FIREBASE_PROJECT_ID}
+      EDUAI_WEBHOOK_URL: http://eduai-app:5001/api/webhooks/openmaic
+      BRIDGE_SECRET: ${BRIDGE_SECRET}
+    depends_on:
+      - eduai-app-prod
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+        reservations:
+          memory: 256m
     profiles:
       - prod
 
@@ -133,3 +387,10 @@ services:
 networks:
   app-net:
     driver: bridge
+
+# ── Volumes ───────────────────────────────────────────────────────
+volumes:
+  mongodb-data:
+  mongodb-config:
+  cassandra-data:
+  redis-data:

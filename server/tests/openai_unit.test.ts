@@ -84,7 +84,7 @@ describe("aiChat()", () => {
     mockCreate.mockRejectedValue(new Error("Network Error"));
 
     await expect(aiChat([{ role: "user", content: "Test" }])).rejects.toThrow(
-      "Failed to generate response. Please try again later."
+      "AI is unavailable right now"
     );
   });
 
@@ -157,7 +157,7 @@ describe("evaluateSubjectiveAnswer()", () => {
 
     expect(result.score).toBe(0);
     expect(result.confidence).toBe(0);
-    expect(result.feedback).toMatch(/unable to evaluate/i);
+    expect(result.feedback).toMatch(/currently unavailable/i);
   });
 
   it("should return a fallback object when AI returns invalid JSON", async () => {
