@@ -63,7 +63,7 @@ export default function AiTutor() {
             </span>
           </div>
           <h1 className="mb-4 font-display text-4xl leading-tight text-foreground md:text-5xl">
-            Welcome back, {currentUser?.profile?.displayName?.split(" ")[0] || "Scholar"}.
+            Welcome back, {currentUser?.profile?.displayName?.split(" ")[0] || currentUser?.user?.displayName?.split(" ")[0] || "Scholar"}.
           </h1>
           <p className="max-w-2xl font-body text-lg leading-relaxed text-muted-foreground">
             Your personalized learning journey is evolving. Ask EduAI to clarify complex theories or
