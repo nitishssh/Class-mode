@@ -9,6 +9,7 @@ import { Request, Response, NextFunction } from 'express';
 import { verifyFirebaseToken } from './firebase-admin';
 import { MongoUser } from '@shared/mongo-schema';
 import jwt from 'jsonwebtoken';
+import { createHmac } from 'node:crypto';
 
 const BRIDGE_SECRET = process.env.BRIDGE_SECRET || 'bridge-secret-dev';
 const OPENMAIC_INTERNAL_URL = process.env.OPENMAIC_INTERNAL_URL || 'http://localhost:3000';
@@ -23,8 +24,8 @@ export interface OpenMAICSessionToken {
   email: string;
   displayName: string;
   role: string;
-  iat: number;
-  exp: number;
+  iat?: number;
+  exp?: number;
 }
 
 /**
@@ -33,7 +34,7 @@ export interface OpenMAICSessionToken {
  */
 export async function generateOpenMAICSessionToken(
   firebaseUid: string,
-  expiresIn: string = '24h'
+  expiresIn: jwt.SignOptions['expiresIn'] = '24h'
 ): Promise<string> {
   try {
     const user = await MongoUser.findOne({ firebaseUid });
@@ -48,8 +49,6 @@ export async function generateOpenMAICSessionToken(
       email: user.email,
       displayName: user.displayName || user.name,
       role: user.role,
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60), // 24 hours
     };
 
     const token = jwt.sign(payload, BRIDGE_SECRET);
@@ -107,7 +106,7 @@ export async function authenticateOpenMAICBridge(
     next();
   } catch (error) {
     console.error('[openmaic-auth-bridge] Middleware error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(403).json({ message: 'Invalid or expired token' });
   }
 }
 
@@ -182,9 +181,7 @@ export function verifyOpenMAICWebhookSignature(
   payload: string,
   signature: string
 ): boolean {
-  const crypto = require('crypto');
-  const hash = crypto
-    .createHmac('sha256', BRIDGE_SECRET)
+  const hash = createHmac('sha256', BRIDGE_SECRET)
     .update(payload)
     .digest('hex');
 
@@ -200,6 +197,10 @@ export function verifyOpenMAICWebhook(
   next: NextFunction
 ) {
   try {
+    if (req.method === 'GET' && req.path === '/health') {
+      return next();
+    }
+
     const signature = req.headers['x-openmaic-signature'] as string;
     const payload = JSON.stringify(req.body);
 

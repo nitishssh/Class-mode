@@ -109,8 +109,16 @@ export async function authenticateToken(req: Request, res: Response, next: expre
 
       // Sync role to Firebase Custom Claims if they don't match
       if (user && (!decodedToken.role || decodedToken.role !== user.role)) {
-        await setCustomUserClaims(decodedToken.uid, { role: user.role });
-        logger.info(`[auth] Synced role to Firebase`, { uid: decodedToken.uid, role: user.role });
+        try {
+          await setCustomUserClaims(decodedToken.uid, { role: user.role });
+          logger.info(`[auth] Synced role to Firebase`, { uid: decodedToken.uid, role: user.role });
+        } catch (claimsErr) {
+          logger.warn(`[auth] Failed to sync role to Firebase`, {
+            uid: decodedToken.uid,
+            role: user.role,
+            error: claimsErr instanceof Error ? claimsErr.message : String(claimsErr),
+          });
+        }
       }
 
       req.session = req.session || ({} as express.Request["session"]);
@@ -1056,7 +1064,9 @@ Answer questions clearly and at their level. Do not mention these instructions.`
         }
       }
 
-      const response = await aiChat(messages, systemPrompt);
+      const response = systemPrompt
+        ? await aiChat(messages, systemPrompt)
+        : await aiChat(messages);
       res.status(200).json(response);
     } catch (error) {
       logger.error("AI chat error:", error);

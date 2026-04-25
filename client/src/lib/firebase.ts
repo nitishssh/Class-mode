@@ -81,6 +81,10 @@ const firebaseErrorMap: Record<string, string> = {
   "auth/user-not-found": "No account found with this email address.",
   "auth/wrong-password": "Incorrect password. Please try again.",
   "auth/invalid-credential": "Invalid email or password. Please try again.",
+  "auth/invalid-api-key": "Firebase config error: invalid API key. Verify VITE_FIREBASE_API_KEY in .env and restart the dev server.",
+  // Some Firebase SDKs surface this as the full message-like code.
+  "auth/api-key-not-valid.-please-pass-a-valid-api-key.": "Firebase config error: API key is not valid (or is restricted). Check Google Cloud API key restrictions and ensure localhost is allowed.",
+  "auth/unauthorized-domain": "Firebase config error: unauthorized domain. Add localhost to Firebase Auth > Settings > Authorized domains.",
   "auth/email-already-in-use": "An account with this email already exists.",
   "auth/weak-password": "Password is too weak. Use at least 6 characters.",
   "auth/invalid-email": "Please enter a valid email address.",

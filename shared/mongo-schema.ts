@@ -41,6 +41,7 @@ const UserSchema = new mongoose.Schema({
   lastLoginAt: { type: Date, default: null },
   schoolId: { type: mongoose.Schema.Types.ObjectId, ref: "School", default: null },
   onboardingComplete: { type: Boolean, default: false },
+  studyPlan: { type: Map, of: Number, default: {} },
 });
 
 // ─── Authentication Schemas ──────────────────────────────────────────────────

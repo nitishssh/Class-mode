@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 // MongoDB Connection
 if (!process.env.MONGODB_URL) {
-  throw new Error("MONGODB_URL environment variable is required.");
+  console.warn("MONGODB_URL environment variable is not set. MongoDB features may be unavailable.");
 }
 
 // Connection health tracking
