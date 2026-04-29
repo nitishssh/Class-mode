@@ -196,6 +196,10 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
   const currentScene = data.scenes[currentSceneIndex];
   const progress = ((currentSceneIndex + 1) / data.scenes.length) * 100;
 
+  // Quiz state
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [answerRevealed, setAnswerRevealed] = useState(false);
+
   // Multi-agent state
   const [whiteboardOpen, setWhiteboardOpen] = useState(false);
   const [wbElements, setWbElements] = useState<WhiteboardElement[]>([]);
@@ -207,14 +211,28 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
   const nextScene = () => {
     if (currentSceneIndex < data.scenes.length - 1) {
       setCurrentSceneIndex((prev) => prev + 1);
+      setSelectedAnswer(null);
+      setAnswerRevealed(false);
     }
   };
 
   const prevScene = () => {
     if (currentSceneIndex > 0) {
       setCurrentSceneIndex((prev) => prev - 1);
+      setSelectedAnswer(null);
+      setAnswerRevealed(false);
     }
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") nextScene();
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp") prevScene();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  });
 
   const handleSend = async () => {
     if (!userInput.trim() || isGenerating) return;
@@ -223,6 +241,24 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
     setMessages((prev) => [...prev, userMsg]);
     setUserInput("");
 
+    const agentColors = ["#7c3aed", "#2563eb", "#10b981", "#f59e0b", "#ef4444"];
+    const agentAvatars: Record<string, string> = { teacher: "👨‍🏫", assistant: "🤖", student: "🧑‍🎓" };
+    const classroomAgents = (data as any).agents || [];
+    const agentConfigs = classroomAgents.length > 0
+      ? classroomAgents.map((a: any, i: number) => ({
+          id: a.id,
+          name: a.name,
+          role: a.role,
+          avatar: agentAvatars[a.role] || "🧑",
+          persona: a.persona,
+          color: agentColors[i % agentColors.length],
+          allowedActions: a.role === "teacher" ? ["wb_open", "wb_draw_text", "wb_draw_latex", "wb_close"] : [],
+        }))
+      : [
+          { id: "teacher", name: "Professor", role: "teacher", avatar: "👨‍🏫", persona: "Encouraging expert", color: "#7c3aed", allowedActions: ["wb_open", "wb_draw_text", "wb_draw_latex", "wb_close"] },
+          { id: "student", name: "Alex", role: "student", avatar: "🧑‍🎓", persona: "Curious student", color: "#10b981", allowedActions: [] },
+        ];
+
     const request: StatelessChatRequest = {
       messages: [...messages, userMsg],
       storeState: {
@@ -230,13 +266,10 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
         whiteboardOpen: whiteboardOpen,
       },
       config: {
-        agentIds: ["teacher", "assistant", "student_1"], // Example agents
-        agentConfigs: [
-          { id: "teacher", name: "Prof. AI", role: "teacher", avatar: "👨‍🏫", persona: "Encouraging expert", color: "#7c3aed", allowedActions: ["wb_open", "wb_draw_text", "wb_draw_latex", "wb_close"] },
-          { id: "assistant", name: "Tutor Bot", role: "assistant", avatar: "🤖", persona: "Helper bot", color: "#2563eb", allowedActions: ["wb_draw_text"] },
-          { id: "student_1", name: "Alex", role: "student", avatar: "🧑‍🎓", persona: "Curious student", color: "#10b981", allowedActions: [] },
-        ],
-      }
+        agentIds: agentConfigs.map((a: any) => a.id),
+        agentConfigs,
+        discussionTopic: data.topic,
+      },
     };
 
     let currentAgentMsgId: string | null = null;
@@ -415,36 +448,64 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                       <h2 className="text-3xl font-bold">{currentScene.content.question}</h2>
                     </div>
                     <div className="grid gap-4">
-                      {currentScene.content.options?.map((opt: string, i: number) => (
-                        <Button
-                          key={i}
-                          variant="outline"
-                          className="h-auto justify-start p-6 text-left text-lg transition-all hover:border-purple-300 hover:bg-purple-50"
-                        >
-                          <div className="mr-4 flex h-8 w-8 items-center justify-center rounded-full border bg-background text-sm font-bold">
-                            {String.fromCharCode(65 + i)}
-                          </div>
-                          {opt}
-                        </Button>
-                      ))}
+                      {currentScene.content.options?.map((opt: string, i: number) => {
+                        const correctIndex = currentScene.content.correctIndex ?? currentScene.content.answer;
+                        const isCorrect = i === correctIndex;
+                        const isSelected = selectedAnswer === i;
+                        return (
+                          <Button
+                            key={i}
+                            variant="outline"
+                            onClick={() => {
+                              if (!answerRevealed) {
+                                setSelectedAnswer(i);
+                                setAnswerRevealed(true);
+                              }
+                            }}
+                            className={cn(
+                              "h-auto justify-start p-6 text-left text-lg transition-all",
+                              !answerRevealed && "hover:border-purple-300 hover:bg-purple-50",
+                              answerRevealed && isCorrect && "border-green-500 bg-green-50 text-green-900",
+                              answerRevealed && isSelected && !isCorrect && "border-red-400 bg-red-50 text-red-900",
+                            )}
+                          >
+                            <div className={cn(
+                              "mr-4 flex h-8 w-8 items-center justify-center rounded-full border text-sm font-bold",
+                              answerRevealed && isCorrect && "bg-green-500 text-white border-green-500",
+                              answerRevealed && isSelected && !isCorrect && "bg-red-400 text-white border-red-400",
+                              !(answerRevealed && (isCorrect || isSelected)) && "bg-background",
+                            )}>
+                              {answerRevealed && isCorrect ? <CheckCircle2 className="h-4 w-4" /> : String.fromCharCode(65 + i)}
+                            </div>
+                            {opt}
+                          </Button>
+                        );
+                      })}
                     </div>
+                    {answerRevealed && currentScene.content.explanation && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-blue-900"
+                      >
+                        <p className="font-semibold mb-1">Explanation</p>
+                        <p className="text-sm">{currentScene.content.explanation}</p>
+                      </motion.div>
+                    )}
                   </div>
                 )}
 
                 {currentScene.type === "simulation" && (
                   <div className="h-full space-y-4">
                     <div className="flex items-center justify-between">
-                      <h2 className="text-2xl font-bold">{currentScene.content.title}</h2>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline">Reset</Button>
-                        <Button size="sm" className="bg-green-600 hover:bg-green-700">Run Sim</Button>
-                      </div>
+                      <h2 className="text-2xl font-bold">{currentScene.content.title || currentScene.title}</h2>
                     </div>
                     <div className="aspect-video w-full rounded-2xl border-4 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center">
                       {currentScene.content.html ? (
-                        <iframe 
+                        <iframe
                           srcDoc={currentScene.content.html}
                           className="h-full w-full rounded-xl border-none"
+                          sandbox="allow-scripts allow-same-origin"
                           title="Simulation"
                         />
                       ) : (
@@ -454,6 +515,56 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                         </div>
                       )}
                     </div>
+                  </div>
+                )}
+
+                {currentScene.type === "pbl" && (
+                  <div className="space-y-6">
+                    <div>
+                      <Badge variant="outline" className="mb-3 bg-amber-50 text-amber-700 border-amber-200">Project-Based Learning</Badge>
+                      <h2 className="text-3xl font-extrabold text-gray-900">{currentScene.content.projectTopic || currentScene.title}</h2>
+                      {currentScene.content.projectDescription && (
+                        <p className="mt-2 text-lg text-muted-foreground">{currentScene.content.projectDescription}</p>
+                      )}
+                    </div>
+                    {currentScene.content.targetSkills && (
+                      <div className="flex flex-wrap gap-2">
+                        {(Array.isArray(currentScene.content.targetSkills) ? currentScene.content.targetSkills : []).map((skill: string, i: number) => (
+                          <Badge key={i} variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">{skill}</Badge>
+                        ))}
+                      </div>
+                    )}
+                    {currentScene.content.issues && (
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-bold">Project Tasks</h3>
+                        {(Array.isArray(currentScene.content.issues) ? currentScene.content.issues : []).map((issue: any, i: number) => (
+                          <Card key={i} className="border-l-4 border-l-amber-400">
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-base">{issue.title || `Task ${i + 1}`}</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <p className="text-sm text-muted-foreground">{issue.description || issue.content || ""}</p>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                    {currentScene.content.milestones && (
+                      <div className="space-y-3">
+                        <h3 className="text-lg font-bold">Milestones</h3>
+                        {(Array.isArray(currentScene.content.milestones) ? currentScene.content.milestones : []).map((m: any, i: number) => (
+                          <div key={i} className="flex items-start gap-3 rounded-xl border bg-slate-50/50 p-4">
+                            <div className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-700">
+                              {i + 1}
+                            </div>
+                            <div>
+                              <p className="font-medium">{m.title || m}</p>
+                              {m.description && <p className="text-sm text-muted-foreground mt-1">{m.description}</p>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -481,7 +592,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
             <div className="flex items-center gap-4 text-sm font-medium text-gray-500">
               <div className="flex items-center gap-1">
                 <Users className="h-4 w-4" />
-                <span>3 AI Agents Online</span>
+                <span>{(data as any).agents?.length || 3} AI Agents Online</span>
               </div>
               <Separator orientation="vertical" className="h-4" />
               <span>Scene {currentSceneIndex + 1} / {data.scenes.length}</span>
@@ -610,43 +721,53 @@ export default function StudyArenaPage() {
     },
   });
 
-  // ── Polling for completion ─────────────────────────────────────────────────
-  const [pollingJobId, setPollingJobId] = useState<string | null>(null);
-  
+  // ── SSE Progress Streaming ──────────────────────────────────────────────────
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  const [jobProgress, setJobProgress] = useState(0);
+  const [jobMessage, setJobMessage] = useState("");
+
   useEffect(() => {
-    if (!pollingJobId) return;
+    if (!activeJobId) return;
 
-    const interval = setInterval(async () => {
+    const evtSource = new EventSource(`/api/ai-classroom/status/${activeJobId}/stream`);
+
+    evtSource.onmessage = (event) => {
       try {
-        const res = await fetch(`/api/ai-classroom/status/${pollingJobId}`);
-        const data = await res.json();
-
-        if (data.status === "completed") {
-          setPollingJobId(null);
-          toast({
-            title: "Ready!",
-            description: "Your classroom has been generated successfully.",
-          });
-          queryClient.invalidateQueries({ queryKey: ["ai-classroom-history"] });
-        } else if (data.status === "failed") {
-          setPollingJobId(null);
-          toast({
-            title: "Generation Failed",
-            description: data.error || "Something went wrong.",
-            variant: "destructive",
-          });
+        const data = JSON.parse(event.data);
+        if (data.error) {
+          setActiveJobId(null);
+          toast({ title: "Error", description: data.error, variant: "destructive" });
+          evtSource.close();
+          return;
         }
-      } catch (e) {
-        console.error("Polling error:", e);
+        setJobProgress(data.progress || 0);
+        setJobMessage(data.message || "");
+
+        if (data.status === "succeeded") {
+          setActiveJobId(null);
+          setJobProgress(0);
+          setJobMessage("");
+          toast({ title: "Ready!", description: "Your classroom has been generated successfully." });
+          queryClient.invalidateQueries({ queryKey: ["ai-classroom-history"] });
+          evtSource.close();
+        } else if (data.status === "failed") {
+          setActiveJobId(null);
+          setJobProgress(0);
+          setJobMessage("");
+          toast({ title: "Generation Failed", description: data.error || "Something went wrong.", variant: "destructive" });
+          evtSource.close();
+        }
+      } catch {
+        // ignore malformed events
       }
-    }, 3000);
+    };
 
-    return () => clearInterval(interval);
-  }, [pollingJobId, queryClient, toast]);
+    evtSource.onerror = () => {
+      evtSource.close();
+    };
 
-  const startPolling = (jobId: string) => {
-    setPollingJobId(jobId);
-  };
+    return () => evtSource.close();
+  }, [activeJobId, queryClient, toast]);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
@@ -679,10 +800,10 @@ export default function StudyArenaPage() {
     onSuccess: (data: { jobId: string }) => {
       toast({
         title: "Generation Started",
-        description: "Your AI classroom is being generated. This may take a few minutes...",
+        description: "Your AI classroom is being generated...",
       });
       queryClient.invalidateQueries({ queryKey: ["ai-classroom-history"] });
-      startPolling(data.jobId);
+      setActiveJobId(data.jobId);
     },
     onError: (error: Error) => {
       toast({
@@ -822,16 +943,22 @@ export default function StudyArenaPage() {
               </div>
             </div>
           </CardContent>
-          <CardFooter className="bg-slate-50/50 border-t">
+          <CardFooter className="bg-slate-50/50 border-t flex-col gap-3">
+            {activeJobId && (
+              <div className="w-full space-y-2">
+                <Progress value={jobProgress} className="h-2" />
+                <p className="text-xs text-center text-muted-foreground">{jobMessage || "Starting..."}</p>
+              </div>
+            )}
             <Button
               className="w-full h-12 rounded-xl bg-purple-600 hover:bg-purple-700 text-lg font-bold transition-all disabled:opacity-50"
               onClick={handleCreateClassroom}
-              disabled={createClassroomMutation.isPending || !!pollingJobId}
+              disabled={createClassroomMutation.isPending || !!activeJobId}
             >
-              {createClassroomMutation.isPending || pollingJobId ? (
+              {createClassroomMutation.isPending || activeJobId ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Generating Engine...
+                  {activeJobId ? `Generating (${jobProgress}%)...` : "Starting..."}
                 </>
               ) : (
                 <>
@@ -890,7 +1017,7 @@ export default function StudyArenaPage() {
                       <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Layout className="h-3 w-3" />
-                          {classroom.scenes.length} Scenes
+                          {classroom.scenes?.length ?? "?"} Scenes
                         </span>
                         <Separator orientation="vertical" className="h-3" />
                         <span className="flex items-center gap-1">
