@@ -29,31 +29,46 @@ import type {
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "" });
 
+const LLM_TIMEOUT_MS = 120_000;
+const PARALLEL_SCENE_BATCH_SIZE = 3;
+
 // ── LLM Adapter ──────────────────────────────────────────────────────────────
-// Replaces callLLM (Vercel AI SDK) with OpenAI SDK
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`LLM call timed out after ${ms}ms: ${label}`)), ms);
+    promise.then(resolve, reject).finally(() => clearTimeout(timer));
+  });
+}
 
 function createAICallFn(): AICallFn {
   const hasGemini = !!process.env.GOOGLE_API_KEY;
   const hasOpenAI = !!process.env.OPENAI_API_KEY;
 
   return async (systemPrompt: string, userPrompt: string): Promise<string> => {
+    const label = userPrompt.substring(0, 60);
+
     if (hasGemini) {
       try {
-        return await geminiChat(systemPrompt, userPrompt);
+        return await withTimeout(geminiChat(systemPrompt, userPrompt), LLM_TIMEOUT_MS, label);
       } catch (err) {
         logger.warn("[StudyArena] Gemini call failed, falling back to OpenAI if available:", err);
         if (!hasOpenAI) throw err;
       }
     }
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      max_tokens: 16384,
-    });
+    const response = await withTimeout(
+      openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        max_tokens: 16384,
+      }),
+      LLM_TIMEOUT_MS,
+      label,
+    );
     return response.choices[0].message.content || "";
   };
 }
@@ -270,9 +285,25 @@ async function generateQuizContent(
 // ── Interactive HTML Processing ─────────────────────────────────────────────
 // Ported from features/ai-classroom/studyArena/lib/generation/interactive-post-processor.ts
 
+function sanitizeGeneratedHtml(html: string): string {
+  let sanitized = html;
+  sanitized = sanitized.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, (match) => {
+    if (/src\s*=\s*["'][^"']*cdn\.jsdelivr\.net/i.test(match)) return match;
+    if (/renderMathInElement|katex|MathJax/i.test(match)) return match;
+    if (/document\.addEventListener|querySelector|getElementById|className|style\./i.test(match)) return match;
+    if (/fetch\s*\(|XMLHttpRequest|eval\s*\(|Function\s*\(|import\s*\(/i.test(match)) return '';
+    return match;
+  });
+  sanitized = sanitized.replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, '');
+  sanitized = sanitized.replace(/<object[^>]*>[\s\S]*?<\/object>/gi, '');
+  sanitized = sanitized.replace(/<embed[^>]*\/?>/gi, '');
+  sanitized = sanitized.replace(/\bon\w+\s*=\s*["'][^"']*["']/gi, '');
+  return sanitized;
+}
+
 function postProcessInteractiveHtml(html: string): string {
-  // Convert LaTeX delimiters: $$...$$ -> \[...\] and $...$ -> \(...\)
-  let processed = html.replace(/\$\$([^$]+)\$\$/g, '\\[$1\\]');
+  let processed = sanitizeGeneratedHtml(html);
+  processed = processed.replace(/\$\$([^$]+)\$\$/g, '\\[$1\\]');
   processed = processed.replace(/\$([^$\n]+?)\$/g, '\\($1\\)');
 
   // Inject KaTeX resources
@@ -483,43 +514,49 @@ export async function generateFullClassroom(
     totalScenes: outlines.length,
   });
 
-  // Step 3: Generate content + actions for each scene
+  // Step 3: Generate content + actions in parallel batches
   const scenes: GeneratedScene[] = [];
   let generatedCount = 0;
 
-  for (const outline of outlines) {
+  for (let batchStart = 0; batchStart < outlines.length; batchStart += PARALLEL_SCENE_BATCH_SIZE) {
+    const batch = outlines.slice(batchStart, batchStart + PARALLEL_SCENE_BATCH_SIZE);
+
     onProgress?.({
       step: "generating_scenes",
       progress: 30 + Math.floor((generatedCount / outlines.length) * 60),
-      message: `Generating scene ${generatedCount + 1}/${outlines.length}: ${outline.title}`,
+      message: `Generating scenes ${batchStart + 1}-${Math.min(batchStart + batch.length, outlines.length)}/${outlines.length}...`,
       scenesGenerated: generatedCount,
       totalScenes: outlines.length,
     });
 
-    try {
-      // Step 3.1: Content
-      const content = await generateSceneContent(outline, aiCall, agents);
-      if (!content) {
-        logger.warn(`Skipping scene "${outline.title}" — content generation failed`);
-        continue;
+    const batchResults = await Promise.allSettled(
+      batch.map(async (outline) => {
+        const content = await generateSceneContent(outline, aiCall, agents);
+        if (!content) {
+          logger.warn(`Skipping scene "${outline.title}" — content generation failed`);
+          return null;
+        }
+        const actions = await generateSceneActions(outline, content, aiCall, agents);
+        logger.info(`Scene "${outline.title}": ${actions.length} actions`);
+        return { outline, content, actions };
+      }),
+    );
+
+    for (const result of batchResults) {
+      if (result.status === "fulfilled" && result.value) {
+        const { outline, content, actions } = result.value;
+        scenes.push({
+          id: outline.id,
+          type: outline.type,
+          title: outline.title,
+          description: outline.description,
+          content,
+          actions,
+        });
+        generatedCount++;
+      } else if (result.status === "rejected") {
+        logger.error(`Failed to generate scene in batch:`, result.reason);
       }
-
-      // Step 3.2: Actions
-      const actions = await generateSceneActions(outline, content, aiCall, agents);
-      logger.info(`Scene "${outline.title}": ${actions.length} actions`);
-
-      scenes.push({
-        id: outline.id,
-        type: outline.type,
-        title: outline.title,
-        description: outline.description,
-        content,
-        actions,
-      });
-
-      generatedCount++;
-    } catch (err) {
-      logger.error(`Failed to generate scene "${outline.title}":`, err);
     }
   }
 
