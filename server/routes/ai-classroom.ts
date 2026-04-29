@@ -52,7 +52,7 @@ router.post("/create", async (req: Request, res: Response) => {
       message: "Classroom generation started (Native)",
     });
   } catch (error: unknown) {
-    console.error("Error creating classroom:", error);
+    logger.error("Error creating classroom:", error);
     res.status(500).json({
       error: (error as Error).message || "Failed to create classroom",
     });
@@ -66,7 +66,7 @@ router.get("/status/:jobId", async (req: Request, res: Response) => {
 
     res.json(jobStatus);
   } catch (error: unknown) {
-    console.error("Error polling job:", error);
+    logger.error("Error polling job:", error);
     res.status(500).json({
       error: (error as Error).message || "Failed to poll job status",
     });
@@ -87,7 +87,7 @@ router.get("/my-classrooms", async (req: Request, res: Response) => {
     const classrooms = await MongoAIClassroom.find({ teacherId }).sort({ createdAt: -1 });
     res.json(classrooms);
   } catch (error: unknown) {
-    console.error("Error fetching classrooms:", error);
+    logger.error("Error fetching classrooms:", error);
     res.status(500).json({
       error: (error as Error).message || "Failed to fetch classrooms",
     });
@@ -97,19 +97,71 @@ router.get("/my-classrooms", async (req: Request, res: Response) => {
 router.get("/classroom/:classroomId", async (req, res) => {
   try {
     const { classroomId } = req.params;
-    const classroom = await studyArenaInternalService.getClassroom(parseInt(classroomId));
+    const user = req.user as { id: number } | undefined;
+    const userId = user?.id || req.session?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
 
+    const classroom = await MongoAIClassroom.findOne({ id: parseInt(classroomId) });
     if (!classroom) {
       return res.status(404).json({ error: "Classroom not found" });
     }
+    if (classroom.teacherId !== userId) {
+      return res.status(403).json({ error: "Access denied" });
+    }
 
-    res.json(classroom);
+    res.json(classroom.data);
   } catch (error: unknown) {
-    console.error("Error fetching classroom:", error);
+    logger.error("Error fetching classroom:", error);
     res.status(500).json({
       error: (error as Error).message || "Failed to fetch classroom",
     });
   }
+});
+
+// ── SSE Progress Streaming ──────────────────────────────────────────────
+
+router.get("/status/:jobId/stream", async (req: Request, res: Response) => {
+  const { jobId } = req.params;
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+
+  const sendStatus = (status: any) => {
+    res.write(`data: ${JSON.stringify(status)}\n\n`);
+  };
+
+  try {
+    const current = await studyArenaInternalService.pollJob(jobId);
+    sendStatus(current);
+    if (current.done) {
+      res.end();
+      return;
+    }
+  } catch {
+    res.write(`data: ${JSON.stringify({ error: "Job not found" })}\n\n`);
+    res.end();
+    return;
+  }
+
+  const onUpdate = (status: any) => {
+    sendStatus(status);
+    if (status.done) {
+      cleanup();
+      res.end();
+    }
+  };
+
+  const eventName = `job:${jobId}`;
+  studyArenaInternalService.on(eventName, onUpdate);
+
+  const cleanup = () => {
+    studyArenaInternalService.removeListener(eventName, onUpdate);
+  };
+
+  req.on("close", cleanup);
 });
 
 // ── Stateless Multi-Agent Chat ──────────────────────────────────────────
