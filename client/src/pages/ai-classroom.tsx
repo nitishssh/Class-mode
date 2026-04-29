@@ -295,10 +295,14 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
           )
         );
       } else if (event.type === "action") {
-        if (event.data.actionName === "wb_open") setWhiteboardOpen(true);
-        if (event.data.actionName === "wb_close") setWhiteboardOpen(false);
-        if (event.data.actionName.startsWith("wb_draw_")) {
-          const type = event.data.actionName.replace("wb_draw_", "");
+        const name = event.data.actionName;
+        if (name === "wb_open") setWhiteboardOpen(true);
+        else if (name === "wb_close") setWhiteboardOpen(false);
+        else if (name === "wb_clear") setWbElements([]);
+        else if (name === "wb_erase" && event.data.params?.elementId) {
+          setWbElements((prev) => prev.filter((el) => el.id !== event.data.params.elementId));
+        } else if (name.startsWith("wb_draw_")) {
+          const type = name.replace("wb_draw_", "");
           setWbElements((prev) => [
             ...prev,
             {
@@ -947,7 +951,25 @@ export default function StudyArenaPage() {
             {activeJobId && (
               <div className="w-full space-y-2">
                 <Progress value={jobProgress} className="h-2" />
-                <p className="text-xs text-center text-muted-foreground">{jobMessage || "Starting..."}</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">{jobMessage || "Starting..."}</p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={async () => {
+                      try {
+                        await fetch(`/api/ai-classroom/status/${activeJobId}`, { method: "DELETE" });
+                        setActiveJobId(null);
+                        setJobProgress(0);
+                        setJobMessage("");
+                        toast({ title: "Cancelled", description: "Generation cancelled." });
+                      } catch {}
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
               </div>
             )}
             <Button
