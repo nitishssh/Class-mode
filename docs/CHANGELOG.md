@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **AI Classroom Features**: Enhanced classroom player with interactive quizzes, keyboard navigation, PBL (Project-Based Learning) support, and real-time SSE progress tracking.
+- **Job Management**: Implemented job cancellation via API and UI, including AbortSignal support during classroom generation.
+- **Whiteboard Integrations**: Added whiteboard clear/erase actions, limited ledger size, and incorporated UI controls for managing whiteboard state.
+- **API Enhancements**: Added endpoints for deleting classrooms, cancelling jobs, and pagination support for classroom listings.
+
+### Fixed
+- **Memory Management**: Added maximum buffer size to the orchestrator chunk parser and limited whiteboard ledger size to prevent OOM errors.
+- **Generation Pipeline**: Implemented parallel scene generation, LLM timeouts, and HTML sanitization for stability.
+- **Background Tasks**: Implemented job cleanup and staleness tracking in the StudyArena service.
+- **Security & Authorization**: Fixed classroom access authorization and enforced authentication checks on the `my-classrooms` route.
+
+### Changed
+- **Caching**: Implemented in-memory caching for study arena prompts and snippets.
+
 ## [1.1.0] - 2026-02-20
 
 ### Added
