@@ -34,15 +34,25 @@ export interface JobStatus {
 // ── In-Memory Job Store ──────────────────────────────────────────────────────
 // Phase 1: simple Map-based store. Phase 2 could move to Redis.
 
-const jobs = new Map<string, JobStatus>();
+const jobs = new Map<string, JobStatus & { updatedAt: number }>();
 
-/** Stale job timeout (30 minutes) */
 const STALE_JOB_TIMEOUT_MS = 30 * 60 * 1000;
+const MAX_COMPLETED_JOBS = 500;
 
-function markStaleIfNeeded(job: JobStatus): JobStatus {
-  if (job.status !== "running") return job;
-  // We don't track timestamps per-job in the Map, so just return as-is for now
+function markStaleIfNeeded(job: JobStatus & { updatedAt: number }): JobStatus {
+  if (job.status === "running" && Date.now() - job.updatedAt > STALE_JOB_TIMEOUT_MS) {
+    return { ...job, status: "failed", done: true, error: "Job timed out" };
+  }
   return job;
+}
+
+function evictCompletedJobs() {
+  if (jobs.size <= MAX_COMPLETED_JOBS) return;
+  const completed = [...jobs.entries()]
+    .filter(([, j]) => j.done)
+    .sort((a, b) => a[1].updatedAt - b[1].updatedAt);
+  const toRemove = completed.slice(0, completed.length - MAX_COMPLETED_JOBS);
+  for (const [id] of toRemove) jobs.delete(id);
 }
 
 // ── Service Class ────────────────────────────────────────────────────────────
@@ -55,7 +65,6 @@ export class StudyArenaService {
   async createClassroom(requirement: string, teacherId: number): Promise<{ jobId: string }> {
     const jobId = nanoid(10);
 
-    // Initialize the job
     jobs.set(jobId, {
       jobId,
       status: "pending",
@@ -63,6 +72,7 @@ export class StudyArenaService {
       progress: 0,
       message: "Classroom generation queued...",
       done: false,
+      updatedAt: Date.now(),
     });
 
     // Fire-and-forget: start async generation
@@ -85,7 +95,7 @@ export class StudyArenaService {
     const updateJob = (updates: Partial<JobStatus>) => {
       const current = jobs.get(jobId);
       if (current) {
-        jobs.set(jobId, { ...current, ...updates });
+        jobs.set(jobId, { ...current, ...updates, updatedAt: Date.now() });
       }
     };
 
@@ -130,6 +140,8 @@ export class StudyArenaService {
         totalScenes: classroomData.scenes.length,
         result: { classroomId: id },
       });
+
+      evictCompletedJobs();
     } catch (error: any) {
       const errorMsg = error?.message || String(error);
       logger.error(`[StudyArena] Job ${jobId} failed: ${errorMsg}`);
