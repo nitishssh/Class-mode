@@ -73,6 +73,20 @@ router.get("/status/:jobId", async (req: Request, res: Response) => {
   }
 });
 
+router.delete("/status/:jobId", async (req: Request, res: Response) => {
+  try {
+    const { jobId } = req.params;
+    const cancelled = studyArenaInternalService.cancelJob(jobId);
+    if (!cancelled) {
+      return res.status(404).json({ error: "No active job found to cancel" });
+    }
+    res.json({ message: "Job cancelled" });
+  } catch (error: unknown) {
+    logger.error("Error cancelling job:", error);
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
 /**
  * GET /api/ai-classroom/my-classrooms
  * Fetch the current user's generated AI classrooms
@@ -84,13 +98,33 @@ router.get("/my-classrooms", async (req: Request, res: Response) => {
     if (!teacherId) {
       return res.status(401).json({ error: "Authentication required" });
     }
-    const classrooms = await MongoAIClassroom.find({ teacherId }).sort({ createdAt: -1 });
-    res.json(classrooms);
+    const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+    const offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
+    const result = await studyArenaInternalService.listClassrooms(teacherId, limit, offset);
+    res.json(result);
   } catch (error: unknown) {
     logger.error("Error fetching classrooms:", error);
     res.status(500).json({
       error: (error as Error).message || "Failed to fetch classrooms",
     });
+  }
+});
+
+router.delete("/classroom/:classroomId", async (req: Request, res: Response) => {
+  try {
+    const user = req.user as { id: number } | undefined;
+    const userId = user?.id || req.session?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+    const deleted = await studyArenaInternalService.deleteClassroom(parseInt(req.params.classroomId), userId);
+    if (!deleted) {
+      return res.status(404).json({ error: "Classroom not found or access denied" });
+    }
+    res.json({ message: "Classroom deleted" });
+  } catch (error: unknown) {
+    logger.error("Error deleting classroom:", error);
+    res.status(500).json({ error: (error as Error).message });
   }
 });
 
