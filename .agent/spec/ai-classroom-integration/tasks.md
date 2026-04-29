@@ -44,7 +44,7 @@
 ## Phase 4: Polish & Advanced Features
 
 - [ ] **4.1** TTS integration (Azure Cognitive Services)
-- [ ] **4.2** Whiteboard component port
+- [x] **4.2** Whiteboard component port
 - [x] **4.3** Interactive scene renderer (Integrated via `SimulationRenderer`)
 - [x] **4.4** PBL scene renderer (Integrated via `PBLRenderer`)
 - [x] **4.5** Framer Motion micro-animations (Integrated in `ClassroomPlayer`)
