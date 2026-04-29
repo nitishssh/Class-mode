@@ -16,8 +16,10 @@
     "setup:openmaic": "./scripts/setup-openmaic.sh"
   },
   "dependencies": {
+    "@anthropic-ai/vertex-sdk": "^0.16.0",
     "@daily-co/daily-js": "^0.87.0",
     "@daily-co/daily-react": "^0.24.0",
+    "@google-cloud/vertexai": "^1.12.0",
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^3.9.1",
     "@jridgewell/trace-mapping": "^0.3.25",

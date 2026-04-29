@@ -1,4 +1,8 @@
 import "dotenv/config";
+import dns from "node:dns";
+if (process.env.DNS_IPV4_FIRST === "true") {
+  dns.setDefaultResultOrder("ipv4first");
+}
 import { logger } from "./lib/logger";
 
 // Prevent unhandled promise rejections from crashing the server
