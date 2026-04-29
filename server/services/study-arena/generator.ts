@@ -341,7 +341,9 @@ async function generateInteractiveContent(
       if (parsed?.core_formulas) {
         scientificConstraints = `Core Formulas: ${parsed.core_formulas.join("; ")}\nConstraints: ${parsed.constraints?.join("; ") || ""}`;
       }
-    } catch {}
+    } catch (err) {
+      logger.warn("[StudyArena] Scientific model generation failed, using defaults:", err);
+    }
   }
 
   // Step 2: HTML generation
