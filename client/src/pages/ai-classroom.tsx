@@ -85,11 +85,13 @@ interface WhiteboardElement {
 const Whiteboard = ({ 
   isOpen, 
   elements, 
-  onClose 
+  onClose,
+  onClear
 }: { 
   isOpen: boolean; 
   elements: WhiteboardElement[]; 
-  onClose: () => void 
+  onClose: () => void;
+  onClear: () => void;
 }) => {
   return (
     <AnimatePresence>
@@ -105,9 +107,15 @@ const Whiteboard = ({
               <PencilLine className="h-4 w-4" />
               Whiteboard
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 rounded-full">
-              <X className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={onClear} className="h-8 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50">
+                <Eraser className="h-3 w-3 mr-1" />
+                Clear
+              </Button>
+              <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 rounded-full">
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
           
           <div className="flex-1 relative bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:24px_24px] overflow-hidden">
@@ -252,10 +260,10 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
           avatar: agentAvatars[a.role] || "🧑",
           persona: a.persona,
           color: agentColors[i % agentColors.length],
-          allowedActions: a.role === "teacher" ? ["wb_open", "wb_draw_text", "wb_draw_latex", "wb_close"] : [],
+          allowedActions: a.role === "teacher" ? ["wb_open", "wb_draw_text", "wb_draw_latex", "wb_close", "wb_clear", "wb_delete"] : [],
         }))
       : [
-          { id: "teacher", name: "Professor", role: "teacher", avatar: "👨‍🏫", persona: "Encouraging expert", color: "#7c3aed", allowedActions: ["wb_open", "wb_draw_text", "wb_draw_latex", "wb_close"] },
+          { id: "teacher", name: "Professor", role: "teacher", avatar: "👨‍🏫", persona: "Encouraging expert", color: "#7c3aed", allowedActions: ["wb_open", "wb_draw_text", "wb_draw_latex", "wb_close", "wb_clear", "wb_delete"] },
           { id: "student", name: "Alex", role: "student", avatar: "🧑‍🎓", persona: "Curious student", color: "#10b981", allowedActions: [] },
         ];
 
@@ -299,7 +307,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
         if (name === "wb_open") setWhiteboardOpen(true);
         else if (name === "wb_close") setWhiteboardOpen(false);
         else if (name === "wb_clear") setWbElements([]);
-        else if (name === "wb_erase" && event.data.params?.elementId) {
+        else if (name === "wb_delete" && event.data.params?.elementId) {
           setWbElements((prev) => prev.filter((el) => el.id !== event.data.params.elementId));
         } else if (name.startsWith("wb_draw_")) {
           const type = name.replace("wb_draw_", "");
@@ -578,6 +586,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                 isOpen={whiteboardOpen} 
                 elements={wbElements} 
                 onClose={() => setWhiteboardOpen(false)} 
+                onClear={() => setWbElements([])}
               />
             </div>
           </ScrollArea>
