@@ -46,7 +46,10 @@ const OrchestratorState = Annotation.Root({
     default: () => [],
   }),
   whiteboardLedger: Annotation<WhiteboardActionRecord[]>({
-    reducer: (prev, update) => [...prev, ...update],
+    reducer: (prev, update) => {
+      const combined = [...prev, ...update];
+      return combined.length > 100 ? combined.slice(-100) : combined;
+    },
     default: () => [],
   }),
   shouldEnd: Annotation<boolean>,
