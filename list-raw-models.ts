@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 async function listModels() {
   const apiKey = process.env.GOOGLE_API_KEY || "";
-  console.log("Checking key:", apiKey.substring(0, 10) + "...");
+  console.log("Checking key:", apiKey ? "(set)" : "(missing)");
   
   try {
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
