@@ -11,6 +11,8 @@ import { jsonrepair } from 'jsonrepair';
 
 // ==================== Structured Output Parser ====================
 
+const MAX_PARSER_BUFFER_BYTES = 512 * 1024;
+
 interface ParserState {
   buffer: string;
   jsonStarted: boolean;
@@ -46,6 +48,12 @@ export function parseStructuredChunk(chunk: string, state: ParserState): ParseRe
 
   if (state.isDone) return result;
   state.buffer += chunk;
+
+  if (state.buffer.length > MAX_PARSER_BUFFER_BYTES) {
+    state.isDone = true;
+    result.isDone = true;
+    return result;
+  }
 
   if (!state.jsonStarted) {
     const bracketIndex = state.buffer.indexOf('[');
