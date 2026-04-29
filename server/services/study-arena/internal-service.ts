@@ -36,6 +36,7 @@ export interface JobStatus {
 // Phase 1: simple Map-based store. Phase 2 could move to Redis.
 
 const jobs = new Map<string, JobStatus & { updatedAt: number }>();
+const jobAbortControllers = new Map<string, AbortController>();
 
 const STALE_JOB_TIMEOUT_MS = 30 * 60 * 1000;
 const MAX_COMPLETED_JOBS = 500;
@@ -78,8 +79,10 @@ export class StudyArenaService extends EventEmitter {
       updatedAt: Date.now(),
     });
 
-    // Fire-and-forget: start async generation
-    this.runGenerationJob(jobId, requirement, teacherId).catch((err) => {
+    const abortController = new AbortController();
+    jobAbortControllers.set(jobId, abortController);
+
+    this.runGenerationJob(jobId, requirement, teacherId, abortController.signal).catch((err) => {
       logger.error(`[StudyArena] Job ${jobId} uncaught error:`, err);
     });
 
@@ -94,6 +97,7 @@ export class StudyArenaService extends EventEmitter {
     jobId: string,
     requirement: string,
     teacherId: number,
+    signal: AbortSignal,
   ): Promise<void> {
     const updateJob = (updates: Partial<JobStatus>) => {
       const current = jobs.get(jobId);
@@ -119,6 +123,7 @@ export class StudyArenaService extends EventEmitter {
             totalScenes: progress.totalScenes,
           });
         },
+        signal,
       );
 
       // Persist to MongoDB
@@ -146,8 +151,10 @@ export class StudyArenaService extends EventEmitter {
         result: { classroomId: id },
       });
 
+      jobAbortControllers.delete(jobId);
       evictCompletedJobs();
     } catch (error: any) {
+      jobAbortControllers.delete(jobId);
       const errorMsg = error?.message || String(error);
       logger.error(`[StudyArena] Job ${jobId} failed: ${errorMsg}`);
 
@@ -204,20 +211,37 @@ export class StudyArenaService extends EventEmitter {
     return (classroom?.data as ClassroomData) || null;
   }
 
-  /**
-   * List recent classrooms for a teacher.
-   */
-  async listClassrooms(teacherId: number, limit: number = 20): Promise<any[]> {
-    const classrooms = await MongoAIClassroom.find({ teacherId })
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .lean();
-    return classrooms.map((c) => ({
-      id: c.id,
-      topic: c.topic,
-      status: c.status,
-      createdAt: c.createdAt,
-    }));
+  cancelJob(jobId: string): boolean {
+    const controller = jobAbortControllers.get(jobId);
+    if (!controller) return false;
+    controller.abort();
+    jobAbortControllers.delete(jobId);
+    return true;
+  }
+
+  async deleteClassroom(id: number, teacherId: number): Promise<boolean> {
+    const result = await MongoAIClassroom.findOneAndDelete({ id, teacherId });
+    return !!result;
+  }
+
+  async listClassrooms(teacherId: number, limit: number = 20, offset: number = 0): Promise<{ classrooms: any[]; total: number }> {
+    const [classrooms, total] = await Promise.all([
+      MongoAIClassroom.find({ teacherId })
+        .sort({ createdAt: -1 })
+        .skip(offset)
+        .limit(limit)
+        .lean(),
+      MongoAIClassroom.countDocuments({ teacherId }),
+    ]);
+    return {
+      classrooms: classrooms.map((c) => ({
+        id: c.id,
+        topic: c.topic,
+        status: c.status,
+        createdAt: c.createdAt,
+      })),
+      total,
+    };
   }
 }
 
