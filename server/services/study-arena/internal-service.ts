@@ -9,6 +9,7 @@
  */
 
 import { nanoid } from "nanoid";
+import { EventEmitter } from "events";
 import { generateFullClassroom } from "./generator";
 import { MongoAIClassroom, getNextSequenceValue } from "../../../shared/mongo-schema";
 import type { ClassroomData, ClassroomGenerationProgress } from "./types";
@@ -48,16 +49,18 @@ function markStaleIfNeeded(job: JobStatus & { updatedAt: number }): JobStatus {
 
 function evictCompletedJobs() {
   if (jobs.size <= MAX_COMPLETED_JOBS) return;
-  const completed = [...jobs.entries()]
-    .filter(([, j]) => j.done)
-    .sort((a, b) => a[1].updatedAt - b[1].updatedAt);
-  const toRemove = completed.slice(0, completed.length - MAX_COMPLETED_JOBS);
-  for (const [id] of toRemove) jobs.delete(id);
+  const completed: Array<[string, JobStatus & { updatedAt: number }]> = [];
+  jobs.forEach((v, k) => { if (v.done) completed.push([k, v]); });
+  completed.sort((a, b) => a[1].updatedAt - b[1].updatedAt);
+  const removeCount = completed.length - MAX_COMPLETED_JOBS;
+  for (let i = 0; i < removeCount && i < completed.length; i++) {
+    jobs.delete(completed[i][0]);
+  }
 }
 
 // ── Service Class ────────────────────────────────────────────────────────────
 
-export class StudyArenaService {
+export class StudyArenaService extends EventEmitter {
   /**
    * Submit a new classroom generation job (async, returns immediately).
    * The frontend should poll /job/:jobId for status.
@@ -95,7 +98,9 @@ export class StudyArenaService {
     const updateJob = (updates: Partial<JobStatus>) => {
       const current = jobs.get(jobId);
       if (current) {
-        jobs.set(jobId, { ...current, ...updates, updatedAt: Date.now() });
+        const updated = { ...current, ...updates, updatedAt: Date.now() };
+        jobs.set(jobId, updated);
+        this.emit(`job:${jobId}`, updated);
       }
     };
 
