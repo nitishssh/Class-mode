@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { logger } from './logger';
 
 export type PromptId = string;
 export type SnippetId = string;
@@ -10,49 +11,45 @@ export interface LoadedPrompt {
   userPromptTemplate: string;
 }
 
-/**
- * Get the prompts directory path
- */
+const promptCache = new Map<PromptId, LoadedPrompt>();
+const snippetCache = new Map<SnippetId, string>();
+
 function getPromptsDir(): string {
   return path.join(process.cwd(), 'server', 'lib', 'prompts', 'study-arena');
 }
 
-/**
- * Load a snippet by ID
- */
 export function loadSnippet(snippetId: SnippetId): string {
+  const cached = snippetCache.get(snippetId);
+  if (cached) return cached;
+
   const snippetPath = path.join(process.cwd(), 'server', 'lib', 'prompts', 'snippets', `${snippetId}.md`);
 
   try {
-    return fs.readFileSync(snippetPath, 'utf-8').trim();
+    const content = fs.readFileSync(snippetPath, 'utf-8').trim();
+    snippetCache.set(snippetId, content);
+    return content;
   } catch {
     throw new Error(`Snippet not found: ${snippetId}`);
   }
 }
 
-/**
- * Process snippet includes in a template
- * Replaces {{snippet:name}} with actual snippet content
- */
 function processSnippets(template: string): string {
   return template.replace(/\{\{snippet:([\w-]+)\}\}/g, (_, snippetId) => {
     return loadSnippet(snippetId);
   });
 }
 
-/**
- * Load a prompt by ID
- */
 export function loadPrompt(promptId: PromptId): LoadedPrompt | null {
+  const cached = promptCache.get(promptId);
+  if (cached) return cached;
+
   const promptDir = path.join(getPromptsDir(), promptId);
 
   try {
-    // Load system.md
     const systemPath = path.join(promptDir, 'system.md');
     let systemPrompt = fs.readFileSync(systemPath, 'utf-8').trim();
     systemPrompt = processSnippets(systemPrompt);
 
-    // Load user.md (optional)
     const userPath = path.join(promptDir, 'user.md');
     let userPromptTemplate = '';
     try {
@@ -62,15 +59,18 @@ export function loadPrompt(promptId: PromptId): LoadedPrompt | null {
       // user.md is optional
     }
 
-    return {
-      id: promptId,
-      systemPrompt,
-      userPromptTemplate,
-    };
+    const prompt: LoadedPrompt = { id: promptId, systemPrompt, userPromptTemplate };
+    promptCache.set(promptId, prompt);
+    return prompt;
   } catch (error) {
-    console.error(`Failed to load prompt ${promptId}:`, error);
+    logger.error(`Failed to load prompt ${promptId}:`, error);
     return null;
   }
+}
+
+export function clearPromptCache(): void {
+  promptCache.clear();
+  snippetCache.clear();
 }
 
 /**
