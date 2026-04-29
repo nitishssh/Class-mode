@@ -80,7 +80,10 @@ router.get("/status/:jobId", async (req: Request, res: Response) => {
 router.get("/my-classrooms", async (req: Request, res: Response) => {
   try {
     const user = req.user as { id: number } | undefined;
-    const teacherId = user?.id || req.session?.userId || 1;
+    const teacherId = user?.id || req.session?.userId;
+    if (!teacherId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
     const classrooms = await MongoAIClassroom.find({ teacherId }).sort({ createdAt: -1 });
     res.json(classrooms);
   } catch (error: unknown) {
