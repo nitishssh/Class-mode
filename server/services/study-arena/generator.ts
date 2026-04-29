@@ -480,9 +480,14 @@ async function generateSceneActions(
 export async function generateFullClassroom(
   requirement: string,
   onProgress?: (progress: ClassroomGenerationProgress) => void,
+  signal?: AbortSignal,
 ): Promise<ClassroomData> {
   const aiCall = createAICallFn();
   const classroomId = nanoid(10);
+
+  const checkAborted = () => {
+    if (signal?.aborted) throw new Error("Generation cancelled");
+  };
 
   // Step 1: Generate agents
   onProgress?.({
@@ -494,6 +499,7 @@ export async function generateFullClassroom(
 
   const agents = await generateAgentProfiles(requirement, aiCall);
   logger.info(`Generated ${agents.length} agent profiles`);
+  checkAborted();
 
   // Step 2: Generate outlines
   onProgress?.({
@@ -514,11 +520,14 @@ export async function generateFullClassroom(
     totalScenes: outlines.length,
   });
 
+  checkAborted();
+
   // Step 3: Generate content + actions in parallel batches
   const scenes: GeneratedScene[] = [];
   let generatedCount = 0;
 
   for (let batchStart = 0; batchStart < outlines.length; batchStart += PARALLEL_SCENE_BATCH_SIZE) {
+    checkAborted();
     const batch = outlines.slice(batchStart, batchStart + PARALLEL_SCENE_BATCH_SIZE);
 
     onProgress?.({
