@@ -24,7 +24,7 @@
     "commander": "^13.1.0",
     "json5": "^2.2.3",
     "tar": "^7.0.0",
-    "yaml": "^2.4.0"
+    "yaml": "^2.8.3"
   },
   "devDependencies": {
     "@types/node": "^20.19.37",
