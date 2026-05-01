@@ -166,11 +166,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/health", healthRoutes);
 
   // Authentication routes (mostly handled by Firebase Client now)
-  
-  // Endpoint to sync Firebase token to Express session
-  app.post("/api/auth/firebase", authenticateToken, (req: Request, res: Response) => {
-    res.json({ success: true, message: "Session synced" });
-  });
 
   // We keep a small route for the client to tell the backend "I just registered in Firebase, create my Mongo document"
   app.post("/api/auth/sync-profile", authenticateToken, async (req: Request, res: Response) => {
