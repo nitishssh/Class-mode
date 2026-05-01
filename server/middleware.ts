@@ -8,7 +8,11 @@ export function requireDb(req: Request, res: Response, next: NextFunction) {
     return next();
   }
   if (mongoose.connection.readyState !== 1) {
-    return res.status(503).json({ error: "Database unavailable, try again shortly" });
+    return res.status(503).json({ 
+      error: "Database unavailable", 
+      message: "The application is unable to reach the database. If you're running locally, ensure your current IP address is whitelisted in MongoDB Atlas.",
+      action: "Check the server logs for connection errors."
+    });
   }
   next();
 }

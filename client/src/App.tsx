@@ -275,6 +275,9 @@ function App() {
       <Route path="/ai-classroom" component={withLayout(protect(AIClassroom, ["student", "teacher"]))} />
       <Route path="/test-results" component={withLayout(ComingSoon)} />
 
+      {/* Redirect /login to home if already authenticated */}
+      <Route path="/login" component={() => <Redirect to="/" />} />
+
       {/* Public invite acceptance — no auth required */}
       <Route path="/accept-invite" component={AcceptInvite} />
 

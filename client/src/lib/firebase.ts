@@ -25,8 +25,6 @@ const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  // New Firebase projects use .firebasestorage.app; old ones use .appspot.com.
-  // We try .firebasestorage.app first and fall back gracefully.
   storageBucket:
     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ||
     `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebasestorage.app`,

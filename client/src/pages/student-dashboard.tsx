@@ -212,7 +212,7 @@ export default function StudentDashboard() {
   return (
     <>
       <PageHeader
-        title={`Welcome back, ${profile?.displayName} 👋`}
+        title={`Welcome back, ${profile?.displayName || profile?.name || currentUser?.profile?.displayName || "Scholar"} 👋`}
         subtitle="Keep up the great work! Here's your learning overview."
         breadcrumbs={[{ label: "Dashboard", href: "/" }, { label: "Student Dashboard" }]}
       >

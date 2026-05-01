@@ -160,33 +160,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mount New Daily.co Live Classes API routes
   app.use("/api/live", authenticateToken, liveRouter);
 
-  // Mount AI Classroom health check route (public - no auth required for availability check)
-  app.get("/api/ai-classroom/health", async (req, res) => {
-    const { getStudyArenaClient } = await import("./services/study-arena-client");
-    try {
-      const client = getStudyArenaClient();
-      if (!client) {
-        return res.json({
-          available: false,
-          message: "Study Arena not configured",
-        });
-      }
 
-      const isHealthy = await client.healthCheck();
-      res.json({
-        available: isHealthy,
-        message: isHealthy ? "Study Arena is available" : "Study Arena is not responding",
-      });
-    } catch (error: unknown) {
-      res.json({
-        available: false,
-        message: (error as Error).message,
-      });
-    }
-  });
-
-  // Mount AI Classroom routes (Study Arena integration — auth required)
-  app.use("/api/ai-classroom", authenticateToken, aiClassroomRoutes);
+  // Mount AI Classroom routes (Study Arena integration)
+  app.use("/api/ai-classroom", aiClassroomRoutes);
 
   // Mount OpenMAIC API routes (classroom creation, quiz generation, etc.)
   app.use("/api/openmaic", openmaicApiRouter);
@@ -198,6 +174,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/health", healthRoutes);
 
   // Authentication routes (mostly handled by Firebase Client now)
+
   // We keep a small route for the client to tell the backend "I just registered in Firebase, create my Mongo document"
   app.post("/api/auth/sync-profile", authenticateToken, async (req: Request, res: Response) => {
     try {

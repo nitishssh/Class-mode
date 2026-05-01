@@ -380,16 +380,16 @@ const FocusSessionSchema = new mongoose.Schema({
 FocusSessionSchema.index({ userId: 1, completedAt: -1 });
 export const MongoFocusSession = mongoose.model("FocusSession", FocusSessionSchema);
 
-// ─── AI Classroom Schema ──────────────────────────────────────────────────────
+// ─── Study Arena (AI Classroom) Schema ───────────────────────────────────────
 
 const AIClassroomSchema = new mongoose.Schema({
   id: { type: Number, required: true, unique: true },
   teacherId: { type: Number, required: true, index: true },
   topic: { type: String, required: true },
   studyArenaJobId: { type: String, required: true },
-  classroomId: { type: String, default: null },
+  /** Internal storage for generated classroom content */
+  data: { type: mongoose.Schema.Types.Mixed, default: null },
   status: { type: String, enum: ["pending", "generating", "ready", "error"], default: "pending" },
-  url: { type: String, default: null },
   createdAt: { type: Date, default: Date.now },
 });
 AIClassroomSchema.index({ teacherId: 1, createdAt: -1 });

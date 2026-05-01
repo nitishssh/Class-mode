@@ -78,7 +78,10 @@ async function syncFirebaseSession(user: import("firebase/auth").User) {
     const idToken = await user.getIdToken();
     await fetch("/api/auth/firebase", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${idToken}`
+      },
       credentials: "include",
       body: JSON.stringify({ idToken }),
     });
