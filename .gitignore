@@ -8,7 +8,6 @@ server/.env.env
 .env
 GEMINI.md
 .vscode/
-.env.example
 .kiro
 
 # Mobile (React Native / Expo)
