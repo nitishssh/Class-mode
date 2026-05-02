@@ -73,21 +73,27 @@ function buildFallbackProfile(user: import("firebase/auth").User): UserProfile |
  * After a successful Firebase login, post the ID token to the backend so the
  * Express session is established for subsequent API calls.
  */
-async function syncFirebaseSession(user: import("firebase/auth").User) {
-  try {
-    const idToken = await user.getIdToken();
-    await fetch("/api/auth/firebase", {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${idToken}`
-      },
-      credentials: "include",
-      body: JSON.stringify({ idToken }),
-    });
-  } catch (e) {
-    console.warn("[auth] Failed to sync Firebase session to backend:", e);
+async function syncFirebaseSession(user: import("firebase/auth").User): Promise<boolean> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const idToken = await user.getIdToken();
+      const res = await fetch("/api/auth/firebase", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${idToken}`
+        },
+        credentials: "include",
+        body: JSON.stringify({ idToken }),
+      });
+      if (res.ok) return true;
+      console.warn(`[auth] Session sync returned ${res.status}, attempt ${attempt + 1}/2`);
+    } catch (e) {
+      console.warn(`[auth] Session sync failed (attempt ${attempt + 1}/2):`, e);
+    }
   }
+  console.error("[auth] Could not sync Firebase session to backend after 2 attempts. API calls may fail.");
+  return false;
 }
 
 // ── Provider ──────────────────────────────────────────────────────────────────
@@ -200,7 +206,10 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setCurrentUser({ user, profile: resolvedProfile });
 
       // Bridge Firebase session to backend for protected API calls
-      syncFirebaseSession(user).catch(() => {});
+      const synced = await syncFirebaseSession(user);
+      if (!synced) {
+        console.warn("[auth] Login succeeded but backend session sync failed");
+      }
 
       toast({
         title: "Login successful",
@@ -284,7 +293,10 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setCurrentUser({ user: result.user, profile: result.profile });
 
       // Bridge Firebase session to backend for protected API calls
-      syncFirebaseSession(result.user).catch(() => {});
+      const synced = await syncFirebaseSession(result.user);
+      if (!synced) {
+        console.warn("[auth] Google login succeeded but backend session sync failed");
+      }
 
       toast({
         title: "Login successful",
@@ -323,7 +335,10 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setCurrentUser({ user, profile: userData });
 
       // Bridge Firebase session to backend for protected API calls
-      syncFirebaseSession(user).catch(() => {});
+      const synced = await syncFirebaseSession(user);
+      if (!synced) {
+        console.warn("[auth] Google registration succeeded but backend session sync failed");
+      }
 
       toast({
         title: "Registration successful",
