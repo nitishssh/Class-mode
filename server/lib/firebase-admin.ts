@@ -74,6 +74,24 @@ export async function verifyFirebaseToken(
 }
 
 /**
+ * Log Firebase Admin readiness status at startup.
+ * Call once during server boot to surface misconfigurations early.
+ */
+export function checkFirebaseAdminReadiness(): void {
+  ensureInitialised();
+  const hasApp = admin.apps.length > 0;
+  const hasServiceAccount = !!process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+
+  if (!hasApp) {
+    console.error("[firebase-admin] NOT READY — Firebase Admin SDK failed to initialise. Token verification is disabled.");
+  } else if (!hasServiceAccount) {
+    console.warn("[firebase-admin] PARTIAL — Running without service account. Firebase token verification may fail without ADC. Set FIREBASE_SERVICE_ACCOUNT_JSON for production.");
+  } else {
+    console.log("[firebase-admin] READY — Service account configured, token verification enabled.");
+  }
+}
+
+/**
  * Set custom user claims for a Firebase user.
  */
 export async function setCustomUserClaims(

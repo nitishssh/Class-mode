@@ -30,6 +30,7 @@ import { connectMongoDB } from "./db";
 import { setupChatWebSocket } from "./chat-ws";
 import { setupMessagePalWebSocket, startMessagePalServer } from "./message";
 import { initCassandra } from "./lib/cassandra";
+import { checkFirebaseAdminReadiness } from "./lib/firebase-admin";
 
 const app = express();
 app.use(express.json());
@@ -85,6 +86,9 @@ app.use("/uploads", express.static(path.resolve("public", "uploads")));
 // Initialize Databases
 connectMongoDB();
 initCassandra();
+
+// Check Firebase Admin readiness at startup
+checkFirebaseAdminReadiness();
 
 // Set up session middleware
 if (!process.env.SESSION_SECRET && process.env.NODE_ENV === "production") {
