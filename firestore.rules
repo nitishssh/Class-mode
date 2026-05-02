@@ -26,10 +26,12 @@ service cloud.firestore {
     // Users collection
     match /users/{userId} {
       allow read: if isAuthenticated();
+      // Users can create their own profile document during registration
+      allow create: if isAuthenticated() && request.auth.uid == userId;
       // Users can update their own non-sensitive profile info
       allow update: if isOwner(userId);
-      // Only admins can create or delete users manually, though Cloud Functions might bypass this
-      allow create, delete: if hasRole('admin');
+      // Only admins can delete users
+      allow delete: if hasRole('admin');
     }
 
     // Tests collection
