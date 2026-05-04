@@ -37,7 +37,6 @@ npm start             # Press 'i' for iOS, 'a' for Android
 | `npm run ios` | Run iOS |
 | `npm run type-check` | TypeScript check |
 | `npx expo start --clear` | Clear cache |
-
 ## 🏗️ Project Structure
 
 ```

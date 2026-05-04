@@ -5,7 +5,24 @@
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(git push *)",
-      "Bash(grep -E \"\\\\\\\\.ts$\")"
+      "Bash(grep -E \"\\\\\\\\.ts$\")",
+      "Bash(where render *)",
+      "Bash(npm install *)",
+      "Bash(render *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Nitish\\\\Downloads\\\\PersonalLearningPro\" -Recurse -Directory)",
+      "Bash(Select-Object -First 20)",
+      "Bash(Format-Table FullName)",
+      "Bash(Remove-Item *)",
+      "PowerShell(Remove-Item *)",
+      "Bash(git pull *)",
+      "Bash(git stash *)",
+      "Bash(npm run *)",
+      "Bash(ls *.json *.yaml *.yml)",
+      "Bash(ls -la Dockerfile* docker-compose* render.yaml railway.json fly.toml)",
+      "Bash(cat render.yaml)",
+      "Bash(cat railway.json)",
+      "Bash(cat fly.toml)",
+      "Bash(node -e \"const pkg = require\\('./node_modules/firebase-admin/package.json'\\); console.log\\(pkg.version\\)\")"
     ]
   }
 }
