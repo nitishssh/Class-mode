@@ -23,7 +23,7 @@
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^3.9.1",
     "@jridgewell/trace-mapping": "^0.3.25",
-    "@langchain/core": "^1.1.42",
+    "@langchain/core": "^1.1.44",
     "@langchain/google-genai": "^2.1.28",
     "@langchain/langgraph": "^1.2.9",
     "@langchain/openai": "^1.4.4",
