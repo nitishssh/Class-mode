@@ -43,6 +43,8 @@ import gradingRoutes from "./routes/grading";
 import educatorRoutes from "./routes/educator";
 import parentRoutes from "./routes/parent";
 import billingRoutes from "./routes/billing";
+import gdprRoutes from "./routes/gdpr";
+import lmsRoutes from "./routes/lms";
 
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -185,6 +187,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount Billing routes (Stripe subscriptions)
   app.use("/api/billing", billingRoutes);
+
+  // Mount LMS routes (Google Classroom, Canvas)
+  app.use("/api/lms", lmsRoutes);
+
+  // Mount GDPR routes (export, delete)
+  app.use("/api/gdpr", gdprRoutes);
 
   // Mount Health check routes
   app.use("/api/health", healthRoutes);
