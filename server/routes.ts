@@ -39,6 +39,10 @@ import aiClassroomRoutes from "./routes/ai-classroom";
 import healthRoutes from "./routes/health";
 import { openmaicApiRouter } from "./routes/openmaic-api";
 import { openmaicWebhookRouter } from "./routes/openmaic-webhooks";
+import gradingRoutes from "./routes/grading";
+import educatorRoutes from "./routes/educator";
+import parentRoutes from "./routes/parent";
+import billingRoutes from "./routes/billing";
 
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -169,6 +173,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount OpenMAIC webhook routes (lesson completion, quiz results, etc.)
   app.use("/api/webhooks/openmaic", openmaicWebhookRouter);
+
+  // Mount Grading API routes (AI-powered submission grading)
+  app.use("/api/grading", gradingRoutes);
+
+  // Mount Educator routes
+  app.use("/api/educator", educatorRoutes);
+
+  // Mount Parent routes
+  app.use("/api/parent", parentRoutes);
+
+  // Mount Billing routes (Stripe subscriptions)
+  app.use("/api/billing", billingRoutes);
 
   // Mount Health check routes
   app.use("/api/health", healthRoutes);
