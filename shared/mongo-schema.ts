@@ -395,4 +395,90 @@ const AIClassroomSchema = new mongoose.Schema({
 AIClassroomSchema.index({ teacherId: 1, createdAt: -1 });
 export const MongoAIClassroom = mongoose.model("AIClassroom", AIClassroomSchema);
 
+// ─── Grading Result Schema ──────────────────────────────────────────────
+
+const GradingResultSchema = new mongoose.Schema({
+  id: { type: Number, required: true, unique: true },
+  submissionId: { type: String, required: true },
+  studentId: { type: Number, required: true, index: true },
+  teacherId: { type: Number, required: true, index: true },
+  rubric: { type: mongoose.Schema.Types.Mixed, required: true },
+  scoreBreakdown: { type: mongoose.Schema.Types.Mixed, default: null },
+  overallFeedback: { type: String, default: null },
+  strengths: [String],
+  areasForImprovement: [String],
+  status: {
+    type: String,
+    enum: ["pending", "completed", "failed"],
+    default: "pending",
+  },
+  modelUsed: { type: String, default: null },
+  processingTimeMs: { type: Number, default: null },
+  attachments: [String],
+  contentType: {
+    type: String,
+    enum: ["text", "code_python", "code_javascript", "code_typescript", "pdf"],
+    default: "text",
+  },
+  createdAt: { type: Date, default: Date.now },
+  completedAt: { type: Date, default: null },
+});
+
+GradingResultSchema.index({ studentId: 1, createdAt: -1 });
+GradingResultSchema.index({ teacherId: 1, status: 1 });
+GradingResultSchema.index({ status: 1, createdAt: -1 });
+
+export const MongoGradingResult = mongoose.model("GradingResult", GradingResultSchema);
+
+// ─── LMS Connection Schema ─────────────────────────────────────────────
+
+const LmsConnectionSchema = new mongoose.Schema({
+  id: { type: Number, required: true, unique: true },
+  userId: { type: Number, required: true, index: true },
+  provider: {
+    type: String,
+    enum: ["google_classroom", "canvas"],
+    required: true,
+  },
+  accessToken: { type: String, required: true }, // encrypted
+  refreshToken: { type: String, default: null }, // encrypted
+  instanceUrl: { type: String, default: null }, // for Canvas
+  tokenExpiry: { type: Date, default: null },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+
+LmsConnectionSchema.index({ userId: 1, provider: 1 }, { unique: true });
+
+export const MongoLmsConnection = mongoose.model("LmsConnection", LmsConnectionSchema);
+
+// ─── Subscription Schema ───────────────────────────────────────────────
+
+const SubscriptionSchema = new mongoose.Schema({
+  id: { type: Number, required: true, unique: true },
+  userId: { type: Number, required: true, index: true },
+  tier: {
+    type: String,
+    enum: ["free", "pro", "educator", "institution"],
+    default: "free",
+  },
+  stripeCustomerId: { type: String, default: null },
+  stripeSubscriptionId: { type: String, default: null },
+  status: {
+    type: String,
+    enum: ["active", "canceled", "past_due", "trialing"],
+    default: "active",
+  },
+  currentPeriodStart: { type: Date, default: null },
+  currentPeriodEnd: { type: Date, default: null },
+  cancelAtPeriodEnd: { type: Boolean, default: false },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+
+SubscriptionSchema.index({ userId: 1, status: 1 });
+SubscriptionSchema.index({ stripeCustomerId: 1 });
+
+export const MongoSubscription = mongoose.model("Subscription", SubscriptionSchema);
+
 export { getNextSequenceValue };
