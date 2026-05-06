@@ -22,7 +22,13 @@
       "Bash(cat render.yaml)",
       "Bash(cat railway.json)",
       "Bash(cat fly.toml)",
-      "Bash(node -e \"const pkg = require\\('./node_modules/firebase-admin/package.json'\\); console.log\\(pkg.version\\)\")"
+      "Bash(node -e \"const pkg = require\\('./node_modules/firebase-admin/package.json'\\); console.log\\(pkg.version\\)\")",
+      "Bash(winget install *)",
+      "Bash(scoop install *)",
+      "Bash(curl -s https://api.github.com/repos/render-oss/render-cli/releases/latest)",
+      "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); print\\(data.get\\('tag_name','no tag'\\)\\); [print\\(a['name']\\) for a in data.get\\('assets',[]\\)]\")",
+      "Bash(curl -Ls \"https://api.github.com/repos/render-oss/render-cli/releases/latest\")",
+      "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); print\\(data.get\\('tag_name','no tag'\\)\\); [print\\(a['name'], a['browser_download_url']\\) for a in data.get\\('assets',[]\\)]\")"
     ]
   }
 }
