@@ -47,12 +47,20 @@ Welcome, AI agent! 🧠 This file provides the essential context and instruction
   - `mongo-schema.ts`: Mongoose models
   - `cassandra-schema.ts`: Cassandra schemas
 - `.agent/`: 🛠️ Modular agent-specific context and workflows
-  - `spec/`: 📋 Requirements, designs, and tasks
-    - `react-native-migration/`: 📱 Mobile app migration specification (COMPLETE)
-    - `complete-incomplete-features/`: Feature status tracking
-  - `prompts/`: 📜 Specialized workflows (e.g., `spec-workflow.md`)
-  - `wiki/`: 📖 Architecture and deep-dive documentation
-  - `rules/`: ⚖️ Coding and behavioral policies
+  - `core/`: 🧠 Core cognition, identity, principles, and workflows
+  - `hooks/`: 🪝 Deterministic lifecycle automation (e.g., PreCommit, SessionStart)
+  - `agents/`: 🤖 Specialized subagents (e.g., frontend-engineer, security-auditor)
+  - `skills/`: ⚡ Auto-loadable capabilities (e.g., react-system, database-design)
+  - `commands/`: ⌨️ Slash-style reusable commands (e.g., ship, refactor, generate-tests)
+  - `rules/`: ⚖️ Hard constraints and scoped coding policies
+  - `memory/`: 💾 Long-term contextual storage (decisions, architecture, roadmap)
+  - `plugins/`: 🔌 Packaged external integrations
+  - `templates/`: 📝 Reusable scaffolds for PRDs, RFCs, etc.
+  - `datasets/`: 📊 Structured local knowledge
+  - `evals/`: 🧪 Agent evaluation framework and benchmarks
+  - `output-styles/`: 🎨 Response formatting modes
+  - `orchestration/`: 🎼 Multi-agent coordination (planner, swarm)
+  - `telemetry/`: 📈 Runtime logging and analytics
 - `docs/`: 📚 Documentation
   - `DATABASE.md`: Database schema and best practices
   - `LOCAL_SETUP.md`: Local development guide
@@ -64,14 +72,14 @@ Welcome, AI agent! 🧠 This file provides the essential context and instruction
 ## 🛠️ Workflow: Spec-First Development
 
 We follow a structured **Spec -> Design -> Implementation** workflow. 🔄
-For any non-trivial feature or bugfix, use the `spec-workflow` agent:
+For any non-trivial feature or bugfix, use the `planner` orchestration agent:
 
-1. **🏁 Initialize:** Create a new spec directory in `.agent/spec/{feature-name}/`.
-2. **📝 Draft:** Define requirements (`requirements.md`) and technical design (`design.md`).
+1. **🏁 Initialize:** Create a new feature directory in `.agent/memory/roadmap/{feature-name}/`.
+2. **📝 Draft:** Define requirements (`requirements.md`) and technical design (`design.md`) using `templates/prd.md`.
 3. **📅 Plan:** Break down into granular tasks (`tasks.md`).
 4. **🚀 Execute:** Implement tasks one by one, updating status as you go.
 
-Refer to `.agent/prompts/spec-workflow.md` for the full instruction set. 📜
+Refer to `.agent/orchestration/planner.md` for the full instruction set. 📜
 
 ## ⚖️ Coding Conventions
 
