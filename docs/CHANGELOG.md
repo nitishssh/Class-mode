@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-05-09
+
+### Changed
+
+- **IniClaw rewritten as lightweight LLM proxy** — Replaced the NVIDIA NemoClaw / OpenShell sandbox runtime with a pure Node.js HTTP proxy (`features/ai-classroom/ini_claw/gateway.js`). Zero npm dependencies; uses only Node.js built-in modules. Deleted: `bin/` (nemoclaw CLI), `docs/` (Sphinx), `nemoclaw-blueprint/` (Python orchestration), `nemoclaw/` (compiled TS dist), `scripts/`, `Dockerfile` (old NVIDIA-based). Added: minimal `Dockerfile` for the new gateway, updated `policies/study-arena.yaml` (removed NVIDIA hosts, kept only OpenAI/Gemini/Anthropic).
+- **IniClaw gateway LLM routing** — New gateway calls LLM providers directly (Gemini → OpenAI → Anthropic fallback chain) instead of shelling out to `openshell sandbox exec`. Keeps concurrency semaphore, body size limits, rotating audit log, CORS, and Bearer auth.
+- **`authenticateToken` middleware** — Now sets `(req as any).user = { id, role, email }` in addition to `req.session`. Fixes `billing.ts`, `gdpr.ts`, `educator.ts`, `parent.ts`, and `grading.ts` routes which read `req.user.id` but previously received `undefined`, causing silent 401s on all authenticated billing/GDPR requests.
+- **`archiver` v8 compatibility** (`server/routes/gdpr.ts`) — v8 removed the factory-function API (`archiver("zip")`) in favour of named classes. Fixed: `import archiver from "archiver"` → `createRequire` + `new ZipArchive()`. GDPR data export now works correctly.
+
+### Fixed
+
+- **Email validation on registration** (`POST /api/auth/register`) — Added RFC-style email regex check. Previously, strings like `"notanemail"` were accepted and stored; now returns `400 Invalid email address`.
+- **`study-arena-integration.test.ts`** — `StudyArenaClient` import was broken (module didn't exist). Created `server/services/study-arena-client.ts` wrapping the `/api/ai-classroom/*` routes. Replaced silent `if (!client) return` guard with `describe.skipIf(!isConfigured)`.
+- **`ai_classroom.test.ts`** — Mock targeted `study-arena-client` (unused by the route); route uses `studyArenaInternalService` directly. Replaced mock target, fixed poll URL (`/job/` → `/status/`), fixed `my-classrooms` response shape assertion (`res.body` → `res.body.classrooms`).
+- **`microservices-integration.test.ts`** — `INICLAW_URL` renamed to `INICLAW_GATEWAY_URL` to match rest of codebase.
+- **`gateway.test.js`** — Server was not closed after tests, leaving port 17071 occupied on re-runs. Exported `server` from `gateway.js`; added `after(() => server.close())`.
+- **`smoke-test.sh`** — Removed check for `openshell: command not found` error (no longer applicable). Updated test route from `/agent` (deleted) to `/tutor/chat`.
+- **`scripts/setup-openmaic.sh`** and **`docs/OPENMAIC_INTEGRATION.md`** — Updated manual IniClaw start command from `npm run dev:gateway` (in external `arena-learning` repo) to `BRIDGE_SECRET=<secret> INICLAW_PORT=7070 node gateway.js` (in `features/ai-classroom/ini_claw/`).
+
+### Added
+
+- **`server/services/study-arena-client.ts`** — HTTP client that wraps the native `/api/ai-classroom/*` routes. Used by integration tests.
+- **`features/ai-classroom/ini_claw/Dockerfile`** — Minimal Alpine-based image for the new lightweight gateway (`node gateway.js`, exposes 7070).
+
 ## [1.2.0] - 2026-05-09
 
 ### Added
