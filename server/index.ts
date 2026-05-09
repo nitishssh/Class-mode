@@ -58,7 +58,8 @@ app.use(
         if (
           url.hostname.endsWith(".onrender.com") ||
           url.hostname === "inmodel.in" ||
-          url.hostname.endsWith(".inmodel.in")
+          url.hostname.endsWith(".inmodel.in") ||
+          url.hostname.endsWith(".run.app")
         ) {
           return cb(null, true);
         }
