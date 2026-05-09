@@ -32,7 +32,14 @@ resource "google_secret_manager_secret" "app_secrets" {
     "FIREBASE_SERVICE_ACCOUNT_JSON",
     "SESSION_SECRET",
     "JWT_SECRET",
-    "REFRESH_SECRET"
+    "REFRESH_SECRET",
+    "STRIPE_SECRET_KEY",
+    "OPENAI_API_KEY",
+    "DAILY_API_KEY",
+    "SMTP_HOST",
+    "SMTP_USER",
+    "SMTP_PASS",
+    "BRIDGE_SECRET"
   ])
 
   secret_id = each.key
@@ -53,11 +60,23 @@ resource "google_cloud_run_v2_service" "default" {
   ingress  = "INGRESS_TRAFFIC_ALL"
 
   template {
+    scaling {
+      min_instance_count = 1
+      max_instance_count = 10
+    }
+
     containers {
       image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.repository_name}/${var.service_name}:latest"
 
       ports {
         container_port = 5001
+      }
+
+      resources {
+        limits = {
+          memory = "1Gi"
+          cpu    = "2"
+        }
       }
 
       # Environment variables from Secret Manager
@@ -78,6 +97,26 @@ resource "google_cloud_run_v2_service" "default" {
       env {
         name  = "NODE_ENV"
         value = "production"
+      }
+
+      env {
+        name  = "PORT"
+        value = "5001"
+      }
+
+      env {
+        name  = "CORS_ORIGIN"
+        value = "https://${var.app_domain}"
+      }
+
+      env {
+        name  = "APP_URL"
+        value = "https://${var.app_domain}"
+      }
+
+      env {
+        name  = "DNS_IPV4_FIRST"
+        value = "true"
       }
     }
   }

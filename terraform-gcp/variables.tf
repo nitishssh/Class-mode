@@ -21,3 +21,9 @@ variable "repository_name" {
   type        = string
   default     = "plp-repo"
 }
+
+variable "app_domain" {
+  description = "Production domain for CORS_ORIGIN and APP_URL (e.g. inmodel.in)"
+  type        = string
+  default     = "inmodel.in"
+}
