@@ -8,3 +8,15 @@
 {"timestamp":"2026-03-19T10:22:56.848Z","requestId":"nsng94","status":"error","error":"Command failed: openshell sandbox exec my-assistant -- openclaw agent --agent main --local -m \"smoke test\" --session-id smoke-sid --json\n/bin/sh: openshell: command not found\n"}
 {"timestamp":"2026-03-19T10:26:22.729Z","requestId":"uy568","type":"agent","sandboxName":"my-assistant","agent":"main","sessionId":"smoke-sid","prompt":"smoke test"}
 {"timestamp":"2026-03-19T10:26:22.735Z","requestId":"uy568","status":"error","error":"Command failed: openshell sandbox exec my-assistant -- openclaw agent --agent main --local -m \"smoke test\" --session-id smoke-sid --json\n/bin/sh: openshell: command not found\n"}
+{"timestamp":"2026-05-09T14:22:33.847Z","requestId":"2i8luq1","type":"tutor_chat","sessionId":"test-1","promptLength":22}
+{"timestamp":"2026-05-09T14:22:33.849Z","requestId":"2i8luq1","status":"success"}
+{"timestamp":"2026-05-09T14:22:33.851Z","requestId":"4h37cnh","type":"classroom_quiz","sessionId":"default","promptLength":20}
+{"timestamp":"2026-05-09T14:22:33.851Z","requestId":"4h37cnh","status":"success"}
+{"timestamp":"2026-05-09T14:22:33.852Z","requestId":"c7yzzm6","type":"classroom_generate","sessionId":"default","promptLength":26}
+{"timestamp":"2026-05-09T14:22:33.853Z","requestId":"c7yzzm6","status":"success"}
+{"timestamp":"2026-05-09T17:33:24.361Z","requestId":"lrd8e4n","type":"tutor_chat","sessionId":"test-1","promptLength":22}
+{"timestamp":"2026-05-09T17:33:24.364Z","requestId":"lrd8e4n","status":"success"}
+{"timestamp":"2026-05-09T17:33:24.366Z","requestId":"rlfzx31","type":"classroom_quiz","sessionId":"default","promptLength":20}
+{"timestamp":"2026-05-09T17:33:24.366Z","requestId":"rlfzx31","status":"success"}
+{"timestamp":"2026-05-09T17:33:24.368Z","requestId":"wcgoh1c","type":"classroom_generate","sessionId":"default","promptLength":26}
+{"timestamp":"2026-05-09T17:33:24.368Z","requestId":"wcgoh1c","status":"success"}

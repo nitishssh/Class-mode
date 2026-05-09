@@ -1,35 +1,19 @@
 name: study-arena
-description: Security policy for Study Arena agents in PersonalLearningPro
-version: 2
+description: Network policy for IniClaw gateway — LLM providers used by PersonalLearningPro Study Arena
+version: 3
 
 network_policies:
-  - host: maic.chat
-    port: 443
-    reason: Study Arena core services
-  - host: open.maic.chat
-    port: 443
-    reason: Study Arena hosted gateway
-  - host: api.anthropic.com
-    port: 443
-    reason: Claude LLM inference (Anthropic API endpoint)
   - host: api.openai.com
     port: 443
-    reason: GPT LLM inference (OpenAI API endpoint)
+    reason: GPT inference (OpenAI API)
   - host: generativelanguage.googleapis.com
     port: 443
-    reason: Gemini LLM inference (Google AI API endpoint)
-  - host: build.nvidia.com
+    reason: Gemini inference (Google AI API)
+  - host: api.anthropic.com
     port: 443
-    reason: NVIDIA cloud inference
-  - host: integrate.api.nvidia.com
-    port: 443
-    reason: NVIDIA NIM endpoints
+    reason: Claude inference (Anthropic API)
 
 filesystem_policies:
-  - path: /sandbox/.classroom-cache
+  - path: .classroom-cache
     mode: rw
-    reason: Persistent storage for classroom generation artifacts and audit logs
-
-process_policies:
-  - name: openclaw
-    reason: Allow running the OpenClaw CLI
+    reason: Audit log and classroom generation artifacts
