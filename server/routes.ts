@@ -131,6 +131,7 @@ export async function authenticateToken(req: Request, res: Response, next: expre
       req.session!.userId = user.id;
       req.session!.role = user.role;
       req.session!.firebaseUid = decodedToken.uid;
+      (req as any).user = { id: user.id, role: user.role, email: user.email };
 
       return next();
     }
@@ -145,6 +146,7 @@ export async function authenticateToken(req: Request, res: Response, next: expre
         req.session = req.session || ({} as express.Request["session"]);
         req.session!.userId = user.id;
         req.session!.role = user.role;
+        (req as any).user = { id: user.id, role: user.role, email: user.email };
 
         return next();
       }
@@ -370,6 +372,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { name, email, password, role, class: className } = req.body;
       if (!name || !email || !password) {
         return res.status(400).json({ message: "Name, email, and password are required" });
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return res.status(400).json({ message: "Invalid email address" });
       }
 
       const normalizedEmail = email.toLowerCase().trim();
