@@ -46,7 +46,8 @@ PersonalLearningPro is a full-stack application with:
 - Hybrid persistence using MongoDB for analytics and relational-like entities, and optional Cassandra/Astra DB for chat message history
 - Optional Firebase and OpenAI integrations
 - Containerized deployment via Docker and Compose
-- Platform deployment via Vercel for Node runtime
+- Platform deployment via Vercel or Google Cloud Platform (Cloud Run)
+- Secrets management via Google Secret Manager (GCP) or Environment Variables
 
 ```mermaid
 graph TB
@@ -60,13 +61,19 @@ K["Cassandra/Astra DB<br/>server/lib/cassandra.ts"]
 end
 subgraph "Integration"
 F["Firebase (optional)<br/>.env.example"]
-O["OpenAI (optional)<br/>.env.example"]
+O["AI (Vertex AI / OpenAI)<br/>server/lib/gemini.ts"]
+end
+subgraph "Secrets"
+SM["Secret Manager (GCP)"]
+EV[".env File"]
 end
 S --> M
 S --> K
 S --> F
 S --> O
 C --> S
+SM --> S
+EV --> S
 ```
 
 **Diagram sources**
@@ -74,8 +81,10 @@ C --> S
 - [server/index.ts](file://server/index.ts#L1-L114)
 - [server/db.ts](file://server/db.ts#L1-L21)
 - [server/lib/cassandra.ts](file://server/lib/cassandra.ts#L1-L73)
+- [server/lib/gemini.ts](file://server/lib/gemini.ts)
 - [shared/mongo-schema.ts](file://shared/mongo-schema.ts#L1-L159)
 - [.env.example](file://.env.example#L1-L36)
+- [terraform-gcp/main.tf](file://terraform-gcp/main.tf)
 
 **Section sources**
 

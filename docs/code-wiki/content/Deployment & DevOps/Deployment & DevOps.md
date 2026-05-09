@@ -35,7 +35,7 @@ This document provides comprehensive deployment and DevOps guidance for Personal
 
 ## Project Structure
 
-The repository combines a TypeScript/React frontend and an Express-based backend with optional MongoDB and Cassandra/Astra DB integrations. Containerization is supported through a multi-stage Dockerfile and docker-compose for local development. Vercel deployment is configured via vercel.json to serve the built backend and static assets.
+The repository combines a TypeScript/React frontend and an Express-based backend with optional MongoDB and Cassandra/Astra DB integrations. Containerization is supported through a multi-stage Dockerfile and docker-compose for local development. Deployment options include Vercel and Google Cloud Platform (GCP).
 
 ```mermaid
 graph TB
@@ -50,10 +50,12 @@ VITE["server/vite.ts"]
 DB["server/db.ts"]
 CASS["server/lib/cassandra.ts"]
 STORE["server/storage.ts"]
+GEM["server/lib/gemini.ts"]
 end
-subgraph "Build Artifacts"
-PKG["package.json"]
-VERCEL["vercel.json"]
+subgraph "Cloud Providers"
+VERCEL["vercel.json (Vercel)"]
+GCP["terraform-gcp/ (Google Cloud)"]
+CB["cloudbuild.yaml (Cloud Build)"]
 end
 DC --> DKR
 DC --> ENV
@@ -62,19 +64,24 @@ SRV --> DB
 SRV --> CASS
 SRV --> STORE
 SRV --> VITE
-PKG --> SRV
+SRV --> GEM
 VERCEL --> SRV
+GCP --> SRV
+CB --> GCP
 ```
 
 **Diagram sources**
 
 - [docker-compose.yml](file://docker-compose.yml#L1-L24)
 - [Dockerfile](file://Dockerfile#L1-L58)
+- [terraform-gcp/main.tf](file://terraform-gcp/main.tf)
+- [cloudbuild.yaml](file://cloudbuild.yaml)
 - [server/index.ts](file://server/index.ts#L1-L114)
 - [server/vite.ts](file://server/vite.ts#L1-L89)
 - [server/db.ts](file://server/db.ts#L1-L21)
 - [server/lib/cassandra.ts](file://server/lib/cassandra.ts#L1-L73)
 - [server/storage.ts](file://server/storage.ts#L1-L519)
+- [server/lib/gemini.ts](file://server/lib/gemini.ts)
 - [package.json](file://package.json#L1-L120)
 - [vercel.json](file://vercel.json#L1-L28)
 
@@ -114,7 +121,7 @@ The system consists of:
 - Frontend: React SPA served either via Vite HMR in development or statically in production.
 - Backend: Express server exposing REST APIs and serving the SPA.
 - Optional databases: MongoDB for primary data and Cassandra/Astra DB for scalable message storage.
-- Orchestration: docker-compose for local development; Vercel for cloud deployment.
+- Orchestration: docker-compose for local development; Vercel or Google Cloud Platform (Cloud Run) for cloud deployment.
 
 ```mermaid
 graph TB
@@ -123,9 +130,12 @@ API --> Static["Static Assets (dist/public)"]
 API --> WS["WebSockets (chat, messagepal)"]
 API --> Mongo["MongoDB (server/db.ts)"]
 API --> Cassandra["Cassandra/Astra DB (server/lib/cassandra.ts)"]
+API --> GEM["Gemini/Vertex AI (server/lib/gemini.ts)"]
 Dev["Docker Compose (docker-compose.yml)"] --> API
 Build["Dockerfile (multi-stage)"] --> API
 Deploy["Vercel (vercel.json)"] --> API
+GCP["Cloud Run (terraform-gcp)"] --> API
+CI["Cloud Build (cloudbuild.yaml)"] --> GCP
 ```
 
 **Diagram sources**
@@ -133,9 +143,12 @@ Deploy["Vercel (vercel.json)"] --> API
 - [server/index.ts](file://server/index.ts#L1-L114)
 - [server/db.ts](file://server/db.ts#L1-L21)
 - [server/lib/cassandra.ts](file://server/lib/cassandra.ts#L1-L73)
+- [server/lib/gemini.ts](file://server/lib/gemini.ts)
 - [docker-compose.yml](file://docker-compose.yml#L1-L24)
 - [Dockerfile](file://Dockerfile#L1-L58)
 - [vercel.json](file://vercel.json#L1-L28)
+- [terraform-gcp/main.tf](file://terraform-gcp/main.tf)
+- [cloudbuild.yaml](file://cloudbuild.yaml)
 
 ## Detailed Component Analysis
 
@@ -388,7 +401,7 @@ Pkg --> Optional["Optional Dependencies"]
 
 ## Conclusion
 
-PersonalLearningPro supports flexible deployment strategies using Docker multi-stage builds, docker-compose for local development, and Vercel for cloud hosting. Robust environment management, optional external integrations, and scalable storage choices enable reliable operation across environments. Apply the recommended security and operational practices to harden deployments and maintain high availability.
+PersonalLearningPro supports flexible deployment strategies using Docker multi-stage builds, docker-compose for local development, Vercel for static/serverless hosting, and Google Cloud Platform (Cloud Run) for robust, containerized production deployments. Robust environment management, optional external integrations, and scalable storage choices enable reliable operation across environments. Apply the recommended security and operational practices to harden deployments and maintain high availability.
 
 ## Appendices
 

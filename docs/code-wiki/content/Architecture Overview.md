@@ -56,43 +56,35 @@ subgraph "Server (Express)"
 BE_Index["server/index.ts"]
 BE_Routes["server/routes.ts"]
 BE_WS_Chat["server/chat-ws.ts"]
-BE_WS_MP["server/messagepal/index.ts"]
 BE_DB["server/db.ts"]
 BE_Cass["server/lib/cassandra.ts"]
-BE_OpenAI["server/lib/openai.ts"]
-BE_Tess["server/lib/tesseract.ts"]
+BE_AI["server/lib/gemini.ts (Vertex AI)"]
 BE_Store["server/storage.ts"]
 end
-subgraph "Shared"
-SH_Schema["shared/schema.ts"]
+subgraph "Cloud / External"
+EXT_GCP["Google Cloud (Cloud Run)"]
+EXT_FB["Firebase"]
+EXT_OA["OpenAI"]
+EXT_MONGO["MongoDB Atlas"]
 end
-FE_App --> BE_Routes
-FE_Fire --> FE_App
 BE_Index --> BE_Routes
-BE_Index --> BE_WS_Chat
-BE_Index --> BE_WS_MP
 BE_Routes --> BE_Store
 BE_Store --> BE_DB
 BE_Store --> BE_Cass
-BE_Routes --> BE_OpenAI
-BE_Routes --> BE_Tess
-BE_Routes --> SH_Schema
+BE_Routes --> BE_AI
+EXT_GCP --> BE_Index
+BE_AI --> EXT_GCP
 ```
 
 **Diagram sources**
 
 - [server/index.ts](file://server/index.ts#L1-L114)
 - [server/routes.ts](file://server/routes.ts#L1-L1104)
-- [server/chat-ws.ts](file://server/chat-ws.ts#L1-L393)
-- [server/messagepal/index.ts](file://server/messagepal/index.ts#L1-L410)
 - [server/db.ts](file://server/db.ts#L1-L21)
 - [server/lib/cassandra.ts](file://server/lib/cassandra.ts#L1-L73)
-- [server/lib/openai.ts](file://server/lib/openai.ts#L1-L217)
-- [server/lib/tesseract.ts](file://server/lib/tesseract.ts#L1-L33)
+- [server/lib/gemini.ts](file://server/lib/gemini.ts)
 - [server/storage.ts](file://server/storage.ts#L1-L519)
-- [shared/schema.ts](file://shared/schema.ts#L1-L142)
-- [client/src/App.tsx](file://client/src/App.tsx#L1-L165)
-- [client/src/lib/firebase.ts](file://client/src/lib/firebase.ts#L1-L212)
+- [terraform-gcp/main.tf](file://terraform-gcp/main.tf)
 
 **Section sources**
 

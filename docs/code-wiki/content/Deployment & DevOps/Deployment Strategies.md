@@ -32,7 +32,7 @@
 
 ## Introduction
 
-This document provides a comprehensive deployment strategy for PersonalLearningPro across development, staging, and production environments. It covers Vercel static hosting configuration, Express.js server deployment options, environment-specific configurations, infrastructure requirements, scaling and cost optimization, deployment automation, rollback procedures, and disaster recovery planning. The guidance is grounded in the repository’s configuration files and source code.
+This document provides a comprehensive deployment strategy for PersonalLearningPro across development, staging, and production environments. It covers Vercel static hosting configuration, Google Cloud Platform (Cloud Run) containerized deployment, environment-specific configurations, infrastructure requirements, scaling and cost optimization, deployment automation, rollback procedures, and disaster recovery planning. The guidance is grounded in the repository’s configuration files and source code.
 
 ## Project Structure
 
@@ -41,45 +41,53 @@ PersonalLearningPro is a full-stack application composed of:
 - A React-based frontend built with Vite and served either via Vite’s dev server in development or statically in production.
 - An Express.js backend that serves both API endpoints and the client application.
 - Optional real-time messaging capabilities via WebSocket servers and a dedicated MessagePal HTTP server.
-- Optional external integrations for authentication (Firebase), AI (OpenAI), and message persistence (Cassandra/Astra DB).
+- Native Google Cloud integration for AI via Vertex AI and Secret Manager for configuration.
 
 Key deployment-relevant files:
 
-- Vercel configuration for static hosting and routing.
-- Dockerfile and docker-compose for containerized local and CI deployments.
-- Package scripts for building and running the app.
-- Environment variables for databases, sessions, and optional integrations.
-- Server entrypoint and routing logic.
+- `vercel.json`: Vercel configuration for static hosting and routing.
+- `terraform-gcp/`: Infrastructure as Code for provisioning GCP resources.
+- `cloudbuild.yaml`: CI/CD pipeline for Google Cloud Build.
+- `Dockerfile` and `docker-compose.yml` for containerized local and CI deployments.
+- `package.json`: Scripts for building, running, and deploying (`deploy:gcp`).
+- Environment variables for databases, sessions, and AI integrations.
 
 ```mermaid
 graph TB
 subgraph "Frontend"
 ViteCfg["Vite Config<br/>vite.config.ts"]
 TailwindCfg["Tailwind Config<br/>tailwind.config.ts"]
-PostCSS["PostCSS Config<br/>postcss.config.js"]
 Dist["Dist Output<br/>dist/public"]
 end
 subgraph "Backend"
 ExpressApp["Express App<br/>server/index.ts"]
 Routes["Routes<br/>server/routes.ts"]
-ViteMiddleware["Vite Dev Middleware<br/>server/vite.ts"]
+Gemini["Gemini Service<br/>server/lib/gemini.ts"]
+end
+subgraph "Deployment"
+VERCEL["Vercel (vercel.json)"]
+GCP["Google Cloud (terraform-gcp)"]
+CB["Cloud Build (cloudbuild.yaml)"]
 end
 ViteCfg --> Dist
 TailwindCfg --> Dist
-PostCSS --> Dist
 Dist --> ExpressApp
 ExpressApp --> Routes
-ExpressApp --> ViteMiddleware
+ExpressApp --> Gemini
+VERCEL --> ExpressApp
+GCP --> ExpressApp
+CB --> GCP
 ```
 
 **Diagram sources**
 
 - [vite.config.ts](file://vite.config.ts#L1-L35)
 - [tailwind.config.ts](file://tailwind.config.ts#L1-L164)
-- [postcss.config.js](file://postcss.config.js#L1-L7)
 - [server/index.ts](file://server/index.ts#L1-L114)
-- [server/vite.ts](file://server/vite.ts#L1-L89)
-- [server/routes.ts](file://server/routes.ts#L1-L1104)
+- [server/lib/gemini.ts](file://server/lib/gemini.ts)
+- [vercel.json](file://vercel.json#L1-L28)
+- [terraform-gcp/main.tf](file://terraform-gcp/main.tf)
+- [cloudbuild.yaml](file://cloudbuild.yaml)
 
 **Section sources**
 

@@ -148,70 +148,21 @@ Express --> WS
 
 ## Detailed Component Analysis
 
-### Installation Methods
+### Installation & Deployment Methods
 
-#### Option 1: Docker (Recommended)
-
+#### Option 1: Docker (Recommended for Local)
 - Prerequisites: Docker Engine
-- Steps:
-  - Clone the repository
-  - Copy and edit .env.example to .env
-  - Build and start with Docker Compose
+- Steps: Build and start with `docker compose up`
 - Access: http://localhost:5001
 
-```mermaid
-flowchart TD
-Start(["Start"]) --> Clone["Clone repo"]
-Clone --> Env["Copy .env.example to .env"]
-Env --> ComposeBuild["docker compose build"]
-ComposeBuild --> ComposeUp["docker compose up"]
-ComposeUp --> Open["Open http://localhost:5001"]
-Open --> Done(["Ready"])
-```
+#### Option 2: Google Cloud Platform (Recommended for Production)
+- Prerequisites: GCP Account, `gcloud` CLI
+- Steps: Use the provided Terraform and Cloud Build automation
+- Guide: See [GCP Deployment Guide](docs/GCP_DEPLOYMENT.md)
 
-**Diagram sources**
-
-- [README.md](file://README.md#L23-L35)
-- [docker-compose.yml](file://docker-compose.yml#L1-L24)
-- [Dockerfile](file://Dockerfile#L1-L58)
-
-**Section sources**
-
-- [README.md](file://README.md#L23-L35)
-- [docker-compose.yml](file://docker-compose.yml#L1-L24)
-- [Dockerfile](file://Dockerfile#L1-L58)
-
-#### Option 2: Manual Setup (Node.js)
-
-- Prerequisites: Node.js v18+, npm, PostgreSQL, MongoDB
-- Steps:
-  - Clone the repository
-  - Copy and edit .env
-  - Install dependencies
-  - Start development server
-- Access: http://localhost:5001
-
-```mermaid
-flowchart TD
-Start(["Start"]) --> Clone["Clone repo"]
-Clone --> Env["Copy .env.example to .env"]
-Env --> Install["npm install"]
-Install --> Dev["npm run dev"]
-Dev --> Open["Open http://localhost:5001"]
-Open --> Done(["Ready"])
-```
-
-**Diagram sources**
-
-- [README.md](file://README.md#L37-L49)
-- [LOCAL_SETUP.md](file://LOCAL_SETUP.md#L13-L82)
-- [package.json](file://package.json#L6-L11)
-
-**Section sources**
-
-- [README.md](file://README.md#L37-L49)
-- [LOCAL_SETUP.md](file://LOCAL_SETUP.md#L13-L82)
-- [package.json](file://package.json#L6-L11)
+#### Option 3: Manual Setup (Node.js)
+- Prerequisites: Node.js v18+, npm
+- Steps: `npm install` and `npm run dev`
 
 ### Environment Configuration (.env and .env.example)
 
