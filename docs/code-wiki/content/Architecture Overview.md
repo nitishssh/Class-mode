@@ -36,7 +36,7 @@
 
 ## Introduction
 
-This document presents the architecture of PersonalLearningPro, an AI-powered personalized learning platform. The system follows a layered clean architecture with clear separation between presentation, application, domain, and infrastructure concerns. It integrates a React frontend with an Express backend, multi-database persistence using MongoDB and Cassandra (via Astra DB), WebSocket real-time communication, and AI services (OpenAI and Tesseract). The document explains component roles, data flows, and operational patterns, and provides guidance on scalability, security, and deployment.
+This document presents the architecture of PersonalLearningPro, an AI-powered personalized learning platform. The system follows a layered clean architecture with clear separation between presentation, application, domain, and infrastructure concerns. It integrates a React frontend with an Express backend, multi-database persistence using MongoDB and Cassandra (via Astra DB), WebSocket real-time communication, AI services (Gemini, OpenAI, Tesseract), and a native Study Arena engine for multi-agent AI classrooms. An optional IniClaw gateway (lightweight Node.js LLM proxy) adds concurrency control and audit logging for classroom LLM calls.
 
 ## Project Structure
 
@@ -97,7 +97,8 @@ BE_AI --> EXT_GCP
   - Role-aware routing and UI composition in App.tsx.
   - Firebase integration for authentication and user profiles.
 - Application Layer (server):
-  - REST routes for user, test, question, attempt, answer, analytics, and chat/workspace/message management.
+  - REST routes for user, test, question, attempt, answer, analytics, chat/workspace/message management, billing, and GDPR.
+  - Study Arena internal service: async classroom generation job queue, multi-agent orchestration, SSE progress streaming.
   - WebSocket servers for real-time chat and MessagePal.
   - Session middleware and logging.
 - Domain Layer (shared):
@@ -483,12 +484,18 @@ External systems and their roles:
 
 - Firebase:
   - Authentication and user profiles for the client.
+- Gemini (Google AI):
+  - Primary LLM for classroom generation, study plans, and AI tutor (via `GOOGLE_API_KEY`).
 - OpenAI:
-  - AI chat, evaluation, study plan generation, and analytics insights.
+  - Fallback LLM for AI chat, evaluation, and study plan generation (via `OPENAI_API_KEY`).
+- Anthropic:
+  - Secondary fallback LLM for classroom generation (via `ANTHROPIC_API_KEY`).
 - Tesseract:
   - OCR processing for scanned test images.
 - Astra DB (Cassandra):
   - Scalable, time-optimized storage for messages.
+- IniClaw Gateway (`features/ai-classroom/ini_claw/`):
+  - Optional lightweight Node.js LLM proxy. Zero npm dependencies. Provides Bearer auth, concurrency limiting (default 3 concurrent calls), and rotating audit log for classroom LLM traffic. Runs on port 7070 (local) or 4000 (Docker via `services/iniclaw/`).
 
 ```mermaid
 graph TB
