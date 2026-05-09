@@ -17,10 +17,8 @@
     "deploy:gcp": "gcloud builds submit --config cloudbuild.yaml"
   },
   "dependencies": {
-    "@anthropic-ai/vertex-sdk": "^0.16.0",
     "@daily-co/daily-js": "^0.87.0",
     "@daily-co/daily-react": "^0.24.0",
-    "@google-cloud/vertexai": "^1.12.0",
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^3.9.1",
     "@jridgewell/trace-mapping": "^0.3.25",
@@ -62,6 +60,7 @@
     "@types/multer": "^2.0.0",
     "@types/nodemailer": "^7.0.11",
     "@types/stripe": "^8.0.416",
+    "archiver": "^8.0.0",
     "axios": "^1.16.0",
     "bcryptjs": "^3.0.3",
     "canvas-confetti": "^1.9.4",
