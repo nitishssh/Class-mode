@@ -41,6 +41,11 @@ steps:
       - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:${SHORT_SHA}'
       - '--region'
       - '${_REGION}'
+      - '--set-secrets=MONGODB_URL=MONGODB_URL:latest,GOOGLE_API_KEY=GOOGLE_API_KEY:latest,FIREBASE_SERVICE_ACCOUNT_JSON=FIREBASE_SERVICE_ACCOUNT_JSON:latest,SESSION_SECRET=SESSION_SECRET:latest,JWT_SECRET=JWT_SECRET:latest,REFRESH_SECRET=REFRESH_SECRET:latest'
+      - '--set-env-vars=GOOGLE_CLOUD_PROJECT=${PROJECT_ID},NODE_ENV=production'
+      - '--port'
+      - '5001'
+      - '--allow-unauthenticated'
 
 images:
   - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:${SHORT_SHA}'
