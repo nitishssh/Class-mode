@@ -4,9 +4,9 @@
 
 PersonalLearningPro now uses a unified microservices architecture that consolidates:
 
-- **EduAI** (main web app + backend)
-- **OpenMAIC** (studyArena AI classroom)
-- **IniClaw** (agent gateway runtime)
+- **EduAI** (main web app + backend — includes native Study Arena)
+- **OpenMAIC** (optional studyArena Next.js companion UI)
+- **IniClaw** (lightweight LLM proxy gateway — zero npm dependencies)
 
 All services are orchestrated via Docker Compose and communicate through REST APIs, WebSockets, and webhooks.
 
@@ -135,10 +135,10 @@ const url = generateOpenMAICClassroomUrl(classroomId, token);
 
 ### API Endpoints
 
-**Create OpenMAIC Session:**
+**Create AI Classroom (native Study Arena):**
 ```bash
-POST /api/openmaic/classroom/create
-Authorization: Bearer <firebase-jwt>
+POST /api/ai-classroom/create
+Authorization: Bearer <jwt>
 Content-Type: application/json
 
 {
@@ -309,10 +309,10 @@ EduAI can create deep links to OpenMAIC classrooms:
 ```tsx
 // In EduAI Study Plan component
 const handleEnterClassroom = async (topic: string) => {
-  const response = await fetch('/api/openmaic/classroom/create', {
+  const response = await fetch('/api/ai-classroom/create', {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${token}` },
-    body: JSON.stringify({ topic })
+    body: JSON.stringify({ topic, sceneTypes: ['slides', 'quiz'] })
   });
   
   const { classroom } = await response.json();
@@ -342,21 +342,22 @@ Lesson completion → Webhook to EduAI
 Analytics updated → Study plan adjusted
 ```
 
-### MessagePal → IniClaw Integration
+### Study Arena → IniClaw Integration (optional)
 
 ```
-EduAI Chat Interface
+EduAI Study Arena
     ↓
-Student asks question
+Student requests AI classroom
     ↓
-Routes to IniClaw gateway
+Routes to IniClaw gateway (if USE_INICLAW=true)
+  OR calls LLM providers directly (default)
     ↓
-IniClaw routes to appropriate agent
+IniClaw proxies to Gemini / OpenAI / Anthropic
     ↓
-Agent responds
-    ↓
-Response sent back to EduAI chat
+Lesson content streamed back to EduAI
 ```
+
+IniClaw (`features/ai-classroom/ini_claw/`) is a pure Node.js HTTP proxy — no Docker, no OpenShell sandbox, no NVIDIA dependencies. It adds auth, concurrency limiting, and audit logging on top of direct LLM calls.
 
 ## Running the Services
 
@@ -376,16 +377,16 @@ docker compose up
 ### Development (without Docker)
 
 ```bash
-# Terminal 1: EduAI main app
+# Terminal 1: EduAI main app (includes native Study Arena)
 npm run dev
 
-# Terminal 2: OpenMAIC
+# Terminal 2: OpenMAIC companion UI (optional)
 cd services/openmaic
 npm run dev
 
-# Terminal 3: IniClaw
-cd services/iniclaw
-npm run dev
+# Terminal 3: IniClaw gateway (optional LLM proxy)
+cd features/ai-classroom/ini_claw
+BRIDGE_SECRET=<your-secret> INICLAW_PORT=7070 node gateway.js
 ```
 
 ### Production
@@ -506,10 +507,10 @@ curl -H "Authorization: Bearer <token>" http://localhost:5001/api/auth/me
 1. ✅ Set up Docker Compose (done)
 2. ✅ Create authentication bridge (done)
 3. ✅ Implement webhook handlers (done)
-4. ⏳ Move OpenMAIC code to `services/openmaic/`
-5. ⏳ Move IniClaw code to `services/iniclaw/`
-6. ⏳ Update service package.json files
-7. ⏳ Test end-to-end integration
+4. ✅ Native Study Arena replaces OpenMAIC dependency for core classroom generation
+5. ✅ IniClaw rewritten as lightweight LLM proxy (zero npm deps, no Docker/sandbox required)
+6. ✅ All 25 API integration tests passing
+7. ⏳ Move OpenMAIC companion UI to `services/openmaic/` (optional)
 8. ⏳ Deploy to production
 
 ## References
