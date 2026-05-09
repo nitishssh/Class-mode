@@ -11,17 +11,15 @@ const router = Router();
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || "";
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || "";
 
-if (!STRIPE_SECRET_KEY && process.env.NODE_ENV !== "test") {
-  logger.warn("STRIPE_SECRET_KEY is not set. Billing features will not work.");
-}
+const stripeEnabled =
+  STRIPE_SECRET_KEY.startsWith("sk_live_") || STRIPE_SECRET_KEY.startsWith("sk_test_");
 
-let stripe: any;
-try {
-  stripe = require("stripe")(STRIPE_SECRET_KEY, {
-    apiVersion: "2024-11-0" as any,
-  });
-} catch {
-  logger.warn("Stripe package not available. Install with: npm install stripe");
+let stripe: any = null;
+if (stripeEnabled) {
+  const { default: Stripe } = await import("stripe");
+  stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: "2024-11-20" as any });
+} else {
+  logger.info("[Billing] Stripe not configured — billing endpoints will return 503.");
 }
 
 // ─── Subscription Tier Config ──────────────────────────────────────
@@ -100,6 +98,7 @@ const CheckoutSchema = z.object({
 });
 
 router.post("/checkout", authenticateToken, async (req: Request, res: Response) => {
+  if (!stripeEnabled) return res.status(503).json({ error: "Billing not yet configured" });
   try {
     const user = (req as any).user;
     if (!user?.id) return res.status(401).json({ error: "Authentication required" });
@@ -157,6 +156,7 @@ router.post("/checkout", authenticateToken, async (req: Request, res: Response) 
 // ─── Customer Portal ───────────────────────────────────────────────
 
 router.get("/portal", authenticateToken, async (req: Request, res: Response) => {
+  if (!stripeEnabled) return res.status(503).json({ error: "Billing not yet configured" });
   try {
     const user = (req as any).user;
     if (!user?.id) return res.status(401).json({ error: "Authentication required" });
@@ -188,6 +188,7 @@ async function buffer(req: IncomingMessage): Promise<Buffer> {
 }
 
 router.post("/webhook", async (req: Request, res: Response) => {
+  if (!stripeEnabled) return res.status(503).json({ error: "Billing not yet configured" });
   const sig = req.headers["stripe-signature"] as string;
   if (!sig) return res.status(400).send("Missing stripe-signature header");
 
