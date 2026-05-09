@@ -1,26 +1,10 @@
-FROM node:20-slim
+ARG NODE_VERSION=20-alpine
 
-# Install system dependencies for OpenShell/OpenClaw
-RUN apt-get update && apt-get install -y \
-    curl \
-    git \
-    python3 \
-    make \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
-
+FROM node:${NODE_VERSION}
 WORKDIR /app
-
-COPY package*.json ./
-RUN npm install --production
-
-COPY . .
-
-# Expose the gateway port
+COPY package.json ./
+COPY gateway.js ./
+COPY policies/ ./policies/
+RUN mkdir -p .classroom-cache
 EXPOSE 7070
-
-# Default environment variables
-ENV NODE_ENV=production
-ENV INICLAW_PORT=7070
-
-CMD ["npm", "run", "start:gateway"]
+CMD ["node", "gateway.js"]

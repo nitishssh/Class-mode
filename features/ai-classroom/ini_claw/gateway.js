@@ -1,27 +1,22 @@
+#!/usr/bin/env node
+// IniClaw Gateway — lightweight LLM proxy for PersonalLearningPro Study Arena
+// Zero npm dependencies; uses only Node.js built-in modules.
+
+const https = require("https");
 const http = require("http");
-const { spawn } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
-const PORT = process.env.INICLAW_PORT || 7070;
-const BRIDGE_SECRET = process.env.BRIDGE_SECRET;
-const DEFAULT_SANDBOX = process.env.INICLAW_SANDBOX_NAME || "study-arena";
-const MAX_CONCURRENT = parseInt(process.env.INICLAW_MAX_CONCURRENT || "3", 10);
-const AUDIT_MAX_BYTES = parseInt(process.env.INICLAW_AUDIT_MAX_MB || "10", 10) * 1024 * 1024;
-// Hard caps that prevent any single request from exhausting the heap.
-const MAX_BODY_BYTES = parseInt(process.env.INICLAW_MAX_BODY_MB || "4", 10) * 1024 * 1024;
-const MAX_OUTPUT_BYTES = parseInt(process.env.INICLAW_MAX_OUTPUT_MB || "32", 10) * 1024 * 1024;
+const PORT             = process.env.INICLAW_PORT           || 7070;
+const BRIDGE_SECRET    = process.env.BRIDGE_SECRET;
+const MAX_CONCURRENT   = parseInt(process.env.INICLAW_MAX_CONCURRENT  || "3",  10);
+const MAX_BODY_BYTES   = parseInt(process.env.INICLAW_MAX_BODY_MB      || "4",  10) * 1024 * 1024;
+const MAX_OUTPUT_BYTES = parseInt(process.env.INICLAW_MAX_OUTPUT_MB    || "32", 10) * 1024 * 1024;
+const AUDIT_MAX_BYTES  = parseInt(process.env.INICLAW_AUDIT_MAX_MB     || "10", 10) * 1024 * 1024;
 
-// Comma-separated list of allowed CORS origins. Defaults cover local dev ports
-// for the Study Arena engine (3000), Express backend (5001), and Vite frontend (5173).
 const ALLOWED_ORIGINS = new Set(
-  (
-    process.env.INICLAW_ALLOWED_ORIGINS ||
-    "http://localhost:3000,http://localhost:5001,http://localhost:5173"
-  )
-    .split(",")
-    .map((o) => o.trim())
-    .filter(Boolean)
+  (process.env.INICLAW_ALLOWED_ORIGINS || "http://localhost:3000,http://localhost:5001,http://localhost:5173")
+    .split(",").map(o => o.trim()).filter(Boolean)
 );
 
 if (!BRIDGE_SECRET) {
@@ -29,165 +24,154 @@ if (!BRIDGE_SECRET) {
   process.exit(1);
 }
 
-const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, "package.json"), "utf8"));
-
+const VERSION   = "1.0.0";
 const CACHE_DIR = path.join(__dirname, ".classroom-cache");
-if (!fs.existsSync(CACHE_DIR)) {
-  fs.mkdirSync(CACHE_DIR, { recursive: true });
-}
 const AUDIT_LOG = path.join(CACHE_DIR, "audit.jsonl");
+
+if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
+
+// ── Route table ───────────────────────────────────────────────────────────────
+
+const ROUTE_MAP = {
+  "/classroom/generate": { timeout: 300_000, logType: "classroom_generate" },
+  "/classroom/quiz":     { timeout: 120_000, logType: "classroom_quiz"     },
+  "/classroom/slides":   { timeout: 120_000, logType: "classroom_slides"   },
+  "/tutor/chat":         { timeout:  60_000, logType: "tutor_chat"         },
+};
+
+// ── Audit log ─────────────────────────────────────────────────────────────────
 
 function auditLog(requestId, data) {
   try {
     if (fs.existsSync(AUDIT_LOG) && fs.statSync(AUDIT_LOG).size > AUDIT_MAX_BYTES) {
       fs.renameSync(AUDIT_LOG, `${AUDIT_LOG}.${Date.now()}.bak`);
-      // Keep only the 3 most recent backups so disk doesn't fill up.
-      const backups = fs
-        .readdirSync(CACHE_DIR)
-        .filter((f) => f.startsWith("audit.jsonl.") && f.endsWith(".bak"))
-        .sort()
-        .slice(0, -3);
-      for (const f of backups) {
-        try { fs.unlinkSync(path.join(CACHE_DIR, f)); } catch (_) {}
-      }
+      const backups = fs.readdirSync(CACHE_DIR)
+        .filter(f => f.startsWith("audit.jsonl.") && f.endsWith(".bak"))
+        .sort().slice(0, -3);
+      for (const f of backups) { try { fs.unlinkSync(path.join(CACHE_DIR, f)); } catch (_) {} }
     }
-    fs.appendFileSync(
-      AUDIT_LOG,
-      JSON.stringify({ timestamp: new Date().toISOString(), requestId, ...data }) + "\n"
-    );
+    fs.appendFileSync(AUDIT_LOG, JSON.stringify({ timestamp: new Date().toISOString(), requestId, ...data }) + "\n");
   } catch (_) {}
 }
 
-// ── Concurrency semaphore ─────────────────────────────────────────────────────
+// ── LLM providers ─────────────────────────────────────────────────────────────
 
-let activeSandboxCalls = 0;
-
-function execSandbox(args, { timeout = 60000 } = {}) {
+function httpsPost(hostname, pathname, body, headers) {
   return new Promise((resolve, reject) => {
-    if (activeSandboxCalls >= MAX_CONCURRENT) {
-      return reject(Object.assign(new Error("Gateway at capacity"), { code: "CAPACITY" }));
-    }
-    activeSandboxCalls++;
-
-    let stdout = "";
-    let stderr = "";
-    let outputBytes = 0;
-    // settled prevents double-decrement: Node emits 'error' then 'close' on the
-    // same process, which would make activeSandboxCalls go negative and break the
-    // semaphore — letting unlimited concurrent calls pile up and OOM the process.
-    let settled = false;
-
-    const proc = spawn("openshell", args, { env: process.env });
-
-    function finish(fn) {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      activeSandboxCalls--;
-      fn();
-    }
-
-    const timer = setTimeout(() => {
-      proc.kill("SIGTERM");
-      finish(() => reject(new Error(`Sandbox exec timed out after ${timeout}ms`)));
-    }, timeout);
-
-    proc.stdout.on("data", (d) => {
-      outputBytes += d.length;
-      if (outputBytes > MAX_OUTPUT_BYTES) {
-        // Output exceeds cap — kill the process immediately to free resources.
-        proc.kill("SIGTERM");
-        finish(() =>
-          reject(
-            Object.assign(
-              new Error(`Sandbox output exceeded ${MAX_OUTPUT_BYTES / 1024 / 1024} MB limit`),
-              { code: "OUTPUT_TOO_LARGE" }
-            )
-          )
-        );
-        return;
-      }
-      stdout += d;
-    });
-
-    proc.stderr.on("data", (d) => { stderr += d.toString().slice(0, 4096); });
-
-    proc.on("close", (code) => {
-      finish(() => {
-        if (code === 0) {
-          resolve(stdout);
-        } else {
-          const err = new Error(`Sandbox exited with code ${code}`);
-          err.stdout = stdout;
-          err.stderr = stderr;
-          reject(err);
-        }
+    const payload = JSON.stringify(body);
+    const req = https.request({
+      hostname, path: pathname, method: "POST",
+      headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(payload), ...headers },
+    }, (res) => {
+      let raw = "";
+      let bytes = 0;
+      res.on("data", chunk => {
+        bytes += chunk.length;
+        if (bytes > MAX_OUTPUT_BYTES) { req.destroy(); reject(new Error("LLM response too large")); return; }
+        raw += chunk;
+      });
+      res.on("end", () => {
+        try {
+          const json = JSON.parse(raw);
+          if (res.statusCode >= 400) reject(Object.assign(new Error(`LLM API error ${res.statusCode}`), { body: json }));
+          else resolve(json);
+        } catch (e) { reject(new Error(`Failed to parse LLM response: ${e.message}`)); }
       });
     });
-
-    proc.on("error", (err) => {
-      finish(() => reject(err));
-    });
+    req.on("error", reject);
+    req.write(payload);
+    req.end();
   });
 }
 
-// ── Route table — maps each project use-case to its agent and timeout ─────────
-//
-// Project use-cases:
-//   /classroom/generate — full interactive lesson (slides + quiz + simulation + PBL)
-//   /classroom/quiz     — quiz-only generation
-//   /classroom/slides   — slides-only generation
-//   /tutor/chat         — real-time student tutor chat
-//
-// Legacy generic routes kept for backward compatibility with existing callers.
+async function callOpenAI(system, user) {
+  const json = await httpsPost("api.openai.com", "/v1/chat/completions", {
+    model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+    messages: [{ role: "system", content: system }, { role: "user", content: user }],
+  }, { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` });
+  return json.choices[0].message.content;
+}
 
-const ROUTE_MAP = {
-  "/classroom/generate": {
-    agent: process.env.CLASSROOM_AGENT || "main",
-    timeout: 300000,
-    logType: "classroom_generate",
-  },
-  "/classroom/quiz": {
-    agent: process.env.QUIZ_AGENT || "main",
-    timeout: 120000,
-    logType: "classroom_quiz",
-  },
-  "/classroom/slides": {
-    agent: process.env.SLIDES_AGENT || "main",
-    timeout: 120000,
-    logType: "classroom_slides",
-  },
-  "/tutor/chat": {
-    agent: process.env.TUTOR_AGENT || "main",
-    timeout: 60000,
-    logType: "tutor_chat",
-  },
-  // Legacy
-  "/generate": { agent: "main", timeout: 300000, logType: "generate" },
-  "/agent":    { agent: "main", timeout: 60000,  logType: "agent" },
-};
+async function callGemini(system, user) {
+  const model = process.env.GEMINI_MODEL || "gemini-1.5-flash";
+  const json = await httpsPost(
+    "generativelanguage.googleapis.com",
+    `/v1beta/models/${model}:generateContent?key=${process.env.GOOGLE_API_KEY}`,
+    {
+      system_instruction: { parts: [{ text: system }] },
+      contents: [{ role: "user", parts: [{ text: user }] }],
+    },
+    {}
+  );
+  return json.candidates[0].content.parts[0].text;
+}
 
-// ── CORS helper ───────────────────────────────────────────────────────────────
+async function callAnthropic(system, user) {
+  const json = await httpsPost("api.anthropic.com", "/v1/messages", {
+    model: process.env.ANTHROPIC_MODEL || "claude-haiku-4-5-20251001",
+    max_tokens: 4096,
+    system,
+    messages: [{ role: "user", content: user }],
+  }, { "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" });
+  return json.content[0].text;
+}
 
-function setCorsHeaders(res, reqOrigin) {
-  if (reqOrigin && ALLOWED_ORIGINS.has(reqOrigin)) {
-    res.setHeader("Access-Control-Allow-Origin", reqOrigin);
+function withTimeout(promise, ms) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(`LLM call timed out after ${ms}ms`)), ms);
+    promise.then(v => { clearTimeout(t); resolve(v); }, e => { clearTimeout(t); reject(e); });
+  });
+}
+
+// Tries Gemini → OpenAI → Anthropic in order of availability.
+async function callLLM(system, user, timeoutMs) {
+  const hasGemini    = !!process.env.GOOGLE_API_KEY;
+  const hasOpenAI    = !!process.env.OPENAI_API_KEY;
+  const hasAnthropic = !!process.env.ANTHROPIC_API_KEY;
+
+  if (!hasGemini && !hasOpenAI && !hasAnthropic)
+    throw new Error("No LLM provider configured. Set GOOGLE_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY.");
+
+  if (hasGemini) {
+    try { return await withTimeout(callGemini(system, user), timeoutMs); }
+    catch (err) {
+      console.warn(`[iniclaw] Gemini failed (${err.message}), trying next provider`);
+      if (!hasOpenAI && !hasAnthropic) throw err;
+    }
+  }
+  if (hasOpenAI) {
+    try { return await withTimeout(callOpenAI(system, user), timeoutMs); }
+    catch (err) {
+      console.warn(`[iniclaw] OpenAI failed (${err.message}), trying next provider`);
+      if (!hasAnthropic) throw err;
+    }
+  }
+  return withTimeout(callAnthropic(system, user), timeoutMs);
+}
+
+// ── CORS ──────────────────────────────────────────────────────────────────────
+
+function setCorsHeaders(res, origin) {
+  if (origin && ALLOWED_ORIGINS.has(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Vary", "Origin");
   }
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 }
 
-// ── Server ────────────────────────────────────────────────────────────────────
+// ── HTTP server ───────────────────────────────────────────────────────────────
+
+let activeCalls = 0;
 
 const server = http.createServer((req, res) => {
   const { method, url } = req;
-  const requestId = Math.random().toString(36).substring(7);
+  const requestId = Math.random().toString(36).slice(2, 9);
   let body = "";
   let bodyBytes = 0;
   let bodyRejected = false;
 
-  req.on("data", (chunk) => {
+  req.on("data", chunk => {
     bodyBytes += chunk.length;
     if (bodyBytes > MAX_BODY_BYTES) {
       if (!bodyRejected) {
@@ -198,7 +182,7 @@ const server = http.createServer((req, res) => {
       }
       return;
     }
-    body += chunk.toString();
+    body += chunk;
   });
 
   req.on("end", async () => {
@@ -207,114 +191,68 @@ const server = http.createServer((req, res) => {
 
     setCorsHeaders(res, req.headers.origin);
 
-    if (method === "OPTIONS") {
-      res.writeHead(204);
-      res.end();
-      return;
-    }
+    if (method === "OPTIONS") { res.writeHead(204); res.end(); return; }
 
     if (url === "/health" && method === "GET") {
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(
-        JSON.stringify({
-          status: "ok",
-          version: pkg.version,
-          service: "iniclaw-gateway",
-          activeCalls: activeSandboxCalls,
-          capacity: MAX_CONCURRENT,
-        })
-      );
+      res.end(JSON.stringify({ status: "ok", version: VERSION, service: "iniclaw-gateway", activeCalls, capacity: MAX_CONCURRENT }));
       return;
     }
 
-    const authHeader = req.headers.authorization;
-    if (!authHeader || authHeader !== `Bearer ${BRIDGE_SECRET}`) {
+    const auth = req.headers.authorization;
+    if (!auth || auth !== `Bearer ${BRIDGE_SECRET}`) {
       res.writeHead(401, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "Unauthorized" }));
       return;
     }
 
-    try {
-      if (url === "/sandbox/status" && method === "GET") {
-        const sandboxName = req.headers["x-sandbox-name"] || DEFAULT_SANDBOX;
-        const output = await execSandbox(["sandbox", "get", sandboxName, "--json"], {
-          timeout: 10000,
-        });
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(output);
+    const route = ROUTE_MAP[url];
+    if (route && method === "POST") {
+      if (activeCalls >= MAX_CONCURRENT) {
+        res.writeHead(429, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Too Many Requests" }));
         return;
       }
 
-      const route = ROUTE_MAP[url];
-      if (route && method === "POST") {
-        const data = JSON.parse(body);
-        const { message, prompt, sessionId, agentName, sandboxName = DEFAULT_SANDBOX } = data;
-        const msg = message || prompt;
+      let data;
+      try { data = JSON.parse(body); }
+      catch { res.writeHead(400, { "Content-Type": "application/json" }); res.end(JSON.stringify({ error: "Invalid JSON" })); return; }
 
-        if (!msg) {
-          res.writeHead(400, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ error: "Missing message or prompt" }));
-          return;
-        }
+      const { message, prompt, sessionId = "default", systemPrompt = "You are a helpful AI tutor." } = data;
+      const msg = message || prompt;
 
-        // Named project routes always use their designated agent.
-        // Legacy /agent and /generate honour an agentName override from the caller.
-        const isProjectRoute = url.startsWith("/classroom/") || url === "/tutor/chat";
-        const agent = isProjectRoute ? route.agent : (agentName || route.agent);
-        const sid = sessionId || "default";
+      if (!msg) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Missing message or prompt" }));
+        return;
+      }
 
-        auditLog(requestId, {
-          type: route.logType,
-          sandboxName,
-          agent,
-          sessionId: sid,
-          promptLength: msg.length,
-        });
+      activeCalls++;
+      auditLog(requestId, { type: route.logType, sessionId, promptLength: msg.length });
 
-        const output = await execSandbox(
-          [
-            "sandbox", "exec", sandboxName, "--",
-            "openclaw", "agent", "--agent", agent, "--local",
-            "-m", msg, "--session-id", sid, "--json",
-          ],
-          { timeout: route.timeout }
-        );
-
+      try {
+        const response = await callLLM(systemPrompt, msg, route.timeout);
         auditLog(requestId, { status: "success" });
         res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(output);
-        return;
-      }
-
-      res.writeHead(404, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Not Found" }));
-    } catch (err) {
-      console.error(`[${requestId}]`, err.message);
-      auditLog(requestId, { status: "error", error: err.message });
-
-      if (err.code === "CAPACITY") {
-        res.writeHead(429, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "Too Many Requests", message: err.message }));
-      } else if (err.code === "OUTPUT_TOO_LARGE") {
-        res.writeHead(507, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "Sandbox output too large", message: err.message }));
-      } else {
+        res.end(JSON.stringify({ response, sessionId }));
+      } catch (err) {
+        auditLog(requestId, { status: "error", error: err.message });
+        console.error(`[${requestId}] LLM error:`, err.message);
         res.writeHead(500, { "Content-Type": "application/json" });
-        res.end(
-          JSON.stringify({
-            error: "Internal Server Error",
-            message: err.message,
-            stdout: err.stdout ?? null,
-            stderr: err.stderr ?? null,
-          })
-        );
+        res.end(JSON.stringify({ error: "LLM call failed", message: err.message }));
+      } finally {
+        activeCalls--;
       }
+      return;
     }
+
+    res.writeHead(404, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Not Found" }));
   });
 });
 
 server.listen(PORT, () => {
-  console.log(
-    `IniClaw Gateway listening on port ${PORT} (sandbox: ${DEFAULT_SANDBOX}, max concurrent: ${MAX_CONCURRENT})`
-  );
+  console.log(`IniClaw Gateway listening on port ${PORT} (max concurrent: ${MAX_CONCURRENT})`);
 });
+
+module.exports = { server };
