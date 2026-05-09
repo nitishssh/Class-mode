@@ -7,7 +7,7 @@
 **The complete school operating system.** AI tutoring, live classes, real-time messaging, OCR grading, and role-based dashboards — all in one open-source platform.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](docs/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](docs/CHANGELOG.md)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-green.svg)](https://nodejs.org)
 [![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](Dockerfile)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg)](https://www.typescriptlang.org)
@@ -106,13 +106,34 @@ Most school platforms are either too simple or too expensive. EduAI is **open-so
 | **Primary DB** | MongoDB Atlas + Mongoose |
 | **Message Store** | Apache Cassandra |
 | **Mobile Storage** | AsyncStorage (offline caching) |
-| **AI** | OpenAI GPT-4o |
+| **AI** | Google Gemini 2.0 Flash (primary) · OpenAI GPT-4o (optional fallback) |
 | **OCR** | Tesseract.js (web), Expo Camera + backend OCR (mobile) |
 | **Real-time** | WebSockets (ws) |
 | **Push Notifications** | Expo Notifications |
 | **Email** | Nodemailer (SMTP) |
 | **Video** | Daily.co / BigBlueButton |
-| **DevOps** | Docker, Kubernetes, Terraform, GitHub Actions |
+| **DevOps** | Docker, Kubernetes, GCP Cloud Run, Cloud Build, Secret Manager, GitHub Actions |
+
+---
+
+## 🚀 Deployment
+
+### Live Production
+
+The platform is deployed on **Google Cloud Run**:
+
+| | |
+|---|---|
+| **URL** | `https://personallearningpro-wuo7arhpla-uc.a.run.app` |
+| **Project** | `plp-prod-2026` (us-central1) |
+| **Stack** | Cloud Run · Artifact Registry · Secret Manager · Cloud Build |
+
+See the [GCP Deployment Guide](docs/GCP_DEPLOYMENT.md) for full setup and operations instructions.
+
+### Other environments
+
+*   **Local/Docker:** `docker compose up` — runs the full stack including MongoDB, Cassandra, Redis, and nginx.
+*   **Kubernetes:** Manifests in `k8s/` with NGINX ingress and cert-manager TLS.
 
 ---
 
@@ -146,35 +167,43 @@ Open [http://localhost:5001](http://localhost:5001)
 ### 🔑 Required Environment Variables
 
 ```env
-# MongoDB (Required)
-MONGODB_URL=mongodb+srv://...
+# MongoDB Atlas (Required)
+MONGODB_URL=mongodb+srv://user:pass@cluster.mongodb.net/eduai?retryWrites=true&w=majority
 
-# Firebase (Required for authentication)
+# Firebase Client (Required for authentication)
 VITE_FIREBASE_API_KEY=
 VITE_FIREBASE_PROJECT_ID=
 VITE_FIREBASE_APP_ID=
 VITE_FIREBASE_MESSAGING_SENDER_ID=
 VITE_FIREBASE_MEASUREMENT_ID=
-FIREBASE_SERVICE_ACCOUNT_JSON=   # base64-encoded service account
 
-# OpenAI (Required for AI features)
-OPENAI_API_KEY=
+# Firebase Admin (Required for server-side token verification)
+FIREBASE_PROJECT_ID=
+FIREBASE_SERVICE_ACCOUNT_JSON=   # raw JSON from Firebase Console → Service Accounts
 
-# Email (Required for invite system)
+# Google Gemini (Required for all AI features)
+GOOGLE_API_KEY=                  # Google AI Studio → API Keys
+
+# Session & JWT (Required — crash guard in production)
+SESSION_SECRET=                  # openssl rand -hex 32
+JWT_SECRET=                      # openssl rand -hex 32
+REFRESH_SECRET=                  # openssl rand -hex 32
+
+# CORS & URLs
+CORS_ORIGIN=http://localhost:5001
+APP_URL=http://localhost:5001
+
+# Email / Invites (Optional)
 SMTP_HOST=smtp.gmail.com
 SMTP_USER=
 SMTP_PASS=
-APP_URL=http://localhost:5001
 
-# Cassandra (Optional - for MessagePal chat history)
-CASSANDRA_CONTACT_POINTS=
-CASSANDRA_LOCAL_DATA_CENTER=
-CASSANDRA_KEYSPACE=chat_db
-CASSANDRA_USERNAME=
-CASSANDRA_PASSWORD=
+# Stripe (Optional — billing returns 503 until a real key is set)
+STRIPE_SECRET_KEY=               # sk_live_... or sk_test_...
 
-# Session (Auto-generated in dev, set in production)
-SESSION_SECRET=your_random_session_secret
+# Cassandra / Astra DB (Optional — falls back to MongoDB)
+ASTRA_DB_SECURE_BUNDLE_PATH=
+ASTRA_DB_APPLICATION_TOKEN=
 
 # Mobile App (mobile/.env)
 EXPO_PUBLIC_API_URL=http://localhost:5001
@@ -259,15 +288,17 @@ Every role sees their onboarding wizard until their stage is complete — then l
 │   ├── DATABASE_IMPROVEMENTS.md  # Recent performance optimizations
 │   ├── LOCAL_SETUP.md  # Local development guide
 │   └── CONTRIBUTING.md  # Contribution guidelines
-├── k8s/             # Kubernetes manifests
-├── terraform/       # Infrastructure as Code
-└── scripts/         # Seed scripts, CI utilities
+├── k8s/             # Kubernetes manifests (NGINX ingress, cert-manager TLS)
+├── terraform-gcp/   # Terraform IaC for GCP (Artifact Registry, Secret Manager, Cloud Run)
+├── docs/            # Documentation
+└── scripts/         # Seed scripts, GCP setup utilities
 ```
 
 ---
 
 ## 📚 Documentation
 
+- **[GCP Deployment Guide](docs/GCP_DEPLOYMENT.md)** - Live Cloud Run deployment, Secret Manager, CI/CD
 - **[Local Setup Guide](docs/LOCAL_SETUP.md)** - Get started in 5 minutes (web + mobile)
 - **[Mobile App README](mobile/README.md)** - Mobile-specific setup and features
 - **[Mobile Migration Status](MOBILE_MIGRATION_STATUS.md)** - Mobile app completion status (100%)

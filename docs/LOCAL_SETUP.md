@@ -32,25 +32,31 @@ Create a `.env` file by copying the example:
 cp .env.example .env
 ```
 
-Then edit `.env` and fill in your values:
+Then edit `.env` and fill in your values. The minimum set to get the app running locally:
 
 ```env
-# Firebase (optional — app runs without it, auth disabled)
-VITE_FIREBASE_API_KEY=your_firebase_api_key
-VITE_FIREBASE_PROJECT_ID=your_firebase_project_id
-VITE_FIREBASE_APP_ID=your_firebase_app_id
-VITE_FIREBASE_MESSAGING_SENDER_ID=your_firebase_messaging_sender_id
-VITE_FIREBASE_MEASUREMENT_ID=your_firebase_measurement_id
+# MongoDB (Required)
+MONGODB_URL=mongodb://localhost:27017/eduai
 
-# Databases
-DATABASE_URL=postgresql://user:password@localhost:5432/personal_learning_pro
-MONGODB_URI=mongodb://localhost:27017/personal_learning_pro
+# Firebase Client (Required for login)
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_APP_ID=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_MEASUREMENT_ID=
 
-# OpenAI (optional — AI features disabled without it)
-OPENAI_API_KEY=your_openai_api_key
+# Firebase Admin (Required for server-side auth)
+FIREBASE_PROJECT_ID=
+FIREBASE_SERVICE_ACCOUNT_JSON=
 
-# Session secret (optional — auto-generated in dev, set in production)
-SESSION_SECRET=your_random_session_secret
+# Gemini (Required for AI features — grading, tutor, study plans)
+# Get your free key at: https://aistudio.google.com/app/apikey
+GOOGLE_API_KEY=
+
+# Session secrets (Required in production, auto-fallback in dev)
+SESSION_SECRET=
+JWT_SECRET=
+REFRESH_SECRET=
 ```
 
 ### Obtaining Credentials
@@ -67,10 +73,17 @@ SESSION_SECRET=your_random_session_secret
 1. **MongoDB**: Install locally or use [MongoDB Atlas](https://www.mongodb.com/cloud/atlas). Provide the connection string in `MONGODB_URL`.
 2. **Cassandra** (optional): For MessagePal chat history. Install locally or use DataStax Astra. The app works without it (chat history disabled).
 
-#### OpenAI
+#### Google Gemini (Primary AI)
+
+1. Go to [Google AI Studio](https://aistudio.google.com/app/apikey)
+2. Create an API key and add it to `GOOGLE_API_KEY` in your `.env`
+3. Gemini 2.0 Flash is used for all AI features: grading, tutoring, study plans, and classroom generation
+
+#### OpenAI (Optional fallback)
 
 1. Go to the [OpenAI API platform](https://platform.openai.com/)
 2. Create an API key and add it to `OPENAI_API_KEY` in your `.env`
+3. Only used as a fallback when `GOOGLE_API_KEY` is not set
 
 ## 4. Start the Development Server
 
@@ -156,7 +169,7 @@ shared/         → Shared types and schemas
 | `mobile/app/` | Expo Router pages (auth, tabs, modals) |
 | `mobile/components/` | Mobile UI components |
 | `mobile/lib/` | Mobile utilities, API client, offline storage |
-| `server/lib/` | Server utilities (OpenAI, Firebase Admin, mailer) |
+| `server/lib/` | Server utilities (Gemini, Firebase Admin, mailer) |
 | `server/routes.ts` | All API route definitions |
 | `server/storage.ts` | Data storage (MongoDB + Cassandra) |
 | `shared/schema.ts` | Zod schema and type definitions |

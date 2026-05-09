@@ -90,8 +90,8 @@ This starts:
 Terminal 1 - Start IniClaw:
 
 ```bash
-cd ~/Downloads/arena-learning/ini_claw
-npm run dev:gateway
+cd features/ai-classroom/ini_claw
+BRIDGE_SECRET=<your-secret> INICLAW_PORT=7070 node gateway.js
 ```
 
 Terminal 2 - Start OpenMAIC:
