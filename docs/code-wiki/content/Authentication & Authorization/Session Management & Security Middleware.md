@@ -63,11 +63,13 @@ D --> H["Session Validation (WS)<br/>server/chat-ws.ts"]
 - Session configuration and cookie policy
   - Secret, resave/saveUninitialized, secure flag, and maxAge are set during session initialization.
   - Production requires SESSION_SECRET to be defined.
-- Authentication middleware
-  - isAuthenticated checks req.session.userId presence.
-  - hasRole validates req.session.userRole against allowed roles.
+- Authentication middleware (`authenticateToken`)
+  - Tries Firebase ID token verification first; falls back to local JWT (`JWT_SECRET`).
+  - On success, sets **both** `req.session.userId / req.session.role` **and** `(req as any).user = { id, role, email }`.
+  - Setting `req.user` ensures route handlers in `billing.ts`, `gdpr.ts`, `educator.ts`, `parent.ts`, and `grading.ts` that read `req.user.id` receive the correct value.
+  - Registration validates email format before creating a user (RFC-style regex check).
 - Route-level session usage
-  - Login and registration set req.session.userId and role.
+  - Login and registration set `req.session.userId` and `req.session.role`.
   - Logout destroys the session.
 - WebSocket session validation
   - Extracts connect.sid, decodes it, and resolves userId from session store.
