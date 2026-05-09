@@ -285,7 +285,8 @@ export function setupChatWebSocket(httpServer: Server, sessionStore: Store) {
 
           // Access check
           if (channel.type === "dm") {
-            if (!channel.name.includes(userId.toString())) {
+            const dmParts = channel.name.split("-");
+            if (!dmParts.includes(userId.toString())) {
               send(ws, { type: "error", message: "Access denied to this DM." });
               return;
             }

@@ -1,11 +1,12 @@
 import { Router, Request, Response } from "express";
 import { MongoUser, MongoGradingResult, MongoTask } from "../../shared/mongo-schema";
 import { authenticateToken } from "../routes";
+import { requireRole } from "../middleware";
 
 const router = Router();
 
 // Dashboard
-router.get("/dashboard", authenticateToken, async (req: Request, res: Response) => {
+router.get("/dashboard", authenticateToken, requireRole("parent", "admin"), async (req: Request, res: Response) => {
   const user = (req as any).user;
   const children = await MongoUser.find({ parentId: user.id }).select("id name class grade").lean();
   const childIds = children.map((c: any) => c.id);
@@ -17,7 +18,7 @@ router.get("/dashboard", authenticateToken, async (req: Request, res: Response) 
 });
 
 // Child tasks
-router.get("/tasks", authenticateToken, async (req: Request, res: Response) => {
+router.get("/tasks", authenticateToken, requireRole("parent", "admin"), async (req: Request, res: Response) => {
   const user = (req as any).user;
   const children = await MongoUser.find({ parentId: user.id }).select("id").lean();
   const tasks = await MongoTask.find({ userId: { $in: children.map((c: any) => c.id) } }).lean();
@@ -25,7 +26,7 @@ router.get("/tasks", authenticateToken, async (req: Request, res: Response) => {
 });
 
 // Reports
-router.get("/reports", authenticateToken, async (req: Request, res: Response) => {
+router.get("/reports", authenticateToken, requireRole("parent", "admin"), async (req: Request, res: Response) => {
   const user = (req as any).user;
   const children = await MongoUser.find({ parentId: user.id }).select("id name").lean();
   const reports = await Promise.all(

@@ -40,7 +40,7 @@ export function requireRole(...roles: string[]) {
 export function scopeToStudent(req: Request, res: Response, next: NextFunction) {
   const user = (req as any).user;
   const requestedId = req.params.studentId;
-  if (user?.role === "student" && requestedId && requestedId !== user.uid) {
+  if (user?.role === "student" && requestedId && requestedId !== String(user.id)) {
     return res.status(403).json({ error: "You can only access your own data" });
   }
   next();

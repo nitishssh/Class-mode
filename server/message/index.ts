@@ -68,36 +68,26 @@ function createConversationId(user1Id: number, user2Id: number): string {
   return `conv_${ids[0]}_${ids[1]}`;
 }
 
-function validateSession(ws: WebSocket, sessionStore: Store): Promise<ClientMeta | null> {
+function validateSession(req: any, sessionStore: Store): Promise<ClientMeta | null> {
   return new Promise((resolve) => {
-    const sessionId = getSessionIdFromCookie(ws);
-    if (!sessionId) {
-      resolve(null);
-      return;
-    }
+    const cookieHeader = req.headers?.cookie || "";
+    const match = cookieHeader.match(/connect\.sid=([^;]+)/);
+    if (!match) return resolve(null);
 
-    sessionStore.get(sessionId, (err, session) => {
-      if (err || !session || !session.userId) {
-        resolve(null);
-        return;
-      }
+    let sid = decodeURIComponent(match[1]);
+    if (sid.startsWith("s:")) sid = sid.slice(2).split(".")[0];
+
+    sessionStore.get(sid, (err: any, session: any) => {
+      if (err || !session?.userId) return resolve(null);
 
       resolve({
         userId: session.userId,
-        username: session.username,
-        role: session.role,
+        username: session.username || `user_${session.userId}`,
+        role: session.role || "student",
         connectedAt: new Date(),
       });
     });
   });
-}
-
-function getSessionIdFromCookie(ws: WebSocket): string | null {
-  const cookies = (ws as any).upgradeReq?.headers?.cookie;
-  if (!cookies) return null;
-
-  const match = cookies.match(/connect.sid=([^;]+)/);
-  return match ? match[1] : null;
 }
 
 // ─── Event Handlers ──────────────────────────────────────────────────────────
@@ -272,11 +262,11 @@ export async function setupMessagePalWebSocket(httpServer: Server, sessionStore:
     }
   });
 
-  wss.on("connection", async (ws: WebSocket) => {
+  wss.on("connection", async (ws: WebSocket, req: any) => {
     console.log("New MessagePal WebSocket connection");
 
     // Validate session
-    const userMeta = await validateSession(ws, sessionStore);
+    const userMeta = await validateSession(req, sessionStore);
     if (!userMeta) {
       ws.close(4001, "Authentication required");
       return;
@@ -388,17 +378,6 @@ export async function startMessagePalServer() {
       service: "MessagePal",
       timestamp: new Date().toISOString(),
     });
-  });
-
-  // API endpoints will be added here
-  app.get("/api/conversations/:userId", async (req, res) => {
-    try {
-      const userId = parseInt(req.params.userId);
-      const conversations = await messageStore.getUserConversations(userId);
-      res.json(conversations);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch conversations" });
-    }
   });
 
   const server = app.listen(MESSAGEPAL_PORT, () => {

@@ -1,15 +1,23 @@
 import { Router } from "express";
 import { CassandraMessageStore } from "./cassandra-message-store";
+import { authenticateToken } from "../routes";
 
 const router = Router();
 const messageStore = new CassandraMessageStore();
 
-// Get user's conversations
+// All message routes require authentication
+router.use(authenticateToken);
+
+// Get user's conversations — scoped to the authenticated user
 router.get("/conversations/:userId", async (req, res) => {
   try {
+    const sessionUserId = (req as any).user?.id ?? req.session?.userId;
     const userId = parseInt(req.params.userId);
     if (isNaN(userId)) {
       return res.status(400).json({ error: "Invalid user ID" });
+    }
+    if (userId !== sessionUserId) {
+      return res.status(403).json({ error: "Forbidden" });
     }
 
     const conversations = await messageStore.getUserConversations(userId);
@@ -20,19 +28,20 @@ router.get("/conversations/:userId", async (req, res) => {
   }
 });
 
-// Get conversation history
+// Get conversation history — always scoped to the authenticated user
 router.get("/conversations/:conversationId/history", async (req, res) => {
   try {
     const { conversationId } = req.params;
-    const { userId, limit = 50 } = req.query;
+    const { limit = 50 } = req.query;
+    const userId = (req as any).user?.id ?? req.session?.userId;
 
     if (!userId) {
-      return res.status(400).json({ error: "User ID is required" });
+      return res.status(401).json({ error: "Authentication required" });
     }
 
     const messages = await messageStore.getConversationHistory(
       conversationId,
-      parseInt(userId as string),
+      userId,
       parseInt(limit as string)
     );
 
@@ -71,7 +80,6 @@ router.post("/messages", async (req, res) => {
   try {
     const {
       conversationId,
-      senderId,
       senderName,
       senderRole,
       recipientId,
@@ -80,11 +88,15 @@ router.post("/messages", async (req, res) => {
       fileUrl,
     } = req.body;
 
-    // Validate required fields
-    if (!conversationId || !senderId || !senderName || !recipientId || !content) {
+    // senderId always comes from the authenticated session, never the request body
+    const senderId = (req as any).user?.id ?? req.session?.userId;
+    if (!senderId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    if (!conversationId || !senderName || !recipientId || !content) {
       return res.status(400).json({
-        error:
-          "Missing required fields: conversationId, senderId, senderName, recipientId, content",
+        error: "Missing required fields: conversationId, senderName, recipientId, content",
       });
     }
 
@@ -106,17 +118,21 @@ router.post("/messages", async (req, res) => {
   }
 });
 
-// Mark message as read
+// Mark message as read — userId always from session, never body
 router.patch("/messages/:messageId/read", async (req, res) => {
   try {
     const { messageId } = req.params;
-    const { conversationId, userId } = req.body;
+    const { conversationId } = req.body;
+    const userId = (req as any).user?.id ?? req.session?.userId;
 
-    if (!conversationId || !userId) {
-      return res.status(400).json({ error: "Conversation ID and User ID are required" });
+    if (!conversationId) {
+      return res.status(400).json({ error: "Conversation ID is required" });
+    }
+    if (!userId) {
+      return res.status(401).json({ error: "Authentication required" });
     }
 
-    await messageStore.markMessageAsRead(conversationId, messageId, parseInt(userId));
+    await messageStore.markMessageAsRead(conversationId, messageId, userId);
 
     res.json({ success: true });
   } catch (error) {
@@ -125,12 +141,18 @@ router.patch("/messages/:messageId/read", async (req, res) => {
   }
 });
 
-// Delete conversation for user
+// Delete conversation for user — only the authenticated user can delete their own conversations
 router.delete("/conversations/:conversationId/users/:userId", async (req, res) => {
   try {
-    const { conversationId, userId } = req.params;
+    const { conversationId } = req.params;
+    const sessionUserId = (req as any).user?.id ?? req.session?.userId;
+    const userId = parseInt(req.params.userId);
 
-    const success = await messageStore.deleteUserConversation(parseInt(userId), conversationId);
+    if (isNaN(userId) || userId !== sessionUserId) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    const success = await messageStore.deleteUserConversation(userId, conversationId);
 
     if (success) {
       res.json({ success: true });
@@ -143,12 +165,16 @@ router.delete("/conversations/:conversationId/users/:userId", async (req, res) =
   }
 });
 
-// Get user's unread message count
+// Get user's unread message count — scoped to authenticated user
 router.get("/users/:userId/unread-count", async (req, res) => {
   try {
+    const sessionUserId = (req as any).user?.id ?? req.session?.userId;
     const userId = parseInt(req.params.userId);
     if (isNaN(userId)) {
       return res.status(400).json({ error: "Invalid user ID" });
+    }
+    if (userId !== sessionUserId) {
+      return res.status(403).json({ error: "Forbidden" });
     }
 
     const conversations = await messageStore.getUserConversations(userId);
@@ -161,17 +187,23 @@ router.get("/users/:userId/unread-count", async (req, res) => {
   }
 });
 
-// Create or get conversation between two users
+// Create or get conversation between two users — caller must be one of the two participants
 router.post("/conversations/between-users", async (req, res) => {
   try {
-    const { userId1, userId2 } = req.body;
+    const sessionUserId = (req as any).user?.id ?? req.session?.userId;
+    const { userId2 } = req.body;
 
-    if (!userId1 || !userId2) {
-      return res.status(400).json({ error: "Both user IDs are required" });
+    if (!userId2) {
+      return res.status(400).json({ error: "userId2 is required" });
+    }
+
+    const otherId = parseInt(userId2);
+    if (isNaN(otherId)) {
+      return res.status(400).json({ error: "Invalid user ID" });
     }
 
     // Create conversation ID (sorted user IDs)
-    const ids = [parseInt(userId1), parseInt(userId2)].sort((a, b) => a - b);
+    const ids = [sessionUserId, otherId].sort((a, b) => a - b);
     const conversationId = `conv_${ids[0]}_${ids[1]}`;
 
     // Return conversation ID - actual conversation will be created when first message is sent
