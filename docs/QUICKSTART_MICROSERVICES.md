@@ -14,14 +14,14 @@ bash scripts/setup-services.sh
 # - Dockerfiles and package.json files
 ```
 
-### 2. Copy Your Code
+### 2. Copy Your Code (optional companion services)
 
 ```bash
-# Copy OpenMAIC (studyArena)
+# Copy OpenMAIC companion UI (optional)
 cp -r /path/to/studyArena/* services/openmaic/
 
-# Copy IniClaw
-cp -r /path/to/ini_claw/* services/iniclaw/
+# IniClaw is already in this repo — no copy needed
+# features/ai-classroom/ini_claw/ is the built-in LLM gateway
 ```
 
 ### 3. Configure Environment
@@ -44,37 +44,43 @@ openssl rand -hex 32  # Copy this value to BRIDGE_SECRET in .env
 # With Docker (recommended)
 docker compose up
 
-# Without Docker (3 terminals)
-# Terminal 1:
+# Without Docker (2-3 terminals)
+# Terminal 1: EduAI app (includes native Study Arena — no extra process needed)
 npm run dev
 
-# Terminal 2:
+# Terminal 2 (optional): OpenMAIC companion UI
 cd services/openmaic && npm run dev
 
-# Terminal 3:
-cd services/iniclaw && npm run dev
+# Terminal 3 (optional): IniClaw LLM gateway
+cd features/ai-classroom/ini_claw && BRIDGE_SECRET=<secret> INICLAW_PORT=7070 node gateway.js
 ```
 
 ### 5. Verify
 
 ```bash
-# Check all services are running
+# EduAI (always required)
 curl http://localhost:5001/api/health
-curl http://localhost:3000/api/health
-curl http://localhost:4000/api/health
+curl http://localhost:5001/api/ai-classroom/health  # native Study Arena
+
+# Optional services
+curl http://localhost:3000/api/health  # OpenMAIC companion UI
+curl http://localhost:4000/api/health  # IniClaw (services/iniclaw, Docker)
+curl http://localhost:7070/health      # IniClaw (local dev gateway)
 
 # Access the apps
-# - EduAI: http://localhost:5001
-# - OpenMAIC: http://localhost:3000 (or http://localhost:5001/arena)
-# - IniClaw: http://localhost:4000 (or http://localhost:5001/gateway)
+# - EduAI + AI Classroom: http://localhost:5001
+# - EduAI + AI Classroom: http://localhost:5001/ai-classroom
+# - OpenMAIC (optional): http://localhost:3000 (or http://localhost:5001/arena)
+# - IniClaw gateway:      http://localhost:5001/gateway (via Nginx)
 ```
 
 ## 📋 What Was Set Up
 
 ### Docker Compose
-- **EduAI** (React + Express) on port 5001
-- **OpenMAIC** (Next.js) on port 3000
-- **IniClaw** (Node.js) on port 4000
+- **EduAI** (React + Express + native Study Arena) on port 5001
+- **OpenMAIC** (Next.js companion UI — optional) on port 3000
+- **IniClaw** (`services/iniclaw` — production gateway) on port 4000
+- **IniClaw** (`features/ai-classroom/ini_claw` — local dev gateway) on port 7070
 - **MongoDB** on port 27017
 - **Cassandra** on port 9042
 - **Redis** on port 6379
@@ -98,41 +104,31 @@ curl http://localhost:4000/api/health
 
 ## 🔗 API Examples
 
-### Create AI Classroom
+### Create AI Classroom (native Study Arena)
 
 ```bash
-curl -X POST http://localhost:5001/api/openmaic/classroom/create \
-  -H "Authorization: Bearer <firebase-jwt>" \
+curl -X POST http://localhost:5001/api/ai-classroom/create \
+  -H "Authorization: Bearer <jwt>" \
   -H "Content-Type: application/json" \
   -d '{
     "topic": "Calculus",
-    "sceneTypes": ["slides", "quiz"],
-    "difficulty": "intermediate"
+    "sceneTypes": ["slides", "quiz"]
   }'
+# Returns: { "jobId": "abc123", "status": "generating" }
 ```
 
-### Generate Quiz
+### Poll Job Status
 
 ```bash
-curl -X POST http://localhost:5001/api/openmaic/quiz/generate \
-  -H "Authorization: Bearer <firebase-jwt>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "topic": "Algebra",
-    "questionCount": 5
-  }'
+curl http://localhost:5001/api/ai-classroom/status/abc123 \
+  -H "Authorization: Bearer <jwt>"
 ```
 
-### Get Classroom Embed
+### List My Classrooms
 
 ```bash
-curl -X POST http://localhost:5001/api/openmaic/classroom/classroom-123/embed \
-  -H "Authorization: Bearer <firebase-jwt>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "width": "100%",
-    "height": "600px"
-  }'
+curl http://localhost:5001/api/ai-classroom/my-classrooms \
+  -H "Authorization: Bearer <jwt>"
 ```
 
 ## 🐛 Troubleshooting
@@ -198,10 +194,10 @@ See `docs/MICROSERVICES_INTEGRATION.md` for:
 1. ✅ Services initialized
 2. ✅ Docker Compose configured
 3. ✅ Authentication bridge implemented
-4. ⏳ Copy OpenMAIC code to `services/openmaic/`
-5. ⏳ Copy IniClaw code to `services/iniclaw/`
-6. ⏳ Update service package.json files
-7. ⏳ Test end-to-end integration
+4. ✅ Native Study Arena replaces external OpenMAIC for core classroom generation
+5. ✅ IniClaw rewritten as lightweight LLM proxy (zero npm dependencies)
+6. ✅ 25/25 API integration tests passing
+7. ⏳ Copy OpenMAIC companion UI to `services/openmaic/` (optional)
 8. ⏳ Deploy to production
 
 ## 💡 Tips
