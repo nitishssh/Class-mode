@@ -12,7 +12,7 @@ import crypto from 'crypto';
 
 const API_BASE_URL = process.env.API_URL || 'http://localhost:5001';
 const OPENMAIC_URL = process.env.OPENMAIC_URL || 'http://localhost:3000';
-const INICLAW_URL = process.env.INICLAW_URL || 'http://localhost:4000';
+const INICLAW_URL = process.env.INICLAW_GATEWAY_URL || 'http://localhost:4000';
 const BRIDGE_SECRET = process.env.BRIDGE_SECRET || 'bridge-secret-dev';
 
 let apiClient: AxiosInstance;

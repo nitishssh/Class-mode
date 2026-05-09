@@ -78,30 +78,28 @@ vi.mock("../lib/cassandra", () => ({
   getCassandraClient: vi.fn().mockReturnValue(null),
 }));
 
-// Mock Study Arena Client
-vi.mock("../services/study-arena-client", () => ({
-  getStudyArenaClient: vi.fn().mockImplementation(() => ({
-    createClassroom: vi.fn().mockResolvedValue({
-      jobId: "job_abc123",
-      status: "pending",
-      step: "Queued",
-      message: "Classroom generation started",
-      pollUrl: "http://localhost:3000/api/generate-classroom/job_abc123",
-      pollIntervalMs: 5000,
-    }),
+// Mock the internal Study Arena service used by the route
+vi.mock("../services/study-arena/internal-service", () => ({
+  studyArenaInternalService: {
+    createClassroom: vi.fn().mockResolvedValue({ jobId: "job_abc123" }),
     pollJob: vi.fn().mockResolvedValue({
       jobId: "job_abc123",
       status: "succeeded",
-      step: "Complete",
+      step: "completed",
+      progress: 100,
+      message: "Done",
       done: true,
-      result: {
-        classroomId: "class_new_456",
-        url: "http://localhost:3000/classroom/class_new_456",
-      },
+      result: { classroomId: 1 },
     }),
-    healthCheck: vi.fn().mockResolvedValue(true),
-  })),
-  StudyArenaClient: vi.fn(),
+    listClassrooms: vi.fn().mockResolvedValue({
+      classrooms: [{ id: 1, topic: "React Testing", status: "ready", createdAt: new Date() }],
+      total: 1,
+    }),
+    cancelJob: vi.fn().mockReturnValue(true),
+    deleteClassroom: vi.fn().mockResolvedValue(true),
+    on: vi.fn(),
+    removeListener: vi.fn(),
+  },
 }));
 
 describe("AI Classroom Routes", () => {
@@ -160,7 +158,7 @@ describe("AI Classroom Routes", () => {
     });
 
     const res = await request(app)
-      .get("/api/ai-classroom/job/job_abc123")
+      .get("/api/ai-classroom/status/job_abc123")
       .set("Authorization", "Bearer valid_token");
 
     expect(res.status).toBe(200);
@@ -181,7 +179,7 @@ describe("AI Classroom Routes", () => {
       .set("Authorization", "Bearer valid_token");
 
     expect(res.status).toBe(200);
-    expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body[0].topic).toBe("React Testing");
+    expect(Array.isArray(res.body.classrooms)).toBe(true);
+    expect(res.body.classrooms[0].topic).toBe("React Testing");
   });
 });

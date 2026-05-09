@@ -1,61 +1,44 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { StudyArenaClient } from "../services/study-arena-client";
 
-describe("Study Arena Integration", () => {
+// Point at the running Express server; fall back to localhost dev port.
+const BASE_URL = process.env.API_URL || process.env.STUDY_ARENA_URL || "http://localhost:5001";
+const isConfigured = !!process.env.API_URL || !!process.env.STUDY_ARENA_URL;
+
+describe.skipIf(!isConfigured)("Study Arena Integration", () => {
   let client: StudyArenaClient;
 
   beforeAll(() => {
-    // Only run tests if Study Arena is configured
-    const baseUrl = process.env.STUDY_ARENA_URL || process.env.OPENMAIC_INTERNAL_URL;
-    if (!baseUrl) {
-      console.log("Skipping Study Arena tests - STUDY_ARENA_URL not configured");
-      return;
-    }
-
     client = new StudyArenaClient({
-      baseUrl,
+      baseUrl: BASE_URL,
       bridgeSecret: process.env.BRIDGE_SECRET,
     });
   });
 
-  it("should check if Study Arena is available", async () => {
-    if (!client) return;
-
+  it("should report healthy", async () => {
     const isHealthy = await client.healthCheck();
-    expect(typeof isHealthy).toBe("boolean");
+    expect(isHealthy).toBe(true);
   });
 
-  it("should submit a classroom generation job", async () => {
-    if (!client) return;
+  it("should submit a classroom generation job and return a jobId", async () => {
+    const response = await client.createClassroom({
+      requirement: "Introduction to Machine Learning",
+    });
 
-    try {
-      const response = await client.createClassroom({
-        requirement: "Introduction to Machine Learning",
-      });
-
-      expect(response).toBeDefined();
-      expect(response.jobId).toBeDefined();
-      expect(response.status).toBeDefined();
-    } catch (error: unknown) {
-      // If Study Arena is not running, this will fail
-      console.log("Classroom creation failed (expected if Study Arena not running):", (error as Error).message);
-    }
+    expect(response).toBeDefined();
+    expect(typeof response.jobId).toBe("string");
+    expect(response.jobId.length).toBeGreaterThan(0);
   });
 
-  it("should poll a job status", async () => {
-    if (!client) return;
+  it("should poll a submitted job and return valid status fields", async () => {
+    const { jobId } = await client.createClassroom({
+      requirement: "Test Topic for Polling",
+    });
 
-    try {
-      const createResponse = await client.createClassroom({
-        requirement: "Test Topic for Polling",
-      });
+    const status = await client.pollJob(jobId);
 
-      const jobStatus = await client.pollJob(createResponse.jobId);
-      expect(jobStatus).toBeDefined();
-      expect(jobStatus.jobId).toBe(createResponse.jobId);
-      expect(typeof jobStatus.done).toBe("boolean");
-    } catch (error: unknown) {
-      console.log("Job polling failed (expected if Study Arena not running):", (error as Error).message);
-    }
+    expect(status.jobId).toBe(jobId);
+    expect(["pending", "running", "succeeded", "failed"]).toContain(status.status);
+    expect(typeof status.done).toBe("boolean");
   });
 });

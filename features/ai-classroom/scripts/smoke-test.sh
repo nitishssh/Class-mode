@@ -19,19 +19,18 @@ echo "--- 2. Checking OpenMAIC Proxy Health ---"
 curl -fsSL "$OPENMAIC_URL/api/iniclaw-health" | grep -q "connected" || echo -e "${RED}⚠ OpenMAIC reports IniClaw disconnected (expected if IniClaw is not running)${NC}"
 echo -e "${GREEN}✓ OpenMAIC health endpoint checked${NC}"
 
-echo "--- 3. Testing IniClaw Agent (Mocked) ---"
-# This will likely 500 because openshell is missing, but we check if it hits the gateway
-RESPONSE=$(curl -s -X POST "$INICLAW_URL/agent" \
+echo "--- 3. Testing IniClaw Tutor Chat ---"
+RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$INICLAW_URL/tutor/chat" \
   -H "Authorization: Bearer $SECRET" \
   -H "Content-Type: application/json" \
   -d '{"message": "smoke test", "sessionId": "smoke-sid"}')
 
-if echo "$RESPONSE" | grep -q "openshell: command not found"; then
-  echo -e "${GREEN}✓ IniClaw gateway received request and attempted execution (found error as expected)${NC}"
-elif echo "$RESPONSE" | grep -q "status"; then
-  echo -e "${GREEN}✓ IniClaw agent responded successfully${NC}"
+if [ "$RESPONSE" = "200" ]; then
+  echo -e "${GREEN}✓ IniClaw gateway responded with 200${NC}"
+elif [ "$RESPONSE" = "500" ]; then
+  echo -e "${GREEN}✓ IniClaw gateway is reachable (LLM key not set in test env — 500 expected)${NC}"
 else
-  echo -e "${RED}✗ Unexpected response from IniClaw: $RESPONSE${NC}"
+  echo -e "${RED}✗ Unexpected HTTP status from IniClaw: $RESPONSE${NC}"
 fi
 
 echo "--- 4. Verifying Audit Log ---"
