@@ -13,7 +13,8 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "setup:openmaic": "./scripts/setup-openmaic.sh"
+    "setup:openmaic": "./scripts/setup-openmaic.sh",
+    "deploy:gcp": "gcloud builds submit --config cloudbuild.yaml"
   },
   "dependencies": {
     "@anthropic-ai/vertex-sdk": "^0.16.0",
