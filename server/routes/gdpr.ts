@@ -1,9 +1,11 @@
-import { Router, Request, Response } from "express";
+import { Router, Response, Request as ExpressRequest } from "express";
 import { MongoUser } from "../../shared/mongo-schema";
 import { authenticateToken } from "../routes";
 import { logger } from "../lib/logger";
-import archiver from "archiver";
-import { Request as ExpressRequest } from "express";
+import { createRequire } from "node:module";
+
+const _require = createRequire(import.meta.url);
+const { ZipArchive } = _require("archiver") as typeof import("archiver");
 
 const router = Router();
 
@@ -13,16 +15,14 @@ router.get("/export", authenticateToken, async (req: ExpressRequest, res: Respon
     const userDoc = await MongoUser.findOne({ id: user.id }).lean();
     if (!userDoc) return res.status(404).json({ error: "User not found" });
 
-    const zip = archiver("zip", { zlib: { level: 9 } });
+    const zip = new ZipArchive({ zlib: { level: 9 } });
     res.attachment("user-data.zip");
     zip.pipe(res);
-
     zip.append(JSON.stringify(userDoc, null, 2), { name: "profile.json" });
-
-    zip.finalize();
+    await zip.finalize();
   } catch (err: any) {
     logger.error("GDPR export error:", err);
-    res.status(500).json({ error: "Export failed" });
+    if (!res.headersSent) res.status(500).json({ error: "Export failed" });
   }
 });
 
