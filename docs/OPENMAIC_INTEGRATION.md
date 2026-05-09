@@ -1,118 +1,42 @@
-# OpenMAIC Integration Guide
+# Study Arena (AI Classroom) Integration Guide
 
-This document describes the integration between PersonalLearningPro and the OpenMAIC multi-agent AI classroom system.
+This document describes the AI Classroom feature in PersonalLearningPro, powered by the native Study Arena engine and the IniClaw LLM gateway.
+
+> **Migration note:** The original OpenMAIC external bridge (`/api/openmaic/*`) has been retired and replaced by a fully native implementation. All `/api/openmaic/*` routes now return `410 Gone`. Use `/api/ai-classroom/*` instead.
 
 ## Overview
 
-OpenMAIC (Open Multi-Agent Interactive Classroom) is an AI-powered platform that creates immersive, interactive learning experiences. It uses multi-agent orchestration to generate:
+The Study Arena generates immersive, multi-agent AI classroom experiences entirely within the PersonalLearningPro server stack. No external process or Docker container is required for classroom generation.
 
-- Interactive slides with AI teachers
+Features:
+- Interactive slides with AI teacher and assistant agents
 - Quizzes with real-time feedback
-- Interactive HTML simulations
-- Project-based learning activities
-- AI classmates for discussions
-
-The integration is powered by:
-
-- **OpenMAIC**: The multi-agent classroom engine (Next.js)
-- **IniClaw**: NVIDIA NemoClaw-based sandboxed agent runtime
+- Sandboxed HTML/JS simulations
+- Project-based learning (PBL) activities
+- Multi-agent real-time chat (`/api/ai-classroom/chat`)
 
 ## Architecture
 
 ```
-PersonalLearningPro (Express + React)
-    ↓ HTTP API calls
-IniClaw Gateway (Port 7070)
-    ↓ Sandboxed execution
-OpenMAIC Engine (Port 3000)
-    ↓ Multi-agent orchestration
-LLM Providers (OpenAI, Anthropic, Google)
+Browser (React)
+    ↓ REST / SSE
+PersonalLearningPro Express Server
+    ↓ internal service call
+server/services/study-arena/
+    ├─ generator.ts      (lesson plan + scene generation)
+    ├─ orchestrator.ts   (multi-agent chat)
+    └─ internal-service.ts (job queue + MongoDB persistence)
+    ↓ LLM calls
+IniClaw Gateway (optional, port 7070)   ←── or direct
+    ↓
+LLM Providers (Gemini → OpenAI → Anthropic)
 ```
 
-## Setup Instructions
-
-### Prerequisites
-
-1. Clone the arena-learning repository:
-
-   ```bash
-   cd ~/Downloads
-   git clone https://github.com/NitishKumar-ai/arena-learning
-   cd arena-learning
-   ```
-
-2. Install dependencies:
-
-   ```bash
-   # Install IniClaw dependencies
-   cd ini_claw
-   npm install
-
-   # Install OpenMAIC dependencies
-   cd ../studyArena
-   pnpm install
-   ```
-
-3. Configure environment variables:
-
-   ```bash
-   cp .env.example .env
-   ```
-
-   Edit `.env` and set:
-
-   ```env
-   # Generate a secure bridge secret
-   BRIDGE_SECRET=$(openssl rand -hex 16)
-
-   # Set at least one LLM provider
-   OPENAI_API_KEY=sk-...
-   # OR
-   ANTHROPIC_API_KEY=sk-ant-...
-   # OR
-   GOOGLE_API_KEY=...
-   ```
-
-### Running with Docker (Recommended)
-
-```bash
-cd ~/Downloads/arena-learning
-docker-compose up -d
-```
-
-This starts:
-
-- IniClaw Gateway on `http://localhost:7070`
-- OpenMAIC on `http://localhost:3000`
-
-### Running Manually (Development)
-
-Terminal 1 - Start IniClaw:
-
-```bash
-cd features/ai-classroom/ini_claw
-BRIDGE_SECRET=<your-secret> INICLAW_PORT=7070 node gateway.js
-```
-
-Terminal 2 - Start OpenMAIC:
-
-```bash
-cd ~/Downloads/arena-learning/studyArena
-pnpm dev
-```
-
-### Configure PersonalLearningPro
-
-Add to your `.env` file:
-
-```env
-# OpenMAIC AI Classroom Integration
-OPENMAIC_INTERNAL_URL=http://localhost:3000
-BRIDGE_SECRET=<same_value_as_arena_learning>
-USE_INICLAW=true
-```
+The main server calls LLMs **directly** for classroom generation. IniClaw is an optional standalone proxy for environments that want rate-limiting, concurrency control, and audit logging at the gateway level.
 
 ## API Endpoints
+
+All endpoints require a valid session or `Authorization: Bearer <jwt>` header.
 
 ### Health Check
 
@@ -120,131 +44,266 @@ USE_INICLAW=true
 GET /api/ai-classroom/health
 ```
 
-Returns the availability status of the OpenMAIC service.
+No authentication required. Returns:
+```json
+{ "available": true, "status": "healthy", "service": "study-arena-native" }
+```
 
-### Create Classroom
+### Create Classroom (async)
 
 ```http
 POST /api/ai-classroom/create
+Authorization: Bearer <jwt>
 Content-Type: application/json
 
 {
   "topic": "Quantum Physics",
   "sceneTypes": ["slides", "quiz"],
-  "duration": 30
+  "language": "en"
 }
 ```
 
-Creates a new AI classroom session with the specified topic and scene types.
-
-### Get Classroom
-
-```http
-GET /api/ai-classroom/:classroomId
+Returns `202 Accepted` immediately:
+```json
+{ "jobId": "abc123", "status": "generating", "message": "Classroom generation started (Native)" }
 ```
 
-Retrieves the status and details of a classroom session.
-
-### Generate Quiz
+### Poll Job Status
 
 ```http
-POST /api/ai-classroom/quiz/generate
+GET /api/ai-classroom/status/:jobId
+Authorization: Bearer <jwt>
+```
+
+```json
+{
+  "jobId": "abc123",
+  "status": "running",
+  "step": "generating_scenes",
+  "progress": 45,
+  "message": "Generating scene 3 of 6",
+  "done": false
+}
+```
+
+### Stream Progress (SSE)
+
+```http
+GET /api/ai-classroom/status/:jobId/stream
+Authorization: Bearer <jwt>
+```
+
+Server-Sent Events stream — each event is a JSON `JobStatus` object. Closes automatically when `done: true`.
+
+### List My Classrooms
+
+```http
+GET /api/ai-classroom/my-classrooms?limit=20&offset=0
+Authorization: Bearer <jwt>
+```
+
+```json
+{
+  "classrooms": [
+    { "id": 1, "topic": "Quantum Physics", "status": "ready", "createdAt": "..." }
+  ],
+  "total": 1
+}
+```
+
+### Get Classroom Content
+
+```http
+GET /api/ai-classroom/classroom/:classroomId
+Authorization: Bearer <jwt>
+```
+
+### Delete Classroom
+
+```http
+DELETE /api/ai-classroom/classroom/:classroomId
+Authorization: Bearer <jwt>
+```
+
+### Cancel Job
+
+```http
+DELETE /api/ai-classroom/status/:jobId
+Authorization: Bearer <jwt>
+```
+
+### Multi-Agent Chat (SSE)
+
+```http
+POST /api/ai-classroom/chat
+Authorization: Bearer <jwt>
 Content-Type: application/json
 
 {
-  "topic": "World War II",
-  "questionCount": 5
+  "config": {
+    "agentIds": ["teacher", "assistant"],
+    "discussionTopic": "Photosynthesis",
+    "triggerAgentId": "teacher"
+  },
+  "messages": [{ "role": "user", "content": "Explain step 2" }],
+  "storeState": { "whiteboardOpen": false }
 }
 ```
 
-Generates an interactive quiz on the specified topic.
+Streams `text/event-stream` events with agent dialogue.
 
-### Generate Slides
+## IniClaw Gateway (Optional)
 
-```http
-POST /api/ai-classroom/slides/generate
-Content-Type: application/json
+IniClaw (`features/ai-classroom/ini_claw/`) is a **lightweight Node.js LLM proxy** — zero npm dependencies, pure built-in modules.
 
-{
-  "content": "Explain photosynthesis",
-  "title": "Photosynthesis 101"
-}
+It provides:
+- Bearer token auth (`BRIDGE_SECRET`)
+- Concurrency semaphore (`INICLAW_MAX_CONCURRENT`, default 3)
+- Rotating audit log (`.classroom-cache/audit.jsonl`)
+- LLM provider fallback: Gemini → OpenAI → Anthropic
+
+### Gateway Routes
+
+| Route | Purpose | Timeout |
+|---|---|---|
+| `GET /health` | Health check | — |
+| `POST /classroom/generate` | Full lesson generation | 5 min |
+| `POST /classroom/quiz` | Quiz-only generation | 2 min |
+| `POST /classroom/slides` | Slides-only generation | 2 min |
+| `POST /tutor/chat` | Real-time tutor chat | 1 min |
+
+### Running Locally
+
+```bash
+cd features/ai-classroom/ini_claw
+BRIDGE_SECRET=<your-secret> INICLAW_PORT=7070 node gateway.js
 ```
 
-Generates presentation slides from content.
+### Environment Variables
 
-## Frontend Usage
+| Variable | Default | Description |
+|---|---|---|
+| `BRIDGE_SECRET` | *(required)* | Bearer token for auth |
+| `INICLAW_PORT` | `7070` | Port to listen on |
+| `INICLAW_MAX_CONCURRENT` | `3` | Max simultaneous LLM calls |
+| `INICLAW_MAX_BODY_MB` | `4` | Max request body size |
+| `INICLAW_MAX_OUTPUT_MB` | `32` | Max LLM response size |
+| `OPENAI_API_KEY` | — | OpenAI provider |
+| `GOOGLE_API_KEY` | — | Gemini provider (tried first) |
+| `ANTHROPIC_API_KEY` | — | Anthropic provider (fallback) |
 
-Navigate to `/ai-classroom` in the application to access the AI Classroom interface.
+At least one LLM API key must be set.
+
+### Docker (AI Classroom feature compose)
+
+The `iniclaw` service in `docker-compose.yml` builds from `features/ai-classroom/ini_claw/`:
+
+```yaml
+iniclaw:
+  build:
+    context: ./features/ai-classroom/ini_claw
+    dockerfile: Dockerfile
+  ports:
+    - "7070:7070"
+  environment:
+    - BRIDGE_SECRET=${BRIDGE_SECRET}
+    - INICLAW_PORT=7070
+```
+
+### Security Policies
+
+Network access for IniClaw agents is defined in `features/ai-classroom/ini_claw/policies/study-arena.yaml`:
+
+```yaml
+network_policies:
+  - host: api.openai.com         # OpenAI
+  - host: generativelanguage.googleapis.com  # Gemini
+  - host: api.anthropic.com      # Anthropic
+
+filesystem_policies:
+  - path: .classroom-cache       # audit log + artifacts
+    mode: rw
+```
+
+## PersonalLearningPro Environment Variables
+
+Add to your `.env`:
+
+```env
+# IniClaw Gateway (optional — main app works without it)
+INICLAW_GATEWAY_URL=http://localhost:7070
+BRIDGE_SECRET=<generate with: openssl rand -hex 32>
+USE_INICLAW=false  # set to true to route through IniClaw
+
+# LLM Providers (at least one required for AI classroom)
+GOOGLE_API_KEY=...
+OPENAI_API_KEY=...
+ANTHROPIC_API_KEY=...
+```
+
+## Frontend
+
+Navigate to `/ai-classroom` in the app to access the AI Classroom interface.
 
 Features:
-
 - Create full classroom experiences
-- Generate quick quizzes
-- View classroom status
-- Open generated classrooms in new tabs
+- Real-time generation progress bar
+- Interactive quizzes with AI feedback
+- Whiteboard collaboration
+- Cancel in-progress jobs
 
-## Security
+## Testing
 
-- All agent LLM calls are routed through the IniClaw sandbox
-- Security policies are defined in `ini_claw/policies/openmaic.yaml`
-- Audit logs are stored in `ini_claw/.classroom-cache/audit.jsonl`
-- Bridge secret authentication between services
+```bash
+# Health check (no auth)
+curl http://localhost:5001/api/ai-classroom/health
+
+# Test gateway (if running)
+curl http://localhost:7070/health
+
+# Create classroom (requires auth token)
+curl -X POST http://localhost:5001/api/ai-classroom/create \
+  -H "Authorization: Bearer <jwt>" \
+  -H "Content-Type: application/json" \
+  -d '{"topic": "Photosynthesis", "sceneTypes": ["slides", "quiz"]}'
+```
 
 ## Troubleshooting
 
-### OpenMAIC not available
+### Generation fails immediately
 
-- Check if services are running: `docker-compose ps` or check terminal outputs
-- Verify `OPENMAIC_INTERNAL_URL` is set correctly
-- Check `BRIDGE_SECRET` matches between services
+- Ensure at least one LLM API key is set (`GOOGLE_API_KEY`, `OPENAI_API_KEY`, or `ANTHROPIC_API_KEY`)
+- Check server logs for `[StudyArena]` entries
 
-### Classroom creation fails
+### GDPR export fails
 
-- Ensure at least one LLM provider API key is configured
-- Check IniClaw gateway logs for errors
-- Verify network connectivity between services
+- Confirmed fixed: `archiver` v8 breaking change (factory → `new ZipArchive()`) has been resolved in `server/routes/gdpr.ts`
 
-### Authentication errors
+### IniClaw gateway unreachable
 
-- Ensure `BRIDGE_SECRET` is identical in both `.env` files
-- Regenerate secret if needed: `openssl rand -hex 16`
+- Check `INICLAW_GATEWAY_URL` and `BRIDGE_SECRET` in `.env`
+- Verify gateway is running: `curl http://localhost:7070/health`
+- Gateway is optional — app functions without it
 
 ## Development
 
-### Adding New Features
+### Adding New Scene Types
 
-1. Update `server/services/openmaic-client.ts` with new methods
-2. Add corresponding routes in `server/routes/ai-classroom.ts`
-3. Update frontend components in `client/src/pages/ai-classroom.tsx`
+1. Add the type to `SceneType` in `shared/study-arena.ts`
+2. Add generation logic in `server/services/study-arena/generator.ts`
+3. Add rendering in `client/src/components/ai-classroom/`
 
-### Testing
+### Extending the Gateway
 
-```bash
-# Test OpenMAIC health
-curl http://localhost:3000/api/health
+Add a new route to `ROUTE_MAP` in `features/ai-classroom/ini_claw/gateway.js`:
 
-# Test IniClaw gateway
-curl http://localhost:7070/health
-
-# Test PersonalLearningPro integration
-curl http://localhost:5001/api/ai-classroom/health
+```js
+"/my-route": { timeout: 60_000, logType: "my_route" }
 ```
 
 ## Resources
 
-- [OpenMAIC GitHub](https://github.com/THU-MAIC/OpenMAIC)
-- [IniClaw Documentation](https://github.com/openclaw/iniclaw)
-- [OpenMAIC Live Demo](https://open.maic.chat/)
-- [Arena Learning Repository](https://github.com/NitishKumar-ai/arena-learning)
-
-## Future Enhancements
-
-- [ ] Embed classroom iframes directly in PersonalLearningPro
-- [ ] Save classroom sessions to MongoDB
-- [ ] Link classrooms to specific tests/courses
-- [ ] Student progress tracking across classrooms
-- [ ] Teacher analytics for classroom engagement
-- [ ] Custom agent personalities and teaching styles
-- [ ] Integration with existing test system
-- [x] Whiteboard collaboration features
+- [Arena Learning Repository](https://github.com/NitishKumar-ai/arena-learning) (studyArena Next.js frontend — optional companion)
+- Study Arena types: `shared/study-arena.ts`
+- Internal service: `server/services/study-arena/internal-service.ts`
+- Gateway: `features/ai-classroom/ini_claw/gateway.js`
