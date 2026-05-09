@@ -1,4 +1,3 @@
-import OpenAI from "openai";
 import {
   GradingRequest,
   GradingResponse,
@@ -9,11 +8,10 @@ import { RubricCriterionSchema } from "../../shared/grading-schema";
 import { parseRubric, validateWeights, rubricToPrompt, normalizeToPercentage } from "../lib/rubricParser";
 import { buildGradingUserMessage, getSystemPrompt, getEssayFewShotExamples } from "../lib/prompts/grading";
 import { MongoGradingResult, getNextSequenceValue } from "../../shared/mongo-schema";
+import { geminiChat } from "../lib/gemini";
 import { logger } from "../lib/logger";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "",
-});
+const MODEL = "gemini-2.0-flash";
 
 /**
  * Main entry point: grade a submission using OpenAI GPT-4o.
@@ -37,23 +35,15 @@ export async function gradeSubmission(
     studentId: request.studentId,
   });
 
-  // 3. Prepare messages (with few-shot examples for essay)
-  const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-    { role: "system", content: systemPrompt },
-    ...(rubric.gradingType === "essay" ? getEssayFewShotExamples() : []),
-    { role: "user", content: userMessage },
-  ];
+  // 3. Build few-shot examples into the system prompt for essay grading
+  const fewShotSection = rubric.gradingType === "essay"
+    ? "\n\n" + getEssayFewShotExamples().map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join("\n\n")
+    : "";
+  const fullSystemPrompt = systemPrompt + fewShotSection;
 
-  // 4. Call OpenAI with JSON mode
+  // 4. Call Gemini with JSON mode
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages,
-      response_format: { type: "json_object" },
-      temperature: 0.3,
-    });
-
-    const content = response.choices[0]?.message?.content || "{}";
+    const content = await geminiChat(fullSystemPrompt, userMessage, MODEL, { jsonMode: true });
     const parsed = JSON.parse(content);
 
     // 5. Validate and normalize scores
@@ -93,7 +83,7 @@ export async function gradeSubmission(
       strengths: parsed.strengths || [],
       areasForImprovement: parsed.areasForImprovement || [],
       status: "completed",
-      modelUsed: "gpt-4o",
+      modelUsed: MODEL,
       processingTimeMs,
       attachments: request.attachments || [],
       contentType: request.contentType,
@@ -110,7 +100,7 @@ export async function gradeSubmission(
       strengths: parsed.strengths || [],
       areasForImprovement: parsed.areasForImprovement || [],
       processingTimeMs,
-      modelUsed: "gpt-4o",
+      modelUsed: MODEL,
       createdAt: new Date(),
     };
   } catch (error: any) {
