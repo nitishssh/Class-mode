@@ -34,9 +34,11 @@ jobs:
       - name: AI Code Review Comment
         uses: actions/github-script@v9
         if: steps.diff.outputs.diff != ''
+        env:
+          PR_DIFF: ${{ steps.diff.outputs.diff }}
         with:
           script: |
-            const diff = `${{ steps.diff.outputs.diff }}`;
+            const diff = process.env.PR_DIFF;
 
             const reviewComment = `## 🤖 AI Code Review
 
