@@ -210,7 +210,7 @@ export function FirebaseAuthDialog() {
   const [isRegSubmitting, setIsRegSubmitting] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showConfirmPassword] = useState(false);
 
   const loginSchema = useMemo(
     () =>
@@ -343,7 +343,7 @@ export function FirebaseAuthDialog() {
               setLoginError(errBody.message || "Invalid email or password.");
               return;
             }
-          } catch (_backendErr) {
+          } catch {
             setLoginError("Login failed. Please check your credentials and try again.");
             return;
           }
@@ -433,7 +433,7 @@ export function FirebaseAuthDialog() {
               setRegisterError(errBody.message || "Registration failed. Please try again.");
               return;
             }
-          } catch (_backendErr) {
+          } catch {
             setRegisterError("Registration failed. Please try again later.");
             return;
           }
@@ -667,7 +667,7 @@ export function FirebaseAuthDialog() {
                   </div>
                   <h3 className="text-lg font-medium">Check your email</h3>
                   <p className="text-sm text-muted-foreground">
-                    We've sent a password reset link to{" "}
+                    We&apos;ve sent a password reset link to{" "}
                     <span className="font-semibold text-foreground">
                       {loginForm.getValues("email")}
                     </span>

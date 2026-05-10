@@ -1,7 +1,7 @@
 import { Message } from "@/types/chat";
 import MessageStatusIcon from "./MessageStatusIcon";
 import { format } from "date-fns";
-import { Pin, HelpCircle, CheckCircle2, Megaphone, FileText, Calendar, Reply } from "lucide-react";
+import { Pin, HelpCircle, Megaphone, FileText, Calendar, Reply } from "lucide-react";
 
 interface MessageBubbleProps {
   message: Message;

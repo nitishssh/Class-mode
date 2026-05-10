@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { uploadFile } from "@/lib/chat-api";
 import { Send, Paperclip, Smile, HelpCircle, FileText, AlertTriangle } from "lucide-react";
 import { useRole } from "@/contexts/chat-role-context";

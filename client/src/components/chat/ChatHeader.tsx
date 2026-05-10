@@ -1,5 +1,5 @@
 import { Conversation } from "@/types/chat";
-import { ArrowLeft, Phone, Video, MoreVertical, Pin, Lock, Users } from "lucide-react";
+import { ArrowLeft, Phone, Video, MoreVertical, Lock, Users } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { users as allUsers } from "@/data/mockData";
 
