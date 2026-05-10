@@ -338,9 +338,13 @@ export async function callLLM<T extends GenerateTextParams>(
         (injectedParams.messages ? JSON.stringify(injectedParams.messages) : '');
 
       const gatewayFn = resolveGatewayFn(source);
-      const result = await gatewayFn(prompt as string, sessionId as string | undefined, async () => {
-        return thinkingContext.run(effectiveThinking, () => generateText(injectedParams));
-      });
+      const result = await gatewayFn(
+        prompt as string,
+        sessionId as string | undefined,
+        async () => {
+          return thinkingContext.run(effectiveThinking, () => generateText(injectedParams));
+        },
+      );
 
       // Validate result (only when retries are configured)
       if (validate && !validate(result.text)) {

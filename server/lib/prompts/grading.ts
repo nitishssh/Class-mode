@@ -105,10 +105,10 @@ export function buildGradingUserMessage(ctx: GradingPromptContext): string {
     contentType === "code_python"
       ? "Python code"
       : contentType === "code_javascript"
-      ? "JavaScript code"
-      : contentType === "code_typescript"
-      ? "TypeScript code"
-      : "text submission";
+        ? "JavaScript code"
+        : contentType === "code_typescript"
+          ? "TypeScript code"
+          : "text submission";
 
   return `
 --- RUBRIC ---
@@ -146,14 +146,42 @@ GRADING:
       role: "assistant",
       content: JSON.stringify({
         criteria: [
-          { criterionName: "Content", score: 4, maxScore: 10, feedback: "The submission makes basic claims but lacks specific evidence or examples. The argument is underdeveloped." },
-          { criterionName: "Organization", score: 3, maxScore: 5, feedback: "Sentences are simple and disconnected. There is no clear introduction, body, or conclusion structure." },
-          { criterionName: "Grammar", score: 5, maxScore: 5, feedback: "Grammar and spelling are correct throughout." },
-          { criterionName: "Originality", score: 3, maxScore: 10, feedback: "The insights are generic and could apply to any basic summary of the industrial revolution. No unique perspective is offered." },
+          {
+            criterionName: "Content",
+            score: 4,
+            maxScore: 10,
+            feedback:
+              "The submission makes basic claims but lacks specific evidence or examples. The argument is underdeveloped.",
+          },
+          {
+            criterionName: "Organization",
+            score: 3,
+            maxScore: 5,
+            feedback:
+              "Sentences are simple and disconnected. There is no clear introduction, body, or conclusion structure.",
+          },
+          {
+            criterionName: "Grammar",
+            score: 5,
+            maxScore: 5,
+            feedback: "Grammar and spelling are correct throughout.",
+          },
+          {
+            criterionName: "Originality",
+            score: 3,
+            maxScore: 10,
+            feedback:
+              "The insights are generic and could apply to any basic summary of the industrial revolution. No unique perspective is offered.",
+          },
         ],
-        overallFeedback: "This is a very basic response that needs significant development. Add specific historical examples, organize into paragraphs, and offer your own analysis.",
+        overallFeedback:
+          "This is a very basic response that needs significant development. Add specific historical examples, organize into paragraphs, and offer your own analysis.",
         strengths: ["Correct grammar", "Clear sentences"],
-        areasForImprovement: ["Add specific evidence and examples", "Structure with introduction/body/conclusion", "Develop a unique argument or perspective"],
+        areasForImprovement: [
+          "Add specific evidence and examples",
+          "Structure with introduction/body/conclusion",
+          "Develop a unique argument or perspective",
+        ],
       }),
     },
   ];

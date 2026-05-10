@@ -20,7 +20,7 @@ interface OCRProcessingProps {
   testId?: number;
 }
 
-export function OCRProcessing({ initialOCRText, testId }: OCRProcessingProps) {
+export function OCRProcessing({ initialOCRText, testId: _testId }: OCRProcessingProps) {
   const { toast } = useToast();
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [recognizedAnswers, setRecognizedAnswers] = useState<RecognizedAnswer[]>([
@@ -42,7 +42,7 @@ export function OCRProcessing({ initialOCRText, testId }: OCRProcessingProps) {
     },
   ]);
 
-  const evaluateAnswerMutation = useMutation({
+  useMutation({
     mutationFn: async ({ answerId, text }: { answerId: string; text: string }) => {
       // Simulate API call for now until we have actual answer IDs
       // In a real app, this would call the AI evaluation endpoint

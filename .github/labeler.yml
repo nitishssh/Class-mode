@@ -1,20 +1,20 @@
 frontend:
   - changed-files:
-    - any-glob-to-any-file: 'client/**/*'
+      - any-glob-to-any-file: "client/**/*"
 
 backend:
   - changed-files:
-    - any-glob-to-any-file: 'server/**/*'
+      - any-glob-to-any-file: "server/**/*"
 
 schemas:
   - changed-files:
-    - any-glob-to-any-file: 'shared/**/*'
+      - any-glob-to-any-file: "shared/**/*"
 
 infrastructure:
   - changed-files:
-    - any-glob-to-any-file: 'k8s/**/*'
-    - any-glob-to-any-file: 'terraform/**/*'
+      - any-glob-to-any-file: "k8s/**/*"
+      - any-glob-to-any-file: "terraform/**/*"
 
 ci-cd:
   - changed-files:
-    - any-glob-to-any-file: '.github/**/*'
+      - any-glob-to-any-file: ".github/**/*"

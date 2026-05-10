@@ -1,6 +1,5 @@
 import * as React from "react";
 import { SmartCard } from "@/components/ui/smart-card";
-import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
 
 interface XPProgressBarProps {

@@ -7,9 +7,11 @@ This design outlines the migration of the multi-agent logic into the PersonalLea
 The existing "Bridge" architecture will be replaced by an "Integrated" architecture.
 
 ### Current (Bridge):
+
 `Web UI` -> `PersonalLearningPro Server` -> `Study Arena Service (Iframe)` -> `Gateway` -> `LLM`
 
 ### Proposed (Integrated):
+
 `Web UI (Native React)` -> `PersonalLearningPro Server (Internal Service)` -> `Study Arena Logic Module` -> `LLM (GPT-4o)`
 
 ## 💾 Data Models
@@ -22,7 +24,7 @@ interface IClassroom {
   id: number;
   teacherId: number;
   topic: string;
-  status: 'generating' | 'ready' | 'error';
+  status: "generating" | "ready" | "error";
   content: {
     agents: Agent[];
     scenes: Scene[];

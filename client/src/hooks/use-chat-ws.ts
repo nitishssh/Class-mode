@@ -15,7 +15,6 @@
 
 import { useEffect, useRef, useCallback, useReducer } from "react";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
-import { Message } from "@/types/chat";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -86,6 +85,7 @@ export function useChatWs({ onEvent, activeChannelId }: UseChatWsOptions) {
   const reconnectDelay = useRef(1000);
   const isMounted = useRef(true);
   const activeChannelRef = useRef<number | undefined>(activeChannelId);
+  const scheduleReconnectRef = useRef<(() => void) | null>(null);
 
   const [state, dispatch] = useReducer(wsReducer, {
     status: "idle",
@@ -182,7 +182,7 @@ export function useChatWs({ onEvent, activeChannelId }: UseChatWsOptions) {
     ws.onclose = () => {
       if (!isMounted.current) return;
       dispatch({ type: "disconnected" });
-      scheduleReconnect();
+      scheduleReconnectRef.current?.();
     };
   }, [currentUser.user, sendRaw]);
 
@@ -200,6 +200,8 @@ export function useChatWs({ onEvent, activeChannelId }: UseChatWsOptions) {
       if (isMounted.current) connect();
     }, delay);
   }, [connect]);
+
+  useEffect(() => { scheduleReconnectRef.current = scheduleReconnect; }, [scheduleReconnect]);
 
   // ── Connect on mount / Firebase user change ─────────────────────────────────
   useEffect(() => {

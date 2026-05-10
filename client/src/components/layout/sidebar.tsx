@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { cn, getInitials } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -59,12 +59,11 @@ export function Sidebar({ className }: SidebarProps) {
     logout,
   } = useAuth();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => window.innerWidth < 768);
 
   // Check if we're on mobile to set default state
   useEffect(() => {
     const checkIfMobile = () => window.innerWidth < 768;
-    setIsCollapsed(checkIfMobile());
 
     const handleResize = () => setIsCollapsed(checkIfMobile());
     window.addEventListener("resize", handleResize);
@@ -268,17 +267,6 @@ export function Sidebar({ className }: SidebarProps) {
   else if (user?.role === "admin") items = adminNavItems;
   else if (user?.role === "parent") items = parentNavItems;
 
-  const MobileMenuButton = () => (
-    <Button
-      variant="ghost"
-      className="h-9 w-9 rounded-full p-0 md:hidden"
-      onClick={toggleMobileMenu}
-    >
-      <Menu className="h-5 w-5" />
-      <span className="sr-only">Toggle menu</span>
-    </Button>
-  );
-
   return (
     <>
       {/* Mobile menu overlay */}
@@ -288,7 +276,14 @@ export function Sidebar({ className }: SidebarProps) {
 
       {/* Mobile menu button */}
       <div className="fixed left-4 top-4 z-50 md:hidden">
-        <MobileMenuButton />
+        <Button
+          variant="ghost"
+          className="h-9 w-9 rounded-full p-0 md:hidden"
+          onClick={toggleMobileMenu}
+        >
+          <Menu className="h-5 w-5" />
+          <span className="sr-only">Toggle menu</span>
+        </Button>
       </div>
 
       {/* Sidebar */}

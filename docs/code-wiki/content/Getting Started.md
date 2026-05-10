@@ -151,16 +151,19 @@ Express --> WS
 ### Installation & Deployment Methods
 
 #### Option 1: Docker (Recommended for Local)
+
 - Prerequisites: Docker Engine
 - Steps: Build and start with `docker compose up`
 - Access: http://localhost:5001
 
 #### Option 2: Google Cloud Platform (Recommended for Production)
+
 - Prerequisites: GCP Account, `gcloud` CLI
 - Steps: Use the provided Terraform and Cloud Build automation
 - Guide: See [GCP Deployment Guide](docs/GCP_DEPLOYMENT.md)
 
 #### Option 3: Manual Setup (Node.js)
+
 - Prerequisites: Node.js v18+, npm
 - Steps: `npm install` and `npm run dev`
 

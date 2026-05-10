@@ -4,13 +4,13 @@ This guide documents the **live, executed** deployment of PersonalLearningPro to
 
 ## Live Service
 
-| Property | Value |
-|---|---|
-| **URL** | `https://personallearningpro-wuo7arhpla-uc.a.run.app` |
-| **Project** | `plp-prod-2026` |
-| **Region** | `us-central1` |
-| **Active revision** | `personallearningpro-00008-vbp` |
-| **Health** | `GET /api/health` → `{ status: "healthy" }` |
+| Property            | Value                                                 |
+| ------------------- | ----------------------------------------------------- |
+| **URL**             | `https://personallearningpro-wuo7arhpla-uc.a.run.app` |
+| **Project**         | `plp-prod-2026`                                       |
+| **Region**          | `us-central1`                                         |
+| **Active revision** | `personallearningpro-00008-vbp`                       |
+| **Health**          | `GET /api/health` → `{ status: "healthy" }`           |
 
 ---
 
@@ -51,15 +51,15 @@ GitHub push → Cloud Build trigger
 
 ## Cloud Run Service Configuration
 
-| Setting | Value |
-|---|---|
-| Port | 5001 |
-| Memory | 1Gi |
-| CPU | 2 |
-| Min instances | 1 (no cold starts) |
-| Max instances | 10 |
-| Access | Public (`allUsers` invoker) |
-| Health check | `GET /api/health` |
+| Setting       | Value                       |
+| ------------- | --------------------------- |
+| Port          | 5001                        |
+| Memory        | 1Gi                         |
+| CPU           | 2                           |
+| Min instances | 1 (no cold starts)          |
+| Max instances | 10                          |
+| Access        | Public (`allUsers` invoker) |
+| Health check  | `GET /api/health`           |
 
 ---
 
@@ -124,13 +124,13 @@ gcloud secrets add-iam-policy-binding SECRET_NAME \
 
 These are set directly on the service (not via Secret Manager):
 
-| Variable | Value |
-|---|---|
-| `NODE_ENV` | `production` |
-| `DNS_IPV4_FIRST` | `true` |
-| `CORS_ORIGIN` | `https://inmodel.in,https://personallearningpro-wuo7arhpla-uc.a.run.app,https://personallearningpro-114646596478.us-central1.run.app` |
-| `APP_URL` | `https://inmodel.in` |
-| `FIREBASE_PROJECT_ID` | `presonallp` |
+| Variable              | Value                                                                                                                                 |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `NODE_ENV`            | `production`                                                                                                                          |
+| `DNS_IPV4_FIRST`      | `true`                                                                                                                                |
+| `CORS_ORIGIN`         | `https://inmodel.in,https://personallearningpro-wuo7arhpla-uc.a.run.app,https://personallearningpro-114646596478.us-central1.run.app` |
+| `APP_URL`             | `https://inmodel.in`                                                                                                                  |
+| `FIREBASE_PROJECT_ID` | `presonallp`                                                                                                                          |
 
 > **CORS note:** The app code also allows `*.run.app` and `*.inmodel.in` hostnames in production, so adding new Cloud Run revisions with different URL formats will work automatically.
 
@@ -142,12 +142,12 @@ These are set directly on the service (not via Secret Manager):
 
 Set these **Substitution Variables** in the Cloud Build trigger UI:
 
-| Variable | Value |
-|---|---|
-| `_VITE_FIREBASE_API_KEY` | `YOUR_FIREBASE_API_KEY` |
-| `_VITE_FIREBASE_APP_ID` | `YOUR_FIREBASE_APP_ID` |
+| Variable                             | Value                     |
+| ------------------------------------ | ------------------------- |
+| `_VITE_FIREBASE_API_KEY`             | `YOUR_FIREBASE_API_KEY`   |
+| `_VITE_FIREBASE_APP_ID`              | `YOUR_FIREBASE_APP_ID`    |
 | `_VITE_FIREBASE_MESSAGING_SENDER_ID` | `YOUR_FIREBASE_SENDER_ID` |
-| `_VITE_FIREBASE_MEASUREMENT_ID` | `` |
+| `_VITE_FIREBASE_MEASUREMENT_ID`      | ``                        |
 
 `_VITE_FIREBASE_PROJECT_ID` is automatically set to `$PROJECT_ID` in `cloudbuild.yaml`.
 
@@ -272,6 +272,7 @@ gcloud run services update personallearningpro \
 ### Container fails to start
 
 Check Cloud Run logs:
+
 ```bash
 gcloud logging read \
   'resource.type="cloud_run_revision" AND resource.labels.service_name="personallearningpro"' \
@@ -280,6 +281,7 @@ gcloud logging read \
 ```
 
 Common causes:
+
 - `SESSION_SECRET environment variable is required` → secret not mounted or no version exists
 - `bad auth: authentication failed` → MongoDB URL missing database name (add `/eduai?retryWrites=true&w=majority`)
 - `Gemini service not initialized` → `GOOGLE_API_KEY` secret is empty

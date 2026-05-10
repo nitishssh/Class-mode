@@ -75,8 +75,13 @@ ${commentPrompt ? `Grading guidance: ${commentPrompt}\n` : ''}Student answer: ${
         for (const m of candidates) {
           try {
             const candidate = JSON.parse(m[0]);
-            if ('score' in candidate) { parsed = candidate; break; }
-          } catch { /* try next */ }
+            if ('score' in candidate) {
+              parsed = candidate;
+              break;
+            }
+          } catch {
+            /* try next */
+          }
         }
       }
 

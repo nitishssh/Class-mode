@@ -4,10 +4,10 @@
  * This file is deprecated.
  */
 
-import { Router } from 'express';
+import { Router } from "express";
 
 export const openmaicWebhookRouter = Router();
 
-openmaicWebhookRouter.all('*', (req, res) => {
-  res.status(410).json({ message: 'Legacy webhook endpoint retired.' });
+openmaicWebhookRouter.all("*", (req, res) => {
+  res.status(410).json({ message: "Legacy webhook endpoint retired." });
 });

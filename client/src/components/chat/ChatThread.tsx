@@ -131,8 +131,12 @@ const ChatThread = ({ conversation, onBack }: ChatThreadProps) => {
   // Effect to update oldestId based on new serverMessages fetch
   useEffect(() => {
     if (serverMessages && serverMessages.length > 0) {
-      setOldestId(Number(serverMessages[0].id));
-      setHasMore(serverMessages.length === 50);
+      const id = Number(serverMessages[0].id);
+      const more = serverMessages.length === 50;
+      setTimeout(() => {
+        setOldestId(id);
+        setHasMore(more);
+      }, 0);
     }
   }, [serverMessages]);
 
@@ -146,19 +150,20 @@ const ChatThread = ({ conversation, onBack }: ChatThreadProps) => {
     if (!isServerChannel) return;
     const base = serverMessages ?? [];
     const optIds = new Set(base.map((m) => m.id));
-    const newOpts = optimisticMessages.filter((m) => !optIds.has(m.id));
-    setMessages([...base, ...newOpts]);
+    const merged = [...base, ...optimisticMessages.filter((m) => !optIds.has(m.id))];
+    setTimeout(() => setMessages(merged), 0);
   }, [serverMessages, optimisticMessages, isServerChannel]);
 
   // Update mock messages when conversation changes (mock mode only)
   useEffect(() => {
-    if (!isServerChannel) {
-      setMessages(mockMessages[conversation.id] || []);
-    }
-    // Reset pagination state
-    setOldestId(undefined);
-    setHasMore(true);
-    setOptimisticMessages([]);
+    const mockMsgs = !isServerChannel ? mockMessages[conversation.id] || [] : null;
+    setTimeout(() => {
+      if (mockMsgs !== null) setMessages(mockMsgs);
+      // Reset pagination state
+      setOldestId(undefined);
+      setHasMore(true);
+      setOptimisticMessages([]);
+    }, 0);
   }, [conversation.id, isServerChannel]);
 
   // Auto-scroll to bottom on new messages
@@ -325,7 +330,7 @@ const ChatThread = ({ conversation, onBack }: ChatThreadProps) => {
   });
 
   // Group messages by day
-  let lastDay = "";
+  const lastDayTracker = { value: "" };
   const msgById: Record<string, Message> = {};
   messages.forEach((m) => {
     msgById[m.id] = m;
@@ -377,8 +382,8 @@ const ChatThread = ({ conversation, onBack }: ChatThreadProps) => {
 
             const dayLabel = getDayLabel(msg.timestamp);
             let showDaySep = false;
-            if (dayLabel !== lastDay) {
-              lastDay = dayLabel;
+            if (dayLabel !== lastDayTracker.value) {
+              lastDayTracker.value = dayLabel;
               showDaySep = true;
             }
 

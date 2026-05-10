@@ -1,7 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check, X, Sparkles } from "lucide-react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { X, Sparkles } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 
 interface PaywallModalProps {
@@ -30,17 +30,19 @@ export function PaywallModal({ feature, onClose }: PaywallModalProps) {
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <Card className="w-full max-w-md mx-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <Card className="mx-4 w-full max-w-md">
         <CardContent className="pt-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-bold flex items-center gap-2">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="flex items-center gap-2 text-lg font-bold">
               <Sparkles className="h-5 w-5 text-primary" />
               Upgrade Required
             </h3>
-            <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
           </div>
-          <p className="text-muted-foreground mb-6">
+          <p className="mb-6 text-muted-foreground">
             {feature} is a premium feature. Upgrade your plan to unlock it.
           </p>
           <div className="space-y-3">
@@ -49,7 +51,10 @@ export function PaywallModal({ feature, onClose }: PaywallModalProps) {
                 key={t.value}
                 className="w-full"
                 variant={selectedTier === t.value ? "default" : "outline"}
-                onClick={() => { setSelectedTier(t.value); checkout(t.value); }}
+                onClick={() => {
+                  setSelectedTier(t.value);
+                  checkout(t.value);
+                }}
               >
                 {t.name} — {t.price}
               </Button>

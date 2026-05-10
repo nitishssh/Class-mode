@@ -12,11 +12,13 @@ React Native mobile application for PersonalLearningPro built with Expo.
 ## Setup
 
 1. Install dependencies:
+
 ```bash
 npm install
 ```
 
 2. Create environment file:
+
 ```bash
 cp .env.example .env
 ```
@@ -26,11 +28,13 @@ cp .env.example .env
 ## Development
 
 Start the development server:
+
 ```bash
 npm start
 ```
 
 Then:
+
 - Press `i` to open iOS simulator
 - Press `a` to open Android emulator
 - Scan QR code with Expo Go app on your physical device
@@ -119,11 +123,13 @@ See `.env.example` for required environment variables.
 ## Building for Production
 
 ### iOS
+
 ```bash
 eas build --platform ios
 ```
 
 ### Android
+
 ```bash
 eas build --platform android
 ```
@@ -131,11 +137,13 @@ eas build --platform android
 ## Troubleshooting
 
 ### Clear cache and reset
+
 ```bash
 npx expo start --clear
 ```
 
 ### Reset Metro bundler
+
 ```bash
 rm -rf node_modules
 npm install
@@ -143,33 +151,39 @@ npx expo start --clear
 ```
 
 ### iOS simulator not opening
+
 ```bash
 # Make sure Xcode is installed (macOS only)
 xcode-select --install
 ```
 
 ### Android emulator not opening
+
 ```bash
 # Make sure Android Studio is installed
 # Open Android Studio → AVD Manager → Create/Start emulator
 ```
 
 ### Firebase authentication errors
+
 - Verify all `EXPO_PUBLIC_FIREBASE_*` variables are set in `.env`
 - Ensure Firebase project has iOS/Android apps configured
 - Check that SHA-1/SHA-256 fingerprints are added (Android)
 
 ### API connection errors
+
 - Verify `EXPO_PUBLIC_API_URL` points to your backend
 - For physical devices, use your computer's local IP (not localhost)
 - Example: `EXPO_PUBLIC_API_URL=http://192.168.1.100:5001`
 
 ### Push notifications not working
+
 - Ensure physical device is used (notifications don't work in simulator)
 - Check notification permissions in device settings
 - Verify Expo project is configured for push notifications
 
 ### Offline mode issues
+
 - Clear AsyncStorage: Settings → Clear app data
 - Check network status indicator at top of screen
 - Verify backend is running when coming back online

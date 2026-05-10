@@ -24,11 +24,12 @@ function ensureInitialised() {
   }
 
   const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-  const projectId =
-    process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID;
+  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID;
 
   if (!projectId) {
-    console.warn("[firebase-admin] No project ID found — Firebase Admin disabled. Set FIREBASE_PROJECT_ID.");
+    console.warn(
+      "[firebase-admin] No project ID found — Firebase Admin disabled. Set FIREBASE_PROJECT_ID."
+    );
     return;
   }
 
@@ -43,7 +44,9 @@ function ensureInitialised() {
     } else {
       initializeApp({ projectId });
       console.log("[firebase-admin] Initialised (no service account) project:", projectId);
-      console.warn("[firebase-admin] To enable Firebase token verification, set FIREBASE_SERVICE_ACCOUNT_JSON.");
+      console.warn(
+        "[firebase-admin] To enable Firebase token verification, set FIREBASE_SERVICE_ACCOUNT_JSON."
+      );
     }
     initialised = true;
   } catch (err) {
@@ -51,9 +54,7 @@ function ensureInitialised() {
   }
 }
 
-export async function verifyFirebaseToken(
-  idToken: string
-): Promise<DecodedIdToken | null> {
+export async function verifyFirebaseToken(idToken: string): Promise<DecodedIdToken | null> {
   ensureInitialised();
 
   if (!getApps().length) return null;
@@ -73,9 +74,13 @@ export function checkFirebaseAdminReadiness(): void {
   const hasServiceAccount = !!process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
 
   if (!hasApp) {
-    console.error("[firebase-admin] NOT READY — Firebase Admin SDK failed to initialise. Token verification is disabled.");
+    console.error(
+      "[firebase-admin] NOT READY — Firebase Admin SDK failed to initialise. Token verification is disabled."
+    );
   } else if (!hasServiceAccount) {
-    console.warn("[firebase-admin] PARTIAL — Running without service account. Firebase token verification may fail without ADC. Set FIREBASE_SERVICE_ACCOUNT_JSON for production.");
+    console.warn(
+      "[firebase-admin] PARTIAL — Running without service account. Firebase token verification may fail without ADC. Set FIREBASE_SERVICE_ACCOUNT_JSON for production."
+    );
   } else {
     console.log("[firebase-admin] READY — Service account configured, token verification enabled.");
   }

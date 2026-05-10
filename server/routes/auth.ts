@@ -1,15 +1,18 @@
-import { Router, Request, Response } from 'express';
-import { MongoUser } from '../../shared/mongo-schema';
-import { getNextSequenceValue } from '../../shared/mongo-schema';
-import { setCustomUserClaims, verifyFirebaseToken } from '../lib/firebase-admin';
-import { authenticateToken } from '../routes';
-import { logger } from '../lib/logger';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import { Router, Request, Response } from "express";
+import { MongoUser } from "../../shared/mongo-schema";
+import { getNextSequenceValue } from "../../shared/mongo-schema";
+import { setCustomUserClaims, verifyFirebaseToken } from "../lib/firebase-admin";
+import { authenticateToken } from "../routes";
+import { logger } from "../lib/logger";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "super_secret_jwt_key_learning_pro_123";
-if (process.env.NODE_ENV === "production" && (!process.env.JWT_SECRET || process.env.JWT_SECRET === "super_secret_jwt_key_learning_pro_123")) {
+if (
+  process.env.NODE_ENV === "production" &&
+  (!process.env.JWT_SECRET || process.env.JWT_SECRET === "super_secret_jwt_key_learning_pro_123")
+) {
   throw new Error("A strong, unique JWT_SECRET environment variable is required in production.");
 }
 
@@ -45,13 +48,21 @@ router.post("/sync-profile", authenticateToken, async (req: Request, res: Respon
       if (displayName !== undefined) user.displayName = displayName;
       if (className !== undefined) user.class = className;
       if (subject !== undefined) user.subject = subject;
-      if (role !== undefined) user.role = role as "student" | "teacher" | "parent" | "principal" | "school_admin" | "admin";
+      if (role !== undefined)
+        user.role = role as
+          | "student"
+          | "teacher"
+          | "parent"
+          | "principal"
+          | "school_admin"
+          | "admin";
       if (school_code !== undefined) user.school_code = school_code;
       if (grade !== undefined) user.grade = grade;
       if (board !== undefined) user.board = board;
       if (subjects !== undefined) user.subjects = subjects;
       if (district !== undefined) user.district = district;
-      if (status !== undefined) user.status = status as "active" | "pending" | "suspended" | "rejected";
+      if (status !== undefined)
+        user.status = status as "active" | "pending" | "suspended" | "rejected";
       await user.save();
     } else {
       // Create a new mongo user bridge
@@ -271,10 +282,24 @@ router.post("/firebase", async (req: Request, res: Response) => {
     }
 
     // Find by firebaseUid or email
-    type MongoUserType = { id: number, role: string, avatar: string | null, displayName: string | null, name: string, firebaseUid?: string, save: () => Promise<void> };
-    type MongoUserModelType = { findOne: (query: Record<string, unknown>) => Promise<MongoUserType | null>, new(data: Record<string, unknown>): MongoUserType };
-    let mongoUser: MongoUserType | null = await (MongoUser as unknown as MongoUserModelType).findOne({ firebaseUid: uid });
-    if (!mongoUser) mongoUser = await (MongoUser as unknown as MongoUserModelType).findOne({ email });
+    type MongoUserType = {
+      id: number;
+      role: string;
+      avatar: string | null;
+      displayName: string | null;
+      name: string;
+      firebaseUid?: string;
+      save: () => Promise<void>;
+    };
+    type MongoUserModelType = {
+      findOne: (query: Record<string, unknown>) => Promise<MongoUserType | null>;
+      new (data: Record<string, unknown>): MongoUserType;
+    };
+    let mongoUser: MongoUserType | null = await (
+      MongoUser as unknown as MongoUserModelType
+    ).findOne({ firebaseUid: uid });
+    if (!mongoUser)
+      mongoUser = await (MongoUser as unknown as MongoUserModelType).findOne({ email });
 
     if (!mongoUser) {
       const id = await getNextSequenceValue("user_id");

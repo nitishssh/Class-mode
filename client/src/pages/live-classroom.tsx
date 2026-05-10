@@ -90,7 +90,9 @@ function ClassroomContent({
         try {
           await apiRequest("POST", `/api/live/leave/student/${attendanceId}`);
           sessionStorage.removeItem(`attendance_${classId}`);
-        } catch (e) {}
+        } catch {
+          // ignore errors on leave
+        }
       }
     }
 
@@ -159,7 +161,7 @@ export default function LiveClassroomPage() {
 
   useEffect(() => {
     const co = DailyIframe.createCallObject();
-    setCallObject(co);
+    setTimeout(() => setCallObject(co), 0);
 
     return () => {
       co.destroy();

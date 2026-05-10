@@ -1,9 +1,11 @@
 # Planning
 
 ## Methodology
+
 We follow the **Fluent Agentic Workflow (FAW)** — see `fluent-workflow.md`. Planning is Phase 2 of the 5-phase loop. This doc covers the SPECIFY + PLAN phases.
 
 ## When to Plan
+
 - **New features** (any feature with 3+ tasks) — always plan
 - **Bug fixes** — no formal plan needed; document root cause in commit message
 - **Refactoring** — plan if touching 5+ files or changing architecture
@@ -12,6 +14,7 @@ We follow the **Fluent Agentic Workflow (FAW)** — see `fluent-workflow.md`. Pl
 ## Planning Template
 
 ### 1. Requirements (`requirements.md`)
+
 ```
 # Feature: {Name}
 - Goal: {single sentence}
@@ -23,6 +26,7 @@ We follow the **Fluent Agentic Workflow (FAW)** — see `fluent-workflow.md`. Pl
 ```
 
 ### 2. Design (`design.md`)
+
 ```
 # Design: {Name}
 ## Data Model
@@ -39,6 +43,7 @@ We follow the **Fluent Agentic Workflow (FAW)** — see `fluent-workflow.md`. Pl
 ```
 
 ### 3. Tasks (`tasks.md`)
+
 ```
 # Tasks: {Name}
 ## Phase 1: {area}
@@ -50,12 +55,14 @@ We follow the **Fluent Agentic Workflow (FAW)** — see `fluent-workflow.md`. Pl
 ```
 
 ## Task Breakdown Rules
+
 - Each task should be completable in a single session (15-60 minutes)
 - Tasks should be testable independently
 - Order tasks by dependency (backend → frontend, core → polish)
 - Mark completion status with ✅ / 🔄 / ❌
 
 ## When NOT to Plan
+
 - Trivial changes (single file, < 20 lines)
 - Dependency updates
 - Documentation typo fixes

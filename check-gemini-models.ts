@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import "dotenv/config";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 async function listModels() {
@@ -6,7 +6,7 @@ async function listModels() {
   try {
     const result = await genAI.getGenerativeModel({ model: "gemini-pro" }); // Just to check connectivity
     console.log("Connectivity check with gemini-pro...");
-    
+
     // There isn't a direct listModels in the current SDK version easily, but let's try a simple prompt
     const chat = await result.generateContent("Hello");
     console.log("Response:", chat.response.text());

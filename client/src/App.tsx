@@ -272,7 +272,10 @@ function App() {
       <Route path="/meetings" component={withLayout(ComingSoon)} />
       <Route path="/reports" component={withLayout(ComingSoon)} />
       <Route path="/ai-study-plans" component={withLayout(protect(AiStudyPlans, ["student"]))} />
-      <Route path="/ai-classroom" component={withLayout(protect(AIClassroom, ["student", "teacher"]))} />
+      <Route
+        path="/ai-classroom"
+        component={withLayout(protect(AIClassroom, ["student", "teacher"]))}
+      />
       <Route path="/test-results" component={withLayout(ComingSoon)} />
 
       {/* Redirect /login to home if already authenticated */}

@@ -36,7 +36,11 @@ interface AuthContextType {
     additionalData?: Record<string, unknown>
   ) => Promise<void>;
   googleLogin: () => Promise<AuthUser>;
-  completeGoogleRegistration: (user: User, role: UserRole, additionalData?: Record<string, unknown>) => Promise<void>;
+  completeGoogleRegistration: (
+    user: User,
+    role: UserRole,
+    additionalData?: Record<string, unknown>
+  ) => Promise<void>;
   logout: () => Promise<void>;
   resetUserPassword: (email: string) => Promise<void>;
 }
@@ -81,7 +85,7 @@ async function syncFirebaseSession(user: import("firebase/auth").User): Promise<
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${idToken}`
+          Authorization: `Bearer ${idToken}`,
         },
         credentials: "include",
         body: JSON.stringify({ idToken }),
@@ -92,7 +96,9 @@ async function syncFirebaseSession(user: import("firebase/auth").User): Promise<
       console.warn(`[auth] Session sync failed (attempt ${attempt + 1}/2):`, e);
     }
   }
-  console.error("[auth] Could not sync Firebase session to backend after 2 attempts. API calls may fail.");
+  console.error(
+    "[auth] Could not sync Firebase session to backend after 2 attempts. API calls may fail."
+  );
   return false;
 }
 
@@ -316,7 +322,11 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   // ── completeGoogleRegistration ─────────────────────────────────────────────
-  const completeGoogleRegistration = async (user: User, role: UserRole, additionalData?: Record<string, unknown>) => {
+  const completeGoogleRegistration = async (
+    user: User,
+    role: UserRole,
+    additionalData?: Record<string, unknown>
+  ) => {
     setIsLoading(true);
     try {
       const userData = await completeGoogleSignUp(user, role, additionalData);

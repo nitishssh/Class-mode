@@ -84,6 +84,7 @@ Most school platforms are either too simple or too expensive. EduAI is **open-so
 - Session recording and replay support
 
 ### 📱 Mobile App (iOS & Android) - ✅ COMPLETE
+
 - **Native mobile experience** built with React Native + Expo
 - **Full feature parity** with web app
 - **Offline support** with automatic sync when online
@@ -97,22 +98,22 @@ Most school platforms are either too simple or too expensive. EduAI is **open-so
 
 ## 🛠️ Tech Stack
 
-| Layer | Technology |
-|---|---|
-| **Frontend (Web)** | React 18, Vite, TypeScript, Tailwind CSS, shadcn/ui, Framer Motion |
-| **Frontend (Mobile)** | React Native 0.81, Expo SDK 54, TypeScript, NativeWind, React Native Paper |
-| **Backend** | Node.js, Express, TypeScript |
-| **Auth** | Firebase Authentication (Google + email/password) |
-| **Primary DB** | MongoDB Atlas + Mongoose |
-| **Message Store** | Apache Cassandra |
-| **Mobile Storage** | AsyncStorage (offline caching) |
-| **AI** | Google Gemini 2.0 Flash (primary) · OpenAI GPT-4o (optional fallback) |
-| **OCR** | Tesseract.js (web), Expo Camera + backend OCR (mobile) |
-| **Real-time** | WebSockets (ws) |
-| **Push Notifications** | Expo Notifications |
-| **Email** | Nodemailer (SMTP) |
-| **Video** | Daily.co / BigBlueButton |
-| **DevOps** | Docker, Kubernetes, GCP Cloud Run, Cloud Build, Secret Manager, GitHub Actions |
+| Layer                  | Technology                                                                     |
+| ---------------------- | ------------------------------------------------------------------------------ |
+| **Frontend (Web)**     | React 18, Vite, TypeScript, Tailwind CSS, shadcn/ui, Framer Motion             |
+| **Frontend (Mobile)**  | React Native 0.81, Expo SDK 54, TypeScript, NativeWind, React Native Paper     |
+| **Backend**            | Node.js, Express, TypeScript                                                   |
+| **Auth**               | Firebase Authentication (Google + email/password)                              |
+| **Primary DB**         | MongoDB Atlas + Mongoose                                                       |
+| **Message Store**      | Apache Cassandra                                                               |
+| **Mobile Storage**     | AsyncStorage (offline caching)                                                 |
+| **AI**                 | Google Gemini 2.0 Flash (primary) · OpenAI GPT-4o (optional fallback)          |
+| **OCR**                | Tesseract.js (web), Expo Camera + backend OCR (mobile)                         |
+| **Real-time**          | WebSockets (ws)                                                                |
+| **Push Notifications** | Expo Notifications                                                             |
+| **Email**              | Nodemailer (SMTP)                                                              |
+| **Video**              | Daily.co / BigBlueButton                                                       |
+| **DevOps**             | Docker, Kubernetes, GCP Cloud Run, Cloud Build, Secret Manager, GitHub Actions |
 
 ---
 
@@ -122,18 +123,18 @@ Most school platforms are either too simple or too expensive. EduAI is **open-so
 
 The platform is deployed on **Google Cloud Run**:
 
-| | |
-|---|---|
-| **URL** | `https://personallearningpro-wuo7arhpla-uc.a.run.app` |
-| **Project** | `plp-prod-2026` (us-central1) |
-| **Stack** | Cloud Run · Artifact Registry · Secret Manager · Cloud Build |
+|             |                                                              |
+| ----------- | ------------------------------------------------------------ |
+| **URL**     | `https://personallearningpro-wuo7arhpla-uc.a.run.app`        |
+| **Project** | `plp-prod-2026` (us-central1)                                |
+| **Stack**   | Cloud Run · Artifact Registry · Secret Manager · Cloud Build |
 
 See the [GCP Deployment Guide](docs/GCP_DEPLOYMENT.md) for full setup and operations instructions.
 
 ### Other environments
 
-*   **Local/Docker:** `docker compose up` — runs the full stack including MongoDB, Cassandra, Redis, and nginx.
-*   **Kubernetes:** Manifests in `k8s/` with NGINX ingress and cert-manager TLS.
+- **Local/Docker:** `docker compose up` — runs the full stack including MongoDB, Cassandra, Redis, and nginx.
+- **Kubernetes:** Manifests in `k8s/` with NGINX ingress and cert-manager TLS.
 
 ---
 
@@ -314,6 +315,7 @@ Every role sees their onboarding wizard until their stage is complete — then l
 ## 🧪 Development Commands
 
 ### Web App
+
 ```bash
 npm run dev          # Start frontend + backend (Vite + Express on port 5001)
 npm run check        # TypeScript type check
@@ -327,6 +329,7 @@ npm start            # Run production build
 ```
 
 ### Mobile App
+
 ```bash
 cd mobile
 npm start            # Start Expo development server

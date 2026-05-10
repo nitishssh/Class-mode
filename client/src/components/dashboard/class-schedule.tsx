@@ -20,78 +20,79 @@ interface ScheduleDay {
   sessions: ClassSession[];
 }
 
+// Mock schedule data defined outside component to avoid impure function calls during render
+const _now = Date.now();
+const mockSchedule: ScheduleDay[] = [
+  {
+    day: "Today",
+    date: new Date(_now).toISOString().split("T")[0],
+    sessions: [
+      {
+        id: 1,
+        title: "Physics - Forces & Motion",
+        class: "10-A",
+        time: "09:00 AM",
+        duration: "45m",
+        students: 32,
+        isLiveClass: false,
+      },
+      {
+        id: 2,
+        title: "Chemistry Lab Session",
+        class: "11-B",
+        time: "11:30 AM",
+        duration: "60m",
+        students: 28,
+        isLiveClass: true,
+      },
+    ],
+  },
+  {
+    day: "Tomorrow",
+    date: new Date(_now + 86400000).toISOString().split("T")[0],
+    sessions: [
+      {
+        id: 3,
+        title: "Mathematics - Algebra",
+        class: "9-B",
+        time: "10:15 AM",
+        duration: "45m",
+        students: 26,
+        isLiveClass: false,
+      },
+      {
+        id: 4,
+        title: "Biology - Cellular Structure",
+        class: "10-A",
+        time: "02:00 PM",
+        duration: "45m",
+        students: 32,
+        isLiveClass: false,
+      },
+    ],
+  },
+  {
+    day: "Wednesday",
+    date: new Date(_now + 86400000 * 2).toISOString().split("T")[0],
+    sessions: [
+      {
+        id: 5,
+        title: "Computer Science - Algorithms",
+        class: "11-A",
+        time: "09:30 AM",
+        duration: "60m",
+        students: 24,
+        isLiveClass: true,
+      },
+    ],
+  },
+];
+
 export function ClassSchedule() {
   const { data: scheduleData, isLoading } = useQuery<ScheduleDay[]>({
     queryKey: ["/api/class-schedule"],
     enabled: false, // Disabled for now until API endpoint is implemented
   });
-
-  // Mock data for UI demonstration
-  const mockSchedule: ScheduleDay[] = [
-    {
-      day: "Today",
-      date: new Date().toISOString().split("T")[0],
-      sessions: [
-        {
-          id: 1,
-          title: "Physics - Forces & Motion",
-          class: "10-A",
-          time: "09:00 AM",
-          duration: "45m",
-          students: 32,
-          isLiveClass: false,
-        },
-        {
-          id: 2,
-          title: "Chemistry Lab Session",
-          class: "11-B",
-          time: "11:30 AM",
-          duration: "60m",
-          students: 28,
-          isLiveClass: true,
-        },
-      ],
-    },
-    {
-      day: "Tomorrow",
-      date: new Date(Date.now() + 86400000).toISOString().split("T")[0],
-      sessions: [
-        {
-          id: 3,
-          title: "Mathematics - Algebra",
-          class: "9-B",
-          time: "10:15 AM",
-          duration: "45m",
-          students: 26,
-          isLiveClass: false,
-        },
-        {
-          id: 4,
-          title: "Biology - Cellular Structure",
-          class: "10-A",
-          time: "02:00 PM",
-          duration: "45m",
-          students: 32,
-          isLiveClass: false,
-        },
-      ],
-    },
-    {
-      day: "Wednesday",
-      date: new Date(Date.now() + 86400000 * 2).toISOString().split("T")[0],
-      sessions: [
-        {
-          id: 5,
-          title: "Computer Science - Algorithms",
-          class: "11-A",
-          time: "09:30 AM",
-          duration: "60m",
-          students: 24,
-          isLiveClass: true,
-        },
-      ],
-    },
-  ];
 
   if (isLoading) {
     return <ScheduleSkeleton />;

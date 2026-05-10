@@ -51,7 +51,7 @@ export function VideoTile({ id, isLocal }: VideoTileProps) {
         />
       )}
 
-      {!isLocal && <audio autoPlay playsInline ref={audioElement} />}
+      {!isLocal && <audio autoPlay ref={audioElement} />}
 
       <div className="absolute bottom-3 left-3 flex items-center gap-2">
         <div className="flex items-center gap-2 rounded-lg bg-black/60 px-3 py-1.5 text-sm font-medium text-white backdrop-blur-md">

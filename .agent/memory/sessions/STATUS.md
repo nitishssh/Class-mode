@@ -8,14 +8,17 @@
 ## 📊 Active Specifications
 
 ### 1. Sprint 4 - AI Grading, Portals, Billing, LMS, GDPR ✅
+
 **Status:** COMPLETE (100%)  
 **Commit:** `2c90147`  
 **Files:**
+
 - `.agent/memory/roadmap/sprint-4/requirements.md`
 - `.agent/memory/roadmap/sprint-4/design.md`
 - `.agent/memory/roadmap/sprint-4/tasks.md`
 
 **Completion:**
+
 - AI Grading Engine: 7/7 tasks (100%)
 - Educator Portal: 3/3 tasks (100%)
 - Parent Portal: 3/3 tasks (100%)
@@ -26,13 +29,16 @@
 ---
 
 ### 2. AI Classroom Integration - Study Arena ✅
+
 **Status:** PHASES 1-2 COMPLETE, PHASE 3-4 PARTIAL  
 **Files:**
+
 - `.agent/memory/roadmap/ai-classroom-integration/requirements.md`
 - `.agent/memory/roadmap/ai-classroom-integration/design.md`
 - `.agent/memory/roadmap/ai-classroom-integration/tasks.md`
 
 **Completion:**
+
 - Phase 1 (Backend): 10/10 tasks (100%) ✅
 - Phase 2 (Frontend): 3/3 tasks (100%) ✅
 - Phase 3 (Multi-Agent): 1/4 tasks (25%) 🔄
@@ -80,12 +86,14 @@
 ## 🚀 Next Steps
 
 ### Immediate (Sprint 5 Planning)
+
 1. Complete Phase 3 (Multi-Agent Orchestration) for AI Classroom
 2. Add TTS integration (Azure Cognitive Services)
 3. Run full test suite (`npm test`)
 4. Deploy to production
 
 ### Backlog
+
 - Mobile app E2E tests with Detox
 - Advanced analytics dashboard
 - Real-time collaboration features

@@ -293,8 +293,8 @@ If you encounter issues:
 
 ---
 
-**Migration Date**: ******\_******
-**Performed By**: ******\_******
+**Migration Date**: **\*\***\_**\*\***
+**Performed By**: **\*\***\_**\*\***
 **Status**: ⬜ Pending | ⬜ In Progress | ⬜ Complete | ⬜ Rolled Back
 **Notes**:
 

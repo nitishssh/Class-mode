@@ -78,7 +78,9 @@ export async function generateClassroomViaSandbox<T>(
 ): Promise<T | any> {
   const config = getFridayLearningGatewayConfig();
   if (config.useFridayLearningGateway && (await checkFridayLearningGatewayHealth())) {
-    console.log(`[FridayLearningGateway] Routing classroom generation through sandbox (session: ${sessionId ?? 'none'})`);
+    console.log(
+      `[FridayLearningGateway] Routing classroom generation through sandbox (session: ${sessionId ?? 'none'})`,
+    );
     const result = await postToGateway('/classroom/generate', { prompt, sessionId }, 300000);
     if (result !== null) return result;
     console.warn('[FridayLearningGateway] Falling back for classroom generation');
@@ -93,7 +95,9 @@ export async function generateQuizViaSandbox<T>(
 ): Promise<T | any> {
   const config = getFridayLearningGatewayConfig();
   if (config.useFridayLearningGateway && (await checkFridayLearningGatewayHealth())) {
-    console.log(`[FridayLearningGateway] Routing quiz generation through sandbox (session: ${sessionId ?? 'none'})`);
+    console.log(
+      `[FridayLearningGateway] Routing quiz generation through sandbox (session: ${sessionId ?? 'none'})`,
+    );
     const result = await postToGateway('/classroom/quiz', { prompt, sessionId }, 120000);
     if (result !== null) return result;
     console.warn('[FridayLearningGateway] Falling back for quiz generation');
@@ -108,7 +112,9 @@ export async function generateSlidesViaSandbox<T>(
 ): Promise<T | any> {
   const config = getFridayLearningGatewayConfig();
   if (config.useFridayLearningGateway && (await checkFridayLearningGatewayHealth())) {
-    console.log(`[FridayLearningGateway] Routing slide generation through sandbox (session: ${sessionId ?? 'none'})`);
+    console.log(
+      `[FridayLearningGateway] Routing slide generation through sandbox (session: ${sessionId ?? 'none'})`,
+    );
     const result = await postToGateway('/classroom/slides', { prompt, sessionId }, 120000);
     if (result !== null) return result;
     console.warn('[FridayLearningGateway] Falling back for slide generation');
@@ -123,7 +129,9 @@ export async function chatWithTutorViaSandbox<T>(
 ): Promise<T | any> {
   const config = getFridayLearningGatewayConfig();
   if (config.useFridayLearningGateway && (await checkFridayLearningGatewayHealth())) {
-    console.log(`[FridayLearningGateway] Routing tutor chat through sandbox (session: ${sessionId ?? 'none'})`);
+    console.log(
+      `[FridayLearningGateway] Routing tutor chat through sandbox (session: ${sessionId ?? 'none'})`,
+    );
     const result = await postToGateway('/tutor/chat', { prompt: message, sessionId }, 60000);
     if (result !== null) return result;
     console.warn('[FridayLearningGateway] Falling back for tutor chat');
@@ -141,7 +149,9 @@ export async function withFridayLearningGatewayOrFallback<T>(
   const config = getFridayLearningGatewayConfig();
 
   if (config.useFridayLearningGateway && (await checkFridayLearningGatewayHealth())) {
-    console.log(`[FridayLearningGateway] Routing request through sandbox (session: ${sessionId ?? 'none'})`);
+    console.log(
+      `[FridayLearningGateway] Routing request through sandbox (session: ${sessionId ?? 'none'})`,
+    );
     const result = await postToGateway('/generate', { prompt, sessionId }, 300000);
     if (result !== null) return result;
     console.warn('[FridayLearningGateway] Gateway returned error, falling back...');

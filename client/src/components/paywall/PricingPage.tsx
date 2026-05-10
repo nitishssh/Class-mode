@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check, X } from "lucide-react";
+import { Check } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 const TIERS = [
@@ -40,17 +40,21 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-background p-8">
-      <div className="text-center mb-12">
+      <div className="mb-12 text-center">
         <h1 className="text-4xl font-bold">Choose Your Plan</h1>
-        <p className="text-muted-foreground mt-2">Unlock the full potential of EduAI</p>
+        <p className="mt-2 text-muted-foreground">Unlock the full potential of EduAI</p>
       </div>
-      <div className="grid md:grid-cols-4 gap-6 max-w-6xl mx-auto">
+      <div className="mx-auto grid max-w-6xl gap-6 md:grid-cols-4">
         {TIERS.map((tier) => (
           <Card key={tier.name} className={tier.popular ? "border-primary shadow-lg" : ""}>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 {tier.name}
-                {tier.popular && <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded">Popular</span>}
+                {tier.popular && (
+                  <span className="rounded bg-primary px-2 py-1 text-xs text-primary-foreground">
+                    Popular
+                  </span>
+                )}
               </CardTitle>
               <p className="text-3xl font-bold">{tier.price}</p>
             </CardHeader>
@@ -64,11 +68,13 @@ export default function PricingPage() {
                 ))}
               </ul>
               {tier.name !== "Institution" ? (
-                <Button className="w-full mt-6" variant={tier.popular ? "default" : "outline"}>
+                <Button className="mt-6 w-full" variant={tier.popular ? "default" : "outline"}>
                   {currentTier === tier.name.toLowerCase() ? "Current Plan" : "Upgrade"}
                 </Button>
               ) : (
-                <Button className="w-full mt-6" variant="outline">Contact Sales</Button>
+                <Button className="mt-6 w-full" variant="outline">
+                  Contact Sales
+                </Button>
               )}
             </CardContent>
           </Card>

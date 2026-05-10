@@ -27,11 +27,9 @@ vi.mock("../../shared/mongo-schema", () => {
     MongoChannel: { findOne: vi.fn() },
     MongoMessage: {
       findOne: vi.fn(),
-      find: vi
-        .fn()
-        .mockReturnValue({
-          sort: vi.fn().mockReturnValue({ limit: vi.fn().mockResolvedValue([]) }),
-        }),
+      find: vi.fn().mockReturnValue({
+        sort: vi.fn().mockReturnValue({ limit: vi.fn().mockResolvedValue([]) }),
+      }),
     },
   };
 });

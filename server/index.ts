@@ -39,18 +39,36 @@ app.use(express.urlencoded({ extended: false }));
 // ── Security headers ──────────────────────────────────────────────────────────
 app.use(
   helmet({
-    contentSecurityPolicy: process.env.NODE_ENV === "production" ? {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "https://apis.google.com", "https://www.gstatic.com"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-        imgSrc: ["'self'", "data:", "https://firebasestorage.googleapis.com", "https://lh3.googleusercontent.com"],
-        connectSrc: ["'self'", "https://*.firebaseio.com", "https://*.googleapis.com", "https://*.run.app"],
-        fontSrc: ["'self'", "https://fonts.gstatic.com"],
-        objectSrc: ["'none'"],
-        upgradeInsecureRequests: [],
-      },
-    } : false, // CSP handled by Vite in dev
+    contentSecurityPolicy:
+      process.env.NODE_ENV === "production"
+        ? {
+            directives: {
+              defaultSrc: ["'self'"],
+              scriptSrc: [
+                "'self'",
+                "'unsafe-inline'",
+                "https://apis.google.com",
+                "https://www.gstatic.com",
+              ],
+              styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+              imgSrc: [
+                "'self'",
+                "data:",
+                "https://firebasestorage.googleapis.com",
+                "https://lh3.googleusercontent.com",
+              ],
+              connectSrc: [
+                "'self'",
+                "https://*.firebaseio.com",
+                "https://*.googleapis.com",
+                "https://*.run.app",
+              ],
+              fontSrc: ["'self'", "https://fonts.gstatic.com"],
+              objectSrc: ["'none'"],
+              upgradeInsecureRequests: [],
+            },
+          }
+        : false, // CSP handled by Vite in dev
   })
 );
 
@@ -72,11 +90,11 @@ app.use(
       if (process.env.NODE_ENV === "production") {
         try {
           const url = new URL(origin);
-          const isAllowedDomain = 
-            url.hostname === "eduai.app" || 
+          const isAllowedDomain =
+            url.hostname === "eduai.app" ||
             url.hostname === "inmodel.in" ||
-            (process.env.ALLOWED_PROD_DOMAINS?.split(",").includes(url.hostname));
-            
+            process.env.ALLOWED_PROD_DOMAINS?.split(",").includes(url.hostname);
+
           if (isAllowedDomain) return cb(null, true);
         } catch (e) {
           // Fall through to error
@@ -111,8 +129,13 @@ checkFirebaseAdminReadiness();
 
 // Set up session middleware
 const SESSION_SECRET = process.env.SESSION_SECRET || "master-plan-ai-secret-key";
-if (process.env.NODE_ENV === "production" && (!process.env.SESSION_SECRET || process.env.SESSION_SECRET === "master-plan-ai-secret-key")) {
-  throw new Error("A strong, unique SESSION_SECRET environment variable is required in production.");
+if (
+  process.env.NODE_ENV === "production" &&
+  (!process.env.SESSION_SECRET || process.env.SESSION_SECRET === "master-plan-ai-secret-key")
+) {
+  throw new Error(
+    "A strong, unique SESSION_SECRET environment variable is required in production."
+  );
 }
 
 app.use(

@@ -5,7 +5,8 @@ import { Request, Response } from "express";
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLASSROOM_CLIENT_ID || "";
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLASSROOM_CLIENT_SECRET || "";
-const REDIRECT_URI = process.env.GOOGLE_CLASSROOM_REDIRECT_URI || "http://localhost:5001/api/lms/google/callback";
+const REDIRECT_URI =
+  process.env.GOOGLE_CLASSROOM_REDIRECT_URI || "http://localhost:5001/api/lms/google/callback";
 
 if (!GOOGLE_CLIENT_ID && process.env.NODE_ENV !== "test") {
   logger.warn("Google Classroom OAuth not configured. Set GOOGLE_CLASSROOM_CLIENT_ID/SECRET.");

@@ -38,24 +38,28 @@
 ## ✅ Test Features
 
 ### Dashboard
+
 - [ ] Welcome message shows user name
 - [ ] 4 stat cards display
 - [ ] Quick action buttons visible
 - [ ] Icons render correctly
 
 ### Tasks
+
 - [ ] Task list displays
 - [ ] Status badges show correct colors
 - [ ] Due dates visible
 - [ ] Add task button present
 
 ### Messages
+
 - [ ] Conversation list displays
 - [ ] Search bar works
 - [ ] Unread badges show
 - [ ] New message button visible
 
 ### Profile
+
 - [ ] User info displays
 - [ ] Settings menu visible
 - [ ] Logout button works
@@ -83,12 +87,14 @@ If something doesn't work:
 ## 📱 Device-Specific Checks
 
 ### iOS
+
 - [ ] Simulator opens correctly
 - [ ] App loads without errors
 - [ ] Keyboard appears when tapping inputs
 - [ ] Navigation gestures work
 
 ### Android
+
 - [ ] Emulator opens correctly
 - [ ] App loads without errors
 - [ ] Back button works

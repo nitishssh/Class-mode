@@ -45,7 +45,7 @@ export class StudyArenaClient {
     const res = await axios.post(
       `${this.baseUrl}/api/ai-classroom/create`,
       { requirement: data.requirement },
-      { headers: this.headers },
+      { headers: this.headers }
     );
     return res.data;
   }

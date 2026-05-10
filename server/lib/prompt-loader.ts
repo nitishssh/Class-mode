@@ -1,6 +1,6 @@
-import fs from 'fs';
-import path from 'path';
-import { logger } from './logger';
+import fs from "fs";
+import path from "path";
+import { logger } from "./logger";
 
 export type PromptId = string;
 export type SnippetId = string;
@@ -15,17 +15,24 @@ const promptCache = new Map<PromptId, LoadedPrompt>();
 const snippetCache = new Map<SnippetId, string>();
 
 function getPromptsDir(): string {
-  return path.join(process.cwd(), 'server', 'lib', 'prompts', 'study-arena');
+  return path.join(process.cwd(), "server", "lib", "prompts", "study-arena");
 }
 
 export function loadSnippet(snippetId: SnippetId): string {
   const cached = snippetCache.get(snippetId);
   if (cached) return cached;
 
-  const snippetPath = path.join(process.cwd(), 'server', 'lib', 'prompts', 'snippets', `${snippetId}.md`);
+  const snippetPath = path.join(
+    process.cwd(),
+    "server",
+    "lib",
+    "prompts",
+    "snippets",
+    `${snippetId}.md`
+  );
 
   try {
-    const content = fs.readFileSync(snippetPath, 'utf-8').trim();
+    const content = fs.readFileSync(snippetPath, "utf-8").trim();
     snippetCache.set(snippetId, content);
     return content;
   } catch {
@@ -46,14 +53,14 @@ export function loadPrompt(promptId: PromptId): LoadedPrompt | null {
   const promptDir = path.join(getPromptsDir(), promptId);
 
   try {
-    const systemPath = path.join(promptDir, 'system.md');
-    let systemPrompt = fs.readFileSync(systemPath, 'utf-8').trim();
+    const systemPath = path.join(promptDir, "system.md");
+    let systemPrompt = fs.readFileSync(systemPath, "utf-8").trim();
     systemPrompt = processSnippets(systemPrompt);
 
-    const userPath = path.join(promptDir, 'user.md');
-    let userPromptTemplate = '';
+    const userPath = path.join(promptDir, "user.md");
+    let userPromptTemplate = "";
     try {
-      userPromptTemplate = fs.readFileSync(userPath, 'utf-8').trim();
+      userPromptTemplate = fs.readFileSync(userPath, "utf-8").trim();
       userPromptTemplate = processSnippets(userPromptTemplate);
     } catch {
       // user.md is optional
@@ -81,7 +88,7 @@ export function interpolateVariables(template: string, variables: Record<string,
   return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
     const value = variables[key];
     if (value === undefined) return match;
-    if (typeof value === 'object') return JSON.stringify(value, null, 2);
+    if (typeof value === "object") return JSON.stringify(value, null, 2);
     return String(value);
   });
 }
@@ -91,7 +98,7 @@ export function interpolateVariables(template: string, variables: Record<string,
  */
 export function buildPrompt(
   promptId: PromptId,
-  variables: Record<string, unknown>,
+  variables: Record<string, unknown>
 ): { system: string; user: string } | null {
   const prompt = loadPrompt(promptId);
   if (!prompt) return null;

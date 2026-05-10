@@ -1,10 +1,12 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
+import { GradingRequestSchema, GradingHistoryRequestSchema } from "../../shared/grading-schema";
 import {
-  GradingRequestSchema,
-  GradingHistoryRequestSchema,
-} from "../../shared/grading-schema";
-import { gradeSubmission, getGradingResult, getGradingHistory, regradeSubmission } from "../services/gradingService";
+  gradeSubmission,
+  getGradingResult,
+  getGradingHistory,
+  regradeSubmission,
+} from "../services/gradingService";
 import { MongoGradingResult } from "../../shared/mongo-schema";
 import { authenticateToken } from "../routes";
 import { logger } from "../lib/logger";

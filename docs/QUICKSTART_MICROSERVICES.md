@@ -77,6 +77,7 @@ curl http://localhost:7070/health      # IniClaw (local dev gateway)
 ## 📋 What Was Set Up
 
 ### Docker Compose
+
 - **EduAI** (React + Express + native Study Arena) on port 5001
 - **OpenMAIC** (Next.js companion UI — optional) on port 3000
 - **IniClaw** (`services/iniclaw` — production gateway) on port 4000
@@ -87,16 +88,19 @@ curl http://localhost:7070/health      # IniClaw (local dev gateway)
 - **Nginx** reverse proxy on port 80
 
 ### Authentication Bridge
+
 - Firebase JWT tokens validated by EduAI
 - OpenMAIC session tokens generated for secure classroom access
 - Automatic user sync between Firebase and MongoDB
 
 ### Webhook Integration
+
 - OpenMAIC sends lesson completion events to EduAI
 - Quiz results stored in MongoDB
 - Analytics tracked for study plan generation
 
 ### Reverse Proxy Routing
+
 - `/` → EduAI main app
 - `/api/*` → EduAI backend
 - `/arena/*` → OpenMAIC classroom
@@ -182,6 +186,7 @@ PORT=5002 docker compose up
 ## 📚 Full Documentation
 
 See `docs/MICROSERVICES_INTEGRATION.md` for:
+
 - Complete architecture overview
 - Phase-by-phase implementation guide
 - API endpoint documentation

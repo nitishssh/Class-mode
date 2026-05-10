@@ -9,6 +9,7 @@ This document describes the AI Classroom feature in PersonalLearningPro, powered
 The Study Arena generates immersive, multi-agent AI classroom experiences entirely within the PersonalLearningPro server stack. No external process or Docker container is required for classroom generation.
 
 Features:
+
 - Interactive slides with AI teacher and assistant agents
 - Quizzes with real-time feedback
 - Sandboxed HTML/JS simulations
@@ -45,6 +46,7 @@ GET /api/ai-classroom/health
 ```
 
 No authentication required. Returns:
+
 ```json
 { "available": true, "status": "healthy", "service": "study-arena-native" }
 ```
@@ -64,6 +66,7 @@ Content-Type: application/json
 ```
 
 Returns `202 Accepted` immediately:
+
 ```json
 { "jobId": "abc123", "status": "generating", "message": "Classroom generation started (Native)" }
 ```
@@ -104,9 +107,7 @@ Authorization: Bearer <jwt>
 
 ```json
 {
-  "classrooms": [
-    { "id": 1, "topic": "Quantum Physics", "status": "ready", "createdAt": "..." }
-  ],
+  "classrooms": [{ "id": 1, "topic": "Quantum Physics", "status": "ready", "createdAt": "..." }],
   "total": 1
 }
 ```
@@ -157,6 +158,7 @@ Streams `text/event-stream` events with agent dialogue.
 IniClaw (`features/ai-classroom/ini_claw/`) is a **lightweight Node.js LLM proxy** — zero npm dependencies, pure built-in modules.
 
 It provides:
+
 - Bearer token auth (`BRIDGE_SECRET`)
 - Concurrency semaphore (`INICLAW_MAX_CONCURRENT`, default 3)
 - Rotating audit log (`.classroom-cache/audit.jsonl`)
@@ -164,13 +166,13 @@ It provides:
 
 ### Gateway Routes
 
-| Route | Purpose | Timeout |
-|---|---|---|
-| `GET /health` | Health check | — |
-| `POST /classroom/generate` | Full lesson generation | 5 min |
-| `POST /classroom/quiz` | Quiz-only generation | 2 min |
-| `POST /classroom/slides` | Slides-only generation | 2 min |
-| `POST /tutor/chat` | Real-time tutor chat | 1 min |
+| Route                      | Purpose                | Timeout |
+| -------------------------- | ---------------------- | ------- |
+| `GET /health`              | Health check           | —       |
+| `POST /classroom/generate` | Full lesson generation | 5 min   |
+| `POST /classroom/quiz`     | Quiz-only generation   | 2 min   |
+| `POST /classroom/slides`   | Slides-only generation | 2 min   |
+| `POST /tutor/chat`         | Real-time tutor chat   | 1 min   |
 
 ### Running Locally
 
@@ -181,16 +183,16 @@ BRIDGE_SECRET=<your-secret> INICLAW_PORT=7070 node gateway.js
 
 ### Environment Variables
 
-| Variable | Default | Description |
-|---|---|---|
-| `BRIDGE_SECRET` | *(required)* | Bearer token for auth |
-| `INICLAW_PORT` | `7070` | Port to listen on |
-| `INICLAW_MAX_CONCURRENT` | `3` | Max simultaneous LLM calls |
-| `INICLAW_MAX_BODY_MB` | `4` | Max request body size |
-| `INICLAW_MAX_OUTPUT_MB` | `32` | Max LLM response size |
-| `OPENAI_API_KEY` | — | OpenAI provider |
-| `GOOGLE_API_KEY` | — | Gemini provider (tried first) |
-| `ANTHROPIC_API_KEY` | — | Anthropic provider (fallback) |
+| Variable                 | Default      | Description                   |
+| ------------------------ | ------------ | ----------------------------- |
+| `BRIDGE_SECRET`          | _(required)_ | Bearer token for auth         |
+| `INICLAW_PORT`           | `7070`       | Port to listen on             |
+| `INICLAW_MAX_CONCURRENT` | `3`          | Max simultaneous LLM calls    |
+| `INICLAW_MAX_BODY_MB`    | `4`          | Max request body size         |
+| `INICLAW_MAX_OUTPUT_MB`  | `32`         | Max LLM response size         |
+| `OPENAI_API_KEY`         | —            | OpenAI provider               |
+| `GOOGLE_API_KEY`         | —            | Gemini provider (tried first) |
+| `ANTHROPIC_API_KEY`      | —            | Anthropic provider (fallback) |
 
 At least one LLM API key must be set.
 
@@ -216,12 +218,12 @@ Network access for IniClaw agents is defined in `features/ai-classroom/ini_claw/
 
 ```yaml
 network_policies:
-  - host: api.openai.com         # OpenAI
-  - host: generativelanguage.googleapis.com  # Gemini
-  - host: api.anthropic.com      # Anthropic
+  - host: api.openai.com # OpenAI
+  - host: generativelanguage.googleapis.com # Gemini
+  - host: api.anthropic.com # Anthropic
 
 filesystem_policies:
-  - path: .classroom-cache       # audit log + artifacts
+  - path: .classroom-cache # audit log + artifacts
     mode: rw
 ```
 
@@ -246,6 +248,7 @@ ANTHROPIC_API_KEY=...
 Navigate to `/ai-classroom` in the app to access the AI Classroom interface.
 
 Features:
+
 - Create full classroom experiences
 - Real-time generation progress bar
 - Interactive quizzes with AI feedback

@@ -27,8 +27,8 @@ vi.mock("../../shared/mongo-schema", () => {
         status: "ready",
         url: "http://localhost:3000/classroom/class_1",
         createdAt: new Date(),
-      }
-    ])
+      },
+    ]),
   });
   MockAIClassroom.findOneAndUpdate = vi.fn().mockResolvedValue(true);
 
@@ -41,7 +41,7 @@ vi.mock("../../shared/mongo-schema", () => {
         email: "test@test.com",
         role: "student",
         save: vi.fn().mockResolvedValue(true),
-      })
+      }),
     },
     MongoWorkspace: { findOne: vi.fn() },
     MongoChannel: { findOne: vi.fn() },
@@ -116,7 +116,7 @@ describe("AI Classroom Routes", () => {
         saveUninitialized: false,
       })
     );
-    
+
     // Inject mock user into session
     app.use((req, res, next) => {
       req.session.userId = 1;
@@ -131,7 +131,9 @@ describe("AI Classroom Routes", () => {
   });
 
   it("should submit a classroom generation job and return jobId", async () => {
-    (verifyFirebaseToken as unknown as { mockResolvedValue: (val: unknown) => void }).mockResolvedValue({
+    (
+      verifyFirebaseToken as unknown as { mockResolvedValue: (val: unknown) => void }
+    ).mockResolvedValue({
       uid: "uid123",
       email: "test@test.com",
       role: "student",
@@ -142,7 +144,7 @@ describe("AI Classroom Routes", () => {
       .set("Authorization", "Bearer valid_token")
       .send({
         topic: "Artificial Intelligence",
-        sceneTypes: ["slides", "quiz"]
+        sceneTypes: ["slides", "quiz"],
       });
 
     expect(res.status).toBe(202);
@@ -151,7 +153,9 @@ describe("AI Classroom Routes", () => {
   });
 
   it("should poll job status", async () => {
-    (verifyFirebaseToken as unknown as { mockResolvedValue: (val: unknown) => void }).mockResolvedValue({
+    (
+      verifyFirebaseToken as unknown as { mockResolvedValue: (val: unknown) => void }
+    ).mockResolvedValue({
       uid: "uid123",
       email: "test@test.com",
       role: "student",
@@ -168,7 +172,9 @@ describe("AI Classroom Routes", () => {
   });
 
   it("should fetch user classrooms", async () => {
-    (verifyFirebaseToken as unknown as { mockResolvedValue: (val: unknown) => void }).mockResolvedValue({
+    (
+      verifyFirebaseToken as unknown as { mockResolvedValue: (val: unknown) => void }
+    ).mockResolvedValue({
       uid: "uid123",
       email: "test@test.com",
       role: "student",

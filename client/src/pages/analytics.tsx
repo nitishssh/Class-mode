@@ -21,25 +21,17 @@ import {
   ResponsiveContainer,
   Legend,
   Tooltip,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
 } from "recharts";
 import {
   TrendingUp,
   Users,
   Brain,
-  BookOpen,
   BarChart3,
   Sparkles,
-  Lightbulb,
   Target,
   AlertCircle,
   ArrowUpRight,
   ArrowDownRight,
-  CheckCircle2,
   Loader2,
 } from "lucide-react";
 
@@ -93,7 +85,7 @@ export default function Analytics() {
   });
 
   // Fetch real analytics data
-  const { data: analyticsData } = useQuery<Array<{ subject: string; avgScore: number }>>({
+  useQuery<Array<{ subject: string; avgScore: number }>>({
     queryKey: ["/api/analytics/student", studentId],
     queryFn: () => apiRequest("GET", `/api/analytics/student/${studentId}`).then((r) => r.json()),
     enabled: !!studentId && currentUser?.profile?.role === "student",
@@ -349,7 +341,7 @@ export default function Analytics() {
                     Overall Summary
                   </h4>
                   <p className="text-xs italic leading-relaxed text-muted-foreground">
-                    "{analysis.summary}"
+                    &quot;{analysis.summary}&quot;
                   </p>
                 </div>
 

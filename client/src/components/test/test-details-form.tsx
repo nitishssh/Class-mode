@@ -45,7 +45,7 @@ type TestFormValues = z.infer<typeof testSchema>;
 export function TestDetailsForm() {
   const { toast } = useToast();
   const { currentUser } = useFirebaseAuth();
-  const [_, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
 
   const { data: teacherSubjects = [] } = useQuery<string[]>({
     queryKey: ["/api/teacher/subjects"],

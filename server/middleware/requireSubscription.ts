@@ -42,7 +42,10 @@ export function requireSubscription(minTier: "pro" | "educator" | "institution")
 /**
  * Check if a specific feature is available for the user's tier.
  */
-export function checkFeatureAccess(userTier: string, feature: "aiTutor" | "tasks" | "storage"): { allowed: boolean; limit: number } {
+export function checkFeatureAccess(
+  userTier: string,
+  feature: "aiTutor" | "tasks" | "storage"
+): { allowed: boolean; limit: number } {
   const limits: Record<string, { aiTutor: number; tasks: number; storage: number }> = {
     free: { aiTutor: 3, tasks: 10, storage: 100 * 1024 * 1024 },
     pro: { aiTutor: -1, tasks: -1, storage: 5 * 1024 * 1024 * 1024 },

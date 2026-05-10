@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { Home, BookOpen, FileText, BarChart2, MessageSquare, UserCircle } from "lucide-react";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";

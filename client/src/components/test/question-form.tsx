@@ -5,7 +5,7 @@ import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { PlusCircle, X, Trash2, Sparkles, Brain, Loader2 } from "lucide-react";
+import { PlusCircle, X, Trash2, Sparkles, Loader2 } from "lucide-react";
 
 import {
   Form,
@@ -112,7 +112,7 @@ export function QuestionForm({ testId, order, onSuccess }: QuestionFormProps) {
       queryClient.invalidateQueries({ queryKey: [`/api/tests/${testId}/questions`] });
       if (onSuccess) onSuccess();
       setShowAiGen(false);
-    } catch (error) {
+    } catch {
       toast({
         title: "Generation Failed",
         description: "Could not generate valid questions. Try again.",

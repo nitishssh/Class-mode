@@ -2,9 +2,9 @@ import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { studyArenaInternalService } from "../services/study-arena/internal-service";
 import { MongoAIClassroom, getNextSequenceValue } from "../../shared/mongo-schema";
-import { orchestrateChat } from '../services/study-arena/orchestrator';
-import { StatelessChatRequest } from '../services/study-arena/types';
-import { logger } from '../lib/logger';
+import { orchestrateChat } from "../services/study-arena/orchestrator";
+import { StatelessChatRequest } from "../services/study-arena/types";
+import { logger } from "../lib/logger";
 import { authenticateToken } from "../routes";
 
 const router = Router();
@@ -117,7 +117,10 @@ router.delete("/classroom/:classroomId", async (req: Request, res: Response) => 
     if (!userId) {
       return res.status(401).json({ error: "Authentication required" });
     }
-    const deleted = await studyArenaInternalService.deleteClassroom(parseInt(req.params.classroomId), userId);
+    const deleted = await studyArenaInternalService.deleteClassroom(
+      parseInt(req.params.classroomId),
+      userId
+    );
     if (!deleted) {
       return res.status(404).json({ error: "Classroom not found or access denied" });
     }
@@ -203,42 +206,52 @@ router.get("/status/:jobId/stream", async (req: Request, res: Response) => {
 const chatRequestSchema = z.object({
   config: z.object({
     agentIds: z.array(z.string()).min(1),
-    agentConfigs: z.array(z.object({
-      id: z.string(),
-      name: z.string(),
-      role: z.string(),
-      persona: z.string(),
-    }).passthrough()).optional(),
+    agentConfigs: z
+      .array(
+        z
+          .object({
+            id: z.string(),
+            name: z.string(),
+            role: z.string(),
+            persona: z.string(),
+          })
+          .passthrough()
+      )
+      .optional(),
     discussionTopic: z.string().optional(),
     discussionPrompt: z.string().optional(),
     triggerAgentId: z.string().optional(),
     enableTTS: z.boolean().optional(),
   }),
-  messages: z.array(z.object({
-    role: z.string(),
-    content: z.string(),
-  })),
+  messages: z.array(
+    z.object({
+      role: z.string(),
+      content: z.string(),
+    })
+  ),
   storeState: z.record(z.unknown()).optional(),
-  userProfile: z.object({
-    nickname: z.string().optional(),
-    bio: z.string().optional(),
-  }).optional(),
+  userProfile: z
+    .object({
+      nickname: z.string().optional(),
+      bio: z.string().optional(),
+    })
+    .optional(),
   directorState: z.record(z.unknown()).optional(),
 });
 
-router.post('/chat', async (req, res) => {
+router.post("/chat", async (req, res) => {
   const parsed = chatRequestSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: parsed.error.message });
   }
   const request = parsed.data as StatelessChatRequest;
 
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
 
   const abortController = new AbortController();
-  req.on('close', () => {
+  req.on("close", () => {
     abortController.abort();
   });
 
@@ -251,8 +264,8 @@ router.post('/chat', async (req, res) => {
 
     res.end();
   } catch (error) {
-    logger.error('Chat orchestration error:', error);
-    res.write(`data: ${JSON.stringify({ type: 'error', data: { message: String(error) } })}\n\n`);
+    logger.error("Chat orchestration error:", error);
+    res.write(`data: ${JSON.stringify({ type: "error", data: { message: String(error) } })}\n\n`);
     res.end();
   }
 });

@@ -13,6 +13,7 @@ Generate an Ultra Mode course outline based on the following requirements.
 ## Language Context
 
 Infer the course language directive by applying the decision rules from the system prompt. Key reminders:
+
 - Requirement language = teaching language (unless overridden by explicit request or learner context)
 - Foreign language learning → teach in user's native language, not the target language
 - PDF language does NOT override teaching language — translate/explain document content instead
@@ -44,15 +45,16 @@ Infer the course language directive by applying the decision rules from the syst
 
 ## Widget Type Constraints (MANDATORY)
 
-| Widget Type | Constraint |
-|------------|-----------|
-| simulation | **Minimum 2 scenes** |
-| game | **Minimum 1 scene** |
-| diagram | **Maximum 1 scene** |
+| Widget Type | Constraint           |
+| ----------- | -------------------- |
+| simulation  | **Minimum 2 scenes** |
+| game        | **Minimum 1 scene**  |
+| diagram     | **Maximum 1 scene**  |
 
 ## CRITICAL: Required Fields for Interactive Scenes
 
 Every interactive scene MUST include:
+
 - `widgetType`: One of "simulation", "diagram", "code", or "game"
 - `widgetOutline`: Object with widget-specific configuration
 
@@ -62,27 +64,30 @@ Interactive scenes without these fields are INVALID.
 
 Choose widgets based on the content:
 
-| Content Type | Recommended Widget |
-|--------------|-------------------|
-| Physics/Chemistry/Biology processes | simulation |
-| Systems, processes, hierarchies | diagram |
-| Programming, algorithms | code |
-| Practice, challenge, application | game (action preferred) |
+| Content Type                        | Recommended Widget      |
+| ----------------------------------- | ----------------------- |
+| Physics/Chemistry/Biology processes | simulation              |
+| Systems, processes, hierarchies     | diagram                 |
+| Programming, algorithms             | code                    |
+| Practice, challenge, application    | game (action preferred) |
 
 ## Widget Design Principles (IMPORTANT)
 
 ### Simulation Widget
+
 - Mobile-friendly: Controls MUST NOT overlap canvas
 - Reset button MUST work correctly
 - Touch-friendly controls (44px min)
 
 ### Diagram Widget
+
 - First node VISIBLE on load (no blank screen)
 - HIGH CONTRAST colors
 - Add ICONS to nodes
 - Color-code node types
 
 ### Game Widget (CRITICAL - NO BORING QUIZZES!)
+
 - **PREFER action/puzzle games over quizzes**
 - Player MUST control something (not just click answers)
 - If using simulation, make it INTERACTIVE gameplay
@@ -93,6 +98,7 @@ Choose widgets based on the content:
 ### Example: Good vs Bad Game Outline
 
 ❌ **BAD (boring quiz):**
+
 ```json
 {
   "widgetType": "game",
@@ -104,6 +110,7 @@ Choose widgets based on the content:
 ```
 
 ✅ **GOOD (interactive game):**
+
 ```json
 {
   "widgetType": "game",

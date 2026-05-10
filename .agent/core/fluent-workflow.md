@@ -27,6 +27,7 @@ Each phase runs autonomously. State lives on disk, not in context. Each iteratio
 **Purpose:** Define what success looks like before writing code.
 
 ### When to use
+
 - New features (3+ tasks)
 - Architecture changes (5+ files)
 - API contract changes
@@ -36,48 +37,63 @@ Each phase runs autonomously. State lives on disk, not in context. Each iteratio
 Create `.agent/memory/roadmap/{feature-name}/` with:
 
 **`requirements.md`**
+
 ```md
 # Feature: {Name}
+
 Goal: {single sentence}
 Stakeholders: {roles affected}
 Acceptance Criteria:
-- [ ] {criterion 1}  # Must be machine-verifiable (test, type, lint)
+
+- [ ] {criterion 1} # Must be machine-verifiable (test, type, lint)
 - [ ] {criterion 2}
-Out of scope: {what we're NOT doing}
-Dependencies: {related features or PRs}
+      Out of scope: {what we're NOT doing}
+      Dependencies: {related features or PRs}
 ```
 
 **`design.md`**
+
 ```md
 # Design: {Name}
+
 ## Data Model
+
 - {new/updated Zod schemas in shared/}
 
 ## API Contract
+
 - {endpoint, method, request/response shape}
 
 ## Component Tree
+
 - {new components and their data flow}
 
 ## State Machine
+
 - {loading → empty → error → success transitions}
 - {role-based access guards}
 ```
 
 **`tasks.md`**
+
 ```md
 # Tasks: {Name}
+
 Backpressure: npm run check && npm run lint && npm test && npm run build
 
 ## Phase 1: {dependency-first area}
-- [ ] {task}  # Estimated: {time}, Verifies: {test/type/lint}
+
+- [ ] {task} # Estimated: {time}, Verifies: {test/type/lint}
 ```
+
 Rules:
+
 - Tasks must be completable in 1 session (15-60 min)
 - Each task must have a machine-verifiable completion signal
 - Order by dependency graph, not priority
 
 ### For bug fixes (skip SPECIFY)
+
 Write a concise commit message with root cause analysis instead.
 
 ---
@@ -90,14 +106,19 @@ The agent reads `requirements.md` + `design.md` and produces `IMPLEMENTATION_PLA
 
 ```md
 # Implementation Plan
+
 ## Task Queue (priority order)
+
 1. {task} → {files to touch} → {verification}
 2. {task} → {files to touch} → {verification}
+
 ## Risk Areas
+
 - {areas where things might go wrong}
 ```
 
 **Rules:**
+
 - Plan is **disposable** — regenerate if stale
 - No code written in this phase
 - Plan lives on disk (not in context)
@@ -139,6 +160,7 @@ The agent reads `requirements.md` + `design.md` and produces `IMPLEMENTATION_PLA
 6. **PASS?** — Mark task done in `IMPLEMENTATION_PLAN.md`, move to next task
 
 ### Backpressure chain
+
 ```
 TypeScript errors  ──▶  block (fix types)
        │
@@ -154,6 +176,7 @@ Build failures     ──▶  block (fix build)
 ```
 
 ### Exit conditions
+
 - All tasks complete and verified → Phase 4
 - 3 consecutive task failures → STOP (flag for human review)
 - Max iterations exceeded → STOP (flag for human review)
@@ -181,26 +204,32 @@ npm run build          # Full production build
 **Purpose:** Human-in-the-loop at the merge point, not at every step.
 
 ### Create a review summary:
+
 ```md
 ## Summary
+
 - Feature: {name}
 - Tasks completed: {N}/{M}
 - Files changed: {list}
 - Verification: ✅ check | ✅ lint | ✅ test | ✅ build
 
 ## What was done
+
 1. {brief description of change}
 2. {brief description of change}
 
 ## What to watch
+
 - {potential concerns for reviewer}
 - {edge cases not covered}
 
 ## Test evidence
+
 - {test output summary}
 ```
 
 ### Rules
+
 - Human must approve before merge
 - Review is **holistic** — look at the whole diff, not incremental steps
 - Never skip Phase 4 before review
@@ -221,11 +250,11 @@ Small feature (1-3 files)    │ PLAN → EXECUTE → VERIFY → REVIEW
 Large feature (5+ files)     │ SPECIFY → PLAN → EXECUTE → VERIFY → REVIEW
                               │   (full 5-phase workflow)
                               │
-Architecture change          │ SPECIFY → PLAN → VERIFY(on empty) → 
+Architecture change          │ SPECIFY → PLAN → VERIFY(on empty) →
                               │   EXECUTE → VERIFY → REVIEW
                               │   (validate design before writing code)
                               │
-Refactoring (10+ files)      │ SPECIFY → PLAN → EXECUTE(per-module) → 
+Refactoring (10+ files)      │ SPECIFY → PLAN → EXECUTE(per-module) →
                               │   VERIFY → REVIEW
                               │   (one module at a time, verify each)
                               │
@@ -247,12 +276,12 @@ Emergency fix                │ EXECUTE → VERIFY → REVIEW
 
 ## Cost Guardrails
 
-| Guard | Limit | Action |
-|-------|-------|--------|
-| Retries per task | 3 | After 3 failures, flag for human |
-| Backpressure commands | 5s each | If command hangs, kill and retry |
-| Concurrent tasks | 1 | Serial execution per phase |
-| Plan freshness | 2 sessions | Regenerate plan if stale |
+| Guard                 | Limit      | Action                           |
+| --------------------- | ---------- | -------------------------------- |
+| Retries per task      | 3          | After 3 failures, flag for human |
+| Backpressure commands | 5s each    | If command hangs, kill and retry |
+| Concurrent tasks      | 1          | Serial execution per phase       |
+| Plan freshness        | 2 sessions | Regenerate plan if stale         |
 
 ## Failure Recovery
 

@@ -3,12 +3,14 @@
 ## Quick Start
 
 ### 1. Install Dependencies
+
 ```bash
 cd mobile
 npm install
 ```
 
 ### 2. Configure Environment
+
 ```bash
 # Copy the example env file
 cp .env.example .env
@@ -18,6 +20,7 @@ cp .env.example .env
 ```
 
 ### 3. Start Development Server
+
 ```bash
 npm start
 ```
@@ -25,15 +28,18 @@ npm start
 ### 4. Run on Device/Simulator
 
 #### Option A: Physical Device (Easiest)
+
 1. Install "Expo Go" app from App Store (iOS) or Play Store (Android)
 2. Scan the QR code shown in terminal
 3. App will load on your device
 
 #### Option B: iOS Simulator (macOS only)
+
 1. Press `i` in the terminal
 2. Simulator will open automatically
 
 #### Option C: Android Emulator
+
 1. Open Android Studio
 2. Start an emulator (AVD Manager)
 3. Press `a` in the terminal
@@ -75,17 +81,20 @@ EXPO_PUBLIC_WS_URL=ws://localhost:3000
 ## Testing the App
 
 ### 1. Test Authentication
+
 - Open the app
 - You should see the login screen
 - Try logging in with existing credentials from the web app
 - Or create a new account
 
 ### 2. Test Navigation
+
 - After login, you should see 4 tabs: Dashboard, Tasks, Messages, Profile
 - Navigate between tabs
 - Check that data loads correctly
 
 ### 3. Test Logout
+
 - Go to Profile tab
 - Tap "Logout"
 - You should be redirected to login screen
@@ -93,6 +102,7 @@ EXPO_PUBLIC_WS_URL=ws://localhost:3000
 ## Common Issues
 
 ### "Unable to resolve module"
+
 ```bash
 # Clear cache and reinstall
 rm -rf node_modules
@@ -101,15 +111,18 @@ npx expo start --clear
 ```
 
 ### "Network request failed"
+
 - Check that backend is running (`npm run dev` in project root)
 - Check API_URL in `.env` is correct
 - For physical device, make sure you're on the same WiFi network
 
 ### "Firebase not configured"
+
 - Make sure all `EXPO_PUBLIC_FIREBASE_*` variables are set in `.env`
 - Restart the Expo dev server after changing `.env`
 
 ### iOS Simulator not opening
+
 ```bash
 # Open manually
 open -a Simulator
@@ -118,6 +131,7 @@ open -a Simulator
 ```
 
 ### Android Emulator not detected
+
 ```bash
 # List available emulators
 emulator -list-avds
@@ -145,15 +159,18 @@ See `.agent/spec/react-native-migration/tasks.md` for the full implementation ro
 ## Development Tips
 
 ### Hot Reload
+
 - Changes to code will automatically reload the app
 - Shake device or press `Cmd+D` (iOS) / `Cmd+M` (Android) for dev menu
 
 ### Debugging
+
 - Use `console.log()` - output appears in terminal
 - Use React DevTools: `npx react-devtools`
 - Use Expo DevTools: Opens in browser when you run `npm start`
 
 ### Testing on Multiple Devices
+
 - Run `npm start`
 - Scan QR code on multiple devices
 - All will connect to the same dev server

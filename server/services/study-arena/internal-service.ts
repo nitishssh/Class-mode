@@ -1,9 +1,9 @@
 /**
  * Study Arena Internal Service — Job Queue + Persistence
- * 
+ *
  * Ported from features/ai-classroom/studyArena/lib/server/ job-runner + job-store.
  * Adapted to use MongoDB (MongoAIClassroom) instead of filesystem JSON storage.
- * 
+ *
  * Job lifecycle:
  *   createClassroom() → in-memory job (pending) → runGenerationJob() (async) → MongoDB
  */
@@ -51,7 +51,9 @@ function markStaleIfNeeded(job: JobStatus & { updatedAt: number }): JobStatus {
 function evictCompletedJobs() {
   if (jobs.size <= MAX_COMPLETED_JOBS) return;
   const completed: Array<[string, JobStatus & { updatedAt: number }]> = [];
-  jobs.forEach((v, k) => { if (v.done) completed.push([k, v]); });
+  jobs.forEach((v, k) => {
+    if (v.done) completed.push([k, v]);
+  });
   completed.sort((a, b) => a[1].updatedAt - b[1].updatedAt);
   const removeCount = completed.length - MAX_COMPLETED_JOBS;
   for (let i = 0; i < removeCount && i < completed.length; i++) {
@@ -97,7 +99,7 @@ export class StudyArenaService extends EventEmitter {
     jobId: string,
     requirement: string,
     teacherId: number,
-    signal: AbortSignal,
+    signal: AbortSignal
   ): Promise<void> {
     const updateJob = (updates: Partial<JobStatus>) => {
       const current = jobs.get(jobId);
@@ -123,7 +125,7 @@ export class StudyArenaService extends EventEmitter {
             totalScenes: progress.totalScenes,
           });
         },
-        signal,
+        signal
       );
 
       // Persist to MongoDB
@@ -138,7 +140,9 @@ export class StudyArenaService extends EventEmitter {
       });
       await classroom.save();
 
-      logger.info(`[StudyArena] Job ${jobId} completed. ClassroomId: ${id}, ${classroomData.scenes.length} scenes`);
+      logger.info(
+        `[StudyArena] Job ${jobId} completed. ClassroomId: ${id}, ${classroomData.scenes.length} scenes`
+      );
 
       updateJob({
         status: "succeeded",
@@ -168,10 +172,7 @@ export class StudyArenaService extends EventEmitter {
 
       // Try to update DB record if one was created
       try {
-        await MongoAIClassroom.findOneAndUpdate(
-          { studyArenaJobId: jobId },
-          { status: "error" },
-        );
+        await MongoAIClassroom.findOneAndUpdate({ studyArenaJobId: jobId }, { status: "error" });
       } catch {
         // Ignore — record might not exist yet
       }
@@ -224,13 +225,13 @@ export class StudyArenaService extends EventEmitter {
     return !!result;
   }
 
-  async listClassrooms(teacherId: number, limit: number = 20, offset: number = 0): Promise<{ classrooms: any[]; total: number }> {
+  async listClassrooms(
+    teacherId: number,
+    limit: number = 20,
+    offset: number = 0
+  ): Promise<{ classrooms: any[]; total: number }> {
     const [classrooms, total] = await Promise.all([
-      MongoAIClassroom.find({ teacherId })
-        .sort({ createdAt: -1 })
-        .skip(offset)
-        .limit(limit)
-        .lean(),
+      MongoAIClassroom.find({ teacherId }).sort({ createdAt: -1 }).skip(offset).limit(limit).lean(),
       MongoAIClassroom.countDocuments({ teacherId }),
     ]);
     return {

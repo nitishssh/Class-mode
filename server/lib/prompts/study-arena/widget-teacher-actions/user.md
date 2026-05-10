@@ -25,6 +25,7 @@ Generate teacher actions for this widget.
 Generate 3-7 teacher actions that guide the student through this widget.
 
 **IMPORTANT**:
+
 - For `setState` actions, use the EXACT variable names from the widget config above
 - For `highlight`/`annotation` targets, use selectors matching the element ID convention:
   - Sliders: `#{variable_name}-slider`

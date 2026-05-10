@@ -70,6 +70,7 @@ REFRESH_SECRET=
 5. Copy the config values into your `.env` file
 
 #### Databases
+
 1. **MongoDB**: Install locally or use [MongoDB Atlas](https://www.mongodb.com/cloud/atlas). Provide the connection string in `MONGODB_URL`.
 2. **Cassandra** (optional): For MessagePal chat history. Install locally or use DataStax Astra. The app works without it (chat history disabled).
 
@@ -100,39 +101,44 @@ The application will be available at: **[http://localhost:5001](http://localhost
 ## 5. Available Scripts
 
 ### Web App
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start the full app in development mode (port 5001) |
-| `npm run build` | Build for production (client + server) |
-| `npm run start` | Run the production build |
-| `npm run check` | Type-check TypeScript |
-| `npm test` | Run Vitest test suite |
-| `npm run lint` | Run ESLint |
-| `npm run format` | Format code with Prettier |
+
+| Command          | Description                                        |
+| ---------------- | -------------------------------------------------- |
+| `npm run dev`    | Start the full app in development mode (port 5001) |
+| `npm run build`  | Build for production (client + server)             |
+| `npm run start`  | Run the production build                           |
+| `npm run check`  | Type-check TypeScript                              |
+| `npm test`       | Run Vitest test suite                              |
+| `npm run lint`   | Run ESLint                                         |
+| `npm run format` | Format code with Prettier                          |
 
 ### Mobile App
-| Command | Description |
-|---------|-------------|
-| `cd mobile && npm start` | Start Expo development server |
-| `cd mobile && npm run android` | Run on Android |
-| `cd mobile && npm run ios` | Run on iOS |
-| `cd mobile && npm run type-check` | Type-check TypeScript |
+
+| Command                           | Description                   |
+| --------------------------------- | ----------------------------- |
+| `cd mobile && npm start`          | Start Expo development server |
+| `cd mobile && npm run android`    | Run on Android                |
+| `cd mobile && npm run ios`        | Run on iOS                    |
+| `cd mobile && npm run type-check` | Type-check TypeScript         |
 
 ## 6. Mobile App Setup (Optional)
 
 If you want to develop the mobile app:
 
 1. **Navigate to mobile directory:**
+
    ```bash
    cd mobile
    ```
 
 2. **Install dependencies:**
+
    ```bash
    npm install
    ```
 
 3. **Create environment file:**
+
    ```bash
    cp .env.example .env
    ```
@@ -140,6 +146,7 @@ If you want to develop the mobile app:
 4. **Update mobile `.env`** with the same Firebase credentials and API URL
 
 5. **Start Expo:**
+
    ```bash
    npm start
    ```
@@ -160,20 +167,20 @@ server/         → Express backend code
 shared/         → Shared types and schemas
 ```
 
-| Directory | Description |
-|-----------|-------------|
-| `client/src/components/` | React UI components (shadcn/ui based) |
-| `client/src/contexts/` | React context providers (auth, theme, chat) |
-| `client/src/pages/` | Page-level components |
-| `client/src/lib/` | Utilities, Firebase config, API helpers |
-| `mobile/app/` | Expo Router pages (auth, tabs, modals) |
-| `mobile/components/` | Mobile UI components |
-| `mobile/lib/` | Mobile utilities, API client, offline storage |
-| `server/lib/` | Server utilities (Gemini, Firebase Admin, mailer) |
-| `server/routes.ts` | All API route definitions |
-| `server/storage.ts` | Data storage (MongoDB + Cassandra) |
-| `shared/schema.ts` | Zod schema and type definitions |
-| `shared/mongo-schema.ts` | Mongoose models |
+| Directory                | Description                                       |
+| ------------------------ | ------------------------------------------------- |
+| `client/src/components/` | React UI components (shadcn/ui based)             |
+| `client/src/contexts/`   | React context providers (auth, theme, chat)       |
+| `client/src/pages/`      | Page-level components                             |
+| `client/src/lib/`        | Utilities, Firebase config, API helpers           |
+| `mobile/app/`            | Expo Router pages (auth, tabs, modals)            |
+| `mobile/components/`     | Mobile UI components                              |
+| `mobile/lib/`            | Mobile utilities, API client, offline storage     |
+| `server/lib/`            | Server utilities (Gemini, Firebase Admin, mailer) |
+| `server/routes.ts`       | All API route definitions                         |
+| `server/storage.ts`      | Data storage (MongoDB + Cassandra)                |
+| `shared/schema.ts`       | Zod schema and type definitions                   |
+| `shared/mongo-schema.ts` | Mongoose models                                   |
 
 ## Troubleshooting
 
@@ -202,11 +209,13 @@ npm install
 ```
 
 ### Database connection errors
+
 - Verify that MongoDB is running locally or that your remote connection string is correct
 - Double-check the username, password, and database name in your connection string
 - For Cassandra (optional): Ensure it's running if you want MessagePal chat history
 
 ### Mobile app not connecting to backend
+
 - If testing on a physical device, use your computer's local IP instead of `localhost`
 - Example: `EXPO_PUBLIC_API_URL=http://192.168.1.100:5001`
 - Ensure your firewall allows connections on port 5001

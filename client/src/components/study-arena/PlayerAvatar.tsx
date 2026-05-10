@@ -43,7 +43,6 @@ export function PlayerAvatar({
   };
 
   const hasCombo = statusEffects.some((s) => s.type === "combo");
-  const comboValue = statusEffects.find((s) => s.type === "combo")?.value;
 
   return (
     <motion.div

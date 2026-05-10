@@ -6,12 +6,8 @@ Generate a self-contained HTML diagram with connected nodes.
 
 ```json
 {
-  "nodes": [
-    { "id": "n1", "label": "Label", "icon": "🎯", "details": "Description" }
-  ],
-  "edges": [
-    { "from": "n1", "to": "n2", "label": "next" }
-  ],
+  "nodes": [{ "id": "n1", "label": "Label", "icon": "🎯", "details": "Description" }],
+  "edges": [{ "from": "n1", "to": "n2", "label": "next" }],
   "revealOrder": ["n1", "n2"]
 }
 ```
@@ -29,24 +25,29 @@ Generate a self-contained HTML diagram with connected nodes.
 ## Edge Connection Code
 
 ```javascript
-const NODE_WIDTH = 180, NODE_HEIGHT = 70, ARROW_OFFSET = 10;
+const NODE_WIDTH = 180,
+  NODE_HEIGHT = 70,
+  ARROW_OFFSET = 10;
 
 function getEdgePoints(from, to) {
-    const dx = to.x - from.x, dy = to.y - from.y;
-    let sx, sy, ex, ey;
+  const dx = to.x - from.x,
+    dy = to.y - from.y;
+  let sx, sy, ex, ey;
 
-    if (Math.abs(dy) > Math.abs(dx)) { // Vertical
-        sx = from.x;
-        sy = dy > 0 ? from.y + NODE_HEIGHT/2 : from.y - NODE_HEIGHT/2;
-        ex = to.x;
-        ey = dy > 0 ? to.y - NODE_HEIGHT/2 - ARROW_OFFSET : to.y + NODE_HEIGHT/2 + ARROW_OFFSET;
-    } else { // Horizontal
-        sx = dx > 0 ? from.x + NODE_WIDTH/2 : from.x - NODE_WIDTH/2;
-        sy = from.y;
-        ex = dx > 0 ? to.x - NODE_WIDTH/2 - ARROW_OFFSET : to.x + NODE_WIDTH/2 + ARROW_OFFSET;
-        ey = to.y;
-    }
-    return `M ${sx} ${sy} L ${ex} ${ey}`;
+  if (Math.abs(dy) > Math.abs(dx)) {
+    // Vertical
+    sx = from.x;
+    sy = dy > 0 ? from.y + NODE_HEIGHT / 2 : from.y - NODE_HEIGHT / 2;
+    ex = to.x;
+    ey = dy > 0 ? to.y - NODE_HEIGHT / 2 - ARROW_OFFSET : to.y + NODE_HEIGHT / 2 + ARROW_OFFSET;
+  } else {
+    // Horizontal
+    sx = dx > 0 ? from.x + NODE_WIDTH / 2 : from.x - NODE_WIDTH / 2;
+    sy = from.y;
+    ex = dx > 0 ? to.x - NODE_WIDTH / 2 - ARROW_OFFSET : to.x + NODE_WIDTH / 2 + ARROW_OFFSET;
+    ey = to.y;
+  }
+  return `M ${sx} ${sy} L ${ex} ${ey}`;
 }
 ```
 

@@ -253,8 +253,8 @@ export const ContactForm = () => {
               Book Your Digital Journey
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-muted-foreground md:text-xl">
-              Whether you&apos;re a student, teacher, or school — we&apos;d love to help you succeed. Fill out
-              the form and our team will reach out within 24 hours.
+              Whether you&apos;re a student, teacher, or school — we&apos;d love to help you
+              succeed. Fill out the form and our team will reach out within 24 hours.
             </p>
           </div>
 
