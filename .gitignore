@@ -1,17 +1,27 @@
-node_modules
-dist
+# Environment variables
+.env
+.env.staging
+.env.test
+.env.local
+.env.*.local
+
+# Mobile
+mobile/.env
+mobile/.env.*
+mobile/.expo/
+
+# Database config and keys
+config/*.zip
+firebase-keys.json
+service-account.json
+
+# Build and IDE
+node_modules/
+dist/
 .DS_Store
-server/public
+.vscode/
+.kiro
 vite.config.ts.*
 *.tar.gz
 server/.env.env
-.env
 GEMINI.md
-.vscode/
-.kiro
-
-# Mobile (React Native / Expo)
-mobile/.expo/
-mobile/dist/
-mobile/web-build/
-mobile/.env

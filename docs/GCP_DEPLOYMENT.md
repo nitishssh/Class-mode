@@ -144,10 +144,10 @@ Set these **Substitution Variables** in the Cloud Build trigger UI:
 
 | Variable | Value |
 |---|---|
-| `_VITE_FIREBASE_API_KEY` | `AIzaSyBHCf2BC00Ut4OsrTrIMww7AV9zD4Oex3c` |
-| `_VITE_FIREBASE_APP_ID` | `1:1022575342496:web:2ecf90f6851a3bc30beac5` |
-| `_VITE_FIREBASE_MESSAGING_SENDER_ID` | `1022575342496` |
-| `_VITE_FIREBASE_MEASUREMENT_ID` | `G-YLLQGR1V00` |
+| `_VITE_FIREBASE_API_KEY` | `YOUR_FIREBASE_API_KEY` |
+| `_VITE_FIREBASE_APP_ID` | `YOUR_FIREBASE_APP_ID` |
+| `_VITE_FIREBASE_MESSAGING_SENDER_ID` | `YOUR_FIREBASE_SENDER_ID` |
+| `_VITE_FIREBASE_MEASUREMENT_ID` | `` |
 
 `_VITE_FIREBASE_PROJECT_ID` is automatically set to `$PROJECT_ID` in `cloudbuild.yaml`.
 
@@ -159,13 +159,12 @@ cd PersonalLearningPro
 SHORT_SHA=$(git rev-parse --short HEAD)
 
 gcloud builds submit \
-  --project=plp-prod-2026 \
+  --project=your-project-id \
   --config=cloudbuild.yaml \
   --substitutions="SHORT_SHA=${SHORT_SHA},\
-_VITE_FIREBASE_API_KEY=AIzaSyBHCf2BC00Ut4OsrTrIMww7AV9zD4Oex3c,\
-_VITE_FIREBASE_APP_ID=1:1022575342496:web:2ecf90f6851a3bc30beac5,\
-_VITE_FIREBASE_MESSAGING_SENDER_ID=1022575342496,\
-_VITE_FIREBASE_MEASUREMENT_ID=G-YLLQGR1V00"
+_VITE_FIREBASE_API_KEY=YOUR_FIREBASE_API_KEY,\
+_VITE_FIREBASE_APP_ID=YOUR_FIREBASE_APP_ID,\
+_VITE_FIREBASE_MESSAGING_SENDER_ID=YOUR_FIREBASE_SENDER_ID"
 ```
 
 Or use the npm shortcut (requires the trigger substitution variables to be set):

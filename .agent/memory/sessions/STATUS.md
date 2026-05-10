@@ -1,6 +1,6 @@
 # Agent Status Dashboard
 
-**Last Updated:** 2026-05-07  
+**Last Updated:** 2026-05-10  
 **Repository:** PersonalLearningPro (EduAI)
 
 ---
@@ -11,9 +11,9 @@
 **Status:** COMPLETE (100%)  
 **Commit:** `2c90147`  
 **Files:**
-- `.agent/spec/sprint-4/requirements.md`
-- `.agent/spec/sprint-4/design.md`
-- `.agent/spec/sprint-4/tasks.md` ✅ Updated
+- `.agent/memory/roadmap/sprint-4/requirements.md`
+- `.agent/memory/roadmap/sprint-4/design.md`
+- `.agent/memory/roadmap/sprint-4/tasks.md`
 
 **Completion:**
 - AI Grading Engine: 7/7 tasks (100%)
@@ -28,9 +28,9 @@
 ### 2. AI Classroom Integration - Study Arena ✅
 **Status:** PHASES 1-2 COMPLETE, PHASE 3-4 PARTIAL  
 **Files:**
-- `.agent/spec/ai-classroom-integration/requirements.md`
-- `.agent/spec/ai-classroom-integration/design.md`
-- `.agent/spec/ai-classroom-integration/tasks.md` ✅ Updated
+- `.agent/memory/roadmap/ai-classroom-integration/requirements.md`
+- `.agent/memory/roadmap/ai-classroom-integration/design.md`
+- `.agent/memory/roadmap/ai-classroom-integration/tasks.md`
 
 **Completion:**
 - Phase 1 (Backend): 10/10 tasks (100%) ✅
@@ -40,22 +40,39 @@
 
 ---
 
-## 🗂️ Folder Structure
+## 🗂️ Agent Structure
 
 ```
 .agent/
-├── STATUS.md                    # This file
-├── skills/
-│   └── android-react-native.md  # Mobile dev skills
-└── spec/
-    ├── sprint-4/                # ✅ Complete
-    │   ├── requirements.md
-    │   ├── design.md
-    │   └── tasks.md
-    └── ai-classroom-integration/ # 🔄 Partial
-        ├── requirements.md
-        ├── design.md
-        └── tasks.md
+├── core/                          # Identity, principles, workflows
+│   ├── identity.md                # Agent role and personality
+│   ├── principles.md              # Coding constraints
+│   ├── workflows.md               # SOPs for common tasks
+│   ├── fluent-workflow.md         # 🆕 5-phase Fluent Agentic Workflow (FAW)
+│   ├── architecture.md            # Project architecture reference
+│   ├── planning.md                # Planning methodology
+│   └── memory.md                  # Memory management rules
+├── memory/
+│   ├── decisions/                 # ADRs (empty)
+│   ├── incidents/                 # Postmortems (empty)
+│   ├── research/                  # Research notes (empty)
+│   ├── roadmap/
+│   │   ├── sprint-4/              # ✅ Complete
+│   │   └── ai-classroom-integration/ # 🔄 Partial
+│   └── sessions/
+│       └── STATUS.md              # This file
+├── agents/                        # Specialized subagents
+├── commands/                      # Slash commands
+├── hooks/                         # Lifecycle automation
+├── orchestration/                 # Multi-agent coordination
+├── plugins/                       # External integrations
+├── rules/                         # Hard constraints
+├── skills/                        # Auto-loadable skills
+├── templates/                     # Document scaffolds
+├── datasets/                      # Structured knowledge
+├── evals/                         # Agent evaluation
+├── output-styles/                 # Formatting modes
+└── telemetry/                     # Runtime logging
 ```
 
 ---
@@ -82,3 +99,5 @@
 - Production build succeeds (2,486KB gzipped)
 - Removed redundant files: CLAUDE.md, GEMINI.md, QUICK_REFERENCE.md
 - CI/CD workflows active (`.github/workflows/ci.yml`, `cd.yml`)
+- `.agent/core/*.md` files populated on 2026-05-10
+- **Fluent Agentic Workflow (FAW)** designed and added as `fluent-workflow.md` — 5-phase loop: SPECIFY → PLAN → EXECUTE → VERIFY → REVIEW with backpressure gates

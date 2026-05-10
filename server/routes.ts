@@ -66,6 +66,9 @@ interface CustomJwtPayload extends jwt.JwtPayload {
 }
 
 const JWT_SECRET = process.env.JWT_SECRET || "super_secret_jwt_key_learning_pro_123";
+if (process.env.NODE_ENV === "production" && (!process.env.JWT_SECRET || process.env.JWT_SECRET === "super_secret_jwt_key_learning_pro_123")) {
+  throw new Error("A strong, unique JWT_SECRET environment variable is required in production.");
+}
 
 // Auth Middleware
 export async function authenticateToken(req: Request, res: Response, next: express.NextFunction) {

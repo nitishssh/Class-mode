@@ -37,31 +37,49 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // ── Security headers ──────────────────────────────────────────────────────────
-app.use(helmet({ contentSecurityPolicy: false })); // CSP handled by Vite in dev
+app.use(
+  helmet({
+    contentSecurityPolicy: process.env.NODE_ENV === "production" ? {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://apis.google.com", "https://www.gstatic.com"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        imgSrc: ["'self'", "data:", "https://firebasestorage.googleapis.com", "https://lh3.googleusercontent.com"],
+        connectSrc: ["'self'", "https://*.firebaseio.com", "https://*.googleapis.com", "https://*.run.app"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: [],
+      },
+    } : false, // CSP handled by Vite in dev
+  })
+);
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
 const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5001")
   .split(",")
   .map((o) => o.trim());
+
 app.use(
   cors({
     origin: (origin, cb) => {
       // Allow requests with no origin (same-origin requests, static files, etc.)
       if (!origin) return cb(null, true);
 
-      // Allow configured origins
+      // Check against configured allowed origins
       if (allowedOrigins.includes(origin)) return cb(null, true);
 
-      // In production, also allow the deployment domain
+      // In production, strictly only allow specified domain patterns
       if (process.env.NODE_ENV === "production") {
-        const url = new URL(origin);
-        if (
-          url.hostname.endsWith(".onrender.com") ||
-          url.hostname === "inmodel.in" ||
-          url.hostname.endsWith(".inmodel.in") ||
-          url.hostname.endsWith(".run.app")
-        ) {
-          return cb(null, true);
+        try {
+          const url = new URL(origin);
+          const isAllowedDomain = 
+            url.hostname === "eduai.app" || 
+            url.hostname === "inmodel.in" ||
+            (process.env.ALLOWED_PROD_DOMAINS?.split(",").includes(url.hostname));
+            
+          if (isAllowedDomain) return cb(null, true);
+        } catch (e) {
+          // Fall through to error
         }
       }
 
@@ -92,19 +110,20 @@ initCassandra();
 checkFirebaseAdminReadiness();
 
 // Set up session middleware
-if (!process.env.SESSION_SECRET && process.env.NODE_ENV === "production") {
-  throw new Error(
-    "SESSION_SECRET environment variable is required in production. Set it in your .env file."
-  );
+const SESSION_SECRET = process.env.SESSION_SECRET || "master-plan-ai-secret-key";
+if (process.env.NODE_ENV === "production" && (!process.env.SESSION_SECRET || process.env.SESSION_SECRET === "master-plan-ai-secret-key")) {
+  throw new Error("A strong, unique SESSION_SECRET environment variable is required in production.");
 }
 
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || "master-plan-ai-secret-key",
+    secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
       secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+      sameSite: "lax",
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
     },
     store: storage.sessionStore,
@@ -112,6 +131,16 @@ app.use(
 );
 
 app.use(logger.requestLogger);
+
+// ── Rate limiting (Additional) ───────────────────────────────────────────────
+app.use(
+  "/api/upload",
+  rateLimit({ windowMs: 15 * 60_000, max: 10, message: { error: "Too many uploads, please wait" } })
+);
+app.use(
+  "/api/ocr",
+  rateLimit({ windowMs: 60_000, max: 5, message: { error: "Too many OCR requests" } })
+);
 
 // ── DB health guard ───────────────────────────────────────────────────────────
 import { requireDb } from "./middleware";
