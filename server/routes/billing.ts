@@ -3,6 +3,7 @@ import { z } from "zod";
 import { MongoUser, MongoSubscription, getNextSequenceValue } from "../../shared/mongo-schema";
 import { authenticateToken } from "../routes";
 import { logger } from "../lib/logger";
+import StripeImport from "stripe";
 
 const router = Router();
 
@@ -16,8 +17,7 @@ const stripeEnabled =
 
 let stripe: any = null;
 if (stripeEnabled) {
-  const { default: Stripe } = await import("stripe");
-  stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: "2024-11-20" as any });
+  stripe = new StripeImport(STRIPE_SECRET_KEY, { apiVersion: "2024-11-20" as any });
 } else {
   logger.info("[Billing] Stripe not configured — billing endpoints will return 503.");
 }
@@ -64,10 +64,7 @@ router.get("/subscription", authenticateToken, async (req: Request, res: Respons
     const user = (req as any).user;
     if (!user?.id) return res.status(401).json({ error: "Authentication required" });
 
-    const [sub, userDoc] = await Promise.all([
-      MongoSubscription.findOne({ userId: user.id }),
-      MongoUser.findOne({ id: user.id }).select("role").lean(),
-    ]);
+    const sub = await MongoSubscription.findOne({ userId: user.id });
 
     const tier = sub?.tier || "free";
     const config = TIER_CONFIG[tier as keyof typeof TIER_CONFIG] || TIER_CONFIG.free;

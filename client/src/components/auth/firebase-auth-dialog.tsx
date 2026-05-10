@@ -45,7 +45,14 @@ const StudentBubble = ({
   delay = 0,
   initials,
   avatarSrc,
-}: any) => {
+}: {
+  color: string;
+  size?: number;
+  className?: string;
+  delay?: number;
+  initials?: string;
+  avatarSrc?: string;
+}) => {
   return (
     <motion.div
       className={`z-20 flex items-center justify-center overflow-hidden rounded-full border-2 border-card shadow-md ${className}`}
@@ -62,7 +69,14 @@ const StudentBubble = ({
   );
 };
 
-const FloatingCard = ({ title, subtitle, progress, tag, className = "", delay = 0 }: any) => {
+const FloatingCard = ({ title, subtitle, progress, tag, className = "", delay = 0 }: {
+  title: string;
+  subtitle?: string;
+  progress?: number;
+  tag?: string;
+  className?: string;
+  delay?: number;
+}) => {
   return (
     <motion.div
       className={`z-20 min-w-[160px] rounded-2xl bg-card px-5 py-4 shadow-lg shadow-foreground/5 ${className}`}
@@ -210,7 +224,7 @@ export function FirebaseAuthDialog() {
   const [isRegSubmitting, setIsRegSubmitting] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showConfirmPassword] = useState(false);
 
   const loginSchema = useMemo(
     () =>
@@ -314,6 +328,7 @@ export function FirebaseAuthDialog() {
       setIsLoginSubmitting(true);
       try {
         await login(data.email, data.password);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
         const code = error.code || "";
         const firebaseNotConfigured = error.message === "Firebase is not configured";
@@ -343,7 +358,7 @@ export function FirebaseAuthDialog() {
               setLoginError(errBody.message || "Invalid email or password.");
               return;
             }
-          } catch (_backendErr) {
+          } catch {
             setLoginError("Login failed. Please check your credentials and try again.");
             return;
           }
@@ -353,7 +368,7 @@ export function FirebaseAuthDialog() {
         setIsLoginSubmitting(false);
       }
     },
-    [login, loginSchema]
+    [login]
   );
 
   const onForgotPasswordSubmit = useCallback(async () => {
@@ -367,6 +382,7 @@ export function FirebaseAuthDialog() {
     try {
       await resetUserPassword(email);
       setResetEmailSent(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       setLoginError(error.message || "Failed to send reset email.");
     } finally {
@@ -374,6 +390,7 @@ export function FirebaseAuthDialog() {
     }
   }, [loginForm, resetUserPassword]);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const getRoleSpecificData = (role: string, data?: any) => {
     const subjectsArray = data?.subjects
       ? data.subjects.split(",").map((s: string) => s.trim())
@@ -400,6 +417,7 @@ export function FirebaseAuthDialog() {
       try {
         const additionalData = getRoleSpecificData(data.role, data);
         await register(data.email, data.password, data.name, data.role as UserRole, additionalData);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
         const code = error.code || "";
         const firebaseNotConfigured = error.message === "Firebase is not configured";
@@ -433,7 +451,7 @@ export function FirebaseAuthDialog() {
               setRegisterError(errBody.message || "Registration failed. Please try again.");
               return;
             }
-          } catch (_backendErr) {
+          } catch {
             setRegisterError("Registration failed. Please try again later.");
             return;
           }
@@ -443,7 +461,7 @@ export function FirebaseAuthDialog() {
         setIsRegSubmitting(false);
       }
     },
-    [register, registerSchema]
+    [register]
   );
 
   const onRoleSubmit = useCallback(
@@ -458,7 +476,7 @@ export function FirebaseAuthDialog() {
         console.error("Google registration completion failed:", error);
       }
     },
-    [tempGoogleUser, completeGoogleRegistration, roleSchema]
+    [tempGoogleUser, completeGoogleRegistration]
   );
 
   const handleGoogleLogin = useCallback(async () => {
@@ -471,6 +489,7 @@ export function FirebaseAuthDialog() {
         setIsNewGoogleUser(true);
         setTempGoogleUser(result.user);
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const msg = error.message || "Google login failed.";
       if (authTab === "login") setLoginError(msg);
@@ -667,7 +686,7 @@ export function FirebaseAuthDialog() {
                   </div>
                   <h3 className="text-lg font-medium">Check your email</h3>
                   <p className="text-sm text-muted-foreground">
-                    We've sent a password reset link to{" "}
+                    We&apos;ve sent a password reset link to{" "}
                     <span className="font-semibold text-foreground">
                       {loginForm.getValues("email")}
                     </span>

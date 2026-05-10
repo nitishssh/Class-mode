@@ -10,7 +10,6 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useTheme } from "@/contexts/theme-context";
 
 interface PerformanceData {
   subject: string;
@@ -19,9 +18,6 @@ interface PerformanceData {
 }
 
 export function PerformanceChart() {
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
-
   const { data, isLoading } = useQuery<PerformanceData[]>({
     queryKey: ["/api/class-performance"],
     enabled: false, // Disabled for now until API endpoint is implemented

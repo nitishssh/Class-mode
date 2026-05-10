@@ -93,8 +93,8 @@ export const Turbulence = () => {
             Studying in the <span className="text-red-500">Clouds?</span>
           </h2>
           <p className="text-lg leading-relaxed text-zinc-300 dark:text-muted-foreground md:text-xl">
-            Most students are studying blind. No plan, no feedback, just pure chaos. It's not that
-            you're not working hard—it's that your navigation system is broken.
+            Most students are studying blind. No plan, no feedback, just pure chaos. It&apos;s not that
+            you&apos;re not working hard—it&apos;s that your navigation system is broken.
           </p>
         </motion.div>
 
@@ -152,7 +152,7 @@ export const Journey = () => (
       >
         <h2 className="mb-3 text-3xl font-extrabold md:text-4xl">Your Strategic Navigator 🧭</h2>
         <p className="mx-auto max-w-xl text-lg text-muted-foreground">
-          We strip away the chaos. Here's your automated path from confusion to complete mastery.
+          We strip away the chaos. Here&apos;s your automated path from confusion to complete mastery.
         </p>
       </motion.div>
 
