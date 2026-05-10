@@ -1667,12 +1667,8 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
         const { classOrUser } = req.params;
 
         const allWorkspaces = await storage.getWorkspaces(req.session.userId);
-        let allChannels: Channel[] = [];
-
-        for (const ws of allWorkspaces) {
-          const wsChannels = await storage.getChannelsByWorkspace(ws.id);
-          allChannels = [...allChannels, ...wsChannels];
-        }
+        const workspaceIds = allWorkspaces.map(ws => ws.id);
+        const allChannels = await storage.getChannelsByWorkspaces(workspaceIds);
 
         const filtered = allChannels.filter(
           (c) =>
@@ -1968,11 +1964,8 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
 
       type ExtendedChannel = Channel & { category?: string, isReadOnly?: boolean };
       // Gather all channels across workspaces
-      let allChannels: ExtendedChannel[] = [];
-      for (const ws of workspaces) {
-        const channels = await storage.getChannelsByWorkspace(ws.id);
-        allChannels = [...allChannels, ...(channels as ExtendedChannel[])];
-      }
+      const workspaceIds = workspaces.map(ws => ws.id);
+      const allChannels = await storage.getChannelsByWorkspaces(workspaceIds) as ExtendedChannel[];
 
       // Role-based filtering
       const accessible = allChannels.filter((ch: ExtendedChannel) => {
