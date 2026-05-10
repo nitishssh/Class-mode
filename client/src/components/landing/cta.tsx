@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
@@ -215,7 +215,7 @@ export const Pricing = () => {
 export const ContactForm = () => {
   const [form, setForm] = useState({ name: "", email: "", phone: "", role: "", message: "" });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: any) => {
     e.preventDefault();
     if (!form.name.trim() || !form.email.trim()) {
       toast.error("Please fill in your name and email.");
@@ -253,7 +253,7 @@ export const ContactForm = () => {
               Book Your Digital Journey
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-muted-foreground md:text-xl">
-              Whether you're a student, teacher, or school — we'd love to help you succeed. Fill out
+              Whether you&apos;re a student, teacher, or school — we&apos;d love to help you succeed. Fill out
               the form and our team will reach out within 24 hours.
             </p>
           </div>
@@ -317,7 +317,7 @@ export const ContactForm = () => {
               Send Message
             </Button>
             <p className="text-center text-xs text-muted-foreground">
-              We won't share your data. Privacy first. 🔒
+              We won&apos;t share your data. Privacy first. 🔒
             </p>
           </motion.form>
         </div>
