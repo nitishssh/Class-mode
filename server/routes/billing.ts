@@ -26,9 +26,18 @@ if (stripeEnabled) {
 
 const TIER_CONFIG = {
   free: { priceId: "", limits: { aiTutor: 3, tasks: 10, storage: 100 * 1024 * 1024 } },
-  pro: { priceId: process.env.STRIPE_PRICE_PRO_ID || "", limits: { aiTutor: -1, tasks: -1, storage: 5 * 1024 * 1024 * 1024 } },
-  educator: { priceId: process.env.STRIPE_PRICE_EDUCATOR_ID || "", limits: { aiTutor: -1, tasks: -1, storage: 10 * 1024 * 1024 * 1024 } },
-  institution: { priceId: process.env.STRIPE_PRICE_INSTITUTION_ID || "", limits: { aiTutor: -1, tasks: -1, storage: 100 * 1024 * 1024 * 1024 } },
+  pro: {
+    priceId: process.env.STRIPE_PRICE_PRO_ID || "",
+    limits: { aiTutor: -1, tasks: -1, storage: 5 * 1024 * 1024 * 1024 },
+  },
+  educator: {
+    priceId: process.env.STRIPE_PRICE_EDUCATOR_ID || "",
+    limits: { aiTutor: -1, tasks: -1, storage: 10 * 1024 * 1024 * 1024 },
+  },
+  institution: {
+    priceId: process.env.STRIPE_PRICE_INSTITUTION_ID || "",
+    limits: { aiTutor: -1, tasks: -1, storage: 100 * 1024 * 1024 * 1024 },
+  },
 };
 
 // ─── Middleware: Require Active Subscription ─────────────────────
@@ -138,7 +147,8 @@ router.post("/checkout", authenticateToken, async (req: Request, res: Response) 
       customer: customerId,
       mode: "subscription",
       line_items: [{ price: config.priceId, quantity: 1 }],
-      success_url: successUrl || `${process.env.CLIENT_URL || "http://localhost:3000"}/billing/success`,
+      success_url:
+        successUrl || `${process.env.CLIENT_URL || "http://localhost:3000"}/billing/success`,
       cancel_url: cancelUrl || `${process.env.CLIENT_URL || "http://localhost:3000"}/pricing`,
       metadata: { userId: String(user.id), tier },
     });
@@ -160,7 +170,9 @@ router.get("/portal", authenticateToken, async (req: Request, res: Response) => 
 
     const sub = await MongoSubscription.findOne({ userId: user.id });
     if (!sub?.stripeCustomerId) {
-      return res.status(400).json({ error: "No Stripe customer found. Please create a subscription first." });
+      return res
+        .status(400)
+        .json({ error: "No Stripe customer found. Please create a subscription first." });
     }
 
     const portalSession = await stripe.billingPortal.sessions.create({

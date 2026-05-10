@@ -1,15 +1,19 @@
 Create an interactive diagram for: {{title}}
 
 ## Diagram Type
+
 {{diagramType}}
 
 ## Description
+
 {{description}}
 
 ## Key Points
+
 {{keyPoints}}
 
 ## Language
+
 {{languageDirective}}
 
 ---

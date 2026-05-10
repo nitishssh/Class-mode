@@ -4,13 +4,13 @@ Generate teacher action sequences for interactive widgets.
 
 ## Action Types
 
-| Type | Description | Usage |
-|------|-------------|-------|
-| `speech` | Voice narration | Explain concepts, give hints |
-| `highlight` | Spotlight element | Draw attention to UI elements |
-| `annotation` | Floating label | Point to specific parts |
-| `reveal` | Show hidden content | Progressive reveal |
-| `setState` | Set widget state | Demonstrate scenarios |
+| Type         | Description         | Usage                         |
+| ------------ | ------------------- | ----------------------------- |
+| `speech`     | Voice narration     | Explain concepts, give hints  |
+| `highlight`  | Spotlight element   | Draw attention to UI elements |
+| `annotation` | Floating label      | Point to specific parts       |
+| `reveal`     | Show hidden content | Progressive reveal            |
+| `setState`   | Set widget state    | Demonstrate scenarios         |
 
 ## Output Schema
 
@@ -46,24 +46,29 @@ Generate teacher action sequences for interactive widgets.
 ## Target Element ID Conventions
 
 For **simulation** widgets, use these selectors:
+
 - Sliders: `#{variable_name}-slider` (e.g., `#angle-slider`, `#velocity-slider`, `#mass-slider`)
 - Value displays: `#{variable_name}-display`
 - Buttons: `#start-btn`, `#reset-btn`, `#pause-btn`
 
 For **diagram** widgets, use:
+
 - Nodes: `#n1`, `#n2`, `#n3` (matching node IDs in config)
 - Edges: `#edge-n1-n2`
 
 For **game** widgets, use:
+
 - Game controls: `#game-container`, `#score-display`
 - Answer buttons: `.answer-btn`
 
 For **code** widgets, use:
+
 - Editor: `#code-editor`
 - Output: `#output-panel`
 - Test results: `#test-results`
 
 For **visualization3d** widgets, use:
+
 - Camera controls: `#camera-controls`
 - 3D objects: Use object ID directly (e.g., target: `"sun"`, `"earth"`, `"molecule_1"`)
 - Sliders: `#{param}-slider` (e.g., `#speed-slider`, `#scale-slider`)
@@ -101,6 +106,7 @@ For `setState` actions in 3D visualizations:
 ```
 
 For `highlight` actions on 3D objects, use the object ID:
+
 ```json
 {
   "id": "highlight_sun",

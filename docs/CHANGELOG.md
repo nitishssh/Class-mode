@@ -55,18 +55,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Blank white page** — Static assets (JS/CSS) were returning `500 application/json` because Vite's `crossorigin` attributes caused browsers to send `Origin` on every asset fetch, which the CORS middleware rejected. Fixed by adding `*.run.app` to the allowlist and updating `CORS_ORIGIN`.
 
 ### Added
+
 - **AI Classroom Features**: Enhanced classroom player with interactive quizzes, keyboard navigation, PBL (Project-Based Learning) support, and real-time SSE progress tracking.
 - **Job Management**: Implemented job cancellation via API and UI, including AbortSignal support during classroom generation.
 - **Whiteboard Integrations**: Added whiteboard clear/erase actions, limited ledger size, and incorporated UI controls for managing whiteboard state.
 - **API Enhancements**: Added endpoints for deleting classrooms, cancelling jobs, and pagination support for classroom listings.
 
 ### Fixed
+
 - **Memory Management**: Added maximum buffer size to the orchestrator chunk parser and limited whiteboard ledger size to prevent OOM errors.
 - **Generation Pipeline**: Implemented parallel scene generation, LLM timeouts, and HTML sanitization for stability.
 - **Background Tasks**: Implemented job cleanup and staleness tracking in the StudyArena service.
 - **Security & Authorization**: Fixed classroom access authorization and enforced authentication checks on the `my-classrooms` route.
 
 ### Changed
+
 - **Caching**: Implemented in-memory caching for study arena prompts and snippets.
 
 ## [1.1.0] - 2026-02-20

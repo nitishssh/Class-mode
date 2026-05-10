@@ -69,7 +69,14 @@ const StudentBubble = ({
   );
 };
 
-const FloatingCard = ({ title, subtitle, progress, tag, className = "", delay = 0 }: {
+const FloatingCard = ({
+  title,
+  subtitle,
+  progress,
+  tag,
+  className = "",
+  delay = 0,
+}: {
   title: string;
   subtitle?: string;
   progress?: number;
@@ -328,7 +335,7 @@ export function FirebaseAuthDialog() {
       setIsLoginSubmitting(true);
       try {
         await login(data.email, data.password);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
         const code = error.code || "";
         const firebaseNotConfigured = error.message === "Firebase is not configured";
@@ -382,7 +389,7 @@ export function FirebaseAuthDialog() {
     try {
       await resetUserPassword(email);
       setResetEmailSent(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       setLoginError(error.message || "Failed to send reset email.");
     } finally {
@@ -417,7 +424,7 @@ export function FirebaseAuthDialog() {
       try {
         const additionalData = getRoleSpecificData(data.role, data);
         await register(data.email, data.password, data.name, data.role as UserRole, additionalData);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
         const code = error.code || "";
         const firebaseNotConfigured = error.message === "Firebase is not configured";
@@ -489,7 +496,7 @@ export function FirebaseAuthDialog() {
         setIsNewGoogleUser(true);
         setTempGoogleUser(result.user);
       }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const msg = error.message || "Google login failed.";
       if (authTab === "login") setLoginError(msg);

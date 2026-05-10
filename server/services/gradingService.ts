@@ -5,8 +5,17 @@ import {
   Rubric,
 } from "../../shared/grading-schema";
 import { RubricCriterionSchema } from "../../shared/grading-schema";
-import { parseRubric, validateWeights, rubricToPrompt, normalizeToPercentage } from "../lib/rubricParser";
-import { buildGradingUserMessage, getSystemPrompt, getEssayFewShotExamples } from "../lib/prompts/grading";
+import {
+  parseRubric,
+  validateWeights,
+  rubricToPrompt,
+  normalizeToPercentage,
+} from "../lib/rubricParser";
+import {
+  buildGradingUserMessage,
+  getSystemPrompt,
+  getEssayFewShotExamples,
+} from "../lib/prompts/grading";
 import { MongoGradingResult, getNextSequenceValue } from "../../shared/mongo-schema";
 import { geminiChat } from "../lib/gemini";
 import { logger } from "../lib/logger";
@@ -16,9 +25,7 @@ const MODEL = "gemini-2.0-flash";
 /**
  * Main entry point: grade a submission using OpenAI GPT-4o.
  */
-export async function gradeSubmission(
-  request: GradingRequest
-): Promise<GradingResponse> {
+export async function gradeSubmission(request: GradingRequest): Promise<GradingResponse> {
   const startTime = Date.now();
 
   // 1. Parse and validate rubric
@@ -36,9 +43,13 @@ export async function gradeSubmission(
   });
 
   // 3. Build few-shot examples into the system prompt for essay grading
-  const fewShotSection = rubric.gradingType === "essay"
-    ? "\n\n" + getEssayFewShotExamples().map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join("\n\n")
-    : "";
+  const fewShotSection =
+    rubric.gradingType === "essay"
+      ? "\n\n" +
+        getEssayFewShotExamples()
+          .map((m: any) => `${m.role.toUpperCase()}: ${m.content}`)
+          .join("\n\n")
+      : "";
   const fullSystemPrompt = systemPrompt + fewShotSection;
 
   // 4. Call Gemini with JSON mode
@@ -133,15 +144,8 @@ export async function getGradingResult(submissionId: string) {
 /**
  * Get grading history for a student.
  */
-export async function getGradingHistory(
-  studentId: number,
-  limit = 20,
-  offset = 0
-) {
-  return MongoGradingResult.find({ studentId })
-    .sort({ createdAt: -1 })
-    .skip(offset)
-    .limit(limit);
+export async function getGradingHistory(studentId: number, limit = 20, offset = 0) {
+  return MongoGradingResult.find({ studentId }).sort({ createdAt: -1 }).skip(offset).limit(limit);
 }
 
 /**

@@ -33,6 +33,7 @@ Create a code playground widget for: {{title}}
 ---
 
 Generate a complete, interactive HTML code editor with:
+
 1. Code editor with syntax highlighting
 2. Run button with output display
 3. Test case validation

@@ -1,29 +1,29 @@
 /**
  * Director Graph — LangGraph StateGraph for Multi-Agent Orchestration
- * 
+ *
  * Ported and simplified for internal Study Arena service.
  */
 
-import { Annotation, StateGraph, START, END } from '@langchain/langgraph';
-import { SystemMessage, HumanMessage, AIMessage } from '@langchain/core/messages';
-import type { LangGraphRunnableConfig } from '@langchain/langgraph';
-import { 
-  StatelessEvent, 
-  StatelessChatRequest, 
-  AgentTurnSummary, 
+import { Annotation, StateGraph, START, END } from "@langchain/langgraph";
+import { SystemMessage, HumanMessage, AIMessage } from "@langchain/core/messages";
+import type { LangGraphRunnableConfig } from "@langchain/langgraph";
+import {
+  StatelessEvent,
+  StatelessChatRequest,
+  AgentTurnSummary,
   WhiteboardActionRecord,
-  AgentInfo 
-} from '@shared/study-arena';
+  AgentInfo,
+} from "@shared/study-arena";
 
-import { AISdkLangGraphAdapter } from './ai-sdk-adapter';
-import { GeminiLangGraphAdapter } from './gemini-adapter';
+import { AISdkLangGraphAdapter } from "./ai-sdk-adapter";
+import { GeminiLangGraphAdapter } from "./gemini-adapter";
 import {
   buildStructuredPrompt,
   summarizeConversation,
   convertMessagesToOpenAI,
-} from './prompt-builder';
-import { buildDirectorPrompt, parseDirectorDecision } from './director-prompt';
-import { createParserState, parseStructuredChunk } from './orchestrator';
+} from "./prompt-builder";
+import { buildDirectorPrompt, parseDirectorDecision } from "./director-prompt";
+import { createParserState, parseStructuredChunk } from "./orchestrator";
 
 // ==================== State Definition ====================
 
@@ -69,7 +69,7 @@ function getAdapter() {
 
 async function directorNode(
   state: OrchestratorStateType,
-  config: LangGraphRunnableConfig,
+  config: LangGraphRunnableConfig
 ): Promise<Partial<OrchestratorStateType>> {
   const write = config.writer as (chunk: StatelessEvent) => void;
   const isSingleAgent = state.availableAgentIds.length <= 1;
@@ -80,24 +80,24 @@ async function directorNode(
 
   // Single agent logic
   if (isSingleAgent) {
-    const agentId = state.availableAgentIds[0] || 'default';
+    const agentId = state.availableAgentIds[0] || "default";
     if (state.turnCount === 0) {
-      write({ type: 'thinking', data: { stage: 'agent_loading', agentId } });
+      write({ type: "thinking", data: { stage: "agent_loading", agentId } });
       return { currentAgentId: agentId, shouldEnd: false };
     }
-    write({ type: 'cue_user', data: { fromAgentId: agentId } });
+    write({ type: "cue_user", data: { fromAgentId: agentId } });
     return { shouldEnd: true };
   }
 
   // Multi agent: Turn 0 trigger
   if (state.turnCount === 0 && state.triggerAgentId) {
     const triggerId = state.triggerAgentId;
-    write({ type: 'thinking', data: { stage: 'agent_loading', agentId: triggerId } });
+    write({ type: "thinking", data: { stage: "agent_loading", agentId: triggerId } });
     return { currentAgentId: triggerId, shouldEnd: false };
   }
 
   // Multi agent: LLM-based decision
-  write({ type: 'thinking', data: { stage: 'director' } });
+  write({ type: "thinking", data: { stage: "director" } });
 
   const conversationSummary = summarizeConversation(state.messages);
   const prompt = buildDirectorPrompt(
@@ -109,7 +109,7 @@ async function directorNode(
     state.triggerAgentId,
     state.whiteboardLedger,
     state.userProfile || undefined,
-    state.storeState.whiteboardOpen,
+    state.storeState.whiteboardOpen
   );
 
   const adapter = getAdapter();
@@ -117,37 +117,37 @@ async function directorNode(
   try {
     const result = await adapter._generate([
       new SystemMessage(prompt),
-      new HumanMessage('Decide which agent should speak next.')
+      new HumanMessage("Decide which agent should speak next."),
     ]);
 
-    const decision = parseDirectorDecision(result.generations[0]?.text || '');
+    const decision = parseDirectorDecision(result.generations[0]?.text || "");
 
     if (decision.shouldEnd || !decision.nextAgentId) {
       return { shouldEnd: true };
     }
 
-    if (decision.nextAgentId === 'USER') {
-      write({ type: 'cue_user', data: { fromAgentId: state.currentAgentId || undefined } });
+    if (decision.nextAgentId === "USER") {
+      write({ type: "cue_user", data: { fromAgentId: state.currentAgentId || undefined } });
       return { shouldEnd: true };
     }
 
-    write({ type: 'thinking', data: { stage: 'agent_loading', agentId: decision.nextAgentId } });
+    write({ type: "thinking", data: { stage: "agent_loading", agentId: decision.nextAgentId } });
     return { currentAgentId: decision.nextAgentId, shouldEnd: false };
   } catch (error) {
-    console.error('[Director] Error:', error);
+    console.error("[Director] Error:", error);
     return { shouldEnd: true };
   }
 }
 
-function directorCondition(state: OrchestratorStateType): 'agent_generate' | typeof END {
-  return state.shouldEnd ? END : 'agent_generate';
+function directorCondition(state: OrchestratorStateType): "agent_generate" | typeof END {
+  return state.shouldEnd ? END : "agent_generate";
 }
 
 // ==================== Agent Generate Node ====================
 
 async function agentGenerateNode(
   state: OrchestratorStateType,
-  config: LangGraphRunnableConfig,
+  config: LangGraphRunnableConfig
 ): Promise<Partial<OrchestratorStateType>> {
   const agentId = state.currentAgentId;
   const agentConfig = state.agentConfigs[agentId!];
@@ -157,7 +157,7 @@ async function agentGenerateNode(
   const messageId = `msg-${Date.now()}`;
 
   write({
-    type: 'agent_start',
+    type: "agent_start",
     data: {
       messageId,
       agentId: agentId!,
@@ -174,59 +174,65 @@ async function agentGenerateNode(
     state.discussionContext || undefined,
     state.whiteboardLedger,
     state.userProfile || undefined,
-    state.agentResponses,
+    state.agentResponses
   );
 
   const openaiMessages = convertMessagesToOpenAI(state.messages, agentId!);
   const lcMessages = [
     new SystemMessage(systemPrompt),
-    ...openaiMessages.map(m => m.role === 'assistant' ? new AIMessage(m.content) : new HumanMessage(m.content))
+    ...openaiMessages.map((m) =>
+      m.role === "assistant" ? new AIMessage(m.content) : new HumanMessage(m.content)
+    ),
   ];
 
-  let fullText = '';
+  let fullText = "";
   let actionCount = 0;
   const whiteboardActions: WhiteboardActionRecord[] = [];
   const parserState = createParserState();
 
   try {
     for await (const chunk of adapter.streamGenerate(lcMessages)) {
-      if (chunk.type === 'delta') {
+      if (chunk.type === "delta") {
         const parseResult = parseStructuredChunk(chunk.content, parserState);
-        
+
         for (const entry of parseResult.ordered) {
-          if (entry.type === 'text') {
+          if (entry.type === "text") {
             const text = parseResult.textChunks[entry.index];
             fullText += text;
-            write({ type: 'text_delta', data: { content: text, messageId } });
-          } else if (entry.type === 'action') {
+            write({ type: "text_delta", data: { content: text, messageId } });
+          } else if (entry.type === "action") {
             const action = parseResult.actions[entry.index];
             actionCount++;
-            if (action.actionName.startsWith('wb_')) {
+            if (action.actionName.startsWith("wb_")) {
               whiteboardActions.push({
                 actionName: action.actionName,
                 agentId: agentId!,
                 agentName: agentConfig.name,
-                params: action.params
+                params: action.params,
               });
             }
             write({
-              type: 'action',
+              type: "action",
               data: {
                 actionId: action.actionId,
                 actionName: action.actionName,
                 params: action.params,
                 agentId: agentId!,
-                messageId
-              }
+                messageId,
+              },
             });
           }
         }
 
         // Handle trailing partial text
-        if (!parseResult.isDone && parseResult.textChunks.length > parseResult.ordered.filter(e => e.type === 'text').length) {
+        if (
+          !parseResult.isDone &&
+          parseResult.textChunks.length >
+            parseResult.ordered.filter((e) => e.type === "text").length
+        ) {
           const lastText = parseResult.textChunks[parseResult.textChunks.length - 1];
           fullText += lastText;
-          write({ type: 'text_delta', data: { content: lastText, messageId } });
+          write({ type: "text_delta", data: { content: lastText, messageId } });
         }
       }
     }
@@ -234,17 +240,19 @@ async function agentGenerateNode(
     console.error(`[AgentGenerate] Error for ${agentConfig.name}:`, error);
   }
 
-  write({ type: 'agent_end', data: { messageId, agentId: agentId! } });
+  write({ type: "agent_end", data: { messageId, agentId: agentId! } });
 
   return {
     turnCount: state.turnCount + 1,
-    agentResponses: [{
-      agentId: agentId!,
-      agentName: agentConfig.name,
-      contentPreview: fullText.slice(0, 200),
-      actionCount,
-      whiteboardActions,
-    }],
+    agentResponses: [
+      {
+        agentId: agentId!,
+        agentName: agentConfig.name,
+        contentPreview: fullText.slice(0, 200),
+        actionCount,
+        whiteboardActions,
+      },
+    ],
     currentAgentId: null,
   };
 }
@@ -253,21 +261,21 @@ async function agentGenerateNode(
 
 export function createOrchestrationGraph() {
   const graph = new StateGraph(OrchestratorState)
-    .addNode('director', directorNode)
-    .addNode('agent_generate', agentGenerateNode)
-    .addEdge(START, 'director')
-    .addConditionalEdges('director', directorCondition, {
-      agent_generate: 'agent_generate',
+    .addNode("director", directorNode)
+    .addNode("agent_generate", agentGenerateNode)
+    .addEdge(START, "director")
+    .addConditionalEdges("director", directorCondition, {
+      agent_generate: "agent_generate",
       [END]: END,
     })
-    .addEdge('agent_generate', 'director');
+    .addEdge("agent_generate", "director");
 
   return graph.compile();
 }
 
 export function buildInitialState(request: StatelessChatRequest): typeof OrchestratorState.State {
   const agentConfigs: Record<string, AgentInfo> = {};
-  request.config.agentConfigs?.forEach(a => agentConfigs[a.id] = a);
+  request.config.agentConfigs?.forEach((a) => (agentConfigs[a.id] = a));
 
   const turnCount = request.directorState?.turnCount ?? 0;
 
@@ -276,10 +284,12 @@ export function buildInitialState(request: StatelessChatRequest): typeof Orchest
     storeState: request.storeState,
     availableAgentIds: request.config.agentIds,
     maxTurns: turnCount + 1,
-    discussionContext: request.config.discussionTopic ? {
-      topic: request.config.discussionTopic,
-      prompt: request.config.discussionPrompt
-    } : null,
+    discussionContext: request.config.discussionTopic
+      ? {
+          topic: request.config.discussionTopic,
+          prompt: request.config.discussionPrompt,
+        }
+      : null,
     triggerAgentId: request.config.triggerAgentId || null,
     userProfile: request.userProfile || null,
     agentConfigs,

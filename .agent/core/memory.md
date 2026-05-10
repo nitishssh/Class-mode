@@ -1,6 +1,7 @@
 # Memory Management
 
 ## Purpose
+
 The `.agent/` directory serves as the agent's long-term memory — preserving context across sessions and enabling consistent decision-making.
 
 ## Structure
@@ -36,6 +37,7 @@ The `.agent/` directory serves as the agent's long-term memory — preserving co
 ```
 
 ## Memory Rules
+
 1. **Session start** — always read `memory/sessions/STATUS.md` to understand current state
 2. **After significant work** — update `memory/sessions/STATUS.md` with new completion status
 3. **Architecture decisions** — record in `memory/decisions/` with format: `YYYY-MM-DD-decision-title.md`
@@ -44,7 +46,9 @@ The `.agent/` directory serves as the agent's long-term memory — preserving co
 6. **Core files are static** — `core/*.md` should rarely change; they define persistent identity and rules
 
 ## STATUS.md Format
+
 Kept at `memory/sessions/STATUS.md`:
+
 - Active specifications and their completion status
 - Top-level project structure reference
 - Next steps (immediate and backlog)

@@ -1,13 +1,11 @@
 import { Link } from "wouter";
 import {
-  FileQuestion,
   ScanBarcode,
   BarChart3,
   PlusCircle,
   Sparkles,
   MessageSquare,
   Video,
-  BellRing,
   BookOpen,
   Brain,
   TrendingUp,
@@ -18,15 +16,11 @@ import { useQuery } from "@tanstack/react-query";
 
 import { QuickActionCard } from "@/components/dashboard/quick-action-card";
 import { RecentTestsTable } from "@/components/dashboard/recent-tests-table";
-import { TopStudents } from "@/components/dashboard/top-students";
 import { PerformanceChart } from "@/components/dashboard/performance-chart";
-import { ClassSchedule } from "@/components/dashboard/class-schedule";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Dashboard() {
   const { currentUser } = useFirebaseAuth();
@@ -156,7 +150,7 @@ export default function Dashboard() {
       </PageHeader>
 
       <section className="mb-10 grid grid-cols-2 gap-5 lg:grid-cols-4">
-        {statCards.map((stat, index) => (
+        {statCards.map((stat, _index) => (
           <Card
             key={stat.label}
             className="animate-fade-in-up border-border bg-card transition-all duration-300 hover:shadow-card"
@@ -283,7 +277,7 @@ export default function Dashboard() {
           <Card className="animate-fade-in-up border-border bg-card shadow-soft">
             <CardHeader className="border-b border-border pb-4">
               <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                Today's Live Classes
+                Today&apos;s Live Classes
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4">

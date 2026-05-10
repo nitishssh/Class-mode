@@ -20,7 +20,7 @@ export function validateWeights(criteria: RubricCriterion[]): void {
   if (Math.abs(sum - 1.0) > 0.01) {
     throw new Error(
       `Rubric weights must sum to 1.0, but got ${sum.toFixed(2)}. ` +
-      `Please adjust the weights of each criterion.`
+        `Please adjust the weights of each criterion.`
     );
   }
 }

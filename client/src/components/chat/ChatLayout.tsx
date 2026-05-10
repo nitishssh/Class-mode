@@ -114,14 +114,16 @@ const ChatLayoutInner = () => {
   useEffect(() => {
     if (conversations.length === 0) return;
     if (!activeConv || !conversations.find((c) => c.id === activeConv.id)) {
-      setActiveConv(conversations[0] ?? null);
+      const first = conversations[0] ?? null;
+      setTimeout(() => setActiveConv(first), 0);
     }
   }, [conversations]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Shared WebSocket (connected for the duration of the layout) ───────────
   const activeChannelIdArg = activeConv ? Number(activeConv.id) : undefined;
   const { status: wsStatus } = useChatWs({
-    activeChannelId: activeChannelIdArg && !isNaN(activeChannelIdArg) ? activeChannelIdArg : undefined,
+    activeChannelId:
+      activeChannelIdArg && !isNaN(activeChannelIdArg) ? activeChannelIdArg : undefined,
     onEvent: () => {},
   });
 

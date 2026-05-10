@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,6 @@ import { Separator } from "@/components/ui/separator";
 import {
   MessageCircle,
   Send,
-  Users,
   Search,
   MoreVertical,
   Check,
@@ -27,39 +26,13 @@ interface User {
   avatar?: string;
 }
 
-interface ConversationPreview {
-  id: string;
-  participants: User[];
-  lastMessage?: {
-    content: string;
-    timestamp: string;
-    senderName: string;
-  };
-  unreadCount: number;
-}
-
-interface Conversation {
-  id: string;
-  participants: User[];
-  lastMessage?: {
-    id: string;
-    content: string;
-    timestamp: string;
-    senderName: string;
-    senderId: number;
-  };
-  unreadCount: number;
-}
-
 export function MessageSidebar() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const { currentUser } = useFirebaseAuth();
   const userId = (currentUser?.profile as any)?.id as number | undefined;
   const {
     conversations,
     activeConversation,
-    setActiveConversation,
     subscribeToConversation,
     unsubscribeFromConversation,
   } = useMessagePalWebSocket(userId);
@@ -72,13 +45,11 @@ export function MessageSidebar() {
   const handleConversationClick = (conversationId: string) => {
     if (activeConversation === conversationId) {
       unsubscribeFromConversation(conversationId);
-      setSelectedConversation(null);
     } else {
       if (activeConversation) {
         unsubscribeFromConversation(activeConversation);
       }
       subscribeToConversation(conversationId);
-      setSelectedConversation(conversationId);
     }
   };
 
@@ -180,7 +151,6 @@ export function MessageChatWindow() {
     activeConversation,
     conversations,
     sendMessage,
-    sendTyping,
     markMessageAsRead,
   } = useMessagePalWebSocket(userId);
 

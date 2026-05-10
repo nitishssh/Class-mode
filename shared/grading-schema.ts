@@ -23,7 +23,9 @@ export const GradingRequestSchema = z.object({
   submissionId: z.string().min(1),
   studentId: z.number(),
   content: z.string().min(1), // text, code, or extracted PDF text
-  contentType: z.enum(["text", "code_python", "code_javascript", "code_typescript", "pdf"]).default("text"),
+  contentType: z
+    .enum(["text", "code_python", "code_javascript", "code_typescript", "pdf"])
+    .default("text"),
   rubric: RubricSchema,
   attachments: z.array(z.string()).optional(), // Firebase Storage URLs
   language: z.string().optional(), // for code grading: "python", "javascript", etc.

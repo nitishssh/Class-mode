@@ -28,9 +28,9 @@ import {
   BookOpen,
 } from "lucide-react";
 import { useOrchestrator } from "../hooks/use-orchestrator";
-import { 
-  StatelessChatRequest, 
-  StatelessEvent, 
+import {
+  StatelessChatRequest,
+  StatelessEvent,
   DirectorState,
   WhiteboardActionRecord,
   AgentInfo,
@@ -41,7 +41,14 @@ import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -82,14 +89,14 @@ interface WhiteboardElement {
 
 // ── Whiteboard Component ─────────────────────────────────────────────────────
 
-const Whiteboard = ({ 
-  isOpen, 
-  elements, 
+const Whiteboard = ({
+  isOpen,
+  elements,
   onClose,
-  onClear
-}: { 
-  isOpen: boolean; 
-  elements: WhiteboardElement[]; 
+  onClear,
+}: {
+  isOpen: boolean;
+  elements: WhiteboardElement[];
   onClose: () => void;
   onClear: () => void;
 }) => {
@@ -100,36 +107,46 @@ const Whiteboard = ({
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="absolute inset-4 z-50 rounded-2xl bg-white/95 backdrop-blur-xl shadow-2xl border-2 border-purple-100 flex flex-col overflow-hidden"
+          className="absolute inset-4 z-50 flex flex-col overflow-hidden rounded-2xl border-2 border-purple-100 bg-white/95 shadow-2xl backdrop-blur-xl"
         >
-          <div className="h-12 border-b flex items-center justify-between px-4 bg-purple-50/50">
-            <div className="flex items-center gap-2 text-purple-700 font-semibold text-sm">
+          <div className="flex h-12 items-center justify-between border-b bg-purple-50/50 px-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-purple-700">
               <PencilLine className="h-4 w-4" />
               Whiteboard
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={onClear} className="h-8 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50">
-                <Eraser className="h-3 w-3 mr-1" />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClear}
+                className="h-8 px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
+              >
+                <Eraser className="mr-1 h-3 w-3" />
                 Clear
               </Button>
-              <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 rounded-full">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onClose}
+                className="h-8 w-8 rounded-full"
+              >
                 <X className="h-4 w-4" />
               </Button>
             </div>
           </div>
-          
-          <div className="flex-1 relative bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:24px_24px] overflow-hidden">
+
+          <div className="relative flex-1 overflow-hidden bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:24px_24px]">
             {elements.length === 0 && (
-              <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/30 flex-col gap-2">
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground/30">
                 <PencilLine className="h-12 w-12 opacity-10" />
                 <p className="text-sm">The whiteboard is ready for notes</p>
               </div>
             )}
-            
-            <div className="absolute inset-0 pointer-events-none">
-              <svg className="w-full h-full" viewBox="0 0 1000 562">
+
+            <div className="pointer-events-none absolute inset-0">
+              <svg className="h-full w-full" viewBox="0 0 1000 562">
                 {elements.map((el) => {
-                  if (el.type === 'line') {
+                  if (el.type === "line") {
                     const data = el.data || {};
                     return (
                       <line
@@ -144,7 +161,7 @@ const Whiteboard = ({
                       />
                     );
                   }
-                  if (el.type === 'shape') {
+                  if (el.type === "shape") {
                     return (
                       <rect
                         key={el.id}
@@ -164,23 +181,23 @@ const Whiteboard = ({
               </svg>
 
               {elements.map((el) => {
-                if (el.type === 'text' || el.type === 'latex') {
+                if (el.type === "text" || el.type === "latex") {
                   const style: React.CSSProperties = {
-                    position: 'absolute',
+                    position: "absolute",
                     left: `${(el.x / 1000) * 100}%`,
                     top: `${(el.y / 562) * 100}%`,
-                    maxWidth: el.width ? `${(el.width / 1000) * 100}%` : '200px',
-                    transform: 'translate(-0%, -0%)',
-                    pointerEvents: 'auto',
+                    maxWidth: el.width ? `${(el.width / 1000) * 100}%` : "200px",
+                    transform: "translate(-0%, -0%)",
+                    pointerEvents: "auto",
                   };
                   return (
                     <div key={el.id} style={style}>
-                      {el.type === 'latex' ? (
-                        <div className="bg-white/90 p-2 rounded-lg shadow-sm border border-purple-100 text-purple-900 border-l-4 border-l-purple-500">
+                      {el.type === "latex" ? (
+                        <div className="rounded-lg border border-l-4 border-purple-100 border-l-purple-500 bg-white/90 p-2 text-purple-900 shadow-sm">
                           <InlineMath math={el.latex || ""} />
                         </div>
                       ) : (
-                        <div className="bg-white/80 p-2 rounded-lg shadow-sm border border-gray-100 text-sm font-medium border-l-4 border-l-blue-400">
+                        <div className="rounded-lg border border-l-4 border-gray-100 border-l-blue-400 bg-white/80 p-2 text-sm font-medium shadow-sm">
                           {el.content}
                         </div>
                       )}
@@ -252,20 +269,47 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
     const agentColors = ["#7c3aed", "#2563eb", "#10b981", "#f59e0b", "#ef4444"];
     const agentAvatars: Record<string, string> = { teacher: "👨‍🏫", assistant: "🤖", student: "🧑‍🎓" };
     const classroomAgents = (data as any).agents || [];
-    const agentConfigs = classroomAgents.length > 0
-      ? classroomAgents.map((a: any, i: number) => ({
-          id: a.id,
-          name: a.name,
-          role: a.role,
-          avatar: agentAvatars[a.role] || "🧑",
-          persona: a.persona,
-          color: agentColors[i % agentColors.length],
-          allowedActions: a.role === "teacher" ? ["wb_open", "wb_draw_text", "wb_draw_latex", "wb_close", "wb_clear", "wb_delete"] : [],
-        }))
-      : [
-          { id: "teacher", name: "Professor", role: "teacher", avatar: "👨‍🏫", persona: "Encouraging expert", color: "#7c3aed", allowedActions: ["wb_open", "wb_draw_text", "wb_draw_latex", "wb_close", "wb_clear", "wb_delete"] },
-          { id: "student", name: "Alex", role: "student", avatar: "🧑‍🎓", persona: "Curious student", color: "#10b981", allowedActions: [] },
-        ];
+    const agentConfigs =
+      classroomAgents.length > 0
+        ? classroomAgents.map((a: any, i: number) => ({
+            id: a.id,
+            name: a.name,
+            role: a.role,
+            avatar: agentAvatars[a.role] || "🧑",
+            persona: a.persona,
+            color: agentColors[i % agentColors.length],
+            allowedActions:
+              a.role === "teacher"
+                ? ["wb_open", "wb_draw_text", "wb_draw_latex", "wb_close", "wb_clear", "wb_delete"]
+                : [],
+          }))
+        : [
+            {
+              id: "teacher",
+              name: "Professor",
+              role: "teacher",
+              avatar: "👨‍🏫",
+              persona: "Encouraging expert",
+              color: "#7c3aed",
+              allowedActions: [
+                "wb_open",
+                "wb_draw_text",
+                "wb_draw_latex",
+                "wb_close",
+                "wb_clear",
+                "wb_delete",
+              ],
+            },
+            {
+              id: "student",
+              name: "Alex",
+              role: "student",
+              avatar: "🧑‍🎓",
+              persona: "Curious student",
+              color: "#10b981",
+              allowedActions: [],
+            },
+          ];
 
     const request: StatelessChatRequest = {
       messages: [...messages, userMsg],
@@ -287,19 +331,21 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
         currentAgentMsgId = event.data.messageId;
         setMessages((prev) => [
           ...prev,
-          { 
-            id: event.data.messageId, 
-            role: "assistant", 
-            name: event.data.agentName, 
+          {
+            id: event.data.messageId,
+            role: "assistant",
+            name: event.data.agentName,
             avatar: event.data.agentAvatar,
             color: event.data.agentColor,
-            content: "" 
-          }
+            content: "",
+          },
         ]);
       } else if (event.type === "text_delta" && currentAgentMsgId) {
-        setMessages((prev) => 
-          prev.map((msg) => 
-            msg.id === currentAgentMsgId ? { ...msg, content: msg.content + event.data.content } : msg
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === currentAgentMsgId
+              ? { ...msg, content: msg.content + event.data.content }
+              : msg
           )
         );
       } else if (event.type === "action") {
@@ -323,7 +369,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
               width: event.data.params.width,
               height: event.data.params.height,
               data: event.data.params,
-            }
+            },
           ]);
         }
       }
@@ -333,29 +379,31 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
   return (
     <div className="flex h-[calc(100vh-4rem)] flex-col bg-background">
       {/* Header */}
-      <div className="flex items-center justify-between border-b px-6 py-3 bg-white/50 backdrop-blur-md">
+      <div className="flex items-center justify-between border-b bg-white/50 px-6 py-3 backdrop-blur-md">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={onClose}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
             <h1 className="text-xl font-bold tracking-tight text-gray-900">{data.topic}</h1>
-            <p className="text-sm text-muted-foreground">Scene {currentSceneIndex + 1} of {data.scenes.length}</p>
+            <p className="text-sm text-muted-foreground">
+              Scene {currentSceneIndex + 1} of {data.scenes.length}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             className="gap-2 border-purple-200 text-purple-700 hover:bg-purple-50"
             onClick={() => setWhiteboardOpen(!whiteboardOpen)}
           >
             <PencilLine className="h-4 w-4" />
             Whiteboard
           </Button>
-          <Button 
-            variant={"default"} 
-            size="sm" 
+          <Button
+            variant={"default"}
+            size="sm"
             className="gap-2 bg-blue-600 hover:bg-blue-700"
             onClick={() => setChatOpen(!chatOpen)}
           >
@@ -382,20 +430,26 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                   )}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "flex h-8 w-8 items-center justify-center rounded-md border",
-                      currentSceneIndex === idx ? "bg-purple-50 text-purple-600" : "bg-background text-muted-foreground"
-                    )}>
+                    <div
+                      className={cn(
+                        "flex h-8 w-8 items-center justify-center rounded-md border",
+                        currentSceneIndex === idx
+                          ? "bg-purple-50 text-purple-600"
+                          : "bg-background text-muted-foreground"
+                      )}
+                    >
                       {scene.type === "slides" && <Layout className="h-4 w-4" />}
                       {scene.type === "quiz" && <HelpCircle className="h-4 w-4" />}
                       {scene.type === "simulation" && <Dna className="h-4 w-4" />}
                       {scene.type === "pbl" && <FileText className="h-4 w-4" />}
                     </div>
                     <div className="flex-1 overflow-hidden">
-                      <p className={cn(
-                        "truncate text-sm font-medium",
-                        currentSceneIndex === idx ? "text-purple-900" : "text-gray-700"
-                      )}>
+                      <p
+                        className={cn(
+                          "truncate text-sm font-medium",
+                          currentSceneIndex === idx ? "text-purple-900" : "text-gray-700"
+                        )}
+                      >
                         {scene.title}
                       </p>
                     </div>
@@ -416,17 +470,19 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
 
         {/* Main Content Area */}
         <div className="relative flex flex-1 flex-col overflow-hidden bg-slate-50 p-4 md:p-8">
-          <ScrollArea className="flex-1 rounded-3xl border bg-white shadow-2xl overflow-hidden">
-            <div className="relative h-full w-full min-h-[500px]">
+          <ScrollArea className="flex-1 overflow-hidden rounded-3xl border bg-white shadow-2xl">
+            <div className="relative h-full min-h-[500px] w-full">
               {/* Scene Content */}
               <div className="p-8">
                 {currentScene.type === "slides" && (
                   <div className="space-y-6">
-                    <h2 className="text-3xl font-extrabold text-gray-900">{currentScene.content.title}</h2>
+                    <h2 className="text-3xl font-extrabold text-gray-900">
+                      {currentScene.content.title}
+                    </h2>
                     <div className="grid gap-6 md:grid-cols-2">
                       <div className="space-y-4">
                         {currentScene.content.points?.map((p: string, i: number) => (
-                          <motion.div 
+                          <motion.div
                             key={i}
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
@@ -442,8 +498,8 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                       </div>
                       {currentScene.content.image && (
                         <div className="rounded-2xl border bg-white p-2 shadow-lg">
-                          <img 
-                            src={currentScene.content.image} 
+                          <img
+                            src={currentScene.content.image}
                             alt={currentScene.title}
                             className="h-full w-full rounded-xl object-cover"
                           />
@@ -456,12 +512,18 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                 {currentScene.type === "quiz" && (
                   <div className="mx-auto max-w-2xl space-y-8">
                     <div className="text-center">
-                      <Badge variant="outline" className="mb-4 bg-purple-50 text-purple-700 border-purple-200">Knowledge Check</Badge>
+                      <Badge
+                        variant="outline"
+                        className="mb-4 border-purple-200 bg-purple-50 text-purple-700"
+                      >
+                        Knowledge Check
+                      </Badge>
                       <h2 className="text-3xl font-bold">{currentScene.content.question}</h2>
                     </div>
                     <div className="grid gap-4">
                       {currentScene.content.options?.map((opt: string, i: number) => {
-                        const correctIndex = currentScene.content.correctIndex ?? currentScene.content.answer;
+                        const correctIndex =
+                          currentScene.content.correctIndex ?? currentScene.content.answer;
                         const isCorrect = i === correctIndex;
                         const isSelected = selectedAnswer === i;
                         return (
@@ -477,17 +539,33 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                             className={cn(
                               "h-auto justify-start p-6 text-left text-lg transition-all",
                               !answerRevealed && "hover:border-purple-300 hover:bg-purple-50",
-                              answerRevealed && isCorrect && "border-green-500 bg-green-50 text-green-900",
-                              answerRevealed && isSelected && !isCorrect && "border-red-400 bg-red-50 text-red-900",
+                              answerRevealed &&
+                                isCorrect &&
+                                "border-green-500 bg-green-50 text-green-900",
+                              answerRevealed &&
+                                isSelected &&
+                                !isCorrect &&
+                                "border-red-400 bg-red-50 text-red-900"
                             )}
                           >
-                            <div className={cn(
-                              "mr-4 flex h-8 w-8 items-center justify-center rounded-full border text-sm font-bold",
-                              answerRevealed && isCorrect && "bg-green-500 text-white border-green-500",
-                              answerRevealed && isSelected && !isCorrect && "bg-red-400 text-white border-red-400",
-                              !(answerRevealed && (isCorrect || isSelected)) && "bg-background",
-                            )}>
-                              {answerRevealed && isCorrect ? <CheckCircle2 className="h-4 w-4" /> : String.fromCharCode(65 + i)}
+                            <div
+                              className={cn(
+                                "mr-4 flex h-8 w-8 items-center justify-center rounded-full border text-sm font-bold",
+                                answerRevealed &&
+                                  isCorrect &&
+                                  "border-green-500 bg-green-500 text-white",
+                                answerRevealed &&
+                                  isSelected &&
+                                  !isCorrect &&
+                                  "border-red-400 bg-red-400 text-white",
+                                !(answerRevealed && (isCorrect || isSelected)) && "bg-background"
+                              )}
+                            >
+                              {answerRevealed && isCorrect ? (
+                                <CheckCircle2 className="h-4 w-4" />
+                              ) : (
+                                String.fromCharCode(65 + i)
+                              )}
                             </div>
                             {opt}
                           </Button>
@@ -500,7 +578,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                         animate={{ opacity: 1, y: 0 }}
                         className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-blue-900"
                       >
-                        <p className="font-semibold mb-1">Explanation</p>
+                        <p className="mb-1 font-semibold">Explanation</p>
                         <p className="text-sm">{currentScene.content.explanation}</p>
                       </motion.div>
                     )}
@@ -510,9 +588,11 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                 {currentScene.type === "simulation" && (
                   <div className="h-full space-y-4">
                     <div className="flex items-center justify-between">
-                      <h2 className="text-2xl font-bold">{currentScene.content.title || currentScene.title}</h2>
+                      <h2 className="text-2xl font-bold">
+                        {currentScene.content.title || currentScene.title}
+                      </h2>
                     </div>
-                    <div className="aspect-video w-full rounded-2xl border-4 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center">
+                    <div className="flex aspect-video w-full items-center justify-center rounded-2xl border-4 border-dashed border-slate-200 bg-slate-50">
                       {currentScene.content.html ? (
                         <iframe
                           srcDoc={currentScene.content.html}
@@ -533,29 +613,54 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                 {currentScene.type === "pbl" && (
                   <div className="space-y-6">
                     <div>
-                      <Badge variant="outline" className="mb-3 bg-amber-50 text-amber-700 border-amber-200">Project-Based Learning</Badge>
-                      <h2 className="text-3xl font-extrabold text-gray-900">{currentScene.content.projectTopic || currentScene.title}</h2>
+                      <Badge
+                        variant="outline"
+                        className="mb-3 border-amber-200 bg-amber-50 text-amber-700"
+                      >
+                        Project-Based Learning
+                      </Badge>
+                      <h2 className="text-3xl font-extrabold text-gray-900">
+                        {currentScene.content.projectTopic || currentScene.title}
+                      </h2>
                       {currentScene.content.projectDescription && (
-                        <p className="mt-2 text-lg text-muted-foreground">{currentScene.content.projectDescription}</p>
+                        <p className="mt-2 text-lg text-muted-foreground">
+                          {currentScene.content.projectDescription}
+                        </p>
                       )}
                     </div>
                     {currentScene.content.targetSkills && (
                       <div className="flex flex-wrap gap-2">
-                        {(Array.isArray(currentScene.content.targetSkills) ? currentScene.content.targetSkills : []).map((skill: string, i: number) => (
-                          <Badge key={i} variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">{skill}</Badge>
+                        {(Array.isArray(currentScene.content.targetSkills)
+                          ? currentScene.content.targetSkills
+                          : []
+                        ).map((skill: string, i: number) => (
+                          <Badge
+                            key={i}
+                            variant="outline"
+                            className="border-purple-200 bg-purple-50 text-purple-700"
+                          >
+                            {skill}
+                          </Badge>
                         ))}
                       </div>
                     )}
                     {currentScene.content.issues && (
                       <div className="space-y-4">
                         <h3 className="text-lg font-bold">Project Tasks</h3>
-                        {(Array.isArray(currentScene.content.issues) ? currentScene.content.issues : []).map((issue: any, i: number) => (
+                        {(Array.isArray(currentScene.content.issues)
+                          ? currentScene.content.issues
+                          : []
+                        ).map((issue: any, i: number) => (
                           <Card key={i} className="border-l-4 border-l-amber-400">
                             <CardHeader className="pb-2">
-                              <CardTitle className="text-base">{issue.title || `Task ${i + 1}`}</CardTitle>
+                              <CardTitle className="text-base">
+                                {issue.title || `Task ${i + 1}`}
+                              </CardTitle>
                             </CardHeader>
                             <CardContent>
-                              <p className="text-sm text-muted-foreground">{issue.description || issue.content || ""}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {issue.description || issue.content || ""}
+                              </p>
                             </CardContent>
                           </Card>
                         ))}
@@ -564,14 +669,24 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                     {currentScene.content.milestones && (
                       <div className="space-y-3">
                         <h3 className="text-lg font-bold">Milestones</h3>
-                        {(Array.isArray(currentScene.content.milestones) ? currentScene.content.milestones : []).map((m: any, i: number) => (
-                          <div key={i} className="flex items-start gap-3 rounded-xl border bg-slate-50/50 p-4">
+                        {(Array.isArray(currentScene.content.milestones)
+                          ? currentScene.content.milestones
+                          : []
+                        ).map((m: any, i: number) => (
+                          <div
+                            key={i}
+                            className="flex items-start gap-3 rounded-xl border bg-slate-50/50 p-4"
+                          >
                             <div className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-700">
                               {i + 1}
                             </div>
                             <div>
                               <p className="font-medium">{m.title || m}</p>
-                              {m.description && <p className="text-sm text-muted-foreground mt-1">{m.description}</p>}
+                              {m.description && (
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                  {m.description}
+                                </p>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -582,10 +697,10 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
               </div>
 
               {/* Whiteboard Overlay */}
-              <Whiteboard 
-                isOpen={whiteboardOpen} 
-                elements={wbElements} 
-                onClose={() => setWhiteboardOpen(false)} 
+              <Whiteboard
+                isOpen={whiteboardOpen}
+                elements={wbElements}
+                onClose={() => setWhiteboardOpen(false)}
                 onClear={() => setWbElements([])}
               />
             </div>
@@ -597,7 +712,11 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
               <Button variant="outline" onClick={prevScene} disabled={currentSceneIndex === 0}>
                 Previous
               </Button>
-              <Button onClick={nextScene} disabled={currentSceneIndex === data.scenes.length - 1} className="bg-purple-600 hover:bg-purple-700">
+              <Button
+                onClick={nextScene}
+                disabled={currentSceneIndex === data.scenes.length - 1}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
                 Next Scene
                 <Play className="ml-2 h-4 w-4" />
               </Button>
@@ -608,7 +727,9 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                 <span>{(data as any).agents?.length || 3} AI Agents Online</span>
               </div>
               <Separator orientation="vertical" className="h-4" />
-              <span>Scene {currentSceneIndex + 1} / {data.scenes.length}</span>
+              <span>
+                Scene {currentSceneIndex + 1} / {data.scenes.length}
+              </span>
             </div>
           </div>
         </div>
@@ -620,9 +741,9 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
               initial={{ x: 400, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: 400, opacity: 0 }}
-              className="absolute top-16 right-0 bottom-0 w-80 bg-white border-l shadow-2xl z-40 flex flex-col"
+              className="absolute bottom-0 right-0 top-16 z-40 flex w-80 flex-col border-l bg-white shadow-2xl"
             >
-              <div className="h-14 border-b flex items-center justify-between px-4 bg-blue-50/30">
+              <div className="flex h-14 items-center justify-between border-b bg-blue-50/30 px-4">
                 <div className="flex items-center gap-2 font-semibold text-blue-700">
                   <MessageSquare className="h-4 w-4" />
                   Class Chat
@@ -631,7 +752,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                   <X className="h-4 w-4" />
                 </Button>
               </div>
-              
+
               <ScrollArea className="flex-1 p-4">
                 <div className="space-y-4">
                   {messages.map((msg, i) => (
@@ -644,34 +765,46 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                         msg.role === "user" ? "items-end" : "items-start"
                       )}
                     >
-                      <div className="flex items-center gap-2 mb-1">
-                        {msg.role !== "user" && <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded uppercase font-bold text-slate-500">{msg.name}</span>}
-                        <span className="text-[10px] text-muted-foreground">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      <div className="mb-1 flex items-center gap-2">
+                        {msg.role !== "user" && (
+                          <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-slate-500">
+                            {msg.name}
+                          </span>
+                        )}
+                        <span className="text-[10px] text-muted-foreground">
+                          {new Date().toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
                       </div>
-                      <div className={cn(
-                        "max-w-[90%] rounded-2xl px-4 py-2 text-sm shadow-sm",
-                        msg.role === "user" 
-                          ? "bg-blue-600 text-white rounded-tr-none" 
-                          : "bg-slate-100 text-gray-800 rounded-tl-none border border-slate-200"
-                      )}>
+                      <div
+                        className={cn(
+                          "max-w-[90%] rounded-2xl px-4 py-2 text-sm shadow-sm",
+                          msg.role === "user"
+                            ? "rounded-tr-none bg-blue-600 text-white"
+                            : "rounded-tl-none border border-slate-200 bg-slate-100 text-gray-800"
+                        )}
+                      >
                         {msg.content || <Loader2 className="h-4 w-4 animate-spin opacity-50" />}
                       </div>
                     </motion.div>
                   ))}
-                  {isGenerating && !messages.some(m => m.id && messages.indexOf(m) === messages.length - 1) && (
-                    <div className="flex items-center gap-2 text-muted-foreground text-xs italic p-2">
-                      <div className="flex gap-1">
-                        <span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" />
-                        <span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce [animation-delay:0.2s]" />
-                        <span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce [animation-delay:0.4s]" />
+                  {isGenerating &&
+                    !messages.some((m) => m.id && messages.indexOf(m) === messages.length - 1) && (
+                      <div className="flex items-center gap-2 p-2 text-xs italic text-muted-foreground">
+                        <div className="flex gap-1">
+                          <span className="h-1 w-1 animate-bounce rounded-full bg-gray-400" />
+                          <span className="h-1 w-1 animate-bounce rounded-full bg-gray-400 [animation-delay:0.2s]" />
+                          <span className="h-1 w-1 animate-bounce rounded-full bg-gray-400 [animation-delay:0.4s]" />
+                        </div>
+                        Director is thinking...
                       </div>
-                      Director is thinking...
-                    </div>
-                  )}
+                    )}
                 </div>
               </ScrollArea>
 
-              <div className="p-4 border-t bg-slate-50/50">
+              <div className="border-t bg-slate-50/50 p-4">
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
@@ -684,15 +817,19 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                     value={userInput}
                     onChange={(e) => setUserInput(e.target.value)}
                     disabled={isGenerating}
-                    className="pr-12 rounded-xl border-slate-200 focus-visible:ring-blue-500"
+                    className="rounded-xl border-slate-200 pr-12 focus-visible:ring-blue-500"
                   />
                   <Button
                     type="submit"
                     size="icon"
                     disabled={!userInput.trim() || isGenerating}
-                    className="absolute right-1 top-1 h-8 w-8 bg-blue-600 hover:bg-blue-700 rounded-lg"
+                    className="absolute right-1 top-1 h-8 w-8 rounded-lg bg-blue-600 hover:bg-blue-700"
                   >
-                    {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    {isGenerating ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
                   </Button>
                 </form>
               </div>
@@ -760,14 +897,21 @@ export default function StudyArenaPage() {
           setActiveJobId(null);
           setJobProgress(0);
           setJobMessage("");
-          toast({ title: "Ready!", description: "Your classroom has been generated successfully." });
+          toast({
+            title: "Ready!",
+            description: "Your classroom has been generated successfully.",
+          });
           queryClient.invalidateQueries({ queryKey: ["ai-classroom-history"] });
           evtSource.close();
         } else if (data.status === "failed") {
           setActiveJobId(null);
           setJobProgress(0);
           setJobMessage("");
-          toast({ title: "Generation Failed", description: data.error || "Something went wrong.", variant: "destructive" });
+          toast({
+            title: "Generation Failed",
+            description: data.error || "Something went wrong.",
+            variant: "destructive",
+          });
           evtSource.close();
         }
       } catch {
@@ -857,18 +1001,22 @@ export default function StudyArenaPage() {
   if (!healthStatus?.available) {
     return (
       <div className="container mx-auto p-6">
-        <Card className="border-none shadow-none bg-transparent">
+        <Card className="border-none bg-transparent shadow-none">
           <CardHeader className="text-center">
-            <div className="mx-auto w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mb-4">
-              <Brain className="h-10 w-10 text-purple-600 animate-pulse" />
+            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-purple-100">
+              <Brain className="h-10 w-10 animate-pulse text-purple-600" />
             </div>
             <CardTitle className="text-3xl font-extrabold tracking-tight">AI Classroom</CardTitle>
-            <CardDescription className="text-lg">Initializing your interactive learning sanctuary...</CardDescription>
+            <CardDescription className="text-lg">
+              Initializing your interactive learning sanctuary...
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center">
-            <div className="w-full max-w-xs space-y-2 mt-4">
+            <div className="mt-4 w-full max-w-xs space-y-2">
               <Progress value={45} className="h-2" />
-              <p className="text-xs text-center text-muted-foreground uppercase tracking-widest font-bold">Connecting to Study Arena Engine</p>
+              <p className="text-center text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                Connecting to Study Arena Engine
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -892,7 +1040,9 @@ export default function StudyArenaPage() {
           </Button>
           <div>
             <h1 className="text-4xl font-extrabold tracking-tight text-gray-900">Study Arena</h1>
-            <p className="text-lg text-muted-foreground">Interactive multi-agent classroom experiences</p>
+            <p className="text-lg text-muted-foreground">
+              Interactive multi-agent classroom experiences
+            </p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -900,7 +1050,7 @@ export default function StudyArenaPage() {
             <Settings2 className="mr-2 h-4 w-4" />
             Preferences
           </Button>
-          <Button className="rounded-xl bg-purple-600 hover:bg-purple-700 shadow-lg shadow-purple-200">
+          <Button className="rounded-xl bg-purple-600 shadow-lg shadow-purple-200 hover:bg-purple-700">
             <Plus className="mr-2 h-4 w-4" />
             Join Session
           </Button>
@@ -909,10 +1059,10 @@ export default function StudyArenaPage() {
 
       <div className="grid gap-8 md:grid-cols-12">
         {/* Create Classroom Card */}
-        <Card className="md:col-span-5 border-2 border-purple-100 shadow-xl overflow-hidden group">
+        <Card className="group overflow-hidden border-2 border-purple-100 shadow-xl md:col-span-5">
           <div className="h-2 bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500" />
           <CardHeader className="bg-slate-50/50">
-            <CardTitle className="flex items-center gap-2 group-hover:text-purple-700 transition-colors">
+            <CardTitle className="flex items-center gap-2 transition-colors group-hover:text-purple-700">
               <Sparkles className="h-5 w-5 text-purple-500" />
               New Learning Journey
             </CardTitle>
@@ -924,7 +1074,7 @@ export default function StudyArenaPage() {
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="e.g. Quantum Mechanics for Beginners"
-                  className="pl-10 h-12 rounded-xl border-slate-200 focus:ring-purple-500"
+                  className="h-12 rounded-xl border-slate-200 pl-10 focus:ring-purple-500"
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
                 />
@@ -936,27 +1086,33 @@ export default function StudyArenaPage() {
                     onClick={() => setSceneType(type)}
                     className={cn(
                       "flex items-center gap-3 rounded-xl border p-3 text-left transition-all hover:shadow-md",
-                      sceneType === type 
-                        ? "border-purple-500 bg-purple-50 ring-2 ring-purple-100" 
+                      sceneType === type
+                        ? "border-purple-500 bg-purple-50 ring-2 ring-purple-100"
                         : "border-slate-100 bg-white hover:border-slate-300"
                     )}
                   >
-                    <div className={cn(
-                      "flex h-10 w-10 items-center justify-center rounded-lg",
-                      sceneType === type ? "bg-purple-600 text-white" : "bg-slate-100 text-slate-600"
-                    )}>
+                    <div
+                      className={cn(
+                        "flex h-10 w-10 items-center justify-center rounded-lg",
+                        sceneType === type
+                          ? "bg-purple-600 text-white"
+                          : "bg-slate-100 text-slate-600"
+                      )}
+                    >
                       {type === "slides" && <Layout className="h-5 w-5" />}
                       {type === "quiz" && <HelpCircle className="h-5 w-5" />}
                       {type === "simulation" && <Dna className="h-5 w-5" />}
                       {type === "pbl" && <FileText className="h-5 w-5" />}
                     </div>
-                    <span className="text-sm font-semibold capitalize">{type === "pbl" ? "Problem Based" : type}</span>
+                    <span className="text-sm font-semibold capitalize">
+                      {type === "pbl" ? "Problem Based" : type}
+                    </span>
                   </button>
                 ))}
               </div>
             </div>
           </CardContent>
-          <CardFooter className="bg-slate-50/50 border-t flex-col gap-3">
+          <CardFooter className="flex-col gap-3 border-t bg-slate-50/50">
             {activeJobId && (
               <div className="w-full space-y-2">
                 <Progress value={jobProgress} className="h-2" />
@@ -965,10 +1121,12 @@ export default function StudyArenaPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-6 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                    className="h-6 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
                     onClick={async () => {
                       try {
-                        await fetch(`/api/ai-classroom/status/${activeJobId}`, { method: "DELETE" });
+                        await fetch(`/api/ai-classroom/status/${activeJobId}`, {
+                          method: "DELETE",
+                        });
                         setActiveJobId(null);
                         setJobProgress(0);
                         setJobMessage("");
@@ -982,7 +1140,7 @@ export default function StudyArenaPage() {
               </div>
             )}
             <Button
-              className="w-full h-12 rounded-xl bg-purple-600 hover:bg-purple-700 text-lg font-bold transition-all disabled:opacity-50"
+              className="h-12 w-full rounded-xl bg-purple-600 text-lg font-bold transition-all hover:bg-purple-700 disabled:opacity-50"
               onClick={handleCreateClassroom}
               disabled={createClassroomMutation.isPending || !!activeJobId}
             >
@@ -1002,34 +1160,40 @@ export default function StudyArenaPage() {
         </Card>
 
         {/* History / Recent Sessions */}
-        <div className="md:col-span-7 space-y-4">
+        <div className="space-y-4 md:col-span-7">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <h2 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
               <HistoryIcon className="h-5 w-5 text-muted-foreground" />
               Recent Classrooms
             </h2>
-            <Button variant="link" className="text-purple-600">View All</Button>
+            <Button variant="link" className="text-purple-600">
+              View All
+            </Button>
           </div>
-          
+
           <ScrollArea className="h-[480px] rounded-2xl border bg-white shadow-sm">
             <div className="space-y-4 p-4">
               {historyLoading ? (
-                Array(3).fill(0).map((_, i) => (
-                  <div key={i} className="flex gap-4 p-4 border rounded-2xl">
-                    <Skeleton className="h-16 w-16 rounded-xl" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-5 w-3/4" />
-                      <Skeleton className="h-4 w-1/2" />
+                Array(3)
+                  .fill(0)
+                  .map((_, i) => (
+                    <div key={i} className="flex gap-4 rounded-2xl border p-4">
+                      <Skeleton className="h-16 w-16 rounded-xl" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-5 w-3/4" />
+                        <Skeleton className="h-4 w-1/2" />
+                      </div>
                     </div>
-                  </div>
-                ))
+                  ))
               ) : history?.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-50">
                     <Clock className="h-8 w-8 text-slate-300" />
                   </div>
                   <h3 className="font-semibold text-slate-900">No sessions yet</h3>
-                  <p className="text-sm text-muted-foreground mt-1 max-w-[200px]">Your learning history will appear here once you start a classroom.</p>
+                  <p className="mt-1 max-w-[200px] text-sm text-muted-foreground">
+                    Your learning history will appear here once you start a classroom.
+                  </p>
                 </div>
               ) : (
                 history?.map((classroom) => (
@@ -1038,11 +1202,11 @@ export default function StudyArenaPage() {
                     whileHover={{ scale: 1.01 }}
                     className="group relative flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition-all hover:border-purple-200 hover:shadow-lg"
                   >
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-600 transition-colors group-hover:bg-purple-600 group-hover:text-white">
                       <BookOpen className="h-8 w-8" />
                     </div>
                     <div className="flex-1 overflow-hidden">
-                      <h3 className="truncate font-bold text-gray-900 group-hover:text-purple-700 transition-colors">
+                      <h3 className="truncate font-bold text-gray-900 transition-colors group-hover:text-purple-700">
                         {classroom.topic}
                       </h3>
                       <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
@@ -1061,7 +1225,7 @@ export default function StudyArenaPage() {
                       variant="ghost"
                       size="icon"
                       onClick={() => handleOpenClassroom(classroom.id)}
-                      className="rounded-full hover:bg-purple-600 hover:text-white transition-all transform group-hover:translate-x-1"
+                      className="transform rounded-full transition-all hover:bg-purple-600 hover:text-white group-hover:translate-x-1"
                     >
                       <Play className="h-5 w-5" />
                     </Button>

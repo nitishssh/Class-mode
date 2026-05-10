@@ -1,6 +1,6 @@
 /**
  * Director Prompt — Builds the system prompt for the multi-agent orchestrator.
- * 
+ *
  * Ported from features/ai-classroom/studyArena/lib/orchestration/director-prompt.ts
  */
 
@@ -15,11 +15,11 @@ export function buildDirectorPrompt(
   triggerAgentId?: string | null,
   whiteboardLedger?: WhiteboardActionRecord[],
   userProfile?: { nickname?: string; bio?: string },
-  whiteboardOpen?: boolean,
+  whiteboardOpen?: boolean
 ): string {
   const agentList = agents
     .map((a) => `- id: "${a.id}", name: "${a.name}", role: ${a.role}, priority: ${a.priority || 0}`)
-    .join('\n');
+    .join("\n");
 
   const respondedList =
     agentResponses.length > 0
@@ -27,29 +27,29 @@ export function buildDirectorPrompt(
           .map((r) => {
             return `- ${r.agentName} (${r.agentId}): "${r.contentPreview}" [${r.actionCount} actions]`;
           })
-          .join('\n')
-      : 'None yet.';
+          .join("\n")
+      : "None yet.";
 
   const isDiscussion = !!discussionContext;
 
   const discussionSection = isDiscussion
     ? `\n# Discussion Mode
-Topic: "${discussionContext!.topic}"${discussionContext!.prompt ? `\nPrompt: "${discussionContext!.prompt}"` : ''}${triggerAgentId ? `\nInitiator: "${triggerAgentId}"` : ''}
+Topic: "${discussionContext!.topic}"${discussionContext!.prompt ? `\nPrompt: "${discussionContext!.prompt}"` : ""}${triggerAgentId ? `\nInitiator: "${triggerAgentId}"` : ""}
 This is a student-initiated discussion, not a Q&A session.\n`
-    : '';
+    : "";
 
   const rule1 = isDiscussion
-    ? `1. The discussion initiator${triggerAgentId ? ` ("${triggerAgentId}")` : ''} should speak first to kick off the topic. Then the teacher responds to guide the discussion. After that, other students may add their perspectives.`
+    ? `1. The discussion initiator${triggerAgentId ? ` ("${triggerAgentId}")` : ""} should speak first to kick off the topic. Then the teacher responds to guide the discussion. After that, other students may add their perspectives.`
     : "1. The teacher (role: teacher, highest priority) should usually speak first to address the user's question or topic.";
 
   const studentProfileSection =
     userProfile?.nickname || userProfile?.bio
       ? `
 # Student Profile
-Student name: ${userProfile.nickname || 'Unknown'}
-${userProfile.bio ? `Background: ${userProfile.bio}` : ''}
+Student name: ${userProfile.nickname || "Unknown"}
+${userProfile.bio ? `Background: ${userProfile.bio}` : ""}
 `
-      : '';
+      : "";
 
   return `You are the Director of a multi-agent classroom. Your job is to decide which agent should speak next based on the conversation context.
 
@@ -91,14 +91,14 @@ export function parseDirectorDecision(content: string): {
       const parsed = JSON.parse(jsonMatch[0]);
       const nextAgent = parsed.next_agent;
 
-      if (!nextAgent || nextAgent === 'END') {
+      if (!nextAgent || nextAgent === "END") {
         return { nextAgentId: null, shouldEnd: true };
       }
 
       return { nextAgentId: nextAgent, shouldEnd: false };
     }
   } catch (e) {
-    console.warn('[Director] Failed to parse decision:', content.slice(0, 200));
+    console.warn("[Director] Failed to parse decision:", content.slice(0, 200));
   }
   return { nextAgentId: null, shouldEnd: true };
 }

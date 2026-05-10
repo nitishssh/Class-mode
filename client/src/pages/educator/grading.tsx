@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/layout/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Clock, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 
 export default function EducatorGrading() {
   const { data, refetch } = useQuery({
@@ -18,15 +18,22 @@ export default function EducatorGrading() {
   return (
     <div className="min-h-screen bg-background">
       <PageHeader title="Pending Grading" subtitle="Review and grade student submissions">
-        <Button variant="outline" onClick={() => refetch()}><RefreshCw className="h-4 w-4 mr-2" /> Refresh</Button>
+        <Button variant="outline" onClick={() => refetch()}>
+          <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+        </Button>
       </PageHeader>
-      <div className="p-4 space-y-2">
+      <div className="space-y-2 p-4">
         {pending.length === 0 && <p className="text-muted-foreground">No pending grading.</p>}
         {pending.map((g: any) => (
-          <div key={g.submissionId} className="flex items-center justify-between p-4 border rounded">
+          <div
+            key={g.submissionId}
+            className="flex items-center justify-between rounded border p-4"
+          >
             <div>
               <p className="font-medium">Submission {g.submissionId?.slice(0, 8)}</p>
-              <p className="text-sm text-muted-foreground">Student: {g.studentId} • {g.contentType}</p>
+              <p className="text-sm text-muted-foreground">
+                Student: {g.studentId} • {g.contentType}
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <Badge variant="outline">{g.status}</Badge>

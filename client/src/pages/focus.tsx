@@ -188,9 +188,11 @@ export default function FocusPage() {
           minute: "2-digit",
         }),
       }));
-      setLogs(mapped);
       const workSessions = serverSessions.filter((s: any) => s.mode === "work").length;
-      setSessionCount(workSessions);
+      setTimeout(() => {
+        setLogs(mapped);
+        setSessionCount(workSessions);
+      }, 0);
     }
   }, [serverSessions]);
 

@@ -1,10 +1,15 @@
 /**
  * Prompt Builder — Builds system prompts for individual agents.
- * 
+ *
  * Ported from features/ai-classroom/studyArena/lib/orchestration/prompt-builder.ts
  */
 
-import { StatelessChatRequest, WhiteboardActionRecord, AgentTurnSummary, AgentInfo } from "@shared/study-arena";
+import {
+  StatelessChatRequest,
+  WhiteboardActionRecord,
+  AgentTurnSummary,
+  AgentInfo,
+} from "@shared/study-arena";
 
 const ROLE_GUIDELINES: Record<string, string> = {
   teacher: `Your role in this classroom: LEAD TEACHER.
@@ -35,39 +40,44 @@ You are NOT a teacher — your responses should be much shorter than the teacher
 
 export function getActionDescriptions(allowedActions: string[]): string {
   const descriptions: Record<string, string> = {
-    spotlight: 'Focus attention on a single key element. Params: { elementId: string }',
-    laser: 'Point at an element with a laser pointer. Params: { elementId: string }',
-    wb_open: 'Open the whiteboard. Params: {}',
-    wb_draw_text: 'Add text to whiteboard. Params: { content: string, x: number, y: number }',
-    wb_draw_shape: 'Add shape to whiteboard. Params: { shape: "rectangle"|"circle", x: number, y: number, width: number, height: number }',
-    wb_draw_chart: 'Add chart to whiteboard. Params: { chartType: string, x: number, y: number, data: any }',
-    wb_draw_latex: 'Add LaTeX formula. Params: { latex: string, x: number, y: number, height?: number }',
-    wb_draw_table: 'Add table. Params: { x: number, y: number, data: string[][] }',
-    wb_draw_line: 'Add line. Params: { startX: number, startY: number, endX: number, endY: number }',
-    wb_clear: 'Clear whiteboard. Params: {}',
-    wb_delete: 'Delete element by ID. Params: { elementId: string }',
-    wb_close: 'Close whiteboard. Params: {}',
+    spotlight: "Focus attention on a single key element. Params: { elementId: string }",
+    laser: "Point at an element with a laser pointer. Params: { elementId: string }",
+    wb_open: "Open the whiteboard. Params: {}",
+    wb_draw_text: "Add text to whiteboard. Params: { content: string, x: number, y: number }",
+    wb_draw_shape:
+      'Add shape to whiteboard. Params: { shape: "rectangle"|"circle", x: number, y: number, width: number, height: number }',
+    wb_draw_chart:
+      "Add chart to whiteboard. Params: { chartType: string, x: number, y: number, data: any }",
+    wb_draw_latex:
+      "Add LaTeX formula. Params: { latex: string, x: number, y: number, height?: number }",
+    wb_draw_table: "Add table. Params: { x: number, y: number, data: string[][] }",
+    wb_draw_line:
+      "Add line. Params: { startX: number, startY: number, endX: number, endY: number }",
+    wb_clear: "Clear whiteboard. Params: {}",
+    wb_delete: "Delete element by ID. Params: { elementId: string }",
+    wb_close: "Close whiteboard. Params: {}",
   };
 
-  if (!allowedActions || allowedActions.length === 0) return 'No actions available.';
-  return allowedActions.map(a => `- ${a}: ${descriptions[a] || 'No description'}`).join('\n');
+  if (!allowedActions || allowedActions.length === 0) return "No actions available.";
+  return allowedActions.map((a) => `- ${a}: ${descriptions[a] || "No description"}`).join("\n");
 }
 
 export function buildStructuredPrompt(
   agent: AgentInfo,
-  storeState: StatelessChatRequest['storeState'],
+  storeState: StatelessChatRequest["storeState"],
   discussionContext?: { topic: string; prompt?: string },
   whiteboardLedger?: WhiteboardActionRecord[],
   userProfile?: { nickname?: string; bio?: string },
-  agentResponses?: AgentTurnSummary[],
+  agentResponses?: AgentTurnSummary[]
 ): string {
   const roleGuideline = ROLE_GUIDELINES[agent.role] || ROLE_GUIDELINES.student;
   const actionDescriptions = getActionDescriptions(agent.allowedActions || []);
   const language = storeState.stage?.language || "English";
 
-  const peerContext = agentResponses && agentResponses.length > 0
-    ? `\n# This Round's Context\n${agentResponses.map(r => `- ${r.agentName}: "${r.contentPreview}"`).join('\n')}\n`
-    : '';
+  const peerContext =
+    agentResponses && agentResponses.length > 0
+      ? `\n# This Round's Context\n${agentResponses.map((r) => `- ${r.agentName}: "${r.contentPreview}"`).join("\n")}\n`
+      : "";
 
   return `# Role
 You are ${agent.name}.
@@ -95,12 +105,15 @@ Remember: Speak naturally. Do NOT announce actions.`;
 }
 
 export function convertMessagesToOpenAI(messages: any[], currentAgentId?: string) {
-  return messages.map(msg => ({
-    role: msg.role === 'assistant' ? 'assistant' : 'user',
-    content: msg.content || (msg.parts?.[0]?.text || '')
+  return messages.map((msg) => ({
+    role: msg.role === "assistant" ? "assistant" : "user",
+    content: msg.content || msg.parts?.[0]?.text || "",
   }));
 }
 
 export function summarizeConversation(messages: any[]) {
-  return messages.slice(-5).map(m => `[${m.role}] ${m.content.slice(0, 100)}`).join('\n');
+  return messages
+    .slice(-5)
+    .map((m) => `[${m.role}] ${m.content.slice(0, 100)}`)
+    .join("\n");
 }

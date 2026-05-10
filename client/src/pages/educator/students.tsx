@@ -18,18 +18,22 @@ export default function EducatorStudents() {
   return (
     <div className="min-h-screen bg-background">
       <PageHeader title="Student Roster" subtitle="Manage students in your classes">
-        <Button><Plus className="h-4 w-4 mr-2" /> Add Student</Button>
+        <Button>
+          <Plus className="mr-2 h-4 w-4" /> Add Student
+        </Button>
       </PageHeader>
-      <div className="p-4 space-y-2">
+      <div className="space-y-2 p-4">
         {students.map((s: any) => (
-          <div key={s.id} className="flex items-center justify-between p-4 border rounded">
+          <div key={s.id} className="flex items-center justify-between rounded border p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
                 {s.name?.charAt(0)}
               </div>
               <div>
                 <p className="font-medium">{s.name}</p>
-                <p className="text-sm text-muted-foreground">{s.email} • {s.class} • {s.grade}</p>
+                <p className="text-sm text-muted-foreground">
+                  {s.email} • {s.class} • {s.grade}
+                </p>
               </div>
             </div>
             <Badge variant="outline">{s.grade}</Badge>

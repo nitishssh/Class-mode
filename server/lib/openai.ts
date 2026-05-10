@@ -72,11 +72,16 @@ export async function aiChat(
     let processedSystemPrompt = systemPrompt || "";
     if (!processedSystemPrompt) {
       const existingSystem = messages.find((msg) => msg.role === "system");
-      processedSystemPrompt = existingSystem ? existingSystem.content : "You are an AI tutor for high school students. You're knowledgeable about physics, chemistry, mathematics, biology, and computer science. Provide clear, concise explanations. Include examples when helpful. For math problems, show step-by-step solutions. Keep explanations appropriate for high school level understanding. Be encouraging and supportive.";
+      processedSystemPrompt = existingSystem
+        ? existingSystem.content
+        : "You are an AI tutor for high school students. You're knowledgeable about physics, chemistry, mathematics, biology, and computer science. Provide clear, concise explanations. Include examples when helpful. For math problems, show step-by-step solutions. Keep explanations appropriate for high school level understanding. Be encouraging and supportive.";
     }
 
     if (hasGemini) {
-      const userPrompt = messages.filter(m => m.role !== 'system').map(m => `${m.role}: ${m.content}`).join('\n');
+      const userPrompt = messages
+        .filter((m) => m.role !== "system")
+        .map((m) => `${m.role}: ${m.content}`)
+        .join("\n");
       try {
         const content = await geminiChat(processedSystemPrompt, userPrompt);
         return { content };
@@ -292,11 +297,16 @@ export async function* streamAIChat(
     let processedSystemPrompt = systemPrompt || "";
     if (!processedSystemPrompt) {
       const existingSystem = messages.find((msg) => msg.role === "system");
-      processedSystemPrompt = existingSystem ? existingSystem.content : "You are an AI tutor for high school students...";
+      processedSystemPrompt = existingSystem
+        ? existingSystem.content
+        : "You are an AI tutor for high school students...";
     }
 
     if (hasGemini) {
-      const userPrompt = messages.filter(m => m.role !== 'system').map(m => `${m.role}: ${m.content}`).join('\n');
+      const userPrompt = messages
+        .filter((m) => m.role !== "system")
+        .map((m) => `${m.role}: ${m.content}`)
+        .join("\n");
       try {
         yield* streamGeminiChat(processedSystemPrompt, userPrompt);
         return;

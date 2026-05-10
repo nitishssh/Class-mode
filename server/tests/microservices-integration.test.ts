@@ -5,22 +5,22 @@
  * Tests authentication bridge, webhooks, and API endpoints
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import axios, { AxiosInstance } from 'axios';
-import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import axios, { AxiosInstance } from "axios";
+import jwt from "jsonwebtoken";
+import crypto from "crypto";
 
-const API_BASE_URL = process.env.API_URL || 'http://localhost:5001';
-const OPENMAIC_URL = process.env.OPENMAIC_URL || 'http://localhost:3000';
-const INICLAW_URL = process.env.INICLAW_GATEWAY_URL || 'http://localhost:4000';
-const BRIDGE_SECRET = process.env.BRIDGE_SECRET || 'bridge-secret-dev';
+const API_BASE_URL = process.env.API_URL || "http://localhost:5001";
+const OPENMAIC_URL = process.env.OPENMAIC_URL || "http://localhost:3000";
+const INICLAW_URL = process.env.INICLAW_GATEWAY_URL || "http://localhost:4000";
+const BRIDGE_SECRET = process.env.BRIDGE_SECRET || "bridge-secret-dev";
 
 let apiClient: AxiosInstance;
 let testToken: string;
 let testUserId: string;
 let testFirebaseUid: string;
 
-describe('PersonalLearningPro Microservices Integration', () => {
+describe("PersonalLearningPro Microservices Integration", () => {
   beforeAll(() => {
     apiClient = axios.create({
       baseURL: API_BASE_URL,
@@ -28,14 +28,14 @@ describe('PersonalLearningPro Microservices Integration', () => {
     });
 
     // Replace methods to catch ECONNREFUSED and map them to 503 instead of throwing
-    ['get', 'post', 'put', 'delete', 'patch'].forEach((method) => {
+    ["get", "post", "put", "delete", "patch"].forEach((method) => {
       const original = (apiClient as any)[method];
       (apiClient as any)[method] = async (...args: any[]) => {
         try {
           const res = await original.apply(apiClient, args);
           return res;
         } catch (e: any) {
-          if (e.code === 'ECONNREFUSED') {
+          if (e.code === "ECONNREFUSED") {
             return { status: 503, data: {} };
           }
           throw e;
@@ -44,41 +44,41 @@ describe('PersonalLearningPro Microservices Integration', () => {
     });
 
     // Generate test JWT token
-    testFirebaseUid = 'test-firebase-uid-' + Date.now();
-    testUserId = 'test-user-' + Date.now();
+    testFirebaseUid = "test-firebase-uid-" + Date.now();
+    testUserId = "test-user-" + Date.now();
 
     testToken = jwt.sign(
       {
         uid: testFirebaseUid,
-        email: 'test@example.com',
-        name: 'Test User',
+        email: "test@example.com",
+        name: "Test User",
       },
-      'test-secret',
-      { expiresIn: '24h' }
+      "test-secret",
+      { expiresIn: "24h" }
     );
   });
 
-  describe('Health Checks', () => {
-    it('should check EduAI health', async () => {
-      const response = await apiClient.get('/api/health');
+  describe("Health Checks", () => {
+    it("should check EduAI health", async () => {
+      const response = await apiClient.get("/api/health");
       expect([200, 410, 503]).toContain(response.status);
-      if (response.status === 200) expect(response.data).toHaveProperty('status');
+      if (response.status === 200) expect(response.data).toHaveProperty("status");
     });
 
-    it('should check OpenMAIC health', async () => {
-      const response = await apiClient.get('/api/openmaic/health');
+    it("should check OpenMAIC health", async () => {
+      const response = await apiClient.get("/api/openmaic/health");
       expect(response.status).toBeGreaterThanOrEqual(200);
       expect(response.status).toBeLessThan(600);
     });
   });
 
-  describe('Authentication Bridge', () => {
-    it('should generate OpenMAIC session token', async () => {
+  describe("Authentication Bridge", () => {
+    it("should generate OpenMAIC session token", async () => {
       const response = await apiClient.post(
-        '/api/openmaic/classroom/create',
+        "/api/openmaic/classroom/create",
         {
-          topic: 'Test Topic',
-          sceneTypes: ['slides'],
+          topic: "Test Topic",
+          sceneTypes: ["slides"],
         },
         {
           headers: {
@@ -91,24 +91,24 @@ describe('PersonalLearningPro Microservices Integration', () => {
       expect([201, 401, 403, 404, 410, 500, 503]).toContain(response.status);
     });
 
-    it('should reject requests without authentication', async () => {
-      const response = await apiClient.post('/api/openmaic/classroom/create', {
-        topic: 'Test Topic',
+    it("should reject requests without authentication", async () => {
+      const response = await apiClient.post("/api/openmaic/classroom/create", {
+        topic: "Test Topic",
       });
 
       expect([401, 410, 503]).toContain(response.status);
-      if (response.status === 401) expect(response.data).toHaveProperty('message');
+      if (response.status === 401) expect(response.data).toHaveProperty("message");
     });
 
-    it('should validate Firebase token format', async () => {
+    it("should validate Firebase token format", async () => {
       const response = await apiClient.post(
-        '/api/openmaic/classroom/create',
+        "/api/openmaic/classroom/create",
         {
-          topic: 'Test Topic',
+          topic: "Test Topic",
         },
         {
           headers: {
-            Authorization: 'Bearer invalid-token',
+            Authorization: "Bearer invalid-token",
           },
         }
       );
@@ -117,12 +117,12 @@ describe('PersonalLearningPro Microservices Integration', () => {
     });
   });
 
-  describe('OpenMAIC API Endpoints', () => {
-    it('should validate classroom creation request', async () => {
+  describe("OpenMAIC API Endpoints", () => {
+    it("should validate classroom creation request", async () => {
       const response = await apiClient.post(
-        '/api/openmaic/classroom/create',
+        "/api/openmaic/classroom/create",
         {
-          topic: '', // Invalid: empty topic
+          topic: "", // Invalid: empty topic
         },
         {
           headers: {
@@ -135,11 +135,11 @@ describe('PersonalLearningPro Microservices Integration', () => {
       expect([400, 401, 403, 404, 410, 503]).toContain(response.status);
     });
 
-    it('should handle quiz generation', async () => {
+    it("should handle quiz generation", async () => {
       const response = await apiClient.post(
-        '/api/openmaic/quiz/generate',
+        "/api/openmaic/quiz/generate",
         {
-          topic: 'Mathematics',
+          topic: "Mathematics",
           questionCount: 5,
         },
         {
@@ -152,12 +152,12 @@ describe('PersonalLearningPro Microservices Integration', () => {
       expect([201, 401, 403, 404, 410, 500, 503]).toContain(response.status);
     });
 
-    it('should handle slides generation', async () => {
+    it("should handle slides generation", async () => {
       const response = await apiClient.post(
-        '/api/openmaic/slides/generate',
+        "/api/openmaic/slides/generate",
         {
-          content: 'Test content for slides',
-          title: 'Test Slides',
+          content: "Test content for slides",
+          title: "Test Slides",
         },
         {
           headers: {
@@ -170,215 +170,195 @@ describe('PersonalLearningPro Microservices Integration', () => {
     });
   });
 
-  describe('Webhook Integration', () => {
-    it('should verify webhook signature', () => {
+  describe("Webhook Integration", () => {
+    it("should verify webhook signature", () => {
       const payload = {
-        event: 'lesson_completed',
-        classroomId: 'test-classroom',
-        userId: 'test-user',
+        event: "lesson_completed",
+        classroomId: "test-classroom",
+        userId: "test-user",
         firebaseUid: testFirebaseUid,
         timestamp: Date.now(),
         data: {
-          lessonId: 'test-lesson',
+          lessonId: "test-lesson",
           duration: 3600,
         },
       };
 
       const payloadString = JSON.stringify(payload);
       const signature = crypto
-        .createHmac('sha256', BRIDGE_SECRET)
+        .createHmac("sha256", BRIDGE_SECRET)
         .update(payloadString)
-        .digest('hex');
+        .digest("hex");
 
       expect(signature).toBeTruthy();
       expect(signature.length).toBe(64); // SHA256 hex is 64 chars
     });
 
-    it('should reject webhook with invalid signature', async () => {
+    it("should reject webhook with invalid signature", async () => {
       const payload = {
-        event: 'lesson_completed',
-        classroomId: 'test-classroom',
-        userId: 'test-user',
+        event: "lesson_completed",
+        classroomId: "test-classroom",
+        userId: "test-user",
         firebaseUid: testFirebaseUid,
         timestamp: Date.now(),
         data: {
-          lessonId: 'test-lesson',
+          lessonId: "test-lesson",
         },
       };
 
-      const response = await apiClient.post(
-        '/api/webhooks/openmaic/lesson-completed',
-        payload,
-        {
-          headers: {
-            'X-OpenMAIC-Signature': 'invalid-signature',
-          },
-        }
-      );
+      const response = await apiClient.post("/api/webhooks/openmaic/lesson-completed", payload, {
+        headers: {
+          "X-OpenMAIC-Signature": "invalid-signature",
+        },
+      });
 
       expect([401, 410, 503]).toContain(response.status);
     });
 
-    it('should handle lesson completion webhook', async () => {
+    it("should handle lesson completion webhook", async () => {
       const payload = {
-        event: 'lesson_completed',
-        classroomId: 'test-classroom-' + Date.now(),
+        event: "lesson_completed",
+        classroomId: "test-classroom-" + Date.now(),
         userId: testUserId,
         firebaseUid: testFirebaseUid,
         timestamp: Date.now(),
         data: {
-          lessonId: 'test-lesson',
+          lessonId: "test-lesson",
           duration: 3600,
-          weaknesses: ['topic-1', 'topic-2'],
-          strengths: ['topic-3'],
-          nextTopics: ['topic-4'],
+          weaknesses: ["topic-1", "topic-2"],
+          strengths: ["topic-3"],
+          nextTopics: ["topic-4"],
         },
       };
 
       const payloadString = JSON.stringify(payload);
       const signature = crypto
-        .createHmac('sha256', BRIDGE_SECRET)
+        .createHmac("sha256", BRIDGE_SECRET)
         .update(payloadString)
-        .digest('hex');
+        .digest("hex");
 
-      const response = await apiClient.post(
-        '/api/webhooks/openmaic/lesson-completed',
-        payload,
-        {
-          headers: {
-            'X-OpenMAIC-Signature': signature,
-          },
-        }
-      );
+      const response = await apiClient.post("/api/webhooks/openmaic/lesson-completed", payload, {
+        headers: {
+          "X-OpenMAIC-Signature": signature,
+        },
+      });
 
       // Should either succeed or fail gracefully (user might not exist)
       expect([200, 404, 410, 500, 503]).toContain(response.status);
     });
 
-    it('should handle quiz completion webhook', async () => {
+    it("should handle quiz completion webhook", async () => {
       const payload = {
-        event: 'quiz_completed',
-        classroomId: 'test-classroom-' + Date.now(),
+        event: "quiz_completed",
+        classroomId: "test-classroom-" + Date.now(),
         userId: testUserId,
         firebaseUid: testFirebaseUid,
         timestamp: Date.now(),
         data: {
-          quizId: 'test-quiz',
+          quizId: "test-quiz",
           score: 85,
           duration: 1800,
-          weaknesses: ['topic-1'],
-          strengths: ['topic-2', 'topic-3'],
+          weaknesses: ["topic-1"],
+          strengths: ["topic-2", "topic-3"],
         },
       };
 
       const payloadString = JSON.stringify(payload);
       const signature = crypto
-        .createHmac('sha256', BRIDGE_SECRET)
+        .createHmac("sha256", BRIDGE_SECRET)
         .update(payloadString)
-        .digest('hex');
+        .digest("hex");
 
-      const response = await apiClient.post(
-        '/api/webhooks/openmaic/quiz-completed',
-        payload,
-        {
-          headers: {
-            'X-OpenMAIC-Signature': signature,
-          },
-        }
-      );
+      const response = await apiClient.post("/api/webhooks/openmaic/quiz-completed", payload, {
+        headers: {
+          "X-OpenMAIC-Signature": signature,
+        },
+      });
 
       expect([200, 404, 410, 500, 503]).toContain(response.status);
     });
 
-    it('should handle session end webhook', async () => {
+    it("should handle session end webhook", async () => {
       const payload = {
-        event: 'session_ended',
-        classroomId: 'test-classroom-' + Date.now(),
+        event: "session_ended",
+        classroomId: "test-classroom-" + Date.now(),
         userId: testUserId,
         firebaseUid: testFirebaseUid,
         timestamp: Date.now(),
         data: {
           duration: 5400,
-          nextTopics: ['topic-4', 'topic-5'],
+          nextTopics: ["topic-4", "topic-5"],
         },
       };
 
       const payloadString = JSON.stringify(payload);
       const signature = crypto
-        .createHmac('sha256', BRIDGE_SECRET)
+        .createHmac("sha256", BRIDGE_SECRET)
         .update(payloadString)
-        .digest('hex');
+        .digest("hex");
 
-      const response = await apiClient.post(
-        '/api/webhooks/openmaic/session-ended',
-        payload,
-        {
-          headers: {
-            'X-OpenMAIC-Signature': signature,
-          },
-        }
-      );
+      const response = await apiClient.post("/api/webhooks/openmaic/session-ended", payload, {
+        headers: {
+          "X-OpenMAIC-Signature": signature,
+        },
+      });
 
       expect([200, 404, 410, 500, 503]).toContain(response.status);
     });
 
-    it('should handle error webhook', async () => {
+    it("should handle error webhook", async () => {
       const payload = {
-        event: 'error',
-        classroomId: 'test-classroom-' + Date.now(),
+        event: "error",
+        classroomId: "test-classroom-" + Date.now(),
         userId: testUserId,
         firebaseUid: testFirebaseUid,
         timestamp: Date.now(),
         data: {
-          error: 'Test error message',
+          error: "Test error message",
         },
       };
 
       const payloadString = JSON.stringify(payload);
       const signature = crypto
-        .createHmac('sha256', BRIDGE_SECRET)
+        .createHmac("sha256", BRIDGE_SECRET)
         .update(payloadString)
-        .digest('hex');
+        .digest("hex");
 
-      const response = await apiClient.post(
-        '/api/webhooks/openmaic/error',
-        payload,
-        {
-          headers: {
-            'X-OpenMAIC-Signature': signature,
-          },
-        }
-      );
+      const response = await apiClient.post("/api/webhooks/openmaic/error", payload, {
+        headers: {
+          "X-OpenMAIC-Signature": signature,
+        },
+      });
 
       expect([200, 404, 410, 500, 503]).toContain(response.status);
     });
 
-    it('should check webhook health', async () => {
-      const response = await apiClient.get('/api/webhooks/openmaic/health');
+    it("should check webhook health", async () => {
+      const response = await apiClient.get("/api/webhooks/openmaic/health");
       expect([200, 410, 503]).toContain(response.status);
-      if (response.status === 200) expect(response.data).toHaveProperty('status');
+      if (response.status === 200) expect(response.data).toHaveProperty("status");
     });
   });
 
-  describe('Service Communication', () => {
-    it('should have OpenMAIC accessible via Nginx', async () => {
-      const response = await apiClient.get('/arena/api/health');
+  describe("Service Communication", () => {
+    it("should have OpenMAIC accessible via Nginx", async () => {
+      const response = await apiClient.get("/arena/api/health");
       expect([200, 404, 503]).toContain(response.status);
     });
 
-    it('should have IniClaw accessible via Nginx', async () => {
-      const response = await apiClient.get('/gateway/api/health');
+    it("should have IniClaw accessible via Nginx", async () => {
+      const response = await apiClient.get("/gateway/api/health");
       expect([200, 404, 503]).toContain(response.status);
     });
   });
 
-  describe('Error Handling', () => {
-    it('should handle missing required fields', async () => {
+  describe("Error Handling", () => {
+    it("should handle missing required fields", async () => {
       const response = await apiClient.post(
-        '/api/openmaic/classroom/create',
+        "/api/openmaic/classroom/create",
         {
           // Missing topic
-          sceneTypes: ['slides'],
+          sceneTypes: ["slides"],
         },
         {
           headers: {
@@ -390,9 +370,9 @@ describe('PersonalLearningPro Microservices Integration', () => {
       expect([400, 401, 403, 404, 410, 503]).toContain(response.status);
     });
 
-    it('should handle invalid topic type', async () => {
+    it("should handle invalid topic type", async () => {
       const response = await apiClient.post(
-        '/api/openmaic/classroom/create',
+        "/api/openmaic/classroom/create",
         {
           topic: 123, // Should be string
         },
@@ -406,46 +386,52 @@ describe('PersonalLearningPro Microservices Integration', () => {
       expect([400, 401, 403, 404, 410, 503]).toContain(response.status);
     });
 
-    it('should handle service unavailability gracefully', async () => {
+    it("should handle service unavailability gracefully", async () => {
       // This test assumes OpenMAIC might not be running
-      const response = await apiClient.get('/api/openmaic/health');
-      
+      const response = await apiClient.get("/api/openmaic/health");
+
       // Should either be healthy or return 503
       expect([200, 410, 503]).toContain(response.status);
     });
   });
 
-  describe('Rate Limiting', () => {
-    it('should respect rate limits on auth endpoints', async () => {
+  describe("Rate Limiting", () => {
+    it("should respect rate limits on auth endpoints", async () => {
       // Make multiple rapid requests
-      const requests = Array(15).fill(null).map(() =>
-        apiClient.post('/api/openmaic/classroom/create', {
-          topic: 'Test',
-        }, {
-          headers: {
-            Authorization: `Bearer ${testToken}`,
-          },
-        })
-      );
+      const requests = Array(15)
+        .fill(null)
+        .map(() =>
+          apiClient.post(
+            "/api/openmaic/classroom/create",
+            {
+              topic: "Test",
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${testToken}`,
+              },
+            }
+          )
+        );
 
       const responses = await Promise.all(requests);
-      
+
       // At least some should succeed or be rate limited
-      const statuses = responses.map(r => r.status);
+      const statuses = responses.map((r) => r.status);
       expect(statuses.length).toBeGreaterThan(0);
     });
   });
 });
 
-describe('Microservices Architecture', () => {
-  it('should have all services configured', () => {
+describe("Microservices Architecture", () => {
+  it("should have all services configured", () => {
     expect(API_BASE_URL).toBeTruthy();
     expect(OPENMAIC_URL).toBeTruthy();
     expect(INICLAW_URL).toBeTruthy();
     expect(BRIDGE_SECRET).toBeTruthy();
   });
 
-  it('should have proper environment variables', () => {
+  it("should have proper environment variables", () => {
     expect(process.env.FIREBASE_SERVICE_ACCOUNT_JSON || true).toBeTruthy();
     expect(process.env.OPENAI_API_KEY || true).toBeTruthy();
   });

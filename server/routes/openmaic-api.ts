@@ -4,7 +4,7 @@
  * This file is deprecated. All requests are now handled by the native Study Arena service.
  */
 
-import { Router } from 'express';
+import { Router } from "express";
 
 export const openmaicApiRouter = Router();
 
@@ -14,10 +14,10 @@ openmaicApiRouter.use((req, res, next) => {
   next();
 });
 
-openmaicApiRouter.all('*', (req, res) => {
+openmaicApiRouter.all("*", (req, res) => {
   res.status(410).json({
-    message: 'The OpenMAIC API has been retired and replaced by the native Study Arena service.',
-    nextSteps: 'Please use the /api/ai-classroom endpoints for all AI classroom operations.',
-    documentation: 'See AGENTS.md for current integration details.'
+    message: "The OpenMAIC API has been retired and replaced by the native Study Arena service.",
+    nextSteps: "Please use the /api/ai-classroom endpoints for all AI classroom operations.",
+    documentation: "See AGENTS.md for current integration details.",
   });
 });

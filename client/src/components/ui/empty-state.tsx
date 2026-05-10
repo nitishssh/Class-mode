@@ -1,3 +1,5 @@
+import React from "react";
+
 interface EmptyStateProps {
   message: string;
   action?: { label: string; onClick: () => void };

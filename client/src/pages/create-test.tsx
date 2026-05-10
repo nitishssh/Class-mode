@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TestDetailsForm } from "@/components/test/test-details-form";
 import { QuestionForm } from "@/components/test/question-form";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FileQuestion, CircleCheck, Settings2, Brain, Rocket } from "lucide-react";
 
@@ -16,11 +16,6 @@ export default function CreateTest() {
   const [activeTab, setActiveTab] = useState("test-details");
   const [testId, setTestId] = useState<number | null>(null);
   const [questionOrder, setQuestionOrder] = useState(1);
-
-  const handleTestCreated = (id: number) => {
-    setTestId(id);
-    setActiveTab("add-questions");
-  };
 
   const handleQuestionAdded = () => {
     setQuestionOrder((prev) => prev + 1);

@@ -7,7 +7,7 @@ export type SceneType = "slides" | "quiz" | "simulation" | "pbl";
 export interface AgentInfo {
   id: string;
   name: string;
-  role: 'teacher' | 'assistant' | 'student';
+  role: "teacher" | "assistant" | "student";
   persona: string;
   avatar?: string;
   color?: string;
@@ -59,10 +59,28 @@ export interface StatelessChatRequest {
 }
 
 export type StatelessEvent =
-  | { type: 'thinking'; data: { stage: string; agentId?: string } }
-  | { type: 'agent_start'; data: { messageId: string; agentId: string; agentName: string; agentAvatar?: string; agentColor?: string } }
-  | { type: 'text_delta'; data: { content: string; messageId: string } }
-  | { type: 'action'; data: { actionId: string; actionName: string; params: any; agentId: string; messageId: string } }
-  | { type: 'agent_end'; data: { messageId: string; agentId: string } }
-  | { type: 'cue_user'; data: { fromAgentId?: string } }
-  | { type: 'error'; data: { message: string } };
+  | { type: "thinking"; data: { stage: string; agentId?: string } }
+  | {
+      type: "agent_start";
+      data: {
+        messageId: string;
+        agentId: string;
+        agentName: string;
+        agentAvatar?: string;
+        agentColor?: string;
+      };
+    }
+  | { type: "text_delta"; data: { content: string; messageId: string } }
+  | {
+      type: "action";
+      data: {
+        actionId: string;
+        actionName: string;
+        params: any;
+        agentId: string;
+        messageId: string;
+      };
+    }
+  | { type: "agent_end"; data: { messageId: string; agentId: string } }
+  | { type: "cue_user"; data: { fromAgentId?: string } }
+  | { type: "error"; data: { message: string } };

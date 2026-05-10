@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -122,7 +122,7 @@ export default function AiStudyPlans() {
                   <div className="mx-auto mb-3 w-fit rounded-full bg-emerald-500/10 p-3 text-emerald-600">
                     <CheckCircle2 className="h-6 w-6" />
                   </div>
-                  <p className="text-sm font-semibold text-foreground">You're doing great!</p>
+                  <p className="text-sm font-semibold text-foreground">You&apos;re doing great!</p>
                   <p className="mt-1 px-4 text-xs text-muted-foreground">
                     All your subjects are above 60% average.
                   </p>

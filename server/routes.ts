@@ -16,10 +16,7 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import { processOCRImage } from "./lib/tesseract";
-import {
-  evaluateSubjectiveAnswer,
-  aiChat,
-} from "./lib/openai";
+import { evaluateSubjectiveAnswer, aiChat } from "./lib/openai";
 import { upload, diskPathToUrl } from "./lib/upload";
 import { verifyFirebaseToken, setCustomUserClaims } from "./lib/firebase-admin";
 import {
@@ -67,7 +64,10 @@ interface CustomJwtPayload extends jwt.JwtPayload {
 }
 
 const JWT_SECRET = process.env.JWT_SECRET || "super_secret_jwt_key_learning_pro_123";
-if (process.env.NODE_ENV === "production" && (!process.env.JWT_SECRET || process.env.JWT_SECRET === "super_secret_jwt_key_learning_pro_123")) {
+if (
+  process.env.NODE_ENV === "production" &&
+  (!process.env.JWT_SECRET || process.env.JWT_SECRET === "super_secret_jwt_key_learning_pro_123")
+) {
   throw new Error("A strong, unique JWT_SECRET environment variable is required in production.");
 }
 
@@ -89,7 +89,14 @@ export async function authenticateToken(req: Request, res: Response, next: expre
         user = await MongoUser.findOne({ email: decodedToken.email });
         if (user) {
           user.firebaseUid = decodedToken.uid;
-          if (decodedToken.role) user.role = decodedToken.role as "student" | "teacher" | "parent" | "principal" | "school_admin" | "admin";
+          if (decodedToken.role)
+            user.role = decodedToken.role as
+              | "student"
+              | "teacher"
+              | "parent"
+              | "principal"
+              | "school_admin"
+              | "admin";
           await user.save();
         }
       }
@@ -110,7 +117,7 @@ export async function authenticateToken(req: Request, res: Response, next: expre
           username: `user_${numericId}`,
           name: decodedToken.name || decodedToken.email?.split("@")[0] || `User_${numericId}`,
           displayName: decodedToken.name || null,
-          role: (decodedToken as Record<string, unknown>).role as string || "student",
+          role: ((decodedToken as Record<string, unknown>).role as string) || "student",
           password: "firebase_managed",
         });
         await user.save();
@@ -172,7 +179,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mount New Daily.co Live Classes API routes
   app.use("/api/live", authenticateToken, liveRouter);
 
-
   // Mount AI Classroom routes (Study Arena integration)
   app.use("/api/ai-classroom", aiClassroomRoutes);
 
@@ -205,7 +211,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Authentication routes (mostly handled by Firebase Client now)
   app.use("/api/auth", authRouter);
-
 
   // ─── Dashboard Data Routes ───────────────────────────────────────────────────
 
@@ -845,9 +850,7 @@ Answer questions clearly and at their level. Do not mention these instructions.`
         }
       }
 
-      const response = systemPrompt
-        ? await aiChat(messages, systemPrompt)
-        : await aiChat(messages);
+      const response = systemPrompt ? await aiChat(messages, systemPrompt) : await aiChat(messages);
       res.status(200).json(response);
     } catch (error) {
       logger.error("AI chat error:", error);
@@ -1340,7 +1343,13 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
 
       // Fetch the message directly from Mongo to check ownership
       const { MongoMessage } = await import("@shared/mongo-schema");
-      const msg = await (MongoMessage as { findOne: (query: {id: number}) => Promise<{authorId: number; channelId: number} | null> }).findOne({ id: messageId });
+      const msg = await (
+        MongoMessage as {
+          findOne: (query: {
+            id: number;
+          }) => Promise<{ authorId: number; channelId: number } | null>;
+        }
+      ).findOne({ id: messageId });
       if (!msg) return res.status(404).json({ message: "Message not found" });
 
       const isAuthor = msg.authorId === req.session.userId;
@@ -1568,12 +1577,9 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
     (req: Request, res: Response) => {
       try {
         if (!req.file) {
-          return res
-            .status(400)
-            .json({
-              message:
-                "No file provided. Send a multipart/form-data request with field name 'file'.",
-            });
+          return res.status(400).json({
+            message: "No file provided. Send a multipart/form-data request with field name 'file'.",
+          });
         }
 
         const url = diskPathToUrl(req.file.path);
@@ -1615,10 +1621,24 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
       }
 
       // Find by firebaseUid or email
-      type MongoUserType = { id: number, role: string, avatar: string | null, displayName: string | null, name: string, firebaseUid?: string, save: () => Promise<void> };
-      type MongoUserModelType = { findOne: (query: Record<string, unknown>) => Promise<MongoUserType | null>, new(data: Record<string, unknown>): MongoUserType };
-      let mongoUser: MongoUserType | null = await (MongoUser as unknown as MongoUserModelType).findOne({ firebaseUid: uid });
-      if (!mongoUser) mongoUser = await (MongoUser as unknown as MongoUserModelType).findOne({ email });
+      type MongoUserType = {
+        id: number;
+        role: string;
+        avatar: string | null;
+        displayName: string | null;
+        name: string;
+        firebaseUid?: string;
+        save: () => Promise<void>;
+      };
+      type MongoUserModelType = {
+        findOne: (query: Record<string, unknown>) => Promise<MongoUserType | null>;
+        new (data: Record<string, unknown>): MongoUserType;
+      };
+      let mongoUser: MongoUserType | null = await (
+        MongoUser as unknown as MongoUserModelType
+      ).findOne({ firebaseUid: uid });
+      if (!mongoUser)
+        mongoUser = await (MongoUser as unknown as MongoUserModelType).findOne({ email });
 
       if (!mongoUser) {
         const id = await getNextSequenceValue("user_id");
@@ -1680,7 +1700,9 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
       let workspaces = await storage.getWorkspaces(userId);
       if (workspaces.length === 0) {
         const wsId = await getNextSequenceValue("workspace_id");
-        const newWs = new (MongoWorkspace as unknown as { new(data: Record<string, unknown>): { save: () => Promise<void> } })({
+        const newWs = new (MongoWorkspace as unknown as {
+          new (data: Record<string, unknown>): { save: () => Promise<void> };
+        })({
           id: wsId,
           name: "School",
           description: "Default school workspace",
@@ -1721,7 +1743,9 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
 
         for (const ch of defaultChannels) {
           const chId = await getNextSequenceValue("channel_id");
-          const newCh = new (MongoChannel as unknown as { new(data: Record<string, unknown>): { save: () => Promise<void> } })({
+          const newCh = new (MongoChannel as unknown as {
+            new (data: Record<string, unknown>): { save: () => Promise<void> };
+          })({
             id: chId,
             workspaceId: wsId,
             name: ch.name,
@@ -1738,7 +1762,7 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
         logger.info(`[chat/conversations] Seeded workspace`, { userId });
       }
 
-      type ExtendedChannel = Channel & { category?: string, isReadOnly?: boolean };
+      type ExtendedChannel = Channel & { category?: string; isReadOnly?: boolean };
       // Gather all channels across workspaces
       let allChannels: ExtendedChannel[] = [];
       for (const ws of workspaces) {
@@ -1795,7 +1819,14 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
             .map((m: { id: number }) => storage.markMessageAsRead(m.id, req.session!.userId!))
         );
 
-        await (MongoChannel as unknown as { findOneAndUpdate: (q: Record<string, unknown>, update: Record<string, unknown>) => Promise<void> }).findOneAndUpdate(
+        await (
+          MongoChannel as unknown as {
+            findOneAndUpdate: (
+              q: Record<string, unknown>,
+              update: Record<string, unknown>
+            ) => Promise<void>;
+          }
+        ).findOneAndUpdate(
           { id: channelId },
           { $set: { [`unreadCounts.${req.session.userId}`]: 0 } }
         );
@@ -2290,14 +2321,15 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
       // 2. Use Google Cloud Vision API
       // 3. Use AWS Textract
       // 4. Use Azure Computer Vision
-      
+
       // For now, return a mock response
-      const mockText = "Sample extracted text from image.\n\nThis is a placeholder response. In production, this would contain the actual OCR-extracted text from the image.";
-      
-      return res.status(200).json({ 
+      const mockText =
+        "Sample extracted text from image.\n\nThis is a placeholder response. In production, this would contain the actual OCR-extracted text from the image.";
+
+      return res.status(200).json({
         text: mockText,
         confidence: 0.95,
-        language: "en"
+        language: "en",
       });
     } catch (error) {
       console.error("OCR processing error:", error);

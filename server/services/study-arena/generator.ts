@@ -1,15 +1,15 @@
 /**
  * Study Arena Generator — Ported from features/ai-classroom/studyArena
- * 
+ *
  * This is the core generation pipeline adapted for PersonalLearningPro's
  * Express server. It replaces the Vercel AI SDK with the existing OpenAI
  * SDK already in server/lib/openai.ts.
- * 
+ *
  * Pipeline:
  *   1. Generate agent profiles (optional LLM call)
  *   2. Generate scene outlines from requirement (1 LLM call)
  *   3. For each outline: generate content + actions (2 LLM calls per scene)
- * 
+ *
  * Source: features/ai-classroom/studyArena/lib/server/classroom-generation.ts
  */
 
@@ -36,7 +36,10 @@ const PARALLEL_SCENE_BATCH_SIZE = 3;
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`LLM call timed out after ${ms}ms: ${label}`)), ms);
+    const timer = setTimeout(
+      () => reject(new Error(`LLM call timed out after ${ms}ms: ${label}`)),
+      ms
+    );
     promise.then(resolve, reject).finally(() => clearTimeout(timer));
   });
 }
@@ -67,7 +70,7 @@ function createAICallFn(): AICallFn {
         max_tokens: 16384,
       }),
       LLM_TIMEOUT_MS,
-      label,
+      label
     );
     return response.choices[0].message.content || "";
   };
@@ -110,25 +113,24 @@ const DEFAULT_AGENTS: AgentInfo[] = [
     id: "teacher-1",
     name: "Professor",
     role: "teacher",
-    persona: "An experienced and enthusiastic teacher who explains concepts clearly with real-world examples. Uses visual aids and analogies to make complex topics accessible.",
+    persona:
+      "An experienced and enthusiastic teacher who explains concepts clearly with real-world examples. Uses visual aids and analogies to make complex topics accessible.",
   },
   {
     id: "student-1",
     name: "Alex",
     role: "student",
-    persona: "A curious and engaged student who asks clarifying questions and connects new concepts to prior knowledge. Helps other students understand by rephrasing explanations.",
+    persona:
+      "A curious and engaged student who asks clarifying questions and connects new concepts to prior knowledge. Helps other students understand by rephrasing explanations.",
   },
 ];
 
 // ── Agent Profile Generation ─────────────────────────────────────────────────
 // Ported from features/ai-classroom/studyArena/lib/server/classroom-generation.ts
 
-async function generateAgentProfiles(
-  requirement: string,
-  aiCall: AICallFn,
-): Promise<AgentInfo[]> {
+async function generateAgentProfiles(requirement: string, aiCall: AICallFn): Promise<AgentInfo[]> {
   const systemPrompt =
-    'You are an expert instructional designer. Generate agent profiles for a multi-agent classroom simulation. Return ONLY valid JSON, no markdown or explanation.';
+    "You are an expert instructional designer. Generate agent profiles for a multi-agent classroom simulation. Return ONLY valid JSON, no markdown or explanation.";
 
   const userPrompt = `Generate agent profiles for a course with this requirement:
 ${requirement}
@@ -163,7 +165,7 @@ Return a JSON object with this exact structure:
     return parsed.agents.map((a, i) => ({
       id: `gen-${i}`,
       name: a.name,
-      role: a.role as 'teacher' | 'assistant' | 'student',
+      role: a.role as "teacher" | "assistant" | "student",
       persona: a.persona,
     }));
   } catch (err) {
@@ -178,7 +180,7 @@ Return a JSON object with this exact structure:
 async function generateOutlines(
   requirement: string,
   aiCall: AICallFn,
-  agents: AgentInfo[],
+  agents: AgentInfo[]
 ): Promise<{ languageDirective: string; outlines: SceneOutline[] }> {
   const teacherAgent = agents.find((a) => a.role === "teacher");
   const teacherContext = teacherAgent
@@ -233,7 +235,7 @@ async function generateOutlines(
 async function generateSlideContent(
   outline: SceneOutline,
   aiCall: AICallFn,
-  agents: AgentInfo[],
+  agents: AgentInfo[]
 ): Promise<any> {
   const teacherAgent = agents.find((a) => a.role === "teacher");
   const teacherContext = teacherAgent
@@ -257,10 +259,7 @@ async function generateSlideContent(
   return parseJsonResponse(response);
 }
 
-async function generateQuizContent(
-  outline: SceneOutline,
-  aiCall: AICallFn,
-): Promise<any> {
+async function generateQuizContent(outline: SceneOutline, aiCall: AICallFn): Promise<any> {
   const quizConfig = outline.quizConfig || {
     questionCount: 3,
     difficulty: "medium",
@@ -290,21 +289,22 @@ function sanitizeGeneratedHtml(html: string): string {
   sanitized = sanitized.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, (match) => {
     if (/src\s*=\s*["'][^"']*cdn\.jsdelivr\.net/i.test(match)) return match;
     if (/renderMathInElement|katex|MathJax/i.test(match)) return match;
-    if (/document\.addEventListener|querySelector|getElementById|className|style\./i.test(match)) return match;
-    if (/fetch\s*\(|XMLHttpRequest|eval\s*\(|Function\s*\(|import\s*\(/i.test(match)) return '';
+    if (/document\.addEventListener|querySelector|getElementById|className|style\./i.test(match))
+      return match;
+    if (/fetch\s*\(|XMLHttpRequest|eval\s*\(|Function\s*\(|import\s*\(/i.test(match)) return "";
     return match;
   });
-  sanitized = sanitized.replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, '');
-  sanitized = sanitized.replace(/<object[^>]*>[\s\S]*?<\/object>/gi, '');
-  sanitized = sanitized.replace(/<embed[^>]*\/?>/gi, '');
-  sanitized = sanitized.replace(/\bon\w+\s*=\s*["'][^"']*["']/gi, '');
+  sanitized = sanitized.replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, "");
+  sanitized = sanitized.replace(/<object[^>]*>[\s\S]*?<\/object>/gi, "");
+  sanitized = sanitized.replace(/<embed[^>]*\/?>/gi, "");
+  sanitized = sanitized.replace(/\bon\w+\s*=\s*["'][^"']*["']/gi, "");
   return sanitized;
 }
 
 function postProcessInteractiveHtml(html: string): string {
   let processed = sanitizeGeneratedHtml(html);
-  processed = processed.replace(/\$\$([^$]+)\$\$/g, '\\[$1\\]');
-  processed = processed.replace(/\$([^$\n]+?)\$/g, '\\($1\\)');
+  processed = processed.replace(/\$\$([^$]+)\$\$/g, "\\[$1\\]");
+  processed = processed.replace(/\$([^$\n]+?)\$/g, "\\($1\\)");
 
   // Inject KaTeX resources
   const katexInjection = `
@@ -331,12 +331,12 @@ document.addEventListener("DOMContentLoaded", function() {
 }
 
 function extractHtml(response: string): string | null {
-  const doctypeStart = response.indexOf('<!DOCTYPE html>');
-  const htmlTagStart = response.indexOf('<html');
+  const doctypeStart = response.indexOf("<!DOCTYPE html>");
+  const htmlTagStart = response.indexOf("<html");
   const start = doctypeStart !== -1 ? doctypeStart : htmlTagStart;
 
   if (start !== -1) {
-    const htmlEnd = response.lastIndexOf('</html>');
+    const htmlEnd = response.lastIndexOf("</html>");
     if (htmlEnd !== -1) {
       return response.substring(start, htmlEnd + 7);
     }
@@ -348,10 +348,7 @@ function extractHtml(response: string): string | null {
   return null;
 }
 
-async function generateInteractiveContent(
-  outline: SceneOutline,
-  aiCall: AICallFn,
-): Promise<any> {
+async function generateInteractiveContent(outline: SceneOutline, aiCall: AICallFn): Promise<any> {
   const config = outline.interactiveConfig;
   if (!config) return null;
 
@@ -397,10 +394,7 @@ async function generateInteractiveContent(
   return { html: postProcessInteractiveHtml(rawHtml) };
 }
 
-async function generatePBLSceneContent(
-  outline: SceneOutline,
-  aiCall: AICallFn,
-): Promise<any> {
+async function generatePBLSceneContent(outline: SceneOutline, aiCall: AICallFn): Promise<any> {
   const config = outline.pblConfig;
   if (!config) return null;
 
@@ -422,7 +416,7 @@ async function generatePBLSceneContent(
 async function generateSceneContent(
   outline: SceneOutline,
   aiCall: AICallFn,
-  agents: AgentInfo[],
+  agents: AgentInfo[]
 ): Promise<any> {
   switch (outline.type) {
     case "slide":
@@ -443,14 +437,17 @@ async function generateSceneActions(
   outline: SceneOutline,
   content: any,
   aiCall: AICallFn,
-  agents: AgentInfo[],
+  agents: AgentInfo[]
 ): Promise<any[]> {
-  const promptId = 
-    outline.type === "quiz" ? "quiz-actions" : 
-    outline.type === "pbl" ? "pbl-actions" :
-    (outline.type === "interactive" || outline.type === "simulation") ? "interactive-actions" :
-    "slide-actions";
-  
+  const promptId =
+    outline.type === "quiz"
+      ? "quiz-actions"
+      : outline.type === "pbl"
+        ? "pbl-actions"
+        : outline.type === "interactive" || outline.type === "simulation"
+          ? "interactive-actions"
+          : "slide-actions";
+
   const teacherAgent = agents.find((a) => a.role === "teacher");
 
   const prompt = buildPrompt(promptId, {
@@ -480,7 +477,7 @@ async function generateSceneActions(
 export async function generateFullClassroom(
   requirement: string,
   onProgress?: (progress: ClassroomGenerationProgress) => void,
-  signal?: AbortSignal,
+  signal?: AbortSignal
 ): Promise<ClassroomData> {
   const aiCall = createAICallFn();
   const classroomId = nanoid(10);
@@ -548,7 +545,7 @@ export async function generateFullClassroom(
         const actions = await generateSceneActions(outline, content, aiCall, agents);
         logger.info(`Scene "${outline.title}": ${actions.length} actions`);
         return { outline, content, actions };
-      }),
+      })
     );
 
     for (const result of batchResults) {

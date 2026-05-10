@@ -136,6 +136,7 @@ const url = generateOpenMAICClassroomUrl(classroomId, token);
 ### API Endpoints
 
 **Create AI Classroom (native Study Arena):**
+
 ```bash
 POST /api/ai-classroom/create
 Authorization: Bearer <jwt>
@@ -161,12 +162,14 @@ Response:
 ```
 
 **Get Classroom Details:**
+
 ```bash
 GET /api/openmaic/classroom/:classroomId
 Authorization: Bearer <firebase-jwt>
 ```
 
 **Generate Classroom Embed:**
+
 ```bash
 POST /api/openmaic/classroom/:classroomId/embed
 Authorization: Bearer <firebase-jwt>
@@ -191,10 +194,11 @@ Response:
 OpenMAIC sends webhooks to EduAI when:
 
 1. **Lesson Completed**
+
    ```
    POST /api/webhooks/openmaic/lesson-completed
    X-OpenMAIC-Signature: <hmac-sha256>
-   
+
    {
      "event": "lesson_completed",
      "classroomId": "classroom-123",
@@ -212,9 +216,10 @@ OpenMAIC sends webhooks to EduAI when:
    ```
 
 2. **Quiz Completed**
+
    ```
    POST /api/webhooks/openmaic/quiz-completed
-   
+
    {
      "event": "quiz_completed",
      "classroomId": "classroom-123",
@@ -232,9 +237,10 @@ OpenMAIC sends webhooks to EduAI when:
    ```
 
 3. **Session Ended**
+
    ```
    POST /api/webhooks/openmaic/session-ended
-   
+
    {
      "event": "session_ended",
      "classroomId": "classroom-123",
@@ -263,9 +269,9 @@ All webhooks are signed with HMAC-SHA256:
 ```typescript
 // OpenMAIC signs the payload
 const signature = crypto
-  .createHmac('sha256', BRIDGE_SECRET)
+  .createHmac("sha256", BRIDGE_SECRET)
   .update(JSON.stringify(payload))
-  .digest('hex');
+  .digest("hex");
 
 // EduAI verifies the signature
 const isValid = verifyOpenMAICWebhookSignature(payload, signature);
@@ -278,11 +284,13 @@ const isValid = verifyOpenMAICWebhookSignature(payload, signature);
 Both EduAI and OpenMAIC use Tailwind CSS. Ensure consistency:
 
 **EduAI Theme:**
+
 - Colors: Radix UI palette
 - Typography: Inter font
 - Components: shadcn/ui
 
 **OpenMAIC Theme:**
+
 - Colors: Tailwind v4 (align with EduAI)
 - Typography: Inter font
 - Components: Custom or shadcn/ui
@@ -294,8 +302,8 @@ Add "Back to Dashboard" button in OpenMAIC:
 ```tsx
 // In OpenMAIC classroom component
 <button
-  onClick={() => window.location.href = '/'}
-  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200"
+  onClick={() => (window.location.href = "/")}
+  className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 hover:bg-gray-200"
 >
   <ArrowLeft size={18} />
   Back to Dashboard
@@ -309,12 +317,12 @@ EduAI can create deep links to OpenMAIC classrooms:
 ```tsx
 // In EduAI Study Plan component
 const handleEnterClassroom = async (topic: string) => {
-  const response = await fetch('/api/ai-classroom/create', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${token}` },
-    body: JSON.stringify({ topic, sceneTypes: ['slides', 'quiz'] })
+  const response = await fetch("/api/ai-classroom/create", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ topic, sceneTypes: ["slides", "quiz"] }),
   });
-  
+
   const { classroom } = await response.json();
   window.location.href = classroom.url;
 };
@@ -482,6 +490,7 @@ curl -H "Authorization: Bearer <token>" http://localhost:5001/api/auth/me
 ## Security Considerations
 
 1. **BRIDGE_SECRET**: Generate a strong random string
+
    ```bash
    openssl rand -hex 32
    ```
@@ -489,6 +498,7 @@ curl -H "Authorization: Bearer <token>" http://localhost:5001/api/auth/me
 2. **Webhook Signatures**: Always verify HMAC-SHA256 signatures
 
 3. **CORS**: Configure allowed origins in `.env`
+
    ```
    CORS_ORIGIN=https://yourdomain.com,https://arena.yourdomain.com
    ```

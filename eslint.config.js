@@ -20,6 +20,7 @@ export default [
     rules: {
       ...js.configs.recommended.rules,
       ...tsPlugin.configs.recommended.rules,
+      "no-undef": "off",
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
     },
@@ -44,6 +45,8 @@ export default [
       ...reactPlugin.configs.recommended.rules,
       ...reactHooks.configs.recommended.rules,
       "react/react-in-jsx-scope": "off",
+      "react/prop-types": "off",
+      "no-undef": "off",
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
     },

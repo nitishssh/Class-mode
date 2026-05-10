@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { useAppMessage, useLocalSessionId, useLocalParticipant } from "@daily-co/daily-react";
 import { Send } from "lucide-react";
 import { Input } from "@/components/ui/input";

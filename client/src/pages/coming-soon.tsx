@@ -370,7 +370,7 @@ export default function ComingSoon() {
 
         {/* Footer note */}
         <p className="mt-8 text-xs text-muted-foreground">
-          We're building this fast. Stay tuned for updates! 🎓
+          We&apos;re building this fast. Stay tuned for updates! 🎓
         </p>
       </div>
     </div>

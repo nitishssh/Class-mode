@@ -16,14 +16,10 @@ Generate a self-contained HTML code editor with execution and test validation.
   "language": "python",
   "description": "...",
   "starterCode": "def solution(x):\n    # Your code here\n    pass",
-  "testCases": [
-    { "id": "t1", "input": "5", "expected": "25", "description": "Square the input" }
-  ],
+  "testCases": [{ "id": "t1", "input": "5", "expected": "25", "description": "Square the input" }],
   "hints": ["Think about multiplication", "What is x * x?"],
   "solution": "def solution(x):\n    return x * x",
-  "teacherActions": [
-    { "id": "act1", "type": "speech", "content": "Try implementing the solution" }
-  ]
+  "teacherActions": [{ "id": "act1", "type": "speech", "content": "Try implementing the solution" }]
 }
 ```
 
@@ -34,6 +30,7 @@ When generating Python widgets using Pyodide, follow these **mandatory patterns*
 ### 1. Proper Stdout Capture Setup
 
 **ALWAYS use this exact pattern for stdout capture:**
+
 ```javascript
 // CORRECT - imports both sys AND io
 await pyodide.runPythonAsync(`
@@ -44,9 +41,10 @@ await pyodide.runPythonAsync(`
 ```
 
 **NEVER do this (causes NameError):**
+
 ```javascript
 // WRONG - missing import io
-pyodide.runPython('import sys; sys.stdout = io.StringIO()');
+pyodide.runPython("import sys; sys.stdout = io.StringIO()");
 ```
 
 ### 2. Use Async Execution
@@ -58,8 +56,9 @@ pyodide.runPython('import sys; sys.stdout = io.StringIO()');
 ### 3. Load Required Packages Before Execution
 
 If user code needs packages like numpy, load them during initialization:
+
 ```javascript
-await pyodide.loadPackage(['numpy']);
+await pyodide.loadPackage(["numpy"]);
 ```
 
 ### 4. Wait for Pyodide Initialization
@@ -71,7 +70,7 @@ await pyodide.loadPackage(['numpy']);
 ### 5. Retrieve Output Correctly
 
 ```javascript
-const output = pyodide.runPython('sys.stdout.getvalue()');
+const output = pyodide.runPython("sys.stdout.getvalue()");
 ```
 
 ## Complete Python Widget Runtime Pattern
@@ -80,33 +79,33 @@ const output = pyodide.runPython('sys.stdout.getvalue()');
 let pyodide = null;
 
 async function initPyodide() {
-    pyodide = await loadPyodide();
-    // Load any packages user code might need
-    await pyodide.loadPackage(['numpy']);
-    document.getElementById('run-btn').disabled = false;
-    document.getElementById('status').textContent = 'Python ready';
+  pyodide = await loadPyodide();
+  // Load any packages user code might need
+  await pyodide.loadPackage(["numpy"]);
+  document.getElementById("run-btn").disabled = false;
+  document.getElementById("status").textContent = "Python ready";
 }
 initPyodide();
 
 async function runCode() {
-    if (!pyodide) {
-        alert('Python environment not ready');
-        return;
-    }
-    const code = editor.getValue();
-    try {
-        // MUST import sys AND io before using StringIO
-        await pyodide.runPythonAsync(`
+  if (!pyodide) {
+    alert("Python environment not ready");
+    return;
+  }
+  const code = editor.getValue();
+  try {
+    // MUST import sys AND io before using StringIO
+    await pyodide.runPythonAsync(`
             import sys
             import io
             sys.stdout = io.StringIO()
         `);
-        await pyodide.runPythonAsync(code);
-        const output = pyodide.runPython('sys.stdout.getvalue()');
-        document.getElementById('output').textContent = output;
-    } catch (e) {
-        document.getElementById('output').textContent = `Error: ${e.message}`;
-    }
+    await pyodide.runPythonAsync(code);
+    const output = pyodide.runPython("sys.stdout.getvalue()");
+    document.getElementById("output").textContent = output;
+  } catch (e) {
+    document.getElementById("output").textContent = `Error: ${e.message}`;
+  }
 }
 ```
 
@@ -131,6 +130,7 @@ async function runCode() {
 Return ONLY the HTML document, no markdown fences or explanations.
 
 **CRITICAL: Output EXACTLY ONE HTML document.**
+
 - Do NOT duplicate content
 - Do NOT include multiple `<!DOCTYPE html>` tags
 - The output must end with exactly one `</html>` tag

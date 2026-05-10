@@ -53,22 +53,22 @@ mobile/
 ## 🧭 Navigation with Expo Router
 
 ```tsx
-import { useRouter, Link } from 'expo-router';
+import { useRouter, Link } from "expo-router";
 
 // Programmatic navigation
 const router = useRouter();
-router.push('/profile');
-router.replace('/(auth)/login');
+router.push("/profile");
+router.replace("/(auth)/login");
 router.back();
 
 // Link component
-<Link href="/profile">Go to Profile</Link>
+<Link href="/profile">Go to Profile</Link>;
 ```
 
 ## 🔐 Authentication
 
 ```tsx
-import { loginWithEmail, logoutUser, auth } from '../lib/firebase';
+import { loginWithEmail, logoutUser, auth } from "../lib/firebase";
 
 // Login
 await loginWithEmail(email, password);
@@ -83,13 +83,13 @@ const user = auth?.currentUser;
 ## 🌐 API Calls
 
 ```tsx
-import api from '../lib/api';
+import api from "../lib/api";
 
 // GET request
-const response = await api.get('/tasks');
+const response = await api.get("/tasks");
 
 // POST request
-const response = await api.post('/tasks', { title: 'New Task' });
+const response = await api.post("/tasks", { title: "New Task" });
 
 // Auth token is automatically added via interceptor
 ```
@@ -97,19 +97,19 @@ const response = await api.post('/tasks', { title: 'New Task' });
 ## 📦 Data Fetching with React Query
 
 ```tsx
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation } from "@tanstack/react-query";
 
 // Fetch data
 const { data, isLoading, error } = useQuery({
-  queryKey: ['tasks'],
-  queryFn: () => api.get('/tasks').then(res => res.data),
+  queryKey: ["tasks"],
+  queryFn: () => api.get("/tasks").then((res) => res.data),
 });
 
 // Mutate data
 const mutation = useMutation({
-  mutationFn: (newTask) => api.post('/tasks', newTask),
+  mutationFn: (newTask) => api.post("/tasks", newTask),
   onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ['tasks'] });
+    queryClient.invalidateQueries({ queryKey: ["tasks"] });
   },
 });
 ```
@@ -117,21 +117,18 @@ const mutation = useMutation({
 ## 🎯 Common Components
 
 ### Button
+
 ```tsx
-<Pressable
-  className="bg-primary-600 rounded-lg py-4 px-6"
-  onPress={() => console.log('Pressed')}
->
-  <Text className="text-white text-center font-semibold">
-    Click Me
-  </Text>
+<Pressable className="bg-primary-600 rounded-lg px-6 py-4" onPress={() => console.log("Pressed")}>
+  <Text className="text-center font-semibold text-white">Click Me</Text>
 </Pressable>
 ```
 
 ### Input
+
 ```tsx
 <TextInput
-  className="border border-gray-300 rounded-lg px-4 py-3"
+  className="rounded-lg border border-gray-300 px-4 py-3"
   placeholder="Enter text"
   value={value}
   onChangeText={setValue}
@@ -139,6 +136,7 @@ const mutation = useMutation({
 ```
 
 ### List (Optimized)
+
 ```tsx
 <FlatList
   data={items}
@@ -148,17 +146,19 @@ const mutation = useMutation({
 ```
 
 ### Loading Spinner
+
 ```tsx
 <ActivityIndicator size="large" color="#3B82F6" />
 ```
 
 ### Alert
-```tsx
-import { Alert } from 'react-native';
 
-Alert.alert('Title', 'Message', [
-  { text: 'Cancel', style: 'cancel' },
-  { text: 'OK', onPress: () => console.log('OK') },
+```tsx
+import { Alert } from "react-native";
+
+Alert.alert("Title", "Message", [
+  { text: "Cancel", style: "cancel" },
+  { text: "OK", onPress: () => console.log("OK") },
 ]);
 ```
 
@@ -175,7 +175,7 @@ const apiUrl = process.env.EXPO_PUBLIC_API_URL;
 
 ```tsx
 // Console logs appear in terminal
-console.log('Debug:', data);
+console.log("Debug:", data);
 
 // React DevTools
 // Run: npx react-devtools
@@ -191,10 +191,10 @@ console.log('Debug:', data);
 ## 📱 Platform-Specific Code
 
 ```tsx
-import { Platform } from 'react-native';
+import { Platform } from "react-native";
 
 // Check platform
-if (Platform.OS === 'ios') {
+if (Platform.OS === "ios") {
   // iOS-specific code
 }
 
@@ -209,9 +209,9 @@ const padding = Platform.select({
 ## 🎨 Icons
 
 ```tsx
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from "@expo/vector-icons";
 
-<Ionicons name="home" size={24} color="black" />
+<Ionicons name="home" size={24} color="black" />;
 
 // Common icon names:
 // home, person, settings, search, add, close
@@ -222,40 +222,38 @@ import { Ionicons } from '@expo/vector-icons';
 ## 🔄 Async Storage
 
 ```tsx
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from "expo-secure-store";
 
 // Save
-await SecureStore.setItemAsync('key', 'value');
+await SecureStore.setItemAsync("key", "value");
 
 // Get
-const value = await SecureStore.getItemAsync('key');
+const value = await SecureStore.getItemAsync("key");
 
 // Delete
-await SecureStore.deleteItemAsync('key');
+await SecureStore.deleteItemAsync("key");
 ```
 
 ## 📸 Common Patterns
 
 ### Safe Area
-```tsx
-import { SafeAreaView } from 'react-native-safe-area-context';
 
-<SafeAreaView className="flex-1">
-  {/* content */}
-</SafeAreaView>
+```tsx
+import { SafeAreaView } from "react-native-safe-area-context";
+
+<SafeAreaView className="flex-1">{/* content */}</SafeAreaView>;
 ```
 
 ### Keyboard Avoiding
+
 ```tsx
-<KeyboardAvoidingView
-  behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-  className="flex-1"
->
+<KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1">
   {/* content */}
 </KeyboardAvoidingView>
 ```
 
 ### Pull to Refresh
+
 ```tsx
 const [refreshing, setRefreshing] = useState(false);
 
@@ -272,26 +270,30 @@ const [refreshing, setRefreshing] = useState(false);
   }
 >
   {/* content */}
-</ScrollView>
+</ScrollView>;
 ```
 
 ## 🚨 Common Errors
 
 ### "Unable to resolve module"
+
 ```bash
 npx expo start --clear
 ```
 
 ### "Network request failed"
+
 - Check backend is running
 - Check API_URL in .env
 - For physical device, use computer's IP address
 
 ### "Firebase not configured"
-- Check all EXPO_PUBLIC_FIREBASE_* vars in .env
+
+- Check all EXPO*PUBLIC_FIREBASE*\* vars in .env
 - Restart Expo dev server
 
 ### Changes not reflecting
+
 - Shake device for dev menu → Reload
 - Or restart with: npx expo start --clear
 

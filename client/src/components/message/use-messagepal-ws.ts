@@ -37,8 +37,10 @@ export function useMessagePalWebSocket(currentUserId?: number) {
   const [typingUsers, setTypingUsers] = useState<Set<number>>(new Set());
 
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleMessageRef = useRef<((data: WebSocketMessage) => void) | null>(null);
+  const connectRef = useRef<(() => void) | null>(null);
 
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
@@ -59,7 +61,7 @@ export function useMessagePalWebSocket(currentUserId?: number) {
       ws.onmessage = (event) => {
         try {
           const data: WebSocketMessage = JSON.parse(event.data);
-          handleMessage(data);
+          handleMessageRef.current?.(data);
         } catch (error) {
           console.error("Error parsing WebSocket message:", error);
         }
@@ -75,7 +77,7 @@ export function useMessagePalWebSocket(currentUserId?: number) {
           const reconnect = () => {
             reconnectTimeoutRef.current = setTimeout(() => {
               console.log("Attempting to reconnect to Message...");
-              connect();
+              connectRef.current?.();
             }, 3000);
           };
           reconnect();
@@ -91,6 +93,8 @@ export function useMessagePalWebSocket(currentUserId?: number) {
       console.error("Failed to connect to Message WebSocket:", error);
     }
   }, []);
+
+  useEffect(() => { connectRef.current = connect; }, [connect]);
 
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
@@ -199,7 +203,7 @@ export function useMessagePalWebSocket(currentUserId?: number) {
         console.log("Connected to Message server:", data.payload);
         break;
 
-      case "message_received":
+      case "message_received": {
         const newMessage: Message = data.payload;
         setMessages((prev) => [...prev, newMessage]);
 
@@ -216,8 +220,9 @@ export function useMessagePalWebSocket(currentUserId?: number) {
           return prev;
         });
         break;
+      }
 
-      case "user_typing":
+      case "user_typing": {
         const { userId } = data.payload;
         setTypingUsers((prev) => new Set(prev).add(userId));
 
@@ -230,8 +235,9 @@ export function useMessagePalWebSocket(currentUserId?: number) {
           });
         }, 3000);
         break;
+      }
 
-      case "message_read":
+      case "message_read": {
         const { messageId, readBy } = data.payload;
         setMessages((prev) =>
           prev.map((msg) =>
@@ -239,6 +245,7 @@ export function useMessagePalWebSocket(currentUserId?: number) {
           )
         );
         break;
+      }
 
       case "history_response":
         setMessages(data.payload.messages);
@@ -252,6 +259,8 @@ export function useMessagePalWebSocket(currentUserId?: number) {
         console.log("Unknown message type:", data.type);
     }
   }, []);
+
+  useEffect(() => { handleMessageRef.current = handleMessage; }, [handleMessage]);
 
   // Load initial conversations
   useEffect(() => {

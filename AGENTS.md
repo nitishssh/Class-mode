@@ -5,6 +5,7 @@ Welcome, AI agent! 🧠 This file provides the essential context and instruction
 ## 🚀 Build & Test
 
 ### Web App
+
 - **📦 Install Dependencies:** `npm install`
 - **💻 Development Server:** `npm run dev` (Vite frontend + Express backend on port 5001)
 - **🧪 Run Tests:** `npm test` (Vitest)
@@ -15,6 +16,7 @@ Welcome, AI agent! 🧠 This file provides the essential context and instruction
 - **🚀 Start Production:** `npm start`
 
 ### Mobile App (React Native + Expo) - ✅ COMPLETE
+
 - **📦 Install Dependencies:** `cd mobile && npm install`
 - **📱 Start Expo:** `npm start` (then press 'i' for iOS or 'a' for Android)
 - **🤖 Android:** `npm run android`
