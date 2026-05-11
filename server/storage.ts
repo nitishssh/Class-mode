@@ -159,6 +159,7 @@ export interface IStorage {
   createChannel(channel: InsertChannel): Promise<Channel>;
   getChannel(id: number): Promise<Channel | undefined>;
   getChannelsByWorkspace(workspaceId: number): Promise<Channel[]>;
+  getChannelsByWorkspaces(workspaceIds: number[]): Promise<Channel[]>;
   getOrCreateDMChannel(userId1: number, userId2: number): Promise<Channel>;
   getDMsByUser(userId: number): Promise<Channel[]>;
 
@@ -564,6 +565,11 @@ export class MongoStorage implements IStorage {
 
   async getChannelsByWorkspace(workspaceId: number): Promise<Channel[]> {
     const channels = await MongoChannel.find({ workspaceId }).sort({ createdAt: 1 });
+    return channels.map((c: any) => this.mapMongoDoc<Channel>(c));
+  }
+
+  async getChannelsByWorkspaces(workspaceIds: number[]): Promise<Channel[]> {
+    const channels = await MongoChannel.find({ workspaceId: { $in: workspaceIds } }).sort({ createdAt: 1 });
     return channels.map((c: any) => this.mapMongoDoc<Channel>(c));
   }
 
