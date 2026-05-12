@@ -12,7 +12,7 @@
  * will return null so the rest of the app keeps working without Firebase.
  */
 
-import { initializeApp, getApps, cert, type App } from "firebase-admin/app";
+import { initializeApp, getApps, cert } from "firebase-admin/app";
 import { getAuth, type DecodedIdToken } from "firebase-admin/auth";
 
 let initialised = false;

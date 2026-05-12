@@ -1,5 +1,4 @@
 import { Rubric, RubricCriterion, RubricSchema } from "../../shared/grading-schema";
-import { z } from "zod";
 
 /**
  * Parse and validate a rubric JSON string or object.

@@ -67,7 +67,6 @@ import {
   cassandraMarkMessageAsRead,
   cassandraGetPinnedMessages,
 } from "./lib/cassandra-message-store";
-import { Snowflake } from "./lib/snowflake";
 import session from "express-session";
 import MemoryStore from "memorystore";
 

@@ -4,7 +4,7 @@ name: personallearningpro-staging
 
 services:
   app:
-    image: ghcr.io/${GITHUB_REPOSITORY:-starknitish/personallearningpro}/personallearningpro:latest
+    image: ghcr.io/${GITHUB_REPOSITORY:-starknitish/personallearningpro}/personallearningpro:main
     env_file: .env.staging
     ports:
       - "5001:5001"

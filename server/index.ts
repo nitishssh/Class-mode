@@ -25,7 +25,6 @@ import path from "path";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
 import { storage } from "./storage";
-import { WebSocketServer, WebSocket } from "ws";
 import { connectMongoDB } from "./db";
 import { setupChatWebSocket } from "./chat-ws";
 import { setupMessagePalWebSocket, startMessagePalServer } from "./message";

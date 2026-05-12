@@ -16,7 +16,6 @@ import {
   BarChart3,
   Trophy,
   Calendar,
-  Timer,
   Play,
   Eye,
   RefreshCw,

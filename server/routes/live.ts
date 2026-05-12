@@ -1,11 +1,10 @@
 import { Router } from "express";
 import { storage } from "../storage";
-import { insertLiveClassSchema, insertLiveSessionAttendanceSchema } from "@shared/schema";
-import { createRoom, createMeetingToken, getRecordings, deleteRoom } from "../services/daily";
+import { insertLiveClassSchema } from "@shared/schema";
+import { createRoom, createMeetingToken, getRecordings } from "../services/daily";
 import { broadcastGlobal } from "../chat-ws";
 import { z } from "zod";
 
-import { User } from "@shared/schema";
 
 export const liveRouter = Router();
 

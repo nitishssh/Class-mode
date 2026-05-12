@@ -44,7 +44,6 @@ import billingRoutes from "./routes/billing";
 import gdprRoutes from "./routes/gdpr";
 import lmsRoutes from "./routes/lms";
 
-import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import "express-session";
 

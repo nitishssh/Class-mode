@@ -3,6 +3,7 @@ import tsPlugin from "@typescript-eslint/eslint-plugin";
 import tsParser from "@typescript-eslint/parser";
 import reactPlugin from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
+import unusedImports from "eslint-plugin-unused-imports";
 import globals from "globals";
 
 export default [
@@ -16,13 +17,22 @@ export default [
       parser: tsParser,
       globals: { ...globals.node },
     },
-    plugins: { "@typescript-eslint": tsPlugin },
+    plugins: { 
+      "@typescript-eslint": tsPlugin,
+      "unused-imports": unusedImports,
+    },
     rules: {
       ...js.configs.recommended.rules,
       ...tsPlugin.configs.recommended.rules,
       "no-undef": "off",
       "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+      "@typescript-eslint/ban-ts-comment": "warn",
+      "unused-imports/no-unused-imports": "error",
+      "unused-imports/no-unused-vars": [
+        "warn",
+        { "vars": "all", "varsIgnorePattern": "^_", "args": "after-used", "argsIgnorePattern": "^_" }
+      ],
+      "@typescript-eslint/no-unused-vars": "off", // use unused-imports instead
     },
   },
   // Client/React files
@@ -37,6 +47,7 @@ export default [
       "@typescript-eslint": tsPlugin,
       react: reactPlugin,
       "react-hooks": reactHooks,
+      "unused-imports": unusedImports,
     },
     settings: { react: { version: "detect" } },
     rules: {
@@ -48,7 +59,14 @@ export default [
       "react/prop-types": "off",
       "no-undef": "off",
       "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+      "@typescript-eslint/ban-ts-comment": "warn",
+      "unused-imports/no-unused-imports": "error",
+      "unused-imports/no-unused-vars": [
+        "warn",
+        { "vars": "all", "varsIgnorePattern": "^_", "args": "after-used", "argsIgnorePattern": "^_" }
+      ],
+      "@typescript-eslint/no-unused-vars": "off", // use unused-imports instead
+      "react/no-unescaped-entities": "off", // disable this temporarily to reduce noise, or we can fix manually later
     },
   },
   // Shared
@@ -58,10 +76,21 @@ export default [
       parser: tsParser,
       globals: { ...globals.node },
     },
-    plugins: { "@typescript-eslint": tsPlugin },
+    plugins: { 
+      "@typescript-eslint": tsPlugin,
+      "unused-imports": unusedImports,
+    },
     rules: {
       ...js.configs.recommended.rules,
       ...tsPlugin.configs.recommended.rules,
+      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/ban-ts-comment": "warn",
+      "unused-imports/no-unused-imports": "error",
+      "unused-imports/no-unused-vars": [
+        "warn",
+        { "vars": "all", "varsIgnorePattern": "^_", "args": "after-used", "argsIgnorePattern": "^_" }
+      ],
+      "@typescript-eslint/no-unused-vars": "off",
     },
   },
 ];

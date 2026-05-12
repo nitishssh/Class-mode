@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import {
   Users,
   GraduationCap,
-  Building2,
   BarChart3,
   School,
   CheckCircle2,
