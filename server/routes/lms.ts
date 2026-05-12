@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import crypto from "crypto";
 import { MongoLmsConnection, getNextSequenceValue } from "../../shared/mongo-schema";
 import { authenticateToken } from "../routes";
 import { getAuthUrl, exchangeCode, syncAssignments } from "../lib/lms/googleClassroom";
@@ -8,21 +9,37 @@ const router = Router();
 
 router.get("/google/auth", authenticateToken, async (req: Request, res: Response) => {
   const user = (req as any).user;
-  const url = getAuthUrl(String(user.id));
+  const state = crypto.randomBytes(32).toString("hex");
+  req.session.oauthState = state;
+  req.session.lmsOauthUserId = user.id;
+  await new Promise<void>((resolve, reject) =>
+    req.session.save((err) => (err ? reject(err) : resolve()))
+  );
+  const url = getAuthUrl(state);
   res.redirect(url);
 });
 
 router.get("/google/callback", async (req: Request, res: Response) => {
   const code = req.query.code as string;
-  const userId = req.query.state as string;
-  if (!code || !userId) return res.status(400).send("Missing code or state");
+  const state = req.query.state as string;
+
+  if (!code || !state) return res.status(400).send("Missing code or state");
+  if (!req.session.oauthState || req.session.oauthState !== state) {
+    return res.status(403).send("Invalid OAuth state — possible CSRF attack");
+  }
+
+  const userId = req.session.lmsOauthUserId;
+  if (!userId) return res.status(403).send("No authenticated user in session");
+
+  delete req.session.oauthState;
+  delete req.session.lmsOauthUserId;
 
   try {
     const tokens = await exchangeCode(code);
     const seq = await getNextSequenceValue("LmsConnection");
     await MongoLmsConnection.create({
       id: seq,
-      userId: Number(userId),
+      userId,
       provider: "google_classroom",
       accessToken: tokens.accessToken as string,
       refreshToken: tokens.refreshToken as string,

@@ -8,13 +8,10 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || "super_secret_jwt_key_learning_pro_123";
-if (
-  process.env.NODE_ENV === "production" &&
-  (!process.env.JWT_SECRET || process.env.JWT_SECRET === "super_secret_jwt_key_learning_pro_123")
-) {
-  throw new Error("A strong, unique JWT_SECRET environment variable is required in production.");
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is required. Set it in your .env file (see .env.example).");
 }
+const JWT_SECRET: string = process.env.JWT_SECRET;
 
 type CustomJwtPayload = {
   userId: number;
