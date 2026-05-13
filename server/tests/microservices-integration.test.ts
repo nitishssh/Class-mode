@@ -5,7 +5,7 @@
  * Tests authentication bridge, webhooks, and API endpoints
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import axios, { AxiosInstance } from "axios";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";

@@ -4,17 +4,8 @@ import {
   BookOpen,
   Brain,
   Trophy,
-  Clock,
   Calendar,
-  TrendingUp,
-  Target,
-  Flame,
-  Star,
   CheckCircle2,
-  ChevronRight,
-  ChevronDown,
-  Zap,
-  Users,
   Play,
   Atom,
   FlaskConical,
@@ -23,35 +14,12 @@ import {
   Code2,
   Headphones,
   UserCheck,
-  Bot,
-  Timer,
   BellRing,
   Sparkles,
   Video,
-  Lightbulb,
   Award,
-  Gamepad2,
-  Heart,
-  MessageSquare,
-  BarChart3,
-  Activity,
-  Compass,
-  Target as TargetIcon,
-  BookMarked,
-  RefreshCw,
-  Settings,
-  HelpCircle,
-  LogOut,
-  User,
-  Volume2,
-  Mic,
-  MicOff,
-  VideoOff,
-  Monitor,
-  Maximize2,
-  Minimize2,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
@@ -60,18 +28,8 @@ import { SmartCard } from "@/components/ui/smart-card";
 import { StreakWidget } from "@/components/student/StreakWidget";
 import { XPProgressBar } from "@/components/student/XPProgressBar";
 import { BadgePop } from "@/components/student/animations/BadgePop";
-import { motion } from "framer-motion";
-import {
-  Radar,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
+
 import { useQuery } from "@tanstack/react-query";
-import { Skeleton } from "@/components/ui/skeleton";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 

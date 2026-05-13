@@ -1,7 +1,5 @@
 import { OAuth2Client } from "google-auth-library";
 import { logger } from "../logger";
-import { MongoLmsConnection, getNextSequenceValue } from "../../../shared/mongo-schema";
-import { Request, Response } from "express";
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLASSROOM_CLIENT_ID || "";
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLASSROOM_CLIENT_SECRET || "";

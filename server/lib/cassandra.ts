@@ -1,15 +1,27 @@
-import { Client } from "cassandra-driver";
+import { createRequire } from "module";
 import fs from "fs";
 import os from "os";
 import path from "path";
 
-let client: Client | null = null;
+// cassandra-driver is an optional dependency. Load it only when present so
+// the server can start without it when ASTRA_DB credentials are not set.
+const _require = createRequire(import.meta.url);
+let CassandraClient: any = null;
+try {
+  CassandraClient = _require("cassandra-driver").Client;
+} catch {
+  // package not installed — Cassandra features disabled
+}
+
+let client: any | null = null;
 let isConnected = false;
 let connectionAttempts = 0;
 const MAX_CONNECTION_ATTEMPTS = 3;
 
-export function getCassandraClient() {
+export function getCassandraClient(): any | null {
   if (client && isConnected) return client;
+
+  if (!CassandraClient) return null; // package not installed
 
   const bundlePath = process.env.ASTRA_DB_SECURE_BUNDLE_PATH;
   const bundleB64 = process.env.ASTRA_DB_SECURE_BUNDLE_B64;
@@ -18,7 +30,6 @@ export function getCassandraClient() {
 
   let resolvedBundlePath = bundlePath ? path.resolve(bundlePath) : null;
 
-  // Support injecting the zip file via a base64 encoded environment variable
   if (!resolvedBundlePath && bundleB64) {
     const tempBundlePath = path.join(os.tmpdir(), "astra-secure-connect-temp.zip");
     fs.writeFileSync(tempBundlePath, Buffer.from(bundleB64, "base64"));
@@ -26,37 +37,17 @@ export function getCassandraClient() {
   }
 
   if (!resolvedBundlePath || !token || !keyspace) {
-    console.warn("Astra DB credentials not fully configured. Cassandra client not initialized.");
     return null;
   }
 
   if (!client) {
-    client = new Client({
-      cloud: {
-        secureConnectBundle: resolvedBundlePath,
-      },
-      credentials: {
-        username: "token",
-        password: token,
-      },
-      keyspace: keyspace,
-      // Connection pool configuration
-      pooling: {
-        coreConnectionsPerHost: {
-          [0]: 2,
-          [1]: 1,
-        },
-      },
-      // Query options
-      queryOptions: {
-        consistency: 1, // LOCAL_ONE for better performance
-        prepare: true, // Use prepared statements
-      },
-      // Socket options
-      socketOptions: {
-        connectTimeout: 5000,
-        readTimeout: 12000,
-      },
+    client = new CassandraClient({
+      cloud: { secureConnectBundle: resolvedBundlePath },
+      credentials: { username: "token", password: token },
+      keyspace,
+      pooling: { coreConnectionsPerHost: { [0]: 2, [1]: 1 } },
+      queryOptions: { consistency: 1, prepare: true },
+      socketOptions: { connectTimeout: 5000, readTimeout: 12000 },
     });
   }
 
@@ -80,8 +71,6 @@ export async function initCassandra() {
       console.log(`Connected to Astra DB (Cassandra) - Keyspace: ${keyspace}`);
       isConnected = true;
 
-      // Create messages table if it doesn't exist.
-      // Partitioned by channel_id, clustered by message_id (Snowflake — time-sortable).
       await c.execute(`
         CREATE TABLE IF NOT EXISTS messages (
           channel_id      text,
@@ -102,29 +91,24 @@ export async function initCassandra() {
         AND default_time_to_live = 0;
       `);
 
-      // Secondary index so getPinnedMessages can filter without ALLOW FILTERING on full partition
       await c.execute(`
-        CREATE INDEX IF NOT EXISTS messages_is_pinned_idx
-        ON messages (is_pinned);
+        CREATE INDEX IF NOT EXISTS messages_is_pinned_idx ON messages (is_pinned);
       `);
 
       console.log("Cassandra 'messages' table verified.");
       return true;
     } catch (err: any) {
-      const errorMsg = err?.message || String(err);
-      const innerErrorMsg = JSON.stringify(err?.innerErrors || {});
+      const msg = err?.message || String(err);
+      const inner = JSON.stringify(err?.innerErrors || {});
 
-      // Check if it's a hibernation/401 error (can be in message or innerErrors)
       if (
-        errorMsg.includes("401") ||
-        errorMsg.includes("Unauthorized") ||
-        innerErrorMsg.includes("401") ||
-        innerErrorMsg.includes("Unauthorized")
+        msg.includes("401") ||
+        msg.includes("Unauthorized") ||
+        inner.includes("401") ||
+        inner.includes("Unauthorized")
       ) {
-        console.warn(`[Cassandra] Database appears to be hibernated (HTTP 401).`);
-        console.warn(
-          `[Cassandra] The app will use MongoDB for messages. Wake your Astra DB at https://astra.datastax.com`
-        );
+        console.warn("[Cassandra] Database hibernated (HTTP 401). Falling back to MongoDB.");
+        console.warn("[Cassandra] Wake your Astra DB at https://astra.datastax.com");
         hibernationDetected = true;
         isConnected = false;
         return false;
@@ -139,17 +123,13 @@ export async function initCassandra() {
     }
   };
 
-  // Retry logic with exponential backoff
   for (let i = 1; i <= MAX_CONNECTION_ATTEMPTS; i++) {
     connectionAttempts = i;
     const success = await attemptConnection(i);
     if (success) return;
 
-    // Stop retrying if we detected hibernation
     if (hibernationDetected) {
-      console.warn(
-        "[Cassandra] Skipping retries for hibernated database. Falling back to MongoDB."
-      );
+      console.warn("[Cassandra] Skipping retries for hibernated database.");
       return;
     }
 
@@ -160,7 +140,5 @@ export async function initCassandra() {
     }
   }
 
-  console.warn(
-    "[Cassandra] Max connection attempts reached. Falling back to MongoDB for messages."
-  );
+  console.warn("[Cassandra] Max attempts reached. Falling back to MongoDB.");
 }

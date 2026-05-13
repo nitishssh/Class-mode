@@ -94,7 +94,9 @@ export function useMessagePalWebSocket(currentUserId?: number) {
     }
   }, []);
 
-  useEffect(() => { connectRef.current = connect; }, [connect]);
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
 
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
@@ -260,7 +262,9 @@ export function useMessagePalWebSocket(currentUserId?: number) {
     }
   }, []);
 
-  useEffect(() => { handleMessageRef.current = handleMessage; }, [handleMessage]);
+  useEffect(() => {
+    handleMessageRef.current = handleMessage;
+  }, [handleMessage]);
 
   // Load initial conversations
   useEffect(() => {

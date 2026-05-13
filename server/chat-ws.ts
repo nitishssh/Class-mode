@@ -569,9 +569,7 @@ export function setupChatWebSocket(httpServer: Server, sessionStore: Store) {
             return;
           }
 
-          (await (MongoChannel as any).findOneAndUpdate)
-            ? null // fallback: could update message directly
-            : null;
+          // Optional: Update the database directly if needed in the future.
 
           // Broadcast doubt_answered event
           broadcastToChannel(channelId, {

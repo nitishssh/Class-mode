@@ -1,11 +1,9 @@
 import { WebSocketServer, WebSocket, type RawData } from "ws";
 import type { Server } from "http";
 import type { Store } from "express-session";
-import { MessageStore } from "./message-store";
+import { createMessageStore } from "./factory";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-
-const MESSAGEPAL_PORT = parseInt(process.env.MESSAGEPAL_PORT || "5002", 10);
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -44,7 +42,7 @@ const activeConversations = new Map<string, Set<number>>();
 
 // ─── Message Store ───────────────────────────────────────────────────────────
 
-const messageStore = new MessageStore();
+const messageStore = createMessageStore();
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -112,7 +110,7 @@ async function handleSendMessage(ws: WebSocket, event: IncomingEvent, senderMeta
       senderRole: senderMeta.role,
       recipientId: event.recipientId,
       content: event.content,
-      timestamp: new Date().toISOString(),
+      messageType: "text",
     });
 
     // Broadcast to both participants
@@ -157,10 +155,10 @@ async function handleTyping(ws: WebSocket, event: IncomingEvent, senderMeta: Cli
 }
 
 async function handleMarkRead(ws: WebSocket, event: IncomingEvent, senderMeta: ClientMeta) {
-  if (!event.messageId) return;
+  if (!event.messageId || !event.conversationId) return;
 
   try {
-    await messageStore.markMessageAsRead(event.messageId, senderMeta.userId);
+    await messageStore.markMessageAsRead(event.conversationId, event.messageId, senderMeta.userId);
 
     // Notify sender that message was read
     const ack = {
@@ -359,30 +357,6 @@ export async function setupMessagePalWebSocket(httpServer: Server, sessionStore:
     });
   });
 
-  console.log(`MessagePal WebSocket server listening on port ${MESSAGEPAL_PORT}`);
+  console.log("[MessagePal] WebSocket server attached to main HTTP server");
   return wss;
-}
-
-// ─── HTTP Server for MessagePal ──────────────────────────────────────────────
-
-export async function startMessagePalServer() {
-  const express = (await import("express")).default;
-  const app = express();
-
-  app.use(express.json());
-
-  // Health check endpoint
-  app.get("/health", (req, res) => {
-    res.json({
-      status: "ok",
-      service: "MessagePal",
-      timestamp: new Date().toISOString(),
-    });
-  });
-
-  const server = app.listen(MESSAGEPAL_PORT, () => {
-    console.log(`MessagePal HTTP server running on port ${MESSAGEPAL_PORT}`);
-  });
-
-  return server;
 }

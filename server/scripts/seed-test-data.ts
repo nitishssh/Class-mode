@@ -4,7 +4,6 @@ if (process.env.NODE_ENV === "production") {
 }
 
 import "dotenv/config";
-import mongoose from "mongoose";
 import { connectMongoDB } from "../db";
 import { storage } from "../storage";
 import { InsertTest, InsertQuestion } from "../../shared/schema";

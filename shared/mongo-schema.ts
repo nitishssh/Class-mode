@@ -119,6 +119,11 @@ const TestAttemptSchema = new mongoose.Schema({
 // Compound indexes for common queries
 TestAttemptSchema.index({ studentId: 1, status: 1 });
 TestAttemptSchema.index({ testId: 1, status: 1 });
+// Prevent duplicate in-progress attempts for same student+test at the DB level
+TestAttemptSchema.index(
+  { testId: 1, studentId: 1 },
+  { unique: true, partialFilterExpression: { status: "in_progress" } }
+);
 
 const AnswerSchema = new mongoose.Schema({
   id: { type: Number, required: true, unique: true },

@@ -4,15 +4,12 @@ import { AchieversBookPanel } from "@/components/test/achievers-book-panel";
 import {
   ArrowLeft,
   BookOpen,
-  Brain,
   Download,
   Search,
   PlayCircle,
   FlaskConical,
   Bookmark,
   Clock,
-  Star,
-  Play,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/page-header";

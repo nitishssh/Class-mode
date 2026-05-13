@@ -44,7 +44,6 @@ import billingRoutes from "./routes/billing";
 import gdprRoutes from "./routes/gdpr";
 import lmsRoutes from "./routes/lms";
 
-import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import "express-session";
 
@@ -54,6 +53,8 @@ declare module "express-session" {
     role: string;
     firebaseUid?: string;
     email: string;
+    oauthState?: string;
+    lmsOauthUserId?: number;
   }
 }
 
@@ -63,13 +64,12 @@ interface CustomJwtPayload extends jwt.JwtPayload {
   email?: string;
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || "super_secret_jwt_key_learning_pro_123";
-if (
-  process.env.NODE_ENV === "production" &&
-  (!process.env.JWT_SECRET || process.env.JWT_SECRET === "super_secret_jwt_key_learning_pro_123")
-) {
-  throw new Error("A strong, unique JWT_SECRET environment variable is required in production.");
+if (!process.env.JWT_SECRET) {
+  throw new Error(
+    "JWT_SECRET environment variable is required. Set it in your .env file (see .env.example)."
+  );
 }
+const JWT_SECRET: string = process.env.JWT_SECRET;
 
 // Auth Middleware
 export async function authenticateToken(req: Request, res: Response, next: express.NextFunction) {
@@ -628,9 +628,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .json({ message: "You already have an in-progress attempt for this test" });
       }
 
-      const attempt = await storage.createTestAttempt(attemptData);
-
-      res.status(201).json(attempt);
+      try {
+        const attempt = await storage.createTestAttempt(attemptData);
+        res.status(201).json(attempt);
+      } catch (dbErr: any) {
+        if (dbErr?.code === 11000) {
+          return res
+            .status(400)
+            .json({ message: "You already have an in-progress attempt for this test" });
+        }
+        throw dbErr;
+      }
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid input data", errors: error.errors });
@@ -658,14 +666,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if user owns this attempt or is the teacher for this test
-      if (req.session.role === "student" && attempt.studentId !== req.session.userId) {
-        return res.status(403).json({ message: "Forbidden: Not your attempt" });
+      if (req.session.role === "student") {
+        if (attempt.studentId !== req.session.userId) {
+          return res.status(403).json({ message: "Forbidden: Not your attempt" });
+        }
       } else if (req.session.role === "teacher") {
         const test = await storage.getTest(attempt.testId);
 
         if (!test || test.teacherId !== req.session.userId) {
           return res.status(403).json({ message: "Forbidden: Not your test" });
         }
+      } else {
+        return res.status(403).json({ message: "Forbidden: Insufficient permissions" });
       }
 
       // Validate the update data
@@ -1448,7 +1460,7 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
         const { classOrUser } = req.params;
 
         const allWorkspaces = await storage.getWorkspaces(req.session.userId);
-        const workspaceIds = allWorkspaces.map(ws => ws.id);
+        const workspaceIds = allWorkspaces.map((ws) => ws.id);
         const allChannels = await storage.getChannelsByWorkspaces(workspaceIds);
 
         const filtered = allChannels.filter(
@@ -1760,8 +1772,10 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
 
       type ExtendedChannel = Channel & { category?: string; isReadOnly?: boolean };
       // Gather all channels across workspaces
-      const workspaceIds = workspaces.map(ws => ws.id);
-      const allChannels = await storage.getChannelsByWorkspaces(workspaceIds) as ExtendedChannel[];
+      const workspaceIds = workspaces.map((ws) => ws.id);
+      const allChannels = (await storage.getChannelsByWorkspaces(
+        workspaceIds
+      )) as ExtendedChannel[];
 
       // Role-based filtering
       const accessible = allChannels.filter((ch: ExtendedChannel) => {

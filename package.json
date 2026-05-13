@@ -23,9 +23,7 @@
     "@hookform/resolvers": "^3.9.1",
     "@jridgewell/trace-mapping": "^0.3.25",
     "@langchain/core": "^1.1.45",
-    "@langchain/google-genai": "^2.1.28",
     "@langchain/langgraph": "^1.2.9",
-    "@langchain/openai": "^1.4.4",
     "@radix-ui/react-accordion": "^1.2.1",
     "@radix-ui/react-alert-dialog": "^1.1.2",
     "@radix-ui/react-aspect-ratio": "^1.1.0",
@@ -64,7 +62,6 @@
     "axios": "^1.16.0",
     "bcryptjs": "^3.0.3",
     "canvas-confetti": "^1.9.4",
-    "cassandra-driver": "^4.8.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
@@ -96,7 +93,6 @@
     "partial-json": "^0.1.7",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
-    "playwright": "^1.58.2",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
@@ -125,6 +121,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.4",
     "@playwright/test": "^1.59.1",
+    "playwright": "^1.58.2",
     "@replit/vite-plugin-cartographer": "^0.0.11",
     "@replit/vite-plugin-runtime-error-modal": "^0.0.3",
     "@tailwindcss/typography": "^0.5.15",
@@ -153,6 +150,7 @@
     "eslint": "^9.39.4",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-unused-imports": "^4.4.1",
     "globals": "^15.15.0",
     "jsdom": "^28.1.0",
     "postcss": "^8.5.14",
@@ -166,7 +164,8 @@
     "vitest": "^4.0.18"
   },
   "optionalDependencies": {
-    "bufferutil": "^4.0.8"
+    "bufferutil": "^4.0.8",
+    "cassandra-driver": "^4.8.0"
   },
   "overrides": {
     "sucrase": "3.35.1",

@@ -36,9 +36,9 @@ export default function OcrScan() {
             <ScanBarcode className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">OCR Answer Scanning</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Scan & Grade</h1>
             <p className="text-sm text-muted-foreground">
-              Upload and process handwritten test answers with AI
+              Upload handwritten answer sheets — AI reads and grades them instantly
             </p>
           </div>
         </div>

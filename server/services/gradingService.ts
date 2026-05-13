@@ -4,10 +4,8 @@ import {
   ScoreBreakdown,
   Rubric,
 } from "../../shared/grading-schema";
-import { RubricCriterionSchema } from "../../shared/grading-schema";
 import {
   parseRubric,
-  validateWeights,
   rubricToPrompt,
   normalizeToPercentage,
 } from "../lib/rubricParser";

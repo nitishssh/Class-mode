@@ -67,7 +67,6 @@ import {
   cassandraMarkMessageAsRead,
   cassandraGetPinnedMessages,
 } from "./lib/cassandra-message-store";
-import { Snowflake } from "./lib/snowflake";
 import session from "express-session";
 import MemoryStore from "memorystore";
 
@@ -569,7 +568,9 @@ export class MongoStorage implements IStorage {
   }
 
   async getChannelsByWorkspaces(workspaceIds: number[]): Promise<Channel[]> {
-    const channels = await MongoChannel.find({ workspaceId: { $in: workspaceIds } }).sort({ createdAt: 1 });
+    const channels = await MongoChannel.find({ workspaceId: { $in: workspaceIds } }).sort({
+      createdAt: 1,
+    });
     return channels.map((c: any) => this.mapMongoDoc<Channel>(c));
   }
 

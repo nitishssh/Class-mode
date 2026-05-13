@@ -10,7 +10,6 @@ import {
   X,
   Home,
   ArrowRight,
-  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -30,8 +29,8 @@ const mockAchieversData = {
 # Chapter 5: Electromagnetism
 
 ### Key Concepts
-- **Magnetic Flux ($\Phi_B$)**: $\Phi_B = B \cdot A \cdot \cos(\theta)$
-- **Faraday's Law of Induction**: $\mathcal{E} = -N \frac{d\Phi_B}{dt}$
+- **Magnetic Flux ($\\Phi_B$)**: $\\Phi_B = B \\cdot A \\cdot \\cos(\\theta)$
+- **Faraday's Law of Induction**: $\\mathcal{E} = -N \\frac{d\\Phi_B}{dt}$
 - **Lenz's Law**: The direction of the induced current opposes the change in magnetic flux that produced it.
 
 ### Important Real-World Examples
