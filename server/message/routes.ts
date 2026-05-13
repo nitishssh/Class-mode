@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { CassandraMessageStore } from "./cassandra-message-store";
 import { authenticateToken } from "../routes";
+import { createMessageStore } from "./factory";
 
 const router = Router();
-const messageStore = new CassandraMessageStore();
+const messageStore = createMessageStore();
 
 // All message routes require authentication
 router.use(authenticateToken);

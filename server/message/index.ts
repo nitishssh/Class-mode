@@ -1,7 +1,7 @@
 import { WebSocketServer, WebSocket, type RawData } from "ws";
 import type { Server } from "http";
 import type { Store } from "express-session";
-import { MessageStore } from "./message-store";
+import { createMessageStore } from "./factory";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -44,13 +44,7 @@ const activeConversations = new Map<string, Set<number>>();
 
 // ─── Message Store ───────────────────────────────────────────────────────────
 
-if (process.env.NODE_ENV === "production" && !process.env.ASTRA_DB_APPLICATION_TOKEN) {
-  console.warn(
-    "[MessagePal] WARNING: ASTRA_DB_APPLICATION_TOKEN not set — using in-memory store. " +
-      "Messages will be lost on restart."
-  );
-}
-const messageStore = new MessageStore();
+const messageStore = createMessageStore();
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -118,7 +112,7 @@ async function handleSendMessage(ws: WebSocket, event: IncomingEvent, senderMeta
       senderRole: senderMeta.role,
       recipientId: event.recipientId,
       content: event.content,
-      timestamp: new Date().toISOString(),
+      messageType: "text",
     });
 
     // Broadcast to both participants
@@ -163,10 +157,10 @@ async function handleTyping(ws: WebSocket, event: IncomingEvent, senderMeta: Cli
 }
 
 async function handleMarkRead(ws: WebSocket, event: IncomingEvent, senderMeta: ClientMeta) {
-  if (!event.messageId) return;
+  if (!event.messageId || !event.conversationId) return;
 
   try {
-    await messageStore.markMessageAsRead(event.messageId, senderMeta.userId);
+    await messageStore.markMessageAsRead(event.conversationId, event.messageId, senderMeta.userId);
 
     // Notify sender that message was read
     const ack = {
