@@ -1,10 +1,9 @@
 import { z } from "zod";
-import { MongoUser, MongoTest, MongoTask, MongoGradingResult } from "../../shared/mongo-schema";
+import { MongoUser, MongoTest, MongoGradingResult } from "../../shared/mongo-schema";
 import { authenticateToken } from "../routes";
 import { requireRole } from "../middleware";
 import { requireSubscription } from "../middleware/requireSubscription";
 import { Router, Request, Response } from "express";
-import { logger } from "../lib/logger";
 
 const router = Router();
 

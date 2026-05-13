@@ -10,7 +10,7 @@
 
 import { getCassandraClient } from "./cassandra";
 import { snowflake } from "./snowflake";
-import type { Message, InsertMessage, Channel } from "@shared/schema";
+import type { Message, InsertMessage } from "@shared/schema";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

@@ -1,151 +1,118 @@
-// Mock implementation - will be replaced with Cassandra integration
-export interface StoredMessage {
-  id: string;
-  conversationId: string;
-  senderId: number;
-  senderName: string;
-  senderRole: string;
-  recipientId: number;
-  content: string;
-  timestamp: string;
-  readBy: number[];
-  isRead: boolean;
-}
+// In-memory fallback store used when Cassandra (ASTRA_DB) is not configured.
+// Data does NOT persist across restarts. Configure ASTRA_DB_* env vars and
+// Cassandra will be used automatically via createMessageStore().
+import { randomUUID } from "crypto";
+import type { IMessageStore, StoredMessage, ConversationInfo } from "./types";
 
-export interface ConversationInfo {
-  id: string;
-  participants: { id: number; name: string; role: string }[];
-  lastMessage?: StoredMessage;
-  unreadCount: number;
-}
-
-export class MessageStore {
+export class MessageStore implements IMessageStore {
   private messages: Map<string, StoredMessage> = new Map();
-  private conversations: Map<string, Set<string>> = new Map(); // conversationId -> messageIds
+  private conversations: Map<string, Set<string>> = new Map();
 
   async saveMessage(
-    messageData: Omit<StoredMessage, "id" | "readBy" | "isRead">
+    data: Omit<StoredMessage, "messageId" | "readBy" | "isRead" | "timestamp">
   ): Promise<StoredMessage> {
-    const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const message: StoredMessage = {
-      ...messageData,
-      id: messageId,
+      ...data,
+      messageId: randomUUID(),
+      timestamp: new Date(),
       readBy: [],
       isRead: false,
+      messageType: data.messageType ?? "text",
     };
 
-    this.messages.set(messageId, message);
+    this.messages.set(message.messageId, message);
 
-    // Update conversation mapping
     if (!this.conversations.has(message.conversationId)) {
       this.conversations.set(message.conversationId, new Set());
     }
-    this.conversations.get(message.conversationId)?.add(messageId);
+    this.conversations.get(message.conversationId)!.add(message.messageId);
 
     return message;
   }
 
-  async markMessageAsRead(messageId: string, userId: number): Promise<void> {
+  async markMessageAsRead(
+    _conversationId: string,
+    messageId: string,
+    userId: number
+  ): Promise<void> {
     const message = this.messages.get(messageId);
     if (message && !message.readBy.includes(userId)) {
       message.readBy.push(userId);
-      message.isRead = message.readBy.length > 0;
-      this.messages.set(messageId, message);
+      message.isRead = true;
     }
   }
 
   async getConversationHistory(
     conversationId: string,
-    userId: number,
+    _userId: number,
     limit: number = 50
   ): Promise<StoredMessage[]> {
-    const messageIds = this.conversations.get(conversationId) || new Set();
+    const ids = this.conversations.get(conversationId) ?? new Set<string>();
     const messages: StoredMessage[] = [];
 
-    Array.from(messageIds).forEach((messageId) => {
-      const message = this.messages.get(messageId);
-      if (message) {
-        messages.push(message);
-      }
-    });
+    for (const id of ids) {
+      const msg = this.messages.get(id);
+      if (msg) messages.push(msg);
+    }
 
-    // Sort by timestamp and limit
-    return messages
-      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-      .slice(-limit);
+    return messages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()).slice(-limit);
   }
 
   async getUserConversations(userId: number): Promise<ConversationInfo[]> {
-    const userConversations = new Map<string, ConversationInfo>();
+    const result = new Map<string, ConversationInfo>();
 
-    // Find all conversations where user is participant
-    Array.from(this.conversations.entries()).forEach(([conversationId, messageIds]) => {
-      const messages = Array.from(messageIds)
+    for (const [conversationId, ids] of this.conversations.entries()) {
+      const messages = [...ids]
         .map((id) => this.messages.get(id))
-        .filter((msg): msg is StoredMessage => msg !== undefined);
+        .filter((m): m is StoredMessage => m !== undefined);
 
-      const userMessages = messages.filter(
-        (msg) => msg.senderId === userId || msg.recipientId === userId
-      );
+      const relevant = messages.filter((m) => m.senderId === userId || m.recipientId === userId);
+      if (relevant.length === 0) continue;
 
-      if (userMessages.length > 0) {
-        // Get conversation participants
-        const participants = new Map<number, { id: number; name: string; role: string }>();
-
-        for (const msg of messages) {
-          if (!participants.has(msg.senderId)) {
-            participants.set(msg.senderId, {
-              id: msg.senderId,
-              name: msg.senderName,
-              role: msg.senderRole,
-            });
-          }
+      const participantsMap = new Map<number, { id: number; name: string; role: string }>();
+      for (const m of messages) {
+        if (!participantsMap.has(m.senderId)) {
+          participantsMap.set(m.senderId, {
+            id: m.senderId,
+            name: m.senderName,
+            role: m.senderRole,
+          });
         }
-
-        const sortedMessages = messages.sort(
-          (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        );
-
-        const lastMessage = sortedMessages[0];
-        const unreadCount = messages.filter(
-          (msg) => msg.recipientId === userId && !msg.isRead
-        ).length;
-
-        userConversations.set(conversationId, {
-          id: conversationId,
-          participants: Array.from(participants.values()),
-          lastMessage,
-          unreadCount,
-        });
       }
-    });
 
-    return Array.from(userConversations.values()).sort((a, b) => {
-      const timeA = a.lastMessage ? new Date(a.lastMessage.timestamp).getTime() : 0;
-      const timeB = b.lastMessage ? new Date(b.lastMessage.timestamp).getTime() : 0;
-      return timeB - timeA;
-    });
-  }
+      const sorted = [...messages].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
-  async getMessageById(messageId: string): Promise<StoredMessage | null> {
-    return this.messages.get(messageId) || null;
-  }
-
-  async deleteMessage(messageId: string): Promise<boolean> {
-    const message = this.messages.get(messageId);
-    if (!message) return false;
-
-    // Remove from conversation mapping
-    const conversationMessages = this.conversations.get(message.conversationId);
-    if (conversationMessages) {
-      conversationMessages.delete(messageId);
-      if (conversationMessages.size === 0) {
-        this.conversations.delete(message.conversationId);
-      }
+      result.set(conversationId, {
+        id: conversationId,
+        participants: [...participantsMap.values()],
+        lastMessage: sorted[0],
+        unreadCount: messages.filter((m) => m.recipientId === userId && !m.isRead).length,
+      });
     }
 
-    // Remove message
-    this.messages.delete(messageId);
+    return [...result.values()].sort((a, b) => {
+      const ta = a.lastMessage?.timestamp.getTime() ?? 0;
+      const tb = b.lastMessage?.timestamp.getTime() ?? 0;
+      return tb - ta;
+    });
+  }
+
+  async getMessageById(_conversationId: string, messageId: string): Promise<StoredMessage | null> {
+    return this.messages.get(messageId) ?? null;
+  }
+
+  async deleteUserConversation(userId: number, conversationId: string): Promise<boolean> {
+    const ids = this.conversations.get(conversationId);
+    if (!ids) return false;
+
+    const belongs = [...ids].some((id) => {
+      const m = this.messages.get(id);
+      return m && (m.senderId === userId || m.recipientId === userId);
+    });
+    if (!belongs) return false;
+
+    for (const id of ids) this.messages.delete(id);
+    this.conversations.delete(conversationId);
     return true;
   }
 }

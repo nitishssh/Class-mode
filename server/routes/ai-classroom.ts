@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { studyArenaInternalService } from "../services/study-arena/internal-service";
-import { MongoAIClassroom, getNextSequenceValue } from "../../shared/mongo-schema";
+import { MongoAIClassroom } from "../../shared/mongo-schema";
 import { orchestrateChat } from "../services/study-arena/orchestrator";
 import { StatelessChatRequest } from "../services/study-arena/types";
 import { logger } from "../lib/logger";

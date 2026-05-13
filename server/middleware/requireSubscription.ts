@@ -1,4 +1,4 @@
-import { Router, Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction } from "express";
 import { MongoSubscription } from "../../shared/mongo-schema";
 
 const TIER_LEVEL: Record<string, number> = { free: 0, pro: 1, educator: 2, institution: 3 };

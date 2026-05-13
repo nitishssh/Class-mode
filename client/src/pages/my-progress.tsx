@@ -1,9 +1,6 @@
-import { useState } from "react";
-import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import {
-  BookOpen,
   Trophy,
   Clock,
   TrendingUp,

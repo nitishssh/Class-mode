@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -9,14 +9,12 @@ import {
   Clock,
   Settings2,
   CheckCircle2,
-  AlertCircle,
   Layout,
   FileText,
   HelpCircle,
   Dna,
   History as HistoryIcon,
   Sparkles,
-  Trophy,
   ArrowLeft,
   MessageSquare,
   Send,
@@ -28,15 +26,9 @@ import {
   BookOpen,
 } from "lucide-react";
 import { useOrchestrator } from "../hooks/use-orchestrator";
-import {
-  StatelessChatRequest,
-  StatelessEvent,
-  DirectorState,
-  WhiteboardActionRecord,
-  AgentInfo,
-} from "@shared/study-arena";
+import { StatelessChatRequest } from "@shared/study-arena";
 import "katex/dist/katex.min.css";
-import { InlineMath, BlockMath } from "react-katex";
+import { InlineMath } from "react-katex";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
@@ -51,7 +43,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -1131,7 +1122,9 @@ export default function StudyArenaPage() {
                         setJobProgress(0);
                         setJobMessage("");
                         toast({ title: "Cancelled", description: "Generation cancelled." });
-                      } catch {}
+                      } catch (e) {
+                        console.error("Error cancelling job:", e);
+                      }
                     }}
                   >
                     Cancel

@@ -57,7 +57,9 @@ export default function InviteStudents() {
           classId: cls._id,
         });
         sent++;
-      } catch {}
+      } catch (err) {
+        console.error("Failed to invite student from CSV:", err);
+      }
     }
     toast({ title: `${sent} invites sent from CSV` });
     qc.invalidateQueries({ queryKey: ["/api/invite/student/list"] });

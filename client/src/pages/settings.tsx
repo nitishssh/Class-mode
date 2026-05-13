@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { useTheme } from "@/contexts/theme-context";
-import { motion } from "framer-motion";
 import { User, Bell, Shield, Palette, Save, LogOut } from "lucide-react";
 
 import {
@@ -19,13 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import { useToast } from "@/hooks/use-toast";
 
 export default function Settings() {

@@ -1,0 +1,137 @@
+
+C:\Users\Nitish\Downloads\PersonalLearningPro\client\src\pages\accept-invite.tsx
+  76:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Nitish\Downloads\PersonalLearningPro\client\src\pages\ai-classroom.tsx
+    58:12  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+    80:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   225:44  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   264:38  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   267:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   314:40  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   646:39  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   668:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   720:33  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   931:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  1127:31  error    Empty block statement                     no-empty
+
+C:\Users\Nitish\Downloads\PersonalLearningPro\client\src\pages\ai-study-plans.tsx
+  105:41  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Nitish\Downloads\PersonalLearningPro\client\src\pages\analytics.tsx
+  73:44  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Nitish\Downloads\PersonalLearningPro\client\src\pages\create-test.tsx
+  17:18  warning  'setTestId' is assigned a value but never used. Allowed unused vars must match /^_/u  unused-imports/no-unused-vars
+
+C:\Users\Nitish\Downloads\PersonalLearningPro\client\src\pages\dashboard.tsx
+   28:55  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  243:56  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  290:42  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Nitish\Downloads\PersonalLearningPro\client\src\pages\educator\dashboard.tsx
+  69:40  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Nitish\Downloads\PersonalLearningPro\client\src\pages\educator\grading.tsx
+  26:26  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Nitish\Downloads\PersonalLearningPro\client\src\pages\educator\students.tsx
+  15:29  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  25:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Nitish\Downloads\PersonalLearningPro\client\src\pages\focus.tsx
+  109:32  warning  'color' is defined but never used. Allowed unused args must match /^_/u                                                   unused-imports/no-unused-vars
+  160:45  warning  Unexpected any. Specify a different type                                                                                  @typescript-eslint/no-explicit-any
+  181:72  warning  Unexpected any. Specify a different type                                                                                  @typescript-eslint/no-explicit-any
+  191:54  warning  Unexpected any. Specify a different type                                                                                  @typescript-eslint/no-explicit-any
+  238:6   warning  React Hook useEffect has a missing dependency: 'createSessionMutation'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\Nitish\Downloads\PersonalLearningPro\client\src\pages\live-classes.tsx
+   75:30  warning  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+   91:22  warning  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+  104:27  warning  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+  109:9   warning  'scheduled' is assigned a value but never used. Allowed unused vars must match /^_/u  unused-imports/no-unused-vars
+
+C:\Users\Nitish\Downloads\PersonalLearningPro\client\src\pages\live-classroom.tsx
+  57:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Nitish\Downloads\PersonalLearningPro\client\src\pages\my-progress.tsx
+  134:14  warning  'year' is assigned a value but never used. Allowed unused vars must match /^_/u      unused-imports/no-unused-vars
+  479:21  warning  'pct' is assigned a value but never used. Allowed unused vars must match /^_/u       unused-imports/no-unused-vars
+  483:21  warning  'isSteady' is assigned a value but never used. Allowed unused vars must match /^_/u  unused-imports/no-unused-vars
+
+C:\Users\Nitish\Downloads\PersonalLearningPro\client\src\pages\onboarding\invite-students.tsx
+   16:43  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   17:43  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   33:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   50:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   50:47  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   69:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   69:53  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   83:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   83:39  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  140:24  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  140:41  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Nitish\Downloads\PersonalLearningPro\client\src\pages\onboarding\invite-teachers.tsx
+   19:43  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   34:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  108:32  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Nitish\Downloads\PersonalLearningPro\client\src\pages\onboarding\school-setup.tsx
+  64:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Nitish\Downloads\PersonalLearningPro\client\src\pages\onboarding\teacher-class-setup.tsx
+  18:43  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  27:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  78:32  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Nitish\Downloads\PersonalLearningPro\client\src\pages\parent-dashboard.tsx
+   42:73  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   70:30  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  323:24  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Nitish\Downloads\PersonalLearningPro\client\src\pages\parent\dashboard.tsx
+   8:11  warning  'currentUser' is assigned a value but never used. Allowed unused vars must match /^_/u   unused-imports/no-unused-vars
+  19:53  warning  'recentGrades' is assigned a value but never used. Allowed unused vars must match /^_/u  unused-imports/no-unused-vars
+  65:29  warning  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
+
+C:\Users\Nitish\Downloads\PersonalLearningPro\client\src\pages\parent\reports.tsx
+  28:26  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Nitish\Downloads\PersonalLearningPro\client\src\pages\principal-dashboard.tsx
+  49:17  warning  'tests' is assigned a value but never used. Allowed unused vars must match /^_/u           unused-imports/no-unused-vars
+  49:35  warning  'isLoadingTests' is assigned a value but never used. Allowed unused vars must match /^_/u  unused-imports/no-unused-vars
+  49:63  warning  Unexpected any. Specify a different type                                                   @typescript-eslint/no-explicit-any
+  58:16  warning  Unexpected any. Specify a different type                                                   @typescript-eslint/no-explicit-any
+
+C:\Users\Nitish\Downloads\PersonalLearningPro\client\src\pages\school-admin-dashboard.tsx
+  86:26  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Nitish\Downloads\PersonalLearningPro\client\src\pages\settings.tsx
+  32:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Nitish\Downloads\PersonalLearningPro\client\src\pages\student-dashboard.tsx
+   78:7   warning  'getTimetableCellColor' is assigned a value but never used. Allowed unused vars must match /^_/u  unused-imports/no-unused-vars
+   95:10  warning  'communitiesOpen' is assigned a value but never used. Allowed unused vars must match /^_/u        unused-imports/no-unused-vars
+   95:27  warning  'setCommunitiesOpen' is assigned a value but never used. Allowed unused vars must match /^_/u     unused-imports/no-unused-vars
+  103:55  warning  Unexpected any. Specify a different type                                                          @typescript-eslint/no-explicit-any
+  126:5   warning  'tasks' is assigned a value but never used. Allowed unused vars must match /^_/u                  unused-imports/no-unused-vars
+  294:49  warning  'index' is defined but never used. Allowed unused args must match /^_/u                           unused-imports/no-unused-vars
+  334:43  warning  Unexpected any. Specify a different type                                                          @typescript-eslint/no-explicit-any
+  371:45  warning  Unexpected any. Specify a different type                                                          @typescript-eslint/no-explicit-any
+
+C:\Users\Nitish\Downloads\PersonalLearningPro\client\src\pages\study-arena.tsx
+  40:12  warning  'setLocation' is assigned a value but never used. Allowed unused vars must match /^_/u  unused-imports/no-unused-vars
+
+C:\Users\Nitish\Downloads\PersonalLearningPro\client\src\pages\tasks.tsx
+  262:42  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Nitish\Downloads\PersonalLearningPro\client\src\pages\test-page.tsx
+   97:15  warning  'err' is defined but never used. Allowed unused args must match /^_/u                                                   unused-imports/no-unused-vars
+   97:20  warning  Unexpected any. Specify a different type                                                                                @typescript-eslint/no-explicit-any
+  106:33  warning  Unexpected any. Specify a different type                                                                                @typescript-eslint/no-explicit-any
+  155:6   warning  React Hook useEffect has a missing dependency: 'initAttemptMutation'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  219:20  warning  Unexpected any. Specify a different type                                                                                @typescript-eslint/no-explicit-any
+
+✖ 81 problems (1 error, 80 warnings)

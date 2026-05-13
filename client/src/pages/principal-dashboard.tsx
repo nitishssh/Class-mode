@@ -19,7 +19,6 @@ import {
   BookOpen,
   Building2,
   DollarSign,
-  ChevronRight,
 } from "lucide-react";
 import {
   PieChart,

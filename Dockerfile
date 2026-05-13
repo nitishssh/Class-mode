@@ -89,9 +89,11 @@ RUN addgroup --system --gid 1001 nodejs \
 
 WORKDIR /app
 
-# Install production-only dependencies (lean image)
+# Install production-only dependencies (lean image).
+# --omit=optional skips cassandra-driver (~30MB) when ASTRA_DB is not configured.
+# Remove --omit=optional if you need Cassandra/Astra DB in this deployment.
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev --prefer-offline && npm cache clean --force
+RUN npm ci --omit=dev --omit=optional --prefer-offline && npm cache clean --force
 
 # Copy compiled output from the build stage
 COPY --from=build /app/dist ./dist

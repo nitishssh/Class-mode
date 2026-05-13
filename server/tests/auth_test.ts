@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
-import express, { Request, Response } from "express";
+import { Request, Response } from "express";
 import { authenticateToken } from "../routes";
 import { verifyFirebaseToken } from "../lib/firebase-admin";
 import { MongoUser } from "../../shared/mongo-schema";

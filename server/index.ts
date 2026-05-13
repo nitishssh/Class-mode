@@ -25,10 +25,9 @@ import path from "path";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
 import { storage } from "./storage";
-import { WebSocketServer, WebSocket } from "ws";
 import { connectMongoDB } from "./db";
 import { setupChatWebSocket } from "./chat-ws";
-import { setupMessagePalWebSocket, startMessagePalServer } from "./message";
+import { setupMessagePalWebSocket } from "./message";
 import { initCassandra } from "./lib/cassandra";
 import { checkFirebaseAdminReadiness } from "./lib/firebase-admin";
 
@@ -175,9 +174,6 @@ app.use("/api", requireDb);
   // Attach WebSocket servers
   setupChatWebSocket(server, storage.sessionStore);
   setupMessagePalWebSocket(server, storage.sessionStore);
-
-  // Start Message HTTP server
-  startMessagePalServer();
 
   // Serve static files BEFORE error handler
   if (app.get("env") === "development") {

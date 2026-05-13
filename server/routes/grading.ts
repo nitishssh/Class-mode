@@ -1,6 +1,5 @@
 import { Router, Request, Response } from "express";
-import { z } from "zod";
-import { GradingRequestSchema, GradingHistoryRequestSchema } from "../../shared/grading-schema";
+import { GradingRequestSchema } from "../../shared/grading-schema";
 import {
   gradeSubmission,
   getGradingResult,
