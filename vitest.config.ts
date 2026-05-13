@@ -21,9 +21,9 @@ export default defineConfig({
     exclude: ["**/node_modules/**", "**/dist/**", "e2e/**", "features/**", "mobile/**"],
     env: {
       NODE_ENV: "test",
-      JWT_SECRET: process.env.JWT_SECRET ?? "test-jwt-secret-for-ci",
-      REFRESH_SECRET: process.env.REFRESH_SECRET ?? "test-refresh-secret-for-ci",
-      SESSION_SECRET: process.env.SESSION_SECRET ?? "test-session-secret-for-ci",
+      JWT_SECRET: process.env.JWT_SECRET ?? "super_secret_jwt_key_learning_pro_123",
+      REFRESH_SECRET: process.env.REFRESH_SECRET ?? "super_secret_jwt_key_learning_pro_123",
+      SESSION_SECRET: process.env.SESSION_SECRET ?? "test_session_secret_for_vitest",
       MONGODB_URL: process.env.MONGODB_URL ?? "mongodb://localhost:27017/eduai_test",
     },
   },
