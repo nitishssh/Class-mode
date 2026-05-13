@@ -43,7 +43,6 @@ vi.mock("@shared/mongo-schema", () => ({
 
 vi.mock("../message", () => ({
   setupMessagePalWebSocket: vi.fn(),
-  startMessagePalServer: vi.fn(),
 }));
 
 vi.mock("../lib/firebase-admin", () => ({

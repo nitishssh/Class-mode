@@ -62,7 +62,6 @@
     "axios": "^1.16.0",
     "bcryptjs": "^3.0.3",
     "canvas-confetti": "^1.9.4",
-    "cassandra-driver": "^4.8.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
@@ -165,7 +164,8 @@
     "vitest": "^4.0.18"
   },
   "optionalDependencies": {
-    "bufferutil": "^4.0.8"
+    "bufferutil": "^4.0.8",
+    "cassandra-driver": "^4.8.0"
   },
   "overrides": {
     "sucrase": "3.35.1",

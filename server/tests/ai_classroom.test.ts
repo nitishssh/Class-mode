@@ -66,7 +66,6 @@ vi.mock("../storage", () => ({
 
 vi.mock("../message", () => ({
   setupMessagePalWebSocket: vi.fn(),
-  startMessagePalServer: vi.fn(),
 }));
 
 vi.mock("../chat-ws", () => ({

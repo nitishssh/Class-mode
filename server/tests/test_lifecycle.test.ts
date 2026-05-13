@@ -33,7 +33,6 @@ vi.mock("../../shared/mongo-schema", () => {
 
 vi.mock("../message", () => ({
   setupMessagePalWebSocket: vi.fn(),
-  startMessagePalServer: vi.fn(),
   default: { router: express.Router() },
 }));
 

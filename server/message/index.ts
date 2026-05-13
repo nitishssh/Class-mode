@@ -5,8 +5,6 @@ import { createMessageStore } from "./factory";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const MESSAGEPAL_PORT = parseInt(process.env.MESSAGEPAL_PORT || "5002", 10);
-
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface ClientMeta {
@@ -359,30 +357,6 @@ export async function setupMessagePalWebSocket(httpServer: Server, sessionStore:
     });
   });
 
-  console.log(`MessagePal WebSocket server listening on port ${MESSAGEPAL_PORT}`);
+  console.log("[MessagePal] WebSocket server attached to main HTTP server");
   return wss;
-}
-
-// ─── HTTP Server for MessagePal ──────────────────────────────────────────────
-
-export async function startMessagePalServer() {
-  const express = (await import("express")).default;
-  const app = express();
-
-  app.use(express.json());
-
-  // Health check endpoint
-  app.get("/health", (req, res) => {
-    res.json({
-      status: "ok",
-      service: "MessagePal",
-      timestamp: new Date().toISOString(),
-    });
-  });
-
-  const server = app.listen(MESSAGEPAL_PORT, () => {
-    console.log(`MessagePal HTTP server running on port ${MESSAGEPAL_PORT}`);
-  });
-
-  return server;
 }
