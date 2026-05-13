@@ -44,6 +44,12 @@ const activeConversations = new Map<string, Set<number>>();
 
 // ─── Message Store ───────────────────────────────────────────────────────────
 
+if (process.env.NODE_ENV === "production" && !process.env.ASTRA_DB_APPLICATION_TOKEN) {
+  console.warn(
+    "[MessagePal] WARNING: ASTRA_DB_APPLICATION_TOKEN not set — using in-memory store. " +
+      "Messages will be lost on restart."
+  );
+}
 const messageStore = new MessageStore();
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

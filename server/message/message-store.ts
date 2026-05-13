@@ -1,4 +1,7 @@
-// Mock implementation - will be replaced with Cassandra integration
+// In-memory fallback store used when Cassandra (ASTRA_DB) is not configured.
+// Data does NOT persist across restarts. Configure ASTRA_DB_* env vars to use
+// CassandraMessageStore instead (see cassandra-message-store.ts — interface
+// alignment with this store is required before swapping).
 export interface StoredMessage {
   id: string;
   conversationId: string;

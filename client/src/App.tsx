@@ -33,6 +33,8 @@ import Settings from "@/pages/settings";
 import AiStudyPlans from "./pages/ai-study-plans";
 import Focus from "@/pages/focus";
 import AIClassroom from "@/pages/ai-classroom";
+import StudyArena from "@/pages/study-arena";
+import ResourcesPage from "@/pages/resources-page";
 import TestPage from "@/pages/test-page";
 import TestsList from "@/pages/tests-list";
 import Landing from "@/pages/landing";
@@ -43,16 +45,6 @@ import InviteTeachers from "@/pages/onboarding/invite-teachers";
 import TeacherClassSetup from "@/pages/onboarding/teacher-class-setup";
 import InviteStudents from "@/pages/onboarding/invite-students";
 import { useOnboardingGuard } from "@/hooks/use-onboarding-guard";
-
-function ComingSoon() {
-  return (
-    <div className="mt-20 flex flex-col items-center justify-center space-y-4 p-8 text-center">
-      <h2 className="text-2xl font-bold">Coming Soon</h2>
-      <p className="text-muted-foreground">This feature is currently under development.</p>
-      <Button onClick={() => window.history.back()}>Go Back</Button>
-    </div>
-  );
-}
 
 function Layout({
   children,
@@ -234,17 +226,13 @@ function App() {
       />
       <Route
         path="/resources"
-        component={withLayout(protect(ComingSoon, ["student"]), { fullWidth: true })}
+        component={withLayout(protect(ResourcesPage, ["student"]), { fullWidth: true })}
       />
       <Route
         path="/study-arena"
-        component={withLayout(protect(ComingSoon, ["student"]), { fullWidth: true })}
+        component={withLayout(protect(StudyArena, ["student"]), { fullWidth: true })}
       />
       <Route path="/tasks" component={withLayout(protect(Tasks))} />
-
-      <Route path="/institution" component={withLayout(ComingSoon)} />
-      <Route path="/staff" component={withLayout(ComingSoon)} />
-      <Route path="/students" component={withLayout(ComingSoon)} />
 
       <Route path="/notifications" component={withLayout(protect(Notifications))} />
       <Route path="/tests" component={withLayout(protect(TestsList, ["student"]))} />
@@ -252,7 +240,6 @@ function App() {
       <Route path="/focus" component={withLayout(protect(Focus, ["student"]))} />
       <Route path="/achievements" component={withLayout(protect(Achievements, ["student"]))} />
 
-      <Route path="/infrastructure" component={withLayout(ComingSoon)} />
       <Route
         path="/live-classes"
         component={withLayout(protect(LiveClasses, ["teacher", "student", "admin", "principal"]))}
@@ -262,21 +249,12 @@ function App() {
         path="/progress"
         component={withLayout(protect(MyProgress, ["student", "parent"]), { fullWidth: true })}
       />
-      <Route path="/study-groups" component={withLayout(ComingSoon)} />
       <Route path="/settings" component={withLayout(protect(Settings))} />
-      <Route path="/system-settings" component={withLayout(ComingSoon)} />
-      <Route path="/users" component={withLayout(ComingSoon)} />
-      <Route path="/classes" component={withLayout(ComingSoon)} />
-      <Route path="/partners" component={withLayout(ComingSoon)} />
-      <Route path="/children" component={withLayout(ComingSoon)} />
-      <Route path="/meetings" component={withLayout(ComingSoon)} />
-      <Route path="/reports" component={withLayout(ComingSoon)} />
       <Route path="/ai-study-plans" component={withLayout(protect(AiStudyPlans, ["student"]))} />
       <Route
         path="/ai-classroom"
         component={withLayout(protect(AIClassroom, ["student", "teacher"]))}
       />
-      <Route path="/test-results" component={withLayout(ComingSoon)} />
 
       {/* Redirect /login to home if already authenticated */}
       <Route path="/login" component={() => <Redirect to="/" />} />
