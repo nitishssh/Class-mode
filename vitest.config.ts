@@ -2,9 +2,8 @@ import { defineConfig } from "vitest/config";
 import path from "path";
 import { config } from "dotenv";
 
-// Load test env vars before any test module is imported.
-// Module-level guards (e.g. JWT_SECRET checks) fire during ESM static import
-// resolution, which happens before setupFiles — so dotenv must run here.
+// .env.test is gitignored; load it for local dev but fall back to the
+// defaults below so CI runners (which don't have the file) still work.
 config({ path: path.resolve(process.cwd(), ".env.test") });
 
 export default defineConfig({
@@ -20,5 +19,12 @@ export default defineConfig({
     setupFiles: ["./server/tests/setup.ts"],
     include: ["server/tests/**/*.test.ts"],
     exclude: ["**/node_modules/**", "**/dist/**", "e2e/**", "features/**", "mobile/**"],
+    env: {
+      NODE_ENV: "test",
+      JWT_SECRET: process.env.JWT_SECRET ?? "test-jwt-secret-for-ci",
+      REFRESH_SECRET: process.env.REFRESH_SECRET ?? "test-refresh-secret-for-ci",
+      SESSION_SECRET: process.env.SESSION_SECRET ?? "test-session-secret-for-ci",
+      MONGODB_URL: process.env.MONGODB_URL ?? "mongodb://localhost:27017/eduai_test",
+    },
   },
 });
