@@ -9,7 +9,9 @@ import jwt from "jsonwebtoken";
 
 const router = Router();
 if (!process.env.JWT_SECRET) {
-  throw new Error("JWT_SECRET environment variable is required. Set it in your .env file (see .env.example).");
+  throw new Error(
+    "JWT_SECRET environment variable is required. Set it in your .env file (see .env.example)."
+  );
 }
 const JWT_SECRET: string = process.env.JWT_SECRET;
 

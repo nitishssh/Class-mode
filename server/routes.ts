@@ -65,7 +65,9 @@ interface CustomJwtPayload extends jwt.JwtPayload {
 }
 
 if (!process.env.JWT_SECRET) {
-  throw new Error("JWT_SECRET environment variable is required. Set it in your .env file (see .env.example).");
+  throw new Error(
+    "JWT_SECRET environment variable is required. Set it in your .env file (see .env.example)."
+  );
 }
 const JWT_SECRET: string = process.env.JWT_SECRET;
 
@@ -1458,7 +1460,7 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
         const { classOrUser } = req.params;
 
         const allWorkspaces = await storage.getWorkspaces(req.session.userId);
-        const workspaceIds = allWorkspaces.map(ws => ws.id);
+        const workspaceIds = allWorkspaces.map((ws) => ws.id);
         const allChannels = await storage.getChannelsByWorkspaces(workspaceIds);
 
         const filtered = allChannels.filter(
@@ -1770,8 +1772,10 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
 
       type ExtendedChannel = Channel & { category?: string; isReadOnly?: boolean };
       // Gather all channels across workspaces
-      const workspaceIds = workspaces.map(ws => ws.id);
-      const allChannels = await storage.getChannelsByWorkspaces(workspaceIds) as ExtendedChannel[];
+      const workspaceIds = workspaces.map((ws) => ws.id);
+      const allChannels = (await storage.getChannelsByWorkspaces(
+        workspaceIds
+      )) as ExtendedChannel[];
 
       // Role-based filtering
       const accessible = allChannels.filter((ch: ExtendedChannel) => {

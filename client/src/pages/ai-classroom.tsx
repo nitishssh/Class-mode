@@ -26,9 +26,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import { useOrchestrator } from "../hooks/use-orchestrator";
-import {
-  StatelessChatRequest,
-} from "@shared/study-arena";
+import { StatelessChatRequest } from "@shared/study-arena";
 import "katex/dist/katex.min.css";
 import { InlineMath } from "react-katex";
 import { useToast } from "@/hooks/use-toast";

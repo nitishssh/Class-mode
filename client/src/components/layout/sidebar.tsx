@@ -75,34 +75,74 @@ export function Sidebar({ className }: SidebarProps) {
   const toggleSidebar = () => setIsCollapsed((prev) => !prev);
 
   const principalNavItems: NavItem[] = [
-    { title: "Dashboard", href: "/principal-dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
-    { title: "Student Directory", href: "/student-directory", icon: <GraduationCap className="h-5 w-5" /> },
+    {
+      title: "Dashboard",
+      href: "/principal-dashboard",
+      icon: <LayoutDashboard className="h-5 w-5" />,
+    },
+    {
+      title: "Student Directory",
+      href: "/student-directory",
+      icon: <GraduationCap className="h-5 w-5" />,
+    },
     { title: "Analytics", href: "/analytics", icon: <BarChart className="h-5 w-5" /> },
     { title: "Live Classes", href: "/live-classes", icon: <Video className="h-5 w-5" /> },
     { title: "Calendar", href: "/calendar", icon: <CalendarDays className="h-5 w-5" /> },
     { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
-    { title: "School Overview", href: "/institution", icon: <School className="h-5 w-5" />, disabled: true },
-    { title: "Staff Directory", href: "/staff", icon: <Users className="h-5 w-5" />, disabled: true },
+    {
+      title: "School Overview",
+      href: "/institution",
+      icon: <School className="h-5 w-5" />,
+      disabled: true,
+    },
+    {
+      title: "Staff Directory",
+      href: "/staff",
+      icon: <Users className="h-5 w-5" />,
+      disabled: true,
+    },
     { title: "Reports", href: "/reports", icon: <FileText className="h-5 w-5" />, disabled: true },
     { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" /> },
   ];
 
   const schoolAdminNavItems: NavItem[] = [
-    { title: "Dashboard", href: "/school-admin-dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
-    { title: "Student Directory", href: "/student-directory", icon: <GraduationCap className="h-5 w-5" /> },
+    {
+      title: "Dashboard",
+      href: "/school-admin-dashboard",
+      icon: <LayoutDashboard className="h-5 w-5" />,
+    },
+    {
+      title: "Student Directory",
+      href: "/student-directory",
+      icon: <GraduationCap className="h-5 w-5" />,
+    },
     { title: "Analytics", href: "/analytics", icon: <BarChart className="h-5 w-5" /> },
     { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
-    { title: "Staff Management", href: "/staff", icon: <Users className="h-5 w-5" />, disabled: true },
+    {
+      title: "Staff Management",
+      href: "/staff",
+      icon: <Users className="h-5 w-5" />,
+      disabled: true,
+    },
     { title: "Reports", href: "/reports", icon: <FileText className="h-5 w-5" />, disabled: true },
     { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" /> },
   ];
 
   const adminNavItems: NavItem[] = [
     { title: "Dashboard", href: "/admin-dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
-    { title: "Student Directory", href: "/student-directory", icon: <GraduationCap className="h-5 w-5" /> },
+    {
+      title: "Student Directory",
+      href: "/student-directory",
+      icon: <GraduationCap className="h-5 w-5" />,
+    },
     { title: "Analytics", href: "/analytics", icon: <BarChart className="h-5 w-5" /> },
     { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
-    { title: "User Management", href: "/users", icon: <UserCog className="h-5 w-5" />, disabled: true },
+    {
+      title: "User Management",
+      href: "/users",
+      icon: <UserCog className="h-5 w-5" />,
+      disabled: true,
+    },
     { title: "Classes", href: "/classes", icon: <School className="h-5 w-5" />, disabled: true },
     { title: "Reports", href: "/reports", icon: <FileText className="h-5 w-5" />, disabled: true },
     { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" /> },
@@ -114,7 +154,11 @@ export function Sidebar({ className }: SidebarProps) {
     { title: "Scan & Grade", href: "/ocr-scan", icon: <ScanBarcode className="h-5 w-5" /> },
     { title: "Grading", href: "/grading", icon: <ClipboardCheck className="h-5 w-5" /> },
     { title: "My Students", href: "/my-students", icon: <UserCheck className="h-5 w-5" /> },
-    { title: "Student Directory", href: "/student-directory", icon: <GraduationCap className="h-5 w-5" /> },
+    {
+      title: "Student Directory",
+      href: "/student-directory",
+      icon: <GraduationCap className="h-5 w-5" />,
+    },
     { title: "Analytics", href: "/analytics", icon: <BarChart className="h-5 w-5" /> },
     { title: "Live Classes", href: "/live-classes", icon: <Video className="h-5 w-5" /> },
     { title: "AI Classroom", href: "/ai-classroom", icon: <Sparkles className="h-5 w-5" /> },
@@ -123,7 +167,11 @@ export function Sidebar({ className }: SidebarProps) {
   ];
 
   const studentNavItems: NavItem[] = [
-    { title: "Dashboard", href: "/student-dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
+    {
+      title: "Dashboard",
+      href: "/student-dashboard",
+      icon: <LayoutDashboard className="h-5 w-5" />,
+    },
     { title: "My Tests", href: "/tests", icon: <FileQuestion className="h-5 w-5" /> },
     { title: "My Progress", href: "/progress", icon: <BarChart className="h-5 w-5" /> },
     { title: "Resources", href: "/resources", icon: <BookOpen className="h-5 w-5" /> },
@@ -138,12 +186,31 @@ export function Sidebar({ className }: SidebarProps) {
   ];
 
   const parentNavItems: NavItem[] = [
-    { title: "Dashboard", href: "/parent-dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
+    {
+      title: "Dashboard",
+      href: "/parent-dashboard",
+      icon: <LayoutDashboard className="h-5 w-5" />,
+    },
     { title: "Academic Progress", href: "/progress", icon: <BarChart className="h-5 w-5" /> },
     { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
-    { title: "My Children", href: "/children", icon: <Users className="h-5 w-5" />, disabled: true },
-    { title: "Test Results", href: "/test-results", icon: <FileQuestion className="h-5 w-5" />, disabled: true },
-    { title: "Teacher Meetings", href: "/meetings", icon: <Video className="h-5 w-5" />, disabled: true },
+    {
+      title: "My Children",
+      href: "/children",
+      icon: <Users className="h-5 w-5" />,
+      disabled: true,
+    },
+    {
+      title: "Test Results",
+      href: "/test-results",
+      icon: <FileQuestion className="h-5 w-5" />,
+      disabled: true,
+    },
+    {
+      title: "Teacher Meetings",
+      href: "/meetings",
+      icon: <Video className="h-5 w-5" />,
+      disabled: true,
+    },
     { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" /> },
   ];
 
@@ -245,7 +312,12 @@ export function Sidebar({ className }: SidebarProps) {
                     )}
                     title={isCollapsed ? `${item.title} (Coming Soon)` : undefined}
                   >
-                    <span className={cn("flex h-5 w-5 flex-shrink-0 items-center justify-center", !isCollapsed && "mr-3")}>
+                    <span
+                      className={cn(
+                        "flex h-5 w-5 flex-shrink-0 items-center justify-center",
+                        !isCollapsed && "mr-3"
+                      )}
+                    >
                       {item.icon}
                     </span>
                     {!isCollapsed && (
@@ -280,7 +352,9 @@ export function Sidebar({ className }: SidebarProps) {
                   <span
                     className={cn(
                       "flex h-5 w-5 flex-shrink-0 items-center justify-center transition-colors",
-                      isActive ? "text-accent" : "text-muted-foreground group-hover:text-foreground",
+                      isActive
+                        ? "text-accent"
+                        : "text-muted-foreground group-hover:text-foreground",
                       !isCollapsed && "mr-3"
                     )}
                   >
@@ -319,7 +393,11 @@ export function Sidebar({ className }: SidebarProps) {
               <div className="flex gap-1">
                 <ThemeToggle />
                 <Link href="/settings">
-                  <Button variant="ghost" size="icon" className="rounded-xl text-muted-foreground hover:text-foreground">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-xl text-muted-foreground hover:text-foreground"
+                  >
                     <Settings className="h-4 w-4" />
                   </Button>
                 </Link>

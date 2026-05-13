@@ -55,9 +55,7 @@ export class MessageStore implements IMessageStore {
       if (msg) messages.push(msg);
     }
 
-    return messages
-      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
-      .slice(-limit);
+    return messages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()).slice(-limit);
   }
 
   async getUserConversations(userId: number): Promise<ConversationInfo[]> {
@@ -68,9 +66,7 @@ export class MessageStore implements IMessageStore {
         .map((id) => this.messages.get(id))
         .filter((m): m is StoredMessage => m !== undefined);
 
-      const relevant = messages.filter(
-        (m) => m.senderId === userId || m.recipientId === userId
-      );
+      const relevant = messages.filter((m) => m.senderId === userId || m.recipientId === userId);
       if (relevant.length === 0) continue;
 
       const participantsMap = new Map<number, { id: number; name: string; role: string }>();
@@ -84,9 +80,7 @@ export class MessageStore implements IMessageStore {
         }
       }
 
-      const sorted = [...messages].sort(
-        (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
-      );
+      const sorted = [...messages].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
       result.set(conversationId, {
         id: conversationId,
@@ -103,10 +97,7 @@ export class MessageStore implements IMessageStore {
     });
   }
 
-  async getMessageById(
-    _conversationId: string,
-    messageId: string
-  ): Promise<StoredMessage | null> {
+  async getMessageById(_conversationId: string, messageId: string): Promise<StoredMessage | null> {
     return this.messages.get(messageId) ?? null;
   }
 

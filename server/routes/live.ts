@@ -5,7 +5,6 @@ import { createRoom, createMeetingToken, getRecordings } from "../services/daily
 import { broadcastGlobal } from "../chat-ws";
 import { z } from "zod";
 
-
 export const liveRouter = Router();
 
 // Middleware to ensure user is authenticated and map to req.user

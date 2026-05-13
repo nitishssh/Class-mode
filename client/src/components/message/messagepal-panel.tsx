@@ -146,13 +146,8 @@ export function MessageChatWindow() {
   const [message, setMessage] = useState("");
   const { currentUser } = useFirebaseAuth();
   const userId = (currentUser?.profile as any)?.id as number | undefined;
-  const {
-    messages,
-    activeConversation,
-    conversations,
-    sendMessage,
-    markMessageAsRead,
-  } = useMessagePalWebSocket(userId);
+  const { messages, activeConversation, conversations, sendMessage, markMessageAsRead } =
+    useMessagePalWebSocket(userId);
 
   // Resolve recipient from active conversation participants
   const activeConv = conversations.find((c) => c.id === activeConversation);

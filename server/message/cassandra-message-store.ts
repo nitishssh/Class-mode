@@ -25,24 +25,50 @@ export class CassandraMessageStore implements IMessageStore {
         recipient_id, content, timestamp, read_by, is_read, message_type, file_url
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        data.conversationId, messageId, data.senderId, data.senderName, data.senderRole,
-        data.recipientId, data.content, timestamp, [], false,
-        data.messageType ?? "text", data.fileUrl ?? null,
+        data.conversationId,
+        messageId,
+        data.senderId,
+        data.senderName,
+        data.senderRole,
+        data.recipientId,
+        data.content,
+        timestamp,
+        [],
+        false,
+        data.messageType ?? "text",
+        data.fileUrl ?? null,
       ],
       { prepare: true }
     );
 
     await this.updateConversationMetadata(
-      data.conversationId, data.senderId, data.recipientId,
-      data.senderName, data.senderRole, messageId, data.content, timestamp
+      data.conversationId,
+      data.senderId,
+      data.recipientId,
+      data.senderName,
+      data.senderRole,
+      messageId,
+      data.content,
+      timestamp
     );
     await this.updateUserConversation(data.senderId, data.conversationId, data.recipientId, 0);
     await this.updateUserConversation(data.recipientId, data.conversationId, data.senderId, 1);
 
-    return { ...data, messageId, timestamp, readBy: [], isRead: false, messageType: data.messageType ?? "text" };
+    return {
+      ...data,
+      messageId,
+      timestamp,
+      readBy: [],
+      isRead: false,
+      messageType: data.messageType ?? "text",
+    };
   }
 
-  async markMessageAsRead(conversationId: string, messageId: string, userId: number): Promise<void> {
+  async markMessageAsRead(
+    conversationId: string,
+    messageId: string,
+    userId: number
+  ): Promise<void> {
     await this.ensureClient().execute(
       `UPDATE messages SET read_by = read_by + ? WHERE conversation_id = ? AND message_id = ?`,
       [[userId], conversationId, messageId],
@@ -172,14 +198,20 @@ export class CassandraMessageStore implements IMessageStore {
   }
 
   private async updateConversationMetadata(
-    conversationId: string, senderId: number, recipientId: number,
-    senderName: string, senderRole: string, messageId: string,
-    content: string, timestamp: Date
+    conversationId: string,
+    senderId: number,
+    recipientId: number,
+    senderName: string,
+    senderRole: string,
+    messageId: string,
+    content: string,
+    timestamp: Date
   ): Promise<void> {
     const c = this.ensureClient();
     const existing = await c.execute(
       `SELECT participant_ids FROM conversations WHERE conversation_id = ?`,
-      [conversationId], { prepare: true }
+      [conversationId],
+      { prepare: true }
     );
 
     if (existing.rows.length === 0) {
@@ -192,14 +224,17 @@ export class CassandraMessageStore implements IMessageStore {
     } else {
       await c.execute(
         `UPDATE conversations SET updated_at = ? WHERE conversation_id = ?`,
-        [timestamp, conversationId], { prepare: true }
+        [timestamp, conversationId],
+        { prepare: true }
       );
     }
   }
 
   private async updateUserConversation(
-    userId: number, conversationId: string,
-    _otherUserId: number, unreadIncrement: number
+    userId: number,
+    conversationId: string,
+    _otherUserId: number,
+    unreadIncrement: number
   ): Promise<void> {
     await this.ensureClient().execute(
       `UPDATE user_conversations SET unread_count = unread_count + ?, last_message_timestamp = ?

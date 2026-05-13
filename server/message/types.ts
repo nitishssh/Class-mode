@@ -35,4 +35,3 @@ export interface IMessageStore {
   getMessageById(conversationId: string, messageId: string): Promise<StoredMessage | null>;
   deleteUserConversation(userId: number, conversationId: string): Promise<boolean>;
 }
-

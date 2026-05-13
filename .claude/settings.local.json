@@ -34,7 +34,10 @@
       "Bash(npx eslint *)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Nitish\\\\Downloads\\\\PersonalLearningPro\" -Recurse -Directory -ErrorAction SilentlyContinue)",
       "Bash(Select-Object -First 20 FullName)",
-      "Bash(npm test *)"
+      "Bash(npm test *)",
+      "Bash(dir /s /b)",
+      "Bash(findstr /v node_modules)",
+      "Bash(gh run *)"
     ]
   }
 }

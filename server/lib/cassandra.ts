@@ -101,8 +101,12 @@ export async function initCassandra() {
       const msg = err?.message || String(err);
       const inner = JSON.stringify(err?.innerErrors || {});
 
-      if (msg.includes("401") || msg.includes("Unauthorized") ||
-          inner.includes("401") || inner.includes("Unauthorized")) {
+      if (
+        msg.includes("401") ||
+        msg.includes("Unauthorized") ||
+        inner.includes("401") ||
+        inner.includes("Unauthorized")
+      ) {
         console.warn("[Cassandra] Database hibernated (HTTP 401). Falling back to MongoDB.");
         console.warn("[Cassandra] Wake your Astra DB at https://astra.datastax.com");
         hibernationDetected = true;
@@ -110,7 +114,10 @@ export async function initCassandra() {
         return false;
       }
 
-      console.error(`Failed to connect to Astra DB (attempt ${attempt}/${MAX_CONNECTION_ATTEMPTS}):`, err);
+      console.error(
+        `Failed to connect to Astra DB (attempt ${attempt}/${MAX_CONNECTION_ATTEMPTS}):`,
+        err
+      );
       isConnected = false;
       return false;
     }

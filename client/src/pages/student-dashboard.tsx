@@ -29,7 +29,6 @@ import { StreakWidget } from "@/components/student/StreakWidget";
 import { XPProgressBar } from "@/components/student/XPProgressBar";
 import { BadgePop } from "@/components/student/animations/BadgePop";
 
-
 import { useQuery } from "@tanstack/react-query";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────

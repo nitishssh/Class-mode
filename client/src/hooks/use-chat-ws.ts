@@ -201,7 +201,9 @@ export function useChatWs({ onEvent, activeChannelId }: UseChatWsOptions) {
     }, delay);
   }, [connect]);
 
-  useEffect(() => { scheduleReconnectRef.current = scheduleReconnect; }, [scheduleReconnect]);
+  useEffect(() => {
+    scheduleReconnectRef.current = scheduleReconnect;
+  }, [scheduleReconnect]);
 
   // ── Connect on mount / Firebase user change ─────────────────────────────────
   useEffect(() => {

@@ -19,12 +19,6 @@ export default defineConfig({
     environment: "node",
     setupFiles: ["./server/tests/setup.ts"],
     include: ["server/tests/**/*.test.ts"],
-    exclude: [
-      "**/node_modules/**",
-      "**/dist/**",
-      "e2e/**",
-      "features/**",
-      "mobile/**",
-    ],
+    exclude: ["**/node_modules/**", "**/dist/**", "e2e/**", "features/**", "mobile/**"],
   },
 });

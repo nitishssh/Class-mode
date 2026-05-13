@@ -17,7 +17,7 @@ export default [
       parser: tsParser,
       globals: { ...globals.node },
     },
-    plugins: { 
+    plugins: {
       "@typescript-eslint": tsPlugin,
       "unused-imports": unusedImports,
     },
@@ -30,7 +30,7 @@ export default [
       "unused-imports/no-unused-imports": "error",
       "unused-imports/no-unused-vars": [
         "warn",
-        { "vars": "all", "varsIgnorePattern": "^_", "args": "after-used", "argsIgnorePattern": "^_" }
+        { vars: "all", varsIgnorePattern: "^_", args: "after-used", argsIgnorePattern: "^_" },
       ],
       "@typescript-eslint/no-unused-vars": "off", // use unused-imports instead
     },
@@ -63,7 +63,7 @@ export default [
       "unused-imports/no-unused-imports": "error",
       "unused-imports/no-unused-vars": [
         "warn",
-        { "vars": "all", "varsIgnorePattern": "^_", "args": "after-used", "argsIgnorePattern": "^_" }
+        { vars: "all", varsIgnorePattern: "^_", args: "after-used", argsIgnorePattern: "^_" },
       ],
       "@typescript-eslint/no-unused-vars": "off", // use unused-imports instead
       "react/no-unescaped-entities": "off", // disable this temporarily to reduce noise, or we can fix manually later
@@ -76,7 +76,7 @@ export default [
       parser: tsParser,
       globals: { ...globals.node },
     },
-    plugins: { 
+    plugins: {
       "@typescript-eslint": tsPlugin,
       "unused-imports": unusedImports,
     },
@@ -88,7 +88,7 @@ export default [
       "unused-imports/no-unused-imports": "error",
       "unused-imports/no-unused-vars": [
         "warn",
-        { "vars": "all", "varsIgnorePattern": "^_", "args": "after-used", "argsIgnorePattern": "^_" }
+        { vars: "all", varsIgnorePattern: "^_", args: "after-used", argsIgnorePattern: "^_" },
       ],
       "@typescript-eslint/no-unused-vars": "off",
     },
