@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/layout/page-header";
 import { useFirebaseAuth as useAuth } from "@/contexts/firebase-auth-context";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -78,16 +79,10 @@ export default function SchoolAdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">School Admin Dashboard</h1>
-        <p className="mt-2 text-muted-foreground">
-          Welcome back, {profile?.displayName || "Administrator"}. Your school code is{" "}
-          <span className="font-mono font-bold text-primary">
-            {(profile as any)?.school_code || "N/A"}
-          </span>
-          .
-        </p>
-      </div>
+      <PageHeader
+        title={`Welcome, ${profile?.displayName || "Administrator"} 🏫`}
+        subtitle={`School Administration · School Code: ${(profile as any)?.school_code || "N/A"}`}
+      />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="border-l-4 border-l-blue-500">

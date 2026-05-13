@@ -79,8 +79,8 @@ export default function AiTutor() {
       {/* Hero Section */}
       <section className="animate-fade-in-up" style={{ animationDelay: "100ms" }}>
         <BentoHeroCard
-          title="Focus Session: Physics"
-          description="You've mastered 65% of Advanced Mechanics. EduAI suggests focusing on Rotational Motion today to bridge the gap in your recent quiz performance."
+          title="Start a Learning Session"
+          description="Ask EduAI anything — clarify a concept, work through practice problems, or get a step-by-step explanation tailored to your level."
           ctaText="Start Learning Session"
           visual={
             <div className="group relative">

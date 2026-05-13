@@ -33,6 +33,8 @@ import Settings from "@/pages/settings";
 import AiStudyPlans from "./pages/ai-study-plans";
 import Focus from "@/pages/focus";
 import AIClassroom from "@/pages/ai-classroom";
+import EducatorGrading from "@/pages/educator/grading";
+import EducatorStudents from "@/pages/educator/students";
 import StudyArena from "@/pages/study-arena";
 import ResourcesPage from "@/pages/resources-page";
 import TestPage from "@/pages/test-page";
@@ -207,6 +209,8 @@ function App() {
       />
 
       <Route path="/create-test" component={withLayout(protect(CreateTest, ["teacher"]))} />
+      <Route path="/grading" component={withLayout(protect(EducatorGrading, ["teacher"]))} />
+      <Route path="/my-students" component={withLayout(protect(EducatorStudents, ["teacher"]))} />
       <Route
         path="/ocr-scan"
         component={withLayout(protect(OcrScan, ["teacher", "student", "parent"]))}
