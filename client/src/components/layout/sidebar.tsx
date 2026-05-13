@@ -22,7 +22,6 @@ import {
   School,
   GraduationCap,
   UserCog,
-  Building2,
   CalendarDays,
   Award,
   ChevronLeft,
