@@ -118,7 +118,7 @@
     "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.4",
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.59.1",
     "playwright": "^1.58.2",
     "@replit/vite-plugin-cartographer": "^0.0.11",
