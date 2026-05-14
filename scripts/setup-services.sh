@@ -3,7 +3,7 @@
 # ══════════════════════════════════════════════════════════════════
 #  setup-services.sh — Initialize microservices structure
 #
-#  This script sets up the services/ directory with OpenMAIC and
+# This script sets up the services/ directory with
 #  IniClaw as independent services within PersonalLearningPro
 # ══════════════════════════════════════════════════════════════════
 
@@ -12,69 +12,11 @@ set -e
 echo "🚀 Setting up PersonalLearningPro microservices..."
 
 # Create services directory structure
-mkdir -p services/openmaic
 mkdir -p services/iniclaw
 
 echo "✅ Created services directory structure"
 
 # Create placeholder Dockerfiles for services
-cat > services/openmaic/Dockerfile << 'EOF'
-# ── OpenMAIC (studyArena) Dockerfile ──────────────────────────────
-# Next.js AI classroom application
-
-ARG NODE_VERSION=20-alpine
-
-# ── Development stage ─────────────────────────────────────────────
-FROM node:${NODE_VERSION} AS development
-
-WORKDIR /app
-
-# Install dependencies
-COPY package*.json ./
-RUN npm install
-
-# Copy source
-COPY . .
-
-# Expose port
-EXPOSE 3000
-
-# Start development server
-CMD ["npm", "run", "dev"]
-
-# ── Production build stage ────────────────────────────────────────
-FROM node:${NODE_VERSION} AS builder
-
-WORKDIR /app
-
-COPY package*.json ./
-RUN npm install
-
-COPY . .
-
-# Build Next.js app
-RUN npm run build
-
-# ── Production stage ──────────────────────────────────────────────
-FROM node:${NODE_VERSION} AS production
-
-WORKDIR /app
-
-# Install only production dependencies
-COPY package*.json ./
-RUN npm install --production
-
-# Copy built app from builder
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/package*.json ./
-
-EXPOSE 3000
-
-# Start production server
-CMD ["npm", "start"]
-EOF
-
 cat > services/iniclaw/Dockerfile << 'EOF'
 # ── IniClaw Gateway Dockerfile ────────────────────────────────────
 # Agent runtime and gateway service
@@ -134,34 +76,6 @@ EOF
 echo "✅ Created Dockerfiles for services"
 
 # Create placeholder package.json files
-cat > services/openmaic/package.json << 'EOF'
-{
-  "name": "openmaic-web",
-  "version": "1.0.0",
-  "description": "OpenMAIC AI Classroom - Next.js Frontend",
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "type-check": "tsc --noEmit"
-  },
-  "dependencies": {
-    "next": "^14.0.0",
-    "react": "^18.3.0",
-    "react-dom": "^18.3.0",
-    "firebase": "^11.6.0",
-    "axios": "^1.13.6"
-  },
-  "devDependencies": {
-    "typescript": "^5.0.0",
-    "@types/node": "^20.0.0",
-    "@types/react": "^18.0.0",
-    "@types/react-dom": "^18.0.0"
-  }
-}
-EOF
-
 cat > services/iniclaw/package.json << 'EOF'
 {
   "name": "iniclaw-gateway",
@@ -193,7 +107,6 @@ EOF
 echo "✅ Created package.json files for services"
 
 # Create .gitkeep files to preserve directory structure
-touch services/openmaic/.gitkeep
 touch services/iniclaw/.gitkeep
 
 echo "✅ Created service directories"
@@ -205,24 +118,6 @@ cat > services/README.md << 'EOF'
 This directory contains independent microservices that integrate with the main EduAI platform.
 
 ## Services
-
-### OpenMAIC (`./openmaic`)
-Next.js AI classroom application for multi-agent teaching.
-
-**Features:**
-- Interactive 3D classroom environment
-- Multi-agent AI teachers
-- Real-time collaboration
-- Quiz and assessment generation
-
-**Setup:**
-```bash
-cd openmaic
-npm install
-npm run dev
-```
-
-**Port:** 3000
 
 ### IniClaw (`./iniclaw`)
 Agent gateway and runtime for orchestrating multi-agent systems.
@@ -261,13 +156,11 @@ echo "✨ Microservices setup complete!"
 echo "════════════════════════════════════════════════════════════════"
 echo ""
 echo "Next steps:"
-echo "1. Copy your OpenMAIC (studyArena) code to ./services/openmaic"
-echo "2. Copy your IniClaw code to ./services/iniclaw"
-echo "3. Update package.json files with actual dependencies"
-echo "4. Run: docker compose up"
+echo "1. Copy your IniClaw code to ./services/iniclaw"
+echo "2. Update package.json files with actual dependencies"
+echo "3. Run: docker compose up"
 echo ""
 echo "For development without Docker:"
 echo "  Terminal 1: npm run dev (EduAI main app)"
-echo "  Terminal 2: cd services/openmaic && npm run dev"
-echo "  Terminal 3: cd services/iniclaw && npm run dev"
+echo "  Terminal 2: cd services/iniclaw && npm run dev"
 echo ""
