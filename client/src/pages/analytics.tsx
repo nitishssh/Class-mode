@@ -261,7 +261,7 @@ export default function Analytics() {
                 <Sparkles className="mx-auto mb-4 h-10 w-10 text-accent/40" />
                 <h3 className="text-lg font-bold">Deep Performance Analysis</h3>
                 <p className="mx-auto mb-6 max-w-sm text-sm text-muted-foreground">
-                  Let EduAI analyze your last 90 days of test history to find trends and actionable
+                  Let Class Mode analyze your last 90 days of test history to find trends and actionable
                   insights.
                 </p>
                 <Button
