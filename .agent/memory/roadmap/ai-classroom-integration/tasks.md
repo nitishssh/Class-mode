@@ -19,7 +19,7 @@
 - [x] **1.7** Update `server/routes/ai-classroom.ts` to use internal service (no more proxy)
 - [x] **1.8** Update `shared/mongo-schema.ts` AIClassroomSchema (add `data` field, remove `url`/`classroomId`)
 - [x] **1.9** Install `nanoid` dependency
-- [x] **1.10** Clean up `.agent/temp_openmaic/` clone
+- [x] **1.10** Clean up temporary files from initial integration
 
 ## Phase 2: Frontend — Native Player ✅
 
@@ -34,7 +34,7 @@
   - Framer Motion transitions between scenes
   - Gradient theming (violet/indigo)
 - [x] **2.2** Remove dependency on `server/services/study-arena-client.ts` (old bridge client)
-- [x] **2.3** Remove `server/lib/openmaic-auth-bridge.ts` (dead code)
+- [x] **2.3** Remove legacy auth bridge (dead code)
 
 ## Phase 3: Multi-Agent Orchestration (Partial)
 
