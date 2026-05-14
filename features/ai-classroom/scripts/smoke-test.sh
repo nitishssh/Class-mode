@@ -1,5 +1,5 @@
 #!/bin/bash
-# IniClaw + OpenMAIC Integration Smoke Test
+# IniClaw Integration Smoke Test
 
 set -e
 
@@ -8,18 +8,13 @@ GREEN='\033[0;32m'
 NC='\033[0m'
 
 INICLAW_URL=${INICLAW_GATEWAY_URL:-"http://localhost:7070"}
-OPENMAIC_URL=${OPENMAIC_URL:-"http://localhost:3000"}
 SECRET=${BRIDGE_SECRET:-"changeme_replace_with_output_of_openssl_rand_hex_16"}
 
 echo "--- 1. Checking IniClaw Health ---"
 curl -fsSL "$INICLAW_URL/health" | grep -q "ok"
 echo -e "${GREEN}✓ IniClaw is alive${NC}"
 
-echo "--- 2. Checking OpenMAIC Proxy Health ---"
-curl -fsSL "$OPENMAIC_URL/api/iniclaw-health" | grep -q "connected" || echo -e "${RED}⚠ OpenMAIC reports IniClaw disconnected (expected if IniClaw is not running)${NC}"
-echo -e "${GREEN}✓ OpenMAIC health endpoint checked${NC}"
-
-echo "--- 3. Testing IniClaw Tutor Chat ---"
+echo "--- 2. Testing IniClaw Tutor Chat ---"
 RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$INICLAW_URL/tutor/chat" \
   -H "Authorization: Bearer $SECRET" \
   -H "Content-Type: application/json" \
@@ -33,7 +28,7 @@ else
   echo -e "${RED}✗ Unexpected HTTP status from IniClaw: $RESPONSE${NC}"
 fi
 
-echo "--- 4. Verifying Audit Log ---"
+echo "--- 3. Verifying Audit Log ---"
 if [ -f "ini_claw/.classroom-cache/audit.jsonl" ]; then
   LOG_FILE="ini_claw/.classroom-cache/audit.jsonl"
 elif [ -f ".classroom-cache/audit.jsonl" ]; then
