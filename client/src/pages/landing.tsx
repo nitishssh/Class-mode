@@ -8,6 +8,7 @@ import {
   ProblemSection,
   DualAudience,
   HowItWorks,
+  BusinessValue,
   NotebookFeature,
   OnboardingFeatures,
   DemoWidget,
@@ -22,6 +23,7 @@ const Navbar = () => {
 
   const links = [
     { label: "How it Works", href: "#journey" },
+    { label: "For Schools", href: "#value" },
     { label: "Features", href: "#features" },
     { label: "Pricing", href: "#pricing" },
     { label: "Contact", href: "#contact" },
@@ -183,6 +185,7 @@ const LandingPage = () => (
       <ProblemSection />
       <DualAudience />
       <HowItWorks />
+      <BusinessValue />
       <NotebookFeature />
       <OnboardingFeatures />
       <DemoWidget />

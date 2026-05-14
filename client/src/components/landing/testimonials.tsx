@@ -16,6 +16,10 @@ import {
   Lightbulb,
   Target,
   TrendingUp,
+  GraduationCap,
+  LayoutDashboard,
+  FileText,
+  Layers,
 } from "lucide-react";
 
 const painPoints = [
@@ -308,5 +312,217 @@ export const HowItWorks = () => (
     </div>
   </section>
 );
+
+const outcomes = [
+  {
+    metric: "5+ hrs",
+    period: "saved per teacher, per week",
+    detail:
+      "Automated grading, AI-assisted test creation, and smart attendance tracking eliminate the paperwork that kills teacher time.",
+    icon: ClipboardCheck,
+    color: "text-primary",
+    bg: "bg-primary/8",
+  },
+  {
+    metric: "1 platform",
+    period: "replacing 4–6 disconnected tools",
+    detail:
+      "No more juggling spreadsheets, separate LMS, messaging apps, and gradebooks. ClassMode is the single source of truth.",
+    icon: Layers,
+    color: "text-energy-dark",
+    bg: "bg-energy/10",
+  },
+  {
+    metric: "Real-time",
+    period: "visibility across every classroom",
+    detail:
+      "Principals and boards no longer wait weeks for reports. Live dashboards show attendance, grades, and engagement — right now.",
+    icon: LayoutDashboard,
+    color: "text-progress",
+    bg: "bg-progress/10",
+  },
+  {
+    metric: "3×",
+    period: "faster from enrolment to first lesson",
+    detail:
+      "Invite teachers, create classes, and onboard students in minutes. No IT tickets. No training sessions. Just start.",
+    icon: TrendingUp,
+    color: "text-violet-500",
+    bg: "bg-violet-500/10",
+  },
+];
+
+const roles = [
+  {
+    role: "Teachers",
+    icon: GraduationCap,
+    headline: "Teach more. Admin less.",
+    points: [
+      "AI drafts tests and quizzes in seconds",
+      "Scan paper tests — ClassMode grades them",
+      "Student progress visible at a glance",
+      "Communicate with parents without leaving the platform",
+    ],
+  },
+  {
+    role: "Principals",
+    icon: LayoutDashboard,
+    headline: "See the whole school. Instantly.",
+    points: [
+      "Live view of every class's performance",
+      "Attendance and engagement trends",
+      "Flag at-risk students before it's too late",
+      "Manage teachers and timetables in one place",
+    ],
+  },
+  {
+    role: "Boards & Admins",
+    icon: FileText,
+    headline: "Data you can act on.",
+    points: [
+      "Automated board-ready performance reports",
+      "School-wide KPIs on a single dashboard",
+      "Compliance documentation handled automatically",
+      "Subscription and billing management built in",
+    ],
+  },
+];
+
+export const BusinessValue = () => {
+  const [, setLocation] = useLocation();
+
+  return (
+    <section id="value" className="bg-background py-28">
+      <div className="container">
+        {/* Section header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mx-auto mb-20 max-w-3xl text-center"
+        >
+          <span className="mb-4 inline-block rounded-full border border-border bg-card px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+            The business case
+          </span>
+          <h2 className="mb-5 text-4xl font-extrabold tracking-tight md:text-5xl">
+            What your school actually gains.
+          </h2>
+          <p className="text-xl leading-relaxed text-muted-foreground">
+            ClassMode isn't another tool to manage. It's the upgrade that makes your whole school
+            run better — for teachers, leaders, and students alike.
+          </p>
+        </motion.div>
+
+        {/* Outcome metrics */}
+        <div className="mb-24 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {outcomes.map((item, i) => (
+            <motion.div
+              key={item.metric}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1 }}
+              className="group rounded-2xl border border-border bg-card p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-card"
+            >
+              <div className={`mb-5 flex h-11 w-11 items-center justify-center rounded-xl ${item.bg}`}>
+                <item.icon className={`h-5 w-5 ${item.color}`} />
+              </div>
+              <p className={`mb-0.5 text-3xl font-extrabold tracking-tight ${item.color}`}>
+                {item.metric}
+              </p>
+              <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {item.period}
+              </p>
+              <p className="text-sm leading-relaxed text-muted-foreground">{item.detail}</p>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Role-by-role breakdown */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mb-12 text-center"
+        >
+          <h3 className="text-2xl font-extrabold md:text-3xl">What it means for every role.</h3>
+          <p className="mt-3 text-lg text-muted-foreground">
+            One platform, but everyone gets exactly what they need.
+          </p>
+        </motion.div>
+
+        <div className="grid gap-6 md:grid-cols-3">
+          {roles.map((r, i) => (
+            <motion.div
+              key={r.role}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.12 }}
+              className="rounded-2xl border border-border bg-card p-8"
+            >
+              <div className="mb-5 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                  <r.icon className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                    {r.role}
+                  </p>
+                  <p className="font-bold text-foreground">{r.headline}</p>
+                </div>
+              </div>
+              <ul className="space-y-3">
+                {r.points.map((point) => (
+                  <li key={point} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    {point}
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mt-16 rounded-2xl border border-primary/20 bg-accent-soft px-10 py-12 text-center"
+        >
+          <p className="mb-2 text-sm font-bold uppercase tracking-widest text-primary">
+            Ready to see it live?
+          </p>
+          <h3 className="mb-4 text-3xl font-extrabold">
+            Set up your school in under 10 minutes.
+          </h3>
+          <p className="mx-auto mb-8 max-w-lg text-lg text-muted-foreground">
+            No contracts. No credit card. No IT team required. Just a better school experience
+            from day one.
+          </p>
+          <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+            <Button
+              size="lg"
+              className="group gap-2 rounded-full bg-primary px-8 font-semibold text-primary-foreground shadow-xp hover:bg-primary/90"
+              onClick={() => setLocation("/login")}
+            >
+              Get started free
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="gap-2 rounded-full px-8 font-semibold"
+              onClick={() => setLocation("/login")}
+            >
+              Book a demo
+            </Button>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+};
 
 export { ProblemSection as Turbulence, HowItWorks as Journey };
