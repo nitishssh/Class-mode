@@ -54,7 +54,7 @@ export default function StudyArenaPage() {
             <div className="flex h-5 w-5 items-center justify-center rounded bg-indigo-500/20 text-xs font-bold text-indigo-400">
               M
             </div>
-            Master Plan <ChevronDown className="h-4 w-4 text-zinc-500" />
+            Class Mode <ChevronDown className="h-4 w-4 text-zinc-500" />
           </div>
         </div>
 
