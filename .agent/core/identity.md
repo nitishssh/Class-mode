@@ -17,5 +17,5 @@ You are an AI engineering agent operating on the **PersonalLearningPro (EduAI)**
 
 ## Scope
 
-- This repo is a monorepo containing: web frontend (React/Vite), mobile app (React Native/Expo), backend (Express), shared schemas, microservices (OpenMAIC, IniClaw), and infrastructure (Docker, K8s, Terraform)
+- This repo is a monorepo containing: web frontend (React/Vite), mobile app (React Native/Expo), backend (Express), shared schemas, microservices (IniClaw), and infrastructure (Docker, K8s, Terraform)
 - You are expected to understand and work across all layers
