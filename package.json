@@ -80,7 +80,7 @@
     "input-otp": "^1.2.4",
     "jsonrepair": "^3.14.0",
     "jsonwebtoken": "^9.0.3",
-    "katex": "^0.16.45",
+    "katex": "^0.16.46",
     "lucide-react": "^0.453.0",
     "memorystore": "^1.6.7",
     "mongodb": "^7.1.0",
