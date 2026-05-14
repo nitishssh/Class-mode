@@ -243,7 +243,7 @@ export function Sidebar({ className }: SidebarProps) {
 
       <div
         className={cn(
-          "fixed bottom-0 left-0 top-0 z-[60] flex h-screen flex-col border-r border-border bg-muted/30 transition-all duration-300 ease-in-out",
+          "fixed bottom-0 left-0 top-0 z-[60] flex h-screen flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-300 ease-in-out",
           isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
           isCollapsed ? "w-16 md:w-16" : "w-64 md:w-64",
           className
@@ -251,7 +251,7 @@ export function Sidebar({ className }: SidebarProps) {
       >
         <button
           onClick={toggleSidebar}
-          className="absolute -right-3 top-20 hidden h-6 w-6 cursor-pointer items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-soft transition-colors hover:bg-muted hover:text-foreground md:flex"
+          className="absolute -right-3 top-20 hidden h-6 w-6 cursor-pointer items-center justify-center rounded-full border border-sidebar-border bg-sidebar text-sidebar-foreground/60 shadow-soft transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground md:flex"
         >
           {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
         </button>
@@ -260,15 +260,15 @@ export function Sidebar({ className }: SidebarProps) {
         <div className="flex items-center px-6 py-6">
           {!isCollapsed ? (
             <div className="flex flex-col">
-              <h1 className="font-display text-2xl font-bold leading-tight text-foreground">
-                Class<span className="text-primary">Mode</span>
+              <h1 className="font-display text-2xl font-bold leading-tight text-sidebar-foreground">
+                Class<span className="text-sidebar-primary">Mode</span>
               </h1>
-              <p className="mt-0.5 font-body text-[10px] uppercase tracking-widest text-muted-foreground">
+              <p className="mt-0.5 font-body text-[10px] uppercase tracking-widest text-sidebar-foreground/50">
                 School Platform
               </p>
             </div>
           ) : (
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent-soft font-display text-sm font-bold text-primary">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sidebar-accent font-display text-sm font-bold text-sidebar-primary">
               CM
             </div>
           )}
@@ -277,17 +277,17 @@ export function Sidebar({ className }: SidebarProps) {
         {/* User info */}
         <div className={cn("mb-6 mt-2 px-3", isCollapsed && "flex justify-center")}>
           {isCollapsed ? (
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-soft text-sm font-semibold text-primary">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sidebar-accent text-sm font-semibold text-sidebar-primary">
               {user?.displayName ? getInitials(user.displayName) : "U"}
             </div>
           ) : (
-            <div className="group flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-muted">
-              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-accent-soft text-sm font-semibold text-primary">
+            <div className="group flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-sidebar-accent">
+              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-sm font-semibold text-sidebar-primary">
                 {user?.displayName ? getInitials(user.displayName) : "U"}
               </div>
               <div className="overflow-hidden">
-                <p className="truncate text-sm font-medium text-foreground">{user?.displayName}</p>
-                <p className="text-xs text-muted-foreground">{roleLabel}</p>
+                <p className="truncate text-sm font-medium text-sidebar-foreground">{user?.displayName}</p>
+                <p className="text-xs text-sidebar-foreground/60">{roleLabel}</p>
               </div>
             </div>
           )}
@@ -296,7 +296,7 @@ export function Sidebar({ className }: SidebarProps) {
         {/* Navigation */}
         <div className={cn("flex-1 overflow-y-auto", isCollapsed ? "px-2" : "px-3")}>
           {!isCollapsed && (
-            <div className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+            <div className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">
               Main Menu
             </div>
           )}
@@ -324,8 +324,8 @@ export function Sidebar({ className }: SidebarProps) {
                     </span>
                     {!isCollapsed && (
                       <>
-                        <span className="flex-1 truncate text-muted-foreground">{item.title}</span>
-                        <span className="ml-2 flex-shrink-0 rounded-full border border-primary/10 bg-accent-soft px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-primary">
+                        <span className="flex-1 truncate text-sidebar-foreground/40">{item.title}</span>
+                        <span className="ml-2 flex-shrink-0 rounded-full border border-sidebar-primary/20 bg-sidebar-accent px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-sidebar-primary/60">
                           Soon
                         </span>
                       </>
@@ -342,21 +342,21 @@ export function Sidebar({ className }: SidebarProps) {
                   className={cn(
                     "group relative flex items-center rounded-xl py-2.5 text-sm font-medium transition-all duration-150",
                     isActive
-                      ? "bg-accent-soft font-semibold text-primary"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                      ? "bg-sidebar-accent font-semibold text-sidebar-primary"
+                      : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground",
                     isCollapsed ? "justify-center px-2" : "px-3"
                   )}
                   title={isCollapsed ? item.title : undefined}
                 >
                   {isActive && !isCollapsed && (
-                    <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-primary" />
+                    <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-sidebar-primary" />
                   )}
                   <span
                     className={cn(
                       "flex h-5 w-5 flex-shrink-0 items-center justify-center transition-colors",
                       isActive
-                        ? "text-primary"
-                        : "text-muted-foreground group-hover:text-foreground",
+                        ? "text-sidebar-primary"
+                        : "text-sidebar-foreground/60 group-hover:text-sidebar-foreground",
                       !isCollapsed && "mr-3"
                     )}
                   >
@@ -372,7 +372,7 @@ export function Sidebar({ className }: SidebarProps) {
         {/* Bottom actions */}
         <div
           className={cn(
-            "mt-auto border-t border-border",
+            "mt-auto border-t border-sidebar-border",
             isCollapsed
               ? "flex flex-col items-center space-y-3 p-3"
               : "flex items-center justify-between p-4"
@@ -385,7 +385,7 @@ export function Sidebar({ className }: SidebarProps) {
                 variant="ghost"
                 size="icon"
                 onClick={() => logout()}
-                className="rounded-xl text-muted-foreground hover:bg-red-50 hover:text-red-500"
+                className="rounded-xl text-sidebar-foreground/60 hover:bg-red-500/10 hover:text-red-400"
               >
                 <LogOut className="h-4 w-4" />
               </Button>
@@ -398,7 +398,7 @@ export function Sidebar({ className }: SidebarProps) {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="rounded-xl text-muted-foreground hover:text-foreground"
+                    className="rounded-xl text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                   >
                     <Settings className="h-4 w-4" />
                   </Button>
@@ -408,7 +408,7 @@ export function Sidebar({ className }: SidebarProps) {
                 variant="ghost"
                 size="icon"
                 onClick={() => logout()}
-                className="rounded-xl text-muted-foreground hover:bg-red-50 hover:text-red-500"
+                className="rounded-xl text-sidebar-foreground/60 hover:bg-red-500/10 hover:text-red-400"
               >
                 <LogOut className="h-4 w-4" />
               </Button>

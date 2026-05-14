@@ -55,8 +55,13 @@ function Layout({
   children: React.ReactNode;
   fullWidth?: boolean;
 }) {
+  const {
+    currentUser: { profile },
+  } = useFirebaseAuth();
+  const role = profile?.role === "student" ? "student" : profile ? "staff" : undefined;
+
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background" data-role={role}>
       <Sidebar />
       <main
         className="flex-1 transition-all duration-300 ease-in-out"

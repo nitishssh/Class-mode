@@ -513,3 +513,29 @@
     border: 1px solid hsl(var(--primary));
   }
 }
+
+/* ─── Role-Based Themes ─── */
+
+/* Student: focused & calm — soft warm sidebar */
+[data-role="student"] {
+  --sidebar-background: 50 30% 95%;
+  --sidebar-foreground: 0 0% 12%;
+  --sidebar-primary: 262 83% 58%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 262 25% 90%;
+  --sidebar-accent-foreground: 262 60% 38%;
+  --sidebar-border: 45 20% 88%;
+  --sidebar-ring: 262 83% 58% / 0.3;
+}
+
+/* Staff / Admin: executive — deep navy sidebar */
+[data-role="staff"] {
+  --sidebar-background: 222 47% 10%;
+  --sidebar-foreground: 213 31% 92%;
+  --sidebar-primary: 262 75% 72%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 222 40% 18%;
+  --sidebar-accent-foreground: 213 31% 92%;
+  --sidebar-border: 222 30% 19%;
+  --sidebar-ring: 262 75% 72% / 0.3;
+}
