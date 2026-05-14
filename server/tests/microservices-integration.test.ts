@@ -59,7 +59,7 @@ describe("PersonalLearningPro Microservices Integration", () => {
   });
 
   describe("Health Checks", () => {
-    it("should check EduAI health", async () => {
+    it("should check Class Mode health", async () => {
       const response = await apiClient.get("/api/health");
       expect([200, 410, 503]).toContain(response.status);
       if (response.status === 200) expect(response.data).toHaveProperty("status");
