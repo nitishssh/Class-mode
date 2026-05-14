@@ -1,5 +1,5 @@
 #!/bin/bash
-# Deploy IniClaw + OpenMAIC using Docker Compose
+# Deploy IniClaw using Docker Compose
 
 set -e
 
@@ -20,5 +20,4 @@ echo "--- 3. Waiting for health ---"
 sleep 5
 
 echo "--- Deployment Complete ---"
-echo "OpenMAIC: http://localhost:3000"
 echo "IniClaw: http://localhost:7070"
