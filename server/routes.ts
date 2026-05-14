@@ -35,8 +35,6 @@ import messageRoutes from "./message/routes";
 import { liveRouter } from "./routes/live";
 import aiClassroomRoutes from "./routes/ai-classroom";
 import healthRoutes from "./routes/health";
-import { openmaicApiRouter } from "./routes/openmaic-api";
-import { openmaicWebhookRouter } from "./routes/openmaic-webhooks";
 import gradingRoutes from "./routes/grading";
 import educatorRoutes from "./routes/educator";
 import parentRoutes from "./routes/parent";
@@ -181,12 +179,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount AI Classroom routes (Study Arena integration)
   app.use("/api/ai-classroom", aiClassroomRoutes);
-
-  // Mount OpenMAIC API routes (classroom creation, quiz generation, etc.)
-  app.use("/api/openmaic", openmaicApiRouter);
-
-  // Mount OpenMAIC webhook routes (lesson completion, quiz results, etc.)
-  app.use("/api/webhooks/openmaic", openmaicWebhookRouter);
 
   // Mount Grading API routes (AI-powered submission grading)
   app.use("/api/grading", gradingRoutes);
