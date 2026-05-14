@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Menu, X } from "lucide-react";
+import { Menu, X, School, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import {
   Hero,
+  ProblemSection,
+  DualAudience,
+  HowItWorks,
   NotebookFeature,
   OnboardingFeatures,
-  Turbulence,
-  Journey,
   DemoWidget,
   Pricing,
   ContactForm,
@@ -27,10 +28,12 @@ const Navbar = () => {
   ];
 
   return (
-    <nav className="fixed left-0 right-0 top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
+    <nav className="fixed left-0 right-0 top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
       <div className="container flex h-16 items-center justify-between">
-        <a href="#" className="font-heading text-xl font-bold tracking-tight">
-          Class<span className="text-primary">Mode</span>
+        <a href="#" className="flex items-center gap-2">
+          <span className="font-display text-xl font-bold tracking-tight">
+            Class<span className="text-primary">Mode</span>
+          </span>
         </a>
 
         {/* Desktop */}
@@ -44,25 +47,37 @@ const Navbar = () => {
               {l.label}
             </a>
           ))}
-          <Button
-            className="sketch-border sketch-shadow-yellow hover-tilt rounded-full bg-primary font-heading text-sm text-primary-foreground hover:bg-primary/90"
-            size="sm"
-            onClick={() => setLocation("/login")}
-          >
-            Get My Plan
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 rounded-full font-medium"
+              onClick={() => setLocation("/login")}
+            >
+              <Users className="h-4 w-4" />
+              Student
+            </Button>
+            <Button
+              size="sm"
+              className="gap-1.5 rounded-full bg-primary font-medium text-primary-foreground hover:bg-primary/90"
+              onClick={() => setLocation("/login")}
+            >
+              <School className="h-4 w-4" />
+              For Schools
+            </Button>
+          </div>
           <ThemeToggle />
         </div>
 
         {/* Mobile toggle */}
         <button className="md:hidden" onClick={() => setOpen(!open)}>
-          {open ? <X size={24} /> : <Menu size={24} />}
+          {open ? <X size={22} /> : <Menu size={22} />}
         </button>
       </div>
 
       {/* Mobile menu */}
       {open && (
-        <div className="space-y-3 border-b border-border bg-background px-6 pb-4 md:hidden">
+        <div className="space-y-3 border-b border-border bg-background px-6 pb-5 pt-2 md:hidden">
           {links.map((l) => (
             <a
               key={l.href}
@@ -73,16 +88,23 @@ const Navbar = () => {
               {l.label}
             </a>
           ))}
-          <Button
-            className="sketch-border sketch-shadow-yellow w-full rounded-full bg-primary font-heading text-sm text-primary-foreground hover:bg-primary/90"
-            size="sm"
-            onClick={() => {
-              setOpen(false);
-              setLocation("/login");
-            }}
-          >
-            Get Started
-          </Button>
+          <div className="flex gap-2 pt-1">
+            <Button
+              variant="outline"
+              className="flex-1 rounded-full text-sm"
+              size="sm"
+              onClick={() => { setOpen(false); setLocation("/login"); }}
+            >
+              Student
+            </Button>
+            <Button
+              className="flex-1 rounded-full bg-primary text-sm text-primary-foreground hover:bg-primary/90"
+              size="sm"
+              onClick={() => { setOpen(false); setLocation("/login"); }}
+            >
+              For Schools
+            </Button>
+          </div>
         </div>
       )}
     </nav>
@@ -91,29 +113,34 @@ const Navbar = () => {
 
 // --- Footer ---
 const Footer = () => (
-  <footer className="border-t border-border bg-card/30 py-12">
+  <footer className="border-t border-border bg-card/30 py-14">
     <div className="container">
-      {/* Footer Divider */}
-      <div className="mb-8 flex justify-center">
-        <div className="flex gap-2">
-          {[...Array(12)].map((_, i) => (
-            <div key={i} className="h-1 w-6 rounded-full bg-foreground/15" />
-          ))}
-        </div>
-      </div>
-
-      <div className="grid gap-8 text-sm sm:grid-cols-3">
-        <div>
-          <p className="mb-2 font-heading text-lg font-bold">
+      <div className="mb-10 grid gap-8 text-sm sm:grid-cols-4">
+        <div className="sm:col-span-2">
+          <p className="mb-3 font-display text-xl font-bold">
             Class<span className="text-primary">Mode</span>
           </p>
-          <p className="text-muted-foreground">
-            The warm, friendly platform every school deserves.
+          <p className="max-w-xs text-muted-foreground">
+            The warm, friendly platform every school deserves. AI-powered. Human-centred.
           </p>
+          <div className="mt-5 flex gap-3">
+            <a
+              href="#"
+              className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Twitter / X
+            </a>
+            <a
+              href="#"
+              className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              LinkedIn
+            </a>
+          </div>
         </div>
         <div>
-          <p className="mb-2 font-heading font-bold">Quick Links</p>
-          <div className="space-y-1 text-muted-foreground">
+          <p className="mb-3 font-semibold text-foreground">Platform</p>
+          <div className="space-y-2 text-muted-foreground">
             <a href="#journey" className="block transition-colors hover:text-foreground">
               How it Works
             </a>
@@ -123,22 +150,13 @@ const Footer = () => (
             <a href="#pricing" className="block transition-colors hover:text-foreground">
               Pricing
             </a>
-            <a href="#contact" className="block transition-colors hover:text-foreground">
-              Contact
-            </a>
           </div>
         </div>
         <div>
-          <p className="mb-2 font-heading font-bold">Connect</p>
-          <div className="space-y-1 text-muted-foreground">
-            <a href="#" className="block transition-colors hover:text-foreground">
-              Twitter / X
-            </a>
-            <a href="#" className="block transition-colors hover:text-foreground">
-              LinkedIn
-            </a>
-            <a href="#" className="block transition-colors hover:text-foreground">
-              Instagram
+          <p className="mb-3 font-semibold text-foreground">Company</p>
+          <div className="space-y-2 text-muted-foreground">
+            <a href="#contact" className="block transition-colors hover:text-foreground">
+              Contact
             </a>
             <a
               href="mailto:hello@classmode.com"
@@ -150,7 +168,7 @@ const Footer = () => (
         </div>
       </div>
 
-      <div className="mt-10 border-t border-border pt-6 text-center text-xs text-muted-foreground">
+      <div className="border-t border-border pt-6 text-center text-xs text-muted-foreground">
         © 2026 ClassMode. All rights reserved. Built with 💛 for learners everywhere.
       </div>
     </div>
@@ -162,8 +180,9 @@ const LandingPage = () => (
     <Navbar />
     <main>
       <Hero />
-      <Turbulence />
-      <Journey />
+      <ProblemSection />
+      <DualAudience />
+      <HowItWorks />
       <NotebookFeature />
       <OnboardingFeatures />
       <DemoWidget />

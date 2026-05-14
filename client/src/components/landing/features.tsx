@@ -49,27 +49,27 @@ const features = [
 const cards = [
   {
     icon: Brain,
-    title: "AI Systems",
+    title: "AI Learning",
     bullets: [
+      "24/7 AI tutor for every subject",
       "Personalised study plans",
-      "Smart flashcard generation",
-      "Adaptive difficulty engine",
+      "Adaptive quiz engine",
     ],
   },
   {
     icon: Code,
-    title: "Software & Tools",
-    bullets: ["Interactive code labs", "Real-time collaboration", "Progress dashboards"],
+    title: "Teacher Tools",
+    bullets: ["AI-assisted test creation", "OCR scan & auto-grade", "Live classroom hosting"],
   },
   {
     icon: Cloud,
-    title: "Cloud Platform",
-    bullets: ["Access anywhere, any device", "Auto-sync across sessions", "Offline mode support"],
+    title: "School Management",
+    bullets: ["Student & staff directory", "Role-based dashboards", "Parent communication"],
   },
   {
     icon: TrendingUp,
-    title: "Growth & Coaching",
-    bullets: ["1-on-1 mentor matching", "Exam strategy workshops", "Performance analytics"],
+    title: "Analytics & Insights",
+    bullets: ["Real-time grade tracking", "Attendance & engagement", "Board-ready reports"],
   },
 ];
 
@@ -152,13 +152,16 @@ export const NotebookFeature = () => {
           viewport={{ once: true }}
           className="mb-16 text-center"
         >
+          <span className="mb-3 inline-block rounded-full border border-border bg-background px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+            AI-powered features
+          </span>
           <h2 className="mb-4 text-4xl font-extrabold text-foreground md:text-5xl">
-            From Concept to Launch
+            Everything a student needs.
           </h2>
           <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-            ClassMode guides students through every stage of learning —{" "}
+            ClassMode guides every student through their learning journey —{" "}
             <br className="hidden md:block" />
-            from understanding concepts to mastering exams.
+            from grasping new concepts to acing their exams.
           </p>
         </motion.div>
 
@@ -190,9 +193,14 @@ export const OnboardingFeatures = () => (
         viewport={{ once: true }}
         className="mb-16 text-center"
       >
-        <h2 className="mb-3 text-3xl font-extrabold md:text-4xl">Onboarding Features ✨</h2>
+        <span className="mb-3 inline-block rounded-full border border-border bg-card px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+          Platform pillars
+        </span>
+        <h2 className="mb-3 text-3xl font-extrabold md:text-4xl">
+          One platform. Every role. Zero chaos.
+        </h2>
         <p className="mx-auto max-w-xl text-lg text-muted-foreground">
-          Everything you need for a smooth learning journey.
+          ClassMode is built for the whole school — not just one type of user.
         </p>
       </motion.div>
 

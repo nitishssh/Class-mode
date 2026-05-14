@@ -71,9 +71,14 @@ export const DemoWidget = () => {
           viewport={{ once: true }}
           className="mb-10 text-center"
         >
-          <h2 className="mb-3 text-3xl font-extrabold md:text-4xl">Try It Now ✨</h2>
+          <span className="mb-3 inline-block rounded-full border border-border bg-card px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+            Live demo
+          </span>
+          <h2 className="mb-3 text-3xl font-extrabold md:text-4xl">
+            See ClassMode in action.
+          </h2>
           <p className="text-lg text-muted-foreground">
-            Enter a subject and get an instant 7-day micro study plan.
+            Pick a subject and get an instant AI-generated 7-day study plan.
           </p>
         </motion.div>
 
@@ -157,9 +162,14 @@ export const Pricing = () => {
           viewport={{ once: true }}
           className="mb-16 text-center"
         >
-          <h2 className="mb-3 text-3xl font-extrabold md:text-4xl">Choose Your Ticket 🎫</h2>
+          <span className="mb-3 inline-block rounded-full border border-border bg-card px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+            Pricing
+          </span>
+          <h2 className="mb-3 mt-2 text-3xl font-extrabold md:text-4xl">
+            Simple, school-friendly pricing.
+          </h2>
           <p className="text-lg text-muted-foreground">
-            Simple pricing for every kind of learner. Tickets launching soon.
+            No per-seat chaos. One plan for your whole school.
           </p>
         </motion.div>
 
@@ -246,15 +256,16 @@ export const ContactForm = () => {
       <div className="container relative z-10 flex justify-end">
         <div className="w-full max-w-lg">
           <div className="mb-10 text-left">
-            <span className="sketch-border sketch-shadow mb-4 inline-block bg-card px-4 py-1.5 text-sm font-medium text-foreground">
-              ✨ Get in touch
+            <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-accent-soft px-4 py-1.5 text-sm font-semibold text-primary">
+              👋 Get in touch
             </span>
             <h2 className="text-4xl font-extrabold tracking-tight md:text-5xl">
-              Book Your Digital Journey
+              Ready to bring ClassMode
+              <br />to your school?
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-muted-foreground md:text-xl">
-              Whether you&apos;re a student, teacher, or school — we&apos;d love to help you
-              succeed. Fill out the form and our team will reach out within 24 hours.
+              Whether you&apos;re a student, a teacher, or running an entire school — we&apos;d
+              love to help. Fill out the form and our team will reach out within 24 hours.
             </p>
           </div>
 
