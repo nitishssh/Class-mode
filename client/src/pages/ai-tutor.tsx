@@ -70,8 +70,8 @@ export default function AiTutor() {
             .
           </h1>
           <p className="max-w-2xl font-body text-lg leading-relaxed text-muted-foreground">
-            Your personalized learning journey is evolving. Ask Class Mode to clarify complex theories or
-            generate practice paths tailored to your recent progress.
+            Your personalized learning journey is evolving. Ask Class Mode to clarify complex
+            theories or generate practice paths tailored to your recent progress.
           </p>
         </div>
       </div>
