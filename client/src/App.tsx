@@ -129,56 +129,57 @@ const withProtection = <P extends object>(
 
 // ── Pre-defined route components (FIX BUG-05) ─────────────────────────────────
 // Defined at module scope so React sees stable component references across renders.
-// Previously defined inside App() which created new types on every render, causing
-// full unmount/remount of pages and losing all page-level state.
 const protect = withProtection;
 
-const TeacherDashboardRoute    = withLayout(protect(Dashboard, ["teacher"]));
-const PrincipalDashboardRoute  = withLayout(protect(PrincipalDashboard, ["principal"]));
-const SchoolAdminDashboardRoute= withLayout(protect(SchoolAdminDashboard, ["school_admin"]));
-const AdminDashboardRoute      = withLayout(protect(AdminDashboard, ["admin"]));
-const StudentDashboardRoute    = withLayout(protect(StudentDashboard, ["student"]));
-const ParentDashboardRoute     = withLayout(protect(ParentDashboard, ["parent"]));
+const TeacherDashboardRoute = withLayout(protect(Dashboard, ["teacher"]));
+const PrincipalDashboardRoute = withLayout(protect(PrincipalDashboard, ["principal"]));
+const SchoolAdminDashboardRoute = withLayout(protect(SchoolAdminDashboard, ["school_admin"]));
+const AdminDashboardRoute = withLayout(protect(AdminDashboard, ["admin"]));
+const StudentDashboardRoute = withLayout(protect(StudentDashboard, ["student"]));
+const ParentDashboardRoute = withLayout(protect(ParentDashboard, ["parent"]));
 
-const CreateTestRoute     = withLayout(protect(CreateTest,   ["teacher"]));
-const GradingRoute        = withLayout(protect(EducatorGrading, ["teacher"]));
-const MyStudentsRoute     = withLayout(protect(EducatorStudents, ["teacher"]));
-const OcrScanRoute        = withLayout(protect(OcrScan, ["teacher", "student", "parent"]));
-const AnalyticsRoute      = withLayout(protect(Analytics));
-const AiTutorRoute        = withLayout(protect(AiTutor, ["student"]));
-const StudentDirRoute     = withLayout(protect(StudentDirectory, ["teacher", "principal", "admin"]));
-const MessagesRoute       = withLayout(protect(Messages), { fullWidth: true });
-const TestPageRoute       = withLayout(protect(TestPage, ["student", "teacher", "admin"]), { fullWidth: true });
-const ResourcesRoute      = withLayout(protect(ResourcesPage, ["student"]), { fullWidth: true });
-const StudyArenaRoute     = withLayout(protect(StudyArena, ["student"]), { fullWidth: true });
-const TasksRoute          = withLayout(protect(Tasks));
-const NotificationsRoute  = withLayout(protect(Notifications));
-const TestsListRoute      = withLayout(protect(TestsList, ["student"]));
-const CalendarRoute       = withLayout(protect(AcademicCalendar));
-const FocusRoute          = withLayout(protect(Focus, ["student"]));
-const AchievementsRoute   = withLayout(protect(Achievements, ["student"]));
-const LiveClassesRoute    = withLayout(protect(LiveClasses, ["teacher", "student", "admin", "principal"]));
-const LiveClassRoomRoute  = withLayout(protect(LiveClassRoom), { fullWidth: true });
-const MyProgressRoute     = withLayout(protect(MyProgress, ["student", "parent"]), { fullWidth: true });
-const SettingsRoute       = withLayout(protect(Settings));
-const AiStudyPlansRoute   = withLayout(protect(AiStudyPlans, ["student"]));
-const AIClassroomRoute    = withLayout(protect(AIClassroom, ["student", "teacher"]));
-const OnboardingSchoolRoute   = withLayout(protect(SchoolSetup,        ["school_admin"]));
-const OnboardingInvTeachRoute = withLayout(protect(InviteTeachers,     ["school_admin"]));
-const OnboardingTeacherRoute  = withLayout(protect(TeacherClassSetup,  ["teacher"]));
-const OnboardingInvStdRoute   = withLayout(protect(InviteStudents,     ["teacher"]));
+const CreateTestRoute = withLayout(protect(CreateTest, ["teacher"]));
+const GradingRoute = withLayout(protect(EducatorGrading, ["teacher"]));
+const MyStudentsRoute = withLayout(protect(EducatorStudents, ["teacher"]));
+const OcrScanRoute = withLayout(protect(OcrScan, ["teacher", "student", "parent"]));
+const AnalyticsRoute = withLayout(protect(Analytics));
+const AiTutorRoute = withLayout(protect(AiTutor, ["student"]));
+const StudentDirRoute = withLayout(protect(StudentDirectory, ["teacher", "principal", "admin"]));
+const MessagesRoute = withLayout(protect(Messages), { fullWidth: true });
+const TestPageRoute = withLayout(protect(TestPage, ["student", "teacher", "admin"]), {
+  fullWidth: true,
+});
+const ResourcesRoute = withLayout(protect(ResourcesPage, ["student"]), { fullWidth: true });
+const StudyArenaRoute = withLayout(protect(StudyArena, ["student"]), { fullWidth: true });
+const TasksRoute = withLayout(protect(Tasks));
+const NotificationsRoute = withLayout(protect(Notifications));
+const TestsListRoute = withLayout(protect(TestsList, ["student"]));
+const CalendarRoute = withLayout(protect(AcademicCalendar));
+const FocusRoute = withLayout(protect(Focus, ["student"]));
+const AchievementsRoute = withLayout(protect(Achievements, ["student"]));
+const LiveClassesRoute = withLayout(
+  protect(LiveClasses, ["teacher", "student", "admin", "principal"])
+);
+const LiveClassRoomRoute = withLayout(protect(LiveClassRoom), { fullWidth: true });
+const MyProgressRoute = withLayout(protect(MyProgress, ["student", "parent"]), { fullWidth: true });
+const SettingsRoute = withLayout(protect(Settings));
+const AiStudyPlansRoute = withLayout(protect(AiStudyPlans, ["student"]));
+const AIClassroomRoute = withLayout(protect(AIClassroom, ["student", "teacher"]));
+const OnboardingSchoolRoute = withLayout(protect(SchoolSetup, ["school_admin"]));
+const OnboardingInvTeachRoute = withLayout(protect(InviteTeachers, ["school_admin"]));
+const OnboardingTeacherRoute = withLayout(protect(TeacherClassSetup, ["teacher"]));
+const OnboardingInvStdRoute = withLayout(protect(InviteStudents, ["teacher"]));
 
 // Role → dashboard map (avoids getDashboard() function recreating components on every render)
 const dashboardByRole: Partial<Record<string, React.ComponentType>> = {
-  principal:   withLayout(PrincipalDashboard),
-  school_admin:withLayout(SchoolAdminDashboard),
-  admin:       withLayout(AdminDashboard),
-  teacher:     withLayout(Dashboard),
-  student:     withLayout(StudentDashboard),
-  parent:      withLayout(ParentDashboard),
+  principal: withLayout(PrincipalDashboard),
+  school_admin: withLayout(SchoolAdminDashboard),
+  admin: withLayout(AdminDashboard),
+  teacher: withLayout(Dashboard),
+  student: withLayout(StudentDashboard),
+  parent: withLayout(ParentDashboard),
 };
 const FallbackDashboardRoute = withLayout(Dashboard);
-
 
 function App() {
   const {
@@ -219,7 +220,9 @@ function App() {
           <p className="mb-6 text-muted-foreground">
             Your account is awaiting administrator approval. You will receive access once activated.
           </p>
-          <Button onClick={() => logout()} variant="default" className="w-full">Sign Out</Button>
+          <Button onClick={() => logout()} variant="default" className="w-full">
+            Sign Out
+          </Button>
         </div>
       </div>
     );
@@ -233,7 +236,9 @@ function App() {
           <p className="mb-6 text-muted-foreground">
             Your account has been suspended. Please contact support for assistance.
           </p>
-          <Button onClick={() => logout()} variant="destructive" className="w-full">Sign Out</Button>
+          <Button onClick={() => logout()} variant="destructive" className="w-full">
+            Sign Out
+          </Button>
         </div>
       </div>
     );
@@ -247,7 +252,9 @@ function App() {
           <p className="mb-6 text-muted-foreground">
             Your registration was not approved. Please contact your school administrator.
           </p>
-          <Button onClick={() => logout()} variant="destructive" className="w-full">Sign Out</Button>
+          <Button onClick={() => logout()} variant="destructive" className="w-full">
+            Sign Out
+          </Button>
         </div>
       </div>
     );
@@ -261,36 +268,36 @@ function App() {
   return (
     <Switch>
       <Route path="/" component={RootDashboard} />
-      <Route path="/dashboard"           component={TeacherDashboardRoute} />
+      <Route path="/dashboard" component={TeacherDashboardRoute} />
       <Route path="/principal-dashboard" component={PrincipalDashboardRoute} />
       <Route path="/school-admin-dashboard" component={SchoolAdminDashboardRoute} />
-      <Route path="/admin-dashboard"     component={AdminDashboardRoute} />
-      <Route path="/student-dashboard"   component={StudentDashboardRoute} />
-      <Route path="/parent-dashboard"    component={ParentDashboardRoute} />
+      <Route path="/admin-dashboard" component={AdminDashboardRoute} />
+      <Route path="/student-dashboard" component={StudentDashboardRoute} />
+      <Route path="/parent-dashboard" component={ParentDashboardRoute} />
 
-      <Route path="/create-test"         component={CreateTestRoute} />
-      <Route path="/grading"             component={GradingRoute} />
-      <Route path="/my-students"         component={MyStudentsRoute} />
-      <Route path="/ocr-scan"            component={OcrScanRoute} />
-      <Route path="/analytics"           component={AnalyticsRoute} />
-      <Route path="/ai-tutor"            component={AiTutorRoute} />
-      <Route path="/student-directory"   component={StudentDirRoute} />
-      <Route path="/messages"            component={MessagesRoute} />
-      <Route path="/test/:id"            component={TestPageRoute} />
-      <Route path="/resources"           component={ResourcesRoute} />
-      <Route path="/study-arena"         component={StudyArenaRoute} />
-      <Route path="/tasks"               component={TasksRoute} />
-      <Route path="/notifications"       component={NotificationsRoute} />
-      <Route path="/tests"               component={TestsListRoute} />
-      <Route path="/calendar"            component={CalendarRoute} />
-      <Route path="/focus"               component={FocusRoute} />
-      <Route path="/achievements"        component={AchievementsRoute} />
-      <Route path="/live-classes"        component={LiveClassesRoute} />
-      <Route path="/live/:id"            component={LiveClassRoomRoute} />
-      <Route path="/progress"            component={MyProgressRoute} />
-      <Route path="/settings"            component={SettingsRoute} />
-      <Route path="/ai-study-plans"      component={AiStudyPlansRoute} />
-      <Route path="/ai-classroom"        component={AIClassroomRoute} />
+      <Route path="/create-test" component={CreateTestRoute} />
+      <Route path="/grading" component={GradingRoute} />
+      <Route path="/my-students" component={MyStudentsRoute} />
+      <Route path="/ocr-scan" component={OcrScanRoute} />
+      <Route path="/analytics" component={AnalyticsRoute} />
+      <Route path="/ai-tutor" component={AiTutorRoute} />
+      <Route path="/student-directory" component={StudentDirRoute} />
+      <Route path="/messages" component={MessagesRoute} />
+      <Route path="/test/:id" component={TestPageRoute} />
+      <Route path="/resources" component={ResourcesRoute} />
+      <Route path="/study-arena" component={StudyArenaRoute} />
+      <Route path="/tasks" component={TasksRoute} />
+      <Route path="/notifications" component={NotificationsRoute} />
+      <Route path="/tests" component={TestsListRoute} />
+      <Route path="/calendar" component={CalendarRoute} />
+      <Route path="/focus" component={FocusRoute} />
+      <Route path="/achievements" component={AchievementsRoute} />
+      <Route path="/live-classes" component={LiveClassesRoute} />
+      <Route path="/live/:id" component={LiveClassRoomRoute} />
+      <Route path="/progress" component={MyProgressRoute} />
+      <Route path="/settings" component={SettingsRoute} />
+      <Route path="/ai-study-plans" component={AiStudyPlansRoute} />
+      <Route path="/ai-classroom" component={AIClassroomRoute} />
 
       {/* Redirect /login to home if already authenticated */}
       <Route path="/login" component={() => <Redirect to="/" />} />
@@ -299,10 +306,10 @@ function App() {
       <Route path="/accept-invite" component={AcceptInvite} />
 
       {/* Onboarding flows */}
-      <Route path="/onboarding/school"           component={OnboardingSchoolRoute} />
-      <Route path="/onboarding/invite-teachers"  component={OnboardingInvTeachRoute} />
-      <Route path="/onboarding/teacher"          component={OnboardingTeacherRoute} />
-      <Route path="/onboarding/invite-students"  component={OnboardingInvStdRoute} />
+      <Route path="/onboarding/school" component={OnboardingSchoolRoute} />
+      <Route path="/onboarding/invite-teachers" component={OnboardingInvTeachRoute} />
+      <Route path="/onboarding/teacher" component={OnboardingTeacherRoute} />
+      <Route path="/onboarding/invite-students" component={OnboardingInvStdRoute} />
 
       <Route component={NotFound} />
     </Switch>

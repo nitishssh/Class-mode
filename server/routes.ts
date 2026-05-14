@@ -70,122 +70,39 @@ if (!process.env.JWT_SECRET) {
 const JWT_SECRET: string = process.env.JWT_SECRET;
 
 // Auth Middleware
+// Verifies the server-issued JWT only — never calls Firebase Admin on hot path.
+// Firebase ID tokens are exchanged for server JWTs once at /api/auth/firebase.
 export async function authenticateToken(req: Request, res: Response, next: express.NextFunction) {
   const token = req.cookies?.access_token || req.headers.authorization?.split(" ")[1];
 
-  if (!token) return res.status(401).json({ message: "Authentication required" });
-
-  try {
-    // First attempt: Firebase ID token verification
-    const decodedToken = await verifyFirebaseToken(token);
-
-    if (decodedToken) {
-      // Firebase token successfully verified
-      const firebaseUid = decodedToken.uid;
-      const email = decodedToken.email?.toLowerCase().trim();
-
-      let user = await MongoUser.findOne({ firebaseUid });
-
-      if (!user && email) {
-        user = await MongoUser.findOne({ email });
-        if (user) {
-          user.firebaseUid = firebaseUid;
-          if (decodedToken.role)
-            user.role = decodedToken.role as
-              | "student"
-              | "teacher"
-              | "parent"
-              | "principal"
-              | "school_admin"
-              | "admin";
-          await user.save();
-        }
-      }
-
-      if (!user) {
-        if (req.path === "/api/auth/sync-profile") {
-          req.session = req.session || ({} as express.Request["session"]);
-          req.session!.firebaseUid = firebaseUid;
-          req.session!.email = decodedToken.email;
-          return next();
-        }
-
-        // Auto-create MongoDB user from Firebase token to prevent auth limbo
-        // Use a try-catch to handle potential race conditions during concurrent requests
-        try {
-          const numericId = await getNextSequenceValue("userId");
-          user = new MongoUser({
-            id: numericId,
-            firebaseUid,
-            email: decodedToken.email || `user_${firebaseUid}@firebase`,
-            username: `user_${numericId}`,
-            name: decodedToken.name || decodedToken.email?.split("@")[0] || `User_${numericId}`,
-            displayName: decodedToken.name || null,
-            role: ((decodedToken as Record<string, unknown>).role as string) || "student",
-            password: "firebase_managed",
-          });
-          await user.save();
-          logger.info(`[auth] Auto-created MongoDB user`, { uid: firebaseUid });
-        } catch (saveErr: any) {
-          // If a duplicate key error occurs, it means the user was likely created by another request
-          if (saveErr.code === 11000) {
-            user = await MongoUser.findOne({ $or: [{ firebaseUid }, { email }] });
-            if (!user) {
-              throw saveErr; // Still not found? Throw the original error
-            }
-          } else {
-            throw saveErr;
-          }
-        }
-      }
-
-      // Sync role to Firebase Custom Claims if they don't match
-      if (user && (!decodedToken.role || decodedToken.role !== user.role)) {
-        try {
-          // Only attempt if not in "PARTIAL" mode or if we really want to try
-          await setCustomUserClaims(firebaseUid, { role: user.role });
-          logger.info(`[auth] Synced role to Firebase`, { uid: firebaseUid, role: user.role });
-        } catch (claimsErr) {
-          logger.warn(`[auth] Failed to sync role to Firebase`, {
-            uid: firebaseUid,
-            role: user.role,
-            error: claimsErr instanceof Error ? claimsErr.message : String(claimsErr),
-          });
-        }
-      }
-
-      req.session = req.session || ({} as express.Request["session"]);
-      req.session!.userId = user.id;
-      req.session!.role = user.role;
-      req.session!.firebaseUid = firebaseUid;
-      (req as any).user = { id: user.id, role: user.role, email: user.email };
-
-      return next();
-    }
-
-    // Second attempt: JWT verification (for seeded/test users or if Firebase Admin is not configured)
+  if (token) {
     try {
-      const jwtPayload = jwt.verify(token, JWT_SECRET) as CustomJwtPayload;
-      if (jwtPayload?.userId) {
-        const user = await MongoUser.findOne({ id: jwtPayload.userId });
-        if (!user) return res.status(404).json({ message: "User not found" });
-
-        req.session = req.session || ({} as express.Request["session"]);
-        req.session!.userId = user.id;
-        req.session!.role = user.role;
-        (req as any).user = { id: user.id, role: user.role, email: user.email };
-
+      const payload = jwt.verify(token, JWT_SECRET) as CustomJwtPayload;
+      if (payload?.userId) {
+        req.session!.userId = payload.userId;
+        req.session!.role = payload.role;
+        (req as any).user = { id: payload.userId, role: payload.role, email: payload.email };
         return next();
       }
     } catch {
-      // JWT verification also failed — token is truly invalid
+      // JWT invalid — try session fallback below
     }
-
-    return res.status(403).json({ message: "Invalid or expired token" });
-  } catch (error) {
-    console.error("Auth middleware error:", error);
-    return res.status(500).json({ message: "Internal Server Error during authentication" });
   }
+
+  // Session fallback: WebSocket-established sessions or legacy cookie-only flows
+  if (req.session?.userId) {
+    try {
+      const user = await MongoUser.findOne({ id: req.session.userId });
+      if (user) {
+        (req as any).user = { id: user.id, role: user.role, email: user.email };
+        return next();
+      }
+    } catch {
+      // DB error — fall through to 401
+    }
+  }
+
+  return res.status(401).json({ message: "Authentication required" });
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -1615,6 +1532,7 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
     }
   );
 
+  // /api/auth/firebase is handled by authRouter (server/routes/auth.ts)
 
 
   // ─── Phase 2: Chat Conversations API ────────────────────────────────────────

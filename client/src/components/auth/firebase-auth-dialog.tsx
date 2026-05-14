@@ -217,8 +217,15 @@ const IllustrationPanel = () => {
 };
 
 export function FirebaseAuthDialog() {
-  const { login, register, googleLogin, completeGoogleRegistration, resetUserPassword, refreshSession } =
-    useFirebaseAuth();
+  const {
+    login,
+    register,
+    googleLogin,
+    completeGoogleRegistration,
+    resetUserPassword,
+    refreshSession,
+  } = useFirebaseAuth();
+
   const [isNewGoogleUser, setIsNewGoogleUser] = useState(false);
   const [tempGoogleUser, setTempGoogleUser] = useState<User | null>(null);
   const [authTab, setAuthTab] = useState<"login" | "register" | "forgotPassword">("login");

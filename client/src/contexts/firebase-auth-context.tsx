@@ -12,11 +12,11 @@ import {
   UserProfile,
   UserRole,
 } from "@/lib/firebase";
-import { onAuthStateChanged, User } from "firebase/auth";
+import { onAuthStateChanged, onIdTokenChanged, User } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, setServerToken, clearServerToken } from "@/lib/queryClient";
 
-// ── Types ──────────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface AuthUser {
   user: User | null;
@@ -43,15 +43,14 @@ interface AuthContextType {
   ) => Promise<void>;
   logout: () => Promise<void>;
   resetUserPassword: (email: string) => Promise<void>;
-  /** Re-hydrates auth state after a JWT cookie login without a full page reload. */
+  /** Re-sync auth state from the server (e.g. after a backend-only JWT login). */
   refreshSession: () => Promise<void>;
 }
 
 const FirebaseAuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-/** Fetch profile but resolve null after 5 s so we never hang. */
 async function getProfileWithTimeout(uid: string): Promise<UserProfile | null> {
   const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
   return Promise.race([getUserProfile(uid), timeout]);
@@ -62,7 +61,7 @@ async function getProfileWithTimeout(uid: string): Promise<UserProfile | null> {
  * FIX BUG-09: Reads role from Firebase custom claims (set by backend after sync-profile)
  * instead of always defaulting to "student".
  */
-async function buildFallbackProfile(user: import("firebase/auth").User): Promise<UserProfile | null> {
+async function buildFallbackProfile(user: User): Promise<UserProfile | null> {
   if (!user.email) return null;
   let role: UserRole = "student";
   try {
@@ -86,30 +85,68 @@ async function buildFallbackProfile(user: import("firebase/auth").User): Promise
 }
 
 /**
- * After a successful Firebase login, post the ID token to the backend so the
- * Express session is established for subsequent API calls.
+ * Exchange a Firebase ID token for a server-issued JWT.
+ * The server JWT is stored in module memory and attached to all subsequent
+ * API requests via the Authorization header — no more per-request getIdToken() calls.
+ *
  * FIX BUG-02: token is sent only in body — not duplicated in Authorization header.
+ *
+ * Returns true on success, false if the backend is unreachable (non-fatal —
+ * the httpOnly cookie from a previous session may still authenticate requests).
  */
-async function syncFirebaseSession(user: import("firebase/auth").User): Promise<boolean> {
-  for (let attempt = 0; attempt < 2; attempt++) {
+async function exchangeForServerJwt(user: User, role?: string): Promise<boolean> {
+  for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const idToken = await user.getIdToken();
+      const idToken = await user.getIdToken(attempt > 0); // force-refresh on retry
       const res = await fetch("/api/auth/firebase", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ idToken }),
+        body: JSON.stringify({ idToken, role }),
       });
-      if (res.ok) return true;
-      console.warn(`[auth] Session sync returned ${res.status}, attempt ${attempt + 1}/2`);
-    } catch (e) {
-      console.warn(`[auth] Session sync failed (attempt ${attempt + 1}/2):`, e);
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.token) {
+          setServerToken(data.token);
+        }
+        return true;
+      }
+
+      // 401 = Firebase Admin rejected the token — don't retry
+      if (res.status === 401) break;
+
+      // Other errors — back off and retry
+      await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+    } catch {
+      await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
     }
   }
-  console.error(
-    "[auth] Could not sync Firebase session to backend after 2 attempts. API calls may fail."
-  );
+
+  console.error("[auth] Could not exchange Firebase token for server JWT");
   return false;
+}
+
+/**
+ * Called whenever Firebase silently refreshes its ID token (every ~55 min).
+ * Gets a new server JWT so the server-side JWT doesn't drift out of sync.
+ */
+async function refreshServerJwt(user: User): Promise<void> {
+  try {
+    const idToken = await user.getIdToken();
+    const res = await fetch("/api/auth/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ idToken }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.token) setServerToken(data.token);
+    }
+  } catch {
+    // Non-fatal — httpOnly cookie is still valid for ~7 days
+  }
 }
 
 // ── Provider ──────────────────────────────────────────────────────────────────
@@ -119,14 +156,11 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { toast } = useToast();
 
-  // Ref to prevent onAuthStateChanged from overwriting a profile that login() just set.
-  // When login()/register() sets a profile we raise this flag; onAuthStateChanged skips its
-  // own Firestore call for that one event and clears the flag.
+  // Prevents onAuthStateChanged from running its Firestore fetch when login()
+  // has already set the profile (avoids a redundant double-fetch).
   const skipNextAuthStateProfile = useRef(false);
 
-  // FIX BUG-10: checkBackendAuth at provider scope (not inside useEffect) so
-  // both onAuthStateChanged and refreshSession can call it.
-  // Relies on the httpOnly "access_token" cookie — no localStorage.
+  // FIX BUG-10: checkBackendAuth at provider scope so both onAuthStateChanged and refreshSession can call it.
   const checkBackendAuth = async (): Promise<boolean> => {
     try {
       const res = await fetch("/api/auth/me", { credentials: "include" });
@@ -155,8 +189,7 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // ── Single source of truth: onAuthStateChanged ────────────────────────────
   useEffect(() => {
     if (!firebaseEnabled || !auth) {
-      // For development/demo purposes without Firebase keys, provide a mock student profile
-      // Use setTimeout to move the state update out of the synchronous render path
+      // Dev/demo mode — provide a mock student profile so the app renders
       setTimeout(async () => {
         const hasBackendAuth = await checkBackendAuth();
         if (hasBackendAuth) return;
@@ -178,7 +211,8 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    // onAuthStateChanged: fires on login/logout
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
       if (user) {
         if (skipNextAuthStateProfile.current) {
           skipNextAuthStateProfile.current = false;
@@ -187,11 +221,9 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
         try {
           const profile = await getProfileWithTimeout(user.uid);
-          syncFirebaseSession(user).catch((err) =>
-            console.warn("Failed to sync session on auth state change", err)
-          );
-          // FIX BUG-09: await async buildFallbackProfile
+          // FIX BUG-09: await the now-async fallback builder
           const resolvedProfile = profile ?? (await buildFallbackProfile(user));
+          
           // FIX BUG-14: warn user when Firestore is unreachable and we're using fallback
           if (!profile && resolvedProfile) {
             toast({
@@ -200,26 +232,39 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
               variant: "destructive",
             });
           }
+          
           setCurrentUser({ user, profile: resolvedProfile });
         } catch {
-          // FIX BUG-09: await the now-async fallback builder
           const fallback = await buildFallbackProfile(user).catch(() => null);
           setCurrentUser({ user, profile: fallback });
         }
+        // Ensure server JWT is populated for users arriving via persisted Firebase session
+        exchangeForServerJwt(user).catch(() => {});
       } else {
-        // FIX BUG-01: wrap checkBackendAuth in try/catch so setIsLoading always resolves
+        clearServerToken();
+        // FIX BUG-01: check if we have a backend session even if Firebase is logged out
         try {
           const hasBackendAuth = await checkBackendAuth();
           if (hasBackendAuth) return;
         } catch {
-          // ignore — fall through to clear user
+          // ignore
         }
         setCurrentUser({ user: null, profile: null });
       }
       setIsLoading(false);
     });
 
-    return () => unsubscribe();
+    // onIdTokenChanged: fires whenever Firebase silently refreshes the ID token.
+    const unsubscribeToken = onIdTokenChanged(auth, async (user) => {
+      if (user) {
+        await refreshServerJwt(user);
+      }
+    });
+
+    return () => {
+      unsubscribeAuth();
+      unsubscribeToken();
+    };
   }, []);
 
   // ── login ─────────────────────────────────────────────────────────────────
@@ -229,17 +274,22 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const user = await loginWithEmail(email, password);
       const profile = await getProfileWithTimeout(user.uid);
       const resolvedProfile = profile ?? (await buildFallbackProfile(user));
+
       skipNextAuthStateProfile.current = true;
       setCurrentUser({ user, profile: resolvedProfile });
-      const synced = await syncFirebaseSession(user);
-      if (!synced) console.warn("[auth] Login succeeded but backend session sync failed");
+
+      const ok = await exchangeForServerJwt(user);
+      if (!ok) {
+        console.warn("[auth] Login succeeded but server JWT exchange failed");
+      }
+
       toast({
         title: "Login successful",
         description: `Welcome back, ${resolvedProfile?.displayName || user.displayName || email}!`,
       });
     } catch (error: unknown) {
-      const err = error as Error & { code?: string };
       setIsLoading(false);
+      const err = error as Error & { code?: string };
       const code = err.code || "";
       if (code !== "auth/operation-not-allowed" && err.message !== "Firebase is not configured") {
         toast({
@@ -264,18 +314,17 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     try {
       const user = await registerWithEmail(email, password, name, role, additionalData);
 
-      // FIX BUG-08 (register path): establish backend session BEFORE calling sync-profile
-      const synced = await syncFirebaseSession(user);
-      if (!synced) console.warn("[auth] Register: backend session sync failed");
+      // Exchange Firebase token for server JWT first, then sync profile
+      // FIX BUG-08: establish backend session BEFORE calling sync-profile
+      await exchangeForServerJwt(user, role);
 
-      // Now sync profile to MongoDB (session is established so authenticateToken passes)
       try {
         await apiRequest("POST", "/api/auth/sync-profile", {
           displayName: name,
           ...additionalData,
         });
-      } catch (err: unknown) {
-        console.warn("Failed to sync new profile to backend", (err as Error).message);
+      } catch (err) {
+        console.warn("[auth] Failed to sync new profile to backend", (err as Error).message);
       }
 
       const profile = await getProfileWithTimeout(user.uid);
@@ -284,8 +333,8 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       toast({ title: "Registration successful", description: `Welcome, ${name}!` });
     } catch (error: unknown) {
-      const err = error as Error & { code?: string };
       setIsLoading(false);
+      const err = error as Error & { code?: string };
       const code = err.code || "";
       if (code !== "auth/operation-not-allowed" && err.message !== "Firebase is not configured") {
         toast({
@@ -298,14 +347,13 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
-  // ── Google login ──────────────────────────────────────────────────────────
+  // ── googleLogin ───────────────────────────────────────────────────────────
   const googleLogin = async (): Promise<AuthUser> => {
     setIsLoading(true);
     try {
       const result = await loginWithGoogle();
 
       if (result.isNewUser) {
-        // New user — don't update currentUser yet, wait for role selection
         setIsLoading(false);
         return { user: result.user, profile: null, isNewUser: true };
       }
@@ -313,10 +361,9 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       skipNextAuthStateProfile.current = true;
       setCurrentUser({ user: result.user, profile: result.profile });
 
-      // Bridge Firebase session to backend for protected API calls
-      const synced = await syncFirebaseSession(result.user);
-      if (!synced) {
-        console.warn("[auth] Google login succeeded but backend session sync failed");
+      const ok = await exchangeForServerJwt(result.user);
+      if (!ok) {
+        console.warn("[auth] Google login succeeded but server JWT exchange failed");
       }
 
       toast({
@@ -336,7 +383,7 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
-  // ── completeGoogleRegistration ─────────────────────────────────────────────
+  // ── completeGoogleRegistration ────────────────────────────────────────────
   const completeGoogleRegistration = async (
     user: User,
     role: UserRole,
@@ -347,18 +394,15 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const userData = await completeGoogleSignUp(user, role, additionalData);
 
       // FIX BUG-08: establish backend session BEFORE calling sync-profile
-      // (authenticateToken middleware requires the session to exist)
-      const synced = await syncFirebaseSession(user);
-      if (!synced) console.warn("[auth] Google registration: backend session sync failed");
+      await exchangeForServerJwt(user, role);
 
-      // Now safe to call sync-profile (session is live)
       try {
         await apiRequest("POST", "/api/auth/sync-profile", {
           displayName: userData.displayName,
           ...additionalData,
         });
-      } catch (err: unknown) {
-        console.warn("Failed to sync google profile to backend", (err as Error).message);
+      } catch (err) {
+        console.warn("[auth] Failed to sync google profile to backend", (err as Error).message);
       }
 
       skipNextAuthStateProfile.current = true;
@@ -382,12 +426,15 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // ── logout ────────────────────────────────────────────────────────────────
   const logout = async () => {
     try {
-      // FIX BUG-10: Call server logout to clear the httpOnly cookie (can't be done client-side)
+      clearServerToken();
+
+      // FIX BUG-10: Call server logout to clear the httpOnly cookie
       await fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
-      // Clean up any legacy localStorage items (migration safety net)
-      localStorage.removeItem("auth_token");
-      localStorage.removeItem("auth_user");
-      if (firebaseEnabled && auth) await logoutUser();
+
+      if (firebaseEnabled && auth) {
+        await logoutUser();
+      }
+
       setCurrentUser({ user: null, profile: null });
       toast({ title: "Logged out", description: "You have been successfully logged out." });
     } catch (error: unknown) {
@@ -401,20 +448,27 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   // ── refreshSession ────────────────────────────────────────────────────────
-  // Allows the auth dialog to update context after a JWT cookie login (BUG-18 fix support)
+  // Called after a backend-only login (httpOnly cookie already set by server)
+  // to sync React auth state without a full page reload.
   const refreshSession = async () => {
-    setIsLoading(true);
-    if (firebaseEnabled && auth?.currentUser) {
-      const fbUser = auth.currentUser;
-      const profile = await getProfileWithTimeout(fbUser.uid);
-      setCurrentUser({ user: fbUser, profile: profile ?? (await buildFallbackProfile(fbUser)) });
-      setIsLoading(false);
-      return;
-    }
-    const ok = await checkBackendAuth();
-    if (!ok) {
-      setCurrentUser({ user: null, profile: null });
-      setIsLoading(false);
+    try {
+      const res = await fetch("/api/auth/me", { credentials: "include" });
+      if (!res.ok) return;
+      const backendUser = await res.json();
+      const profile: UserProfile = {
+        uid: `backend_${backendUser.id}`,
+        email: backendUser.email,
+        displayName: backendUser.displayName || backendUser.name,
+        role: backendUser.role,
+        status: backendUser.status || "active",
+        photoURL: backendUser.avatar || undefined,
+        createdAt: null,
+        lastLogin: null,
+      };
+      setCurrentUser({ user: null, profile });
+      if (backendUser.token) setServerToken(backendUser.token);
+    } catch {
+      // Non-fatal — user stays in current state
     }
   };
 
