@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`microservices-integration.test.ts`** — `INICLAW_URL` renamed to `INICLAW_GATEWAY_URL` to match rest of codebase.
 - **`gateway.test.js`** — Server was not closed after tests, leaving port 17071 occupied on re-runs. Exported `server` from `gateway.js`; added `after(() => server.close())`.
 - **`smoke-test.sh`** — Removed check for `openshell: command not found` error (no longer applicable). Updated test route from `/agent` (deleted) to `/tutor/chat`.
-- **`scripts/setup-openmaic.sh`** and **`docs/OPENMAIC_INTEGRATION.md`** — Updated manual IniClaw start command from `npm run dev:gateway` (in external `arena-learning` repo) to `BRIDGE_SECRET=<secret> INICLAW_PORT=7070 node gateway.js` (in `features/ai-classroom/ini_claw/`).
+- **`docs/STUDY_ARENA_INTEGRATION.md`** — Updated manual IniClaw start command from `npm run dev:gateway` to `BRIDGE_SECRET=<secret> INICLAW_PORT=7070 node gateway.js`.
 
 ### Added
 
