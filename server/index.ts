@@ -90,7 +90,7 @@ app.use(
         try {
           const url = new URL(origin);
           const isAllowedDomain =
-            url.hostname === "eduai.app" ||
+            url.hostname === "classmode.com" ||
             url.hostname === "inmodel.in" ||
             process.env.ALLOWED_PROD_DOMAINS?.split(",").includes(url.hostname);
 
@@ -127,10 +127,10 @@ initCassandra();
 checkFirebaseAdminReadiness();
 
 // Set up session middleware
-const SESSION_SECRET = process.env.SESSION_SECRET || "master-plan-ai-secret-key";
+const SESSION_SECRET = process.env.SESSION_SECRET || "class-mode-secret-key";
 if (
   process.env.NODE_ENV === "production" &&
-  (!process.env.SESSION_SECRET || process.env.SESSION_SECRET === "master-plan-ai-secret-key")
+  (!process.env.SESSION_SECRET || process.env.SESSION_SECRET === "class-mode-secret-key")
 ) {
   throw new Error(
     "A strong, unique SESSION_SECRET environment variable is required in production."
