@@ -92,6 +92,7 @@ describe("User Registration Status", () => {
       email: "teacher@test.com",
       password: "password123",
       role: "teacher",
+      school_code: "TEST_SCHOOL",
     };
 
     const res = await request(app).post("/api/auth/register").send(registrationData);

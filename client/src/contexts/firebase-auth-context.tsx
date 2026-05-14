@@ -490,31 +490,6 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
-  // ── refreshSession ────────────────────────────────────────────────────────
-  // Called after a backend-only login (httpOnly cookie already set by server)
-  // to sync React auth state without a full page reload.
-  const refreshSession = async () => {
-    try {
-      const res = await fetch("/api/auth/me", { credentials: "include" });
-      if (!res.ok) return;
-      const backendUser = await res.json();
-      const profile: UserProfile = {
-        uid: `backend_${backendUser.id}`,
-        email: backendUser.email,
-        displayName: backendUser.displayName || backendUser.name,
-        role: backendUser.role,
-        status: backendUser.status || "active",
-        photoURL: backendUser.avatar || undefined,
-        createdAt: null,
-        lastLogin: null,
-      };
-      setCurrentUser({ user: null, profile });
-      if (backendUser.token) setServerToken(backendUser.token);
-    } catch {
-      // Non-fatal — user stays in current state
-    }
-  };
-
   const value: AuthContextType = {
     currentUser,
     isLoading,

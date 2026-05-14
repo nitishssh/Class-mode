@@ -1,109 +1,74 @@
-# 🤖 AGENTS.md
+# AGENTS.md — PersonalLearningPro (EduAI)
 
-Welcome, AI agent! 🧠 This file provides the essential context and instructions you need to work effectively on **PersonalLearningPro (EduAI)**. 🎓
+## Build & Test
 
-## 🚀 Build & Test
+```bash
+npm run dev        # Express (tsx) + Vite middleware on port 5001
+npm run check      # tsc --noEmit — excludes **/*.test.ts
+npm test           # vitest run --root . — runs server/tests/**/*.test.ts
+npm run lint       # ESLint (flat config: eslint.config.js)
+npm run format     # Prettier (includes prettier-plugin-tailwindcss)
+npm run build      # vite build (client/) + esbuild (server/index.ts)
+npm start          # node dist/index.js (production)
+```
 
-### Web App
+CI order (`.github/workflows/ci.yml`): `check → lint → build → test`.
 
-- **📦 Install Dependencies:** `npm install`
-- **💻 Development Server:** `npm run dev` (Vite frontend + Express backend on port 5001)
-- **🧪 Run Tests:** `npm test` (Vitest)
-- **🧹 Linting:** `npm run lint` (ESLint)
-- **🎨 Format:** `npm run format` (Prettier)
-- **⚙️ Type Checking:** `npm run check` (TypeScript)
-- **🏗️ Build:** `npm run build` (Production build)
-- **🚀 Start Production:** `npm start`
+## Test quirks
 
-### Mobile App (React Native + Expo) - ✅ COMPLETE
+- `.env.test` is gitignored; `vitest.config.ts` provides fallback defaults for CI.
+- Two vitest configs: `vitest.config.ts` (root, CI) and `server/vitest.config.ts` (standalone server tests).
+- Test setup: `server/tests/setup.ts` — loads `.env.test`.
+- `server/tests/microservices-integration.test.ts` is excluded from server vitest config.
+- Excluded from root test glob: `e2e/`, `features/`, `mobile/`.
+- MongoDB required for meaningful tests (`MONGODB_URL` env var).
 
-- **📦 Install Dependencies:** `cd mobile && npm install`
-- **📱 Start Expo:** `npm start` (then press 'i' for iOS or 'a' for Android)
-- **🤖 Android:** `npm run android`
-- **🍎 iOS:** `npm run ios`
-- **🌐 Web:** `npm run web`
-- **⚙️ Type Check:** `npm run type-check`
-- **📖 Status:** See `MOBILE_MIGRATION_STATUS.md` for completion details
+## Monorepo layout
 
-## 📂 Project Structure
+Single `package.json` (no monorepo tool). Key directories:
+- `client/` — Vite + React 18 (`root: client/`, entry: `client/src/main.tsx`)
+- `server/` — Express (entry: `server/index.ts`, routes: `server/routes.ts`)
+- `shared/` — Zod schemas + Mongoose models, imported via `@shared/*`
+- `mobile/` — Expo Router (`cd mobile && npm start`)
+- `features/ai-classroom/` — Study Arena + IniClaw (separate Docker services)
+- `services/iniclaw/` — IniClaw agent gateway (Docker compose profile)
 
-- `client/`: 🎨 React + Vite + Tailwind frontend (web)
-  - `src/pages/`: Route-level page components
-  - `src/components/`: Reusable UI components (shadcn/ui)
-  - `src/contexts/`: React context providers (auth, theme, chat)
-  - `src/hooks/`: Custom React hooks
-  - `src/lib/`: API client, Firebase, utilities
-- `mobile/`: 📱 React Native + Expo mobile app (iOS/Android) - **✅ COMPLETE (100%)**
-  - `app/`: Expo Router pages (auth, tabs, modals)
-  - `components/`: Reusable mobile components
-  - `lib/`: API client, Firebase, offline storage, notifications
-  - `hooks/`: Custom hooks (network status, etc.)
-  - Features: Auth, AI Tutor, Tasks, Messages, Tests, Analytics, OCR, Push Notifications, Offline Support
-- `server/`: 🖥️ Express backend with Firebase, Cassandra, and MongoDB
-  - `routes/`: API route handlers
-  - `lib/`: Firebase Admin, OpenAI, mailer, upload
-  - `message/`: MessagePal WebSocket + Cassandra layer
-  - `services/`: Business logic services
-- `shared/`: 🧩 Shared schemas and types (Zod + Mongoose)
-  - `schema.ts`: Main Zod schemas
-  - `mongo-schema.ts`: Mongoose models
-  - `cassandra-schema.ts`: Cassandra schemas
-- `.agent/`: 🛠️ Modular agent-specific context and workflows
-  - `core/`: 🧠 Core cognition, identity, principles, and workflows
-  - `hooks/`: 🪝 Deterministic lifecycle automation (e.g., PreCommit, SessionStart)
-  - `agents/`: 🤖 Specialized subagents (e.g., frontend-engineer, security-auditor)
-  - `skills/`: ⚡ Auto-loadable capabilities (e.g., react-system, database-design)
-  - `commands/`: ⌨️ Slash-style reusable commands (e.g., ship, refactor, generate-tests)
-  - `rules/`: ⚖️ Hard constraints and scoped coding policies
-  - `memory/`: 💾 Long-term contextual storage (decisions, architecture, roadmap)
-  - `plugins/`: 🔌 Packaged external integrations
-  - `templates/`: 📝 Reusable scaffolds for PRDs, RFCs, etc.
-  - `datasets/`: 📊 Structured local knowledge
-  - `evals/`: 🧪 Agent evaluation framework and benchmarks
-  - `output-styles/`: 🎨 Response formatting modes
-  - `orchestration/`: 🎼 Multi-agent coordination (planner, swarm)
-  - `telemetry/`: 📈 Runtime logging and analytics
-- `docs/`: 📚 Documentation
-  - `DATABASE.md`: Database schema and best practices
-  - `LOCAL_SETUP.md`: Local development guide
-  - `CONTRIBUTING.md`: Contribution guidelines
-- `k8s/`: ☸️ Kubernetes manifests
-- `terraform/`: 🏗️ Infrastructure as Code
-- `scripts/`: 🔧 Utility scripts (seed data, testing)
+## Path aliases
 
-## 🛠️ Workflow: Spec-First Development
+| Alias | Resolves to | Configured in |
+|-------|-------------|---------------|
+| `@/*` | `client/src/*` | tsconfig, vite, vitest |
+| `@shared/*` | `shared/*` | tsconfig, vite, vitest |
+| `@assets/*` | `attached_assets/*` | vite only |
 
-We follow a structured **Spec -> Design -> Implementation** workflow. 🔄
-For any non-trivial feature or bugfix, use the `planner` orchestration agent:
+## Architecture
 
-1. **🏁 Initialize:** Create a new feature directory in `.agent/memory/roadmap/{feature-name}/`.
-2. **📝 Draft:** Define requirements (`requirements.md`) and technical design (`design.md`) using `templates/prd.md`.
-3. **📅 Plan:** Break down into granular tasks (`tasks.md`).
-4. **🚀 Execute:** Implement tasks one by one, updating status as you go.
+- **Auth**: Firebase Client (browser) → exchange for server JWT (cookie). Dual fallback: JWT verify → session lookup.
+- **DB**: MongoDB (mongoose, primary). Cassandra (MessagePal only, optional — falls back to MongoDB).
+- **AI**: Google Gemini (`server/lib/gemini.ts`) primary; OpenAI GPT-4o (`server/lib/openai.ts`) optional fallback.
+- **Real-time**: Two WebSocket servers (chat + MessagePal) attached to HTTP server after `registerRoutes()`.
+- **Routing**: `wouter` (not react-router). Pages in `client/src/pages/`.
+- **Validation**: Zod schemas in `shared/schema.ts`. Mongoose models in `shared/mongo-schema.ts`.
+- **Rate limiting**: `/api/ai` 20/min, `/api/auth` 10/min, `/api/upload` 10/15min, `/api/ocr` 5/min.
 
-Refer to `.agent/orchestration/planner.md` for the full instruction set. 📜
+## Repo conventions
 
-## ⚖️ Coding Conventions
+- Commit format: `<type>: <subject>` — types: `feat|fix|docs|style|refactor|test|chore` (see `.gitmessage`).
+- ESLint uses `unused-imports` plugin (not the built-in TS rule). Use `npm run lint:fix` for auto-fix.
+- Server uses singleton `storage` object (`server/storage.ts`). Mount new routes in `server/routes.ts` `registerRoutes()`.
+- Use `@shared/schema` Zod schemas for API input validation; `@shared/mongo-schema` for DB operations.
 
-- **🎨 Frontend (Web):** React 18 (TypeScript), Tailwind CSS, Lucide icons, Shadcn UI components, Framer Motion
-- **📱 Frontend (Mobile):** React Native 0.81 (TypeScript), NativeWind, Expo Router, React Native Paper, Expo SDK 54
-- **🖥️ Backend:** Express (TypeScript), Zod for validation, ESR (Error-Success-Response) patterns
-- **🧪 Testing:** Unit tests with Vitest, property-based tests with fast-check
-- **🎨 Code Style:** ESLint + Prettier configured, run `npm run lint` and `npm run format`
-- **💾 Persistence:**
-  - 🔥 Firebase Auth for authentication (web + mobile)
-  - ⚡ Cassandra for message storage (MessagePal)
-  - 🍃 MongoDB for structured application data
-  - 📱 AsyncStorage for mobile offline caching
-- **🔄 Real-time:** WebSockets (ws) for MessagePal chat
-- **🤖 AI Integration:** OpenAI GPT-4o for AI Tutor, test generation, grading
-- **📸 OCR:** Tesseract.js (web), Expo Camera + backend OCR (mobile)
+## Deployment
 
-## 🔐 Security & Secrets
+- **Production**: GCP Cloud Run via Cloud Build (`cloudbuild.yaml`). Secrets from Secret Manager.
+- **Docker**: Multi-stage (`deps → development → build → production`). See `docker-compose.yml`.
+- **Vercel config** (`vercel.json`) exists but actual deployment is Cloud Run. Firebase Hosting config also present.
 
-- **🚫 NEVER** commit or log secrets, API keys, or `.env` files.
-- **🛡️ Protect** `.git`, `.agent`, and other sensitive system folders.
+## Gotchas
 
----
-
-_✨ This file is machine-readable and designed to be the primary entry point for AI context. ✨_
+- `npm run dev` is a single process (`tsx server/index.ts`), not separate frontend/backend servers.
+- Server sets global DNS to `8.8.8.8` and honors `DNS_IPV4_FIRST` env (IPv6 workaround).
+- `SESSION_SECRET` must be set in production — server throws on startup if missing/weak.
+- `.env.test` is gitignored. CI test env vars fall back to defaults in `vitest.config.ts`.
+- `package.json` has `overrides` for `sucrase`, `@tootallnate/once`, `picomatch`.
+- Prettier sorts Tailwind classes via `prettier-plugin-tailwindcss`.

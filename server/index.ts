@@ -72,7 +72,7 @@ app.use(
 );
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
-const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5001")
+const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5001,http://127.0.0.1:5001")
   .split(",")
   .map((o) => o.trim());
 
@@ -80,7 +80,7 @@ app.use(
   cors({
     origin: (origin, cb) => {
       // Allow requests with no origin (same-origin requests, static files, etc.)
-      if (!origin) return cb(null, true);
+      if (!origin || app.get("env") === "development") return cb(null, true);
 
       // Check against configured allowed origins
       if (allowedOrigins.includes(origin)) return cb(null, true);
