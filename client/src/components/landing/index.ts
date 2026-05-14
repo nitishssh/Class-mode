@@ -1,4 +1,5 @@
 export { Hero } from "./hero";
 export { NotebookFeature, OnboardingFeatures } from "./features";
-export { Turbulence, Journey, DualAudience, HowItWorks, ProblemSection } from "./testimonials";
+export { ProblemSection, DualAudience, HowItWorks } from "./audience";
+export { Turbulence, Journey } from "./testimonials";
 export { DemoWidget, Pricing, ContactForm } from "./cta";

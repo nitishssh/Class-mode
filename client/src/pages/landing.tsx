@@ -159,10 +159,10 @@ const Footer = () => (
               Contact
             </a>
             <a
-              href="mailto:hello@ClassMind.com"
+              href="mailto:hello@classmind.in"
               className="block transition-colors hover:text-foreground"
             >
-              hello@ClassMind.com
+              hello@classmind.in
             </a>
           </div>
         </div>

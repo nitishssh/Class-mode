@@ -51,7 +51,7 @@ export default function StudyArenaPage() {
         {/* Workspace Header */}
         <div className="flex h-14 shrink-0 items-center justify-between border-b border-white/5 bg-[#111111] px-4">
           <div className="flex cursor-pointer items-center gap-2 text-[15px] font-semibold tracking-tight text-zinc-100 transition-colors hover:text-white">
-            <div className="flex h-5 w-5 items-center justify-center rounded bg-indigo-500/20 text-xs font-bold text-indigo-400">
+            <div className="flex h-5 w-5 items-center justify-center rounded bg-primary/20 text-xs font-bold text-primary">
               M
             </div>
             ClassMind <ChevronDown className="h-4 w-4 text-zinc-500" />

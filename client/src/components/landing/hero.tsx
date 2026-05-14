@@ -1,12 +1,12 @@
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { ArrowRight, Users, School, Star, Sparkles } from "lucide-react";
+import { ArrowRight, Users, School, Star } from "lucide-react";
 
-const stats = [
-  { value: "200+", label: "Schools onboarded" },
-  { value: "12k+", label: "Active students" },
-  { value: "94%", label: "Avg grade improvement" },
+const milestones = [
+  { value: "Google", label: "for Startups — Immersion 2026" },
+  { value: "IIT Madras", label: "Built & incubated" },
+  { value: "Early Access", label: "Now open for schools" },
 ];
 
 export const Hero = () => {
@@ -18,8 +18,8 @@ export const Hero = () => {
       <div className="absolute inset-0 bg-gradient-to-br from-background via-accent-soft/20 to-background" />
 
       {/* Decorative blobs */}
-      <div className="absolute -right-48 -top-48 h-[600px] w-[600px] rounded-full bg-primary/6 blur-3xl" />
-      <div className="absolute -bottom-48 -left-48 h-[600px] w-[600px] rounded-full bg-energy/8 blur-3xl" />
+      <div className="absolute -right-48 -top-48 h-[600px] w-[600px] rounded-full bg-primary/5 blur-3xl" />
+      <div className="absolute -bottom-48 -left-48 h-[600px] w-[600px] rounded-full bg-energy/10 blur-3xl" />
 
       <div className="container relative z-10 py-24">
         <motion.div
@@ -36,7 +36,7 @@ export const Hero = () => {
             className="mb-8 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-accent-soft px-5 py-2 text-sm font-semibold text-primary"
           >
             <Star className="h-3.5 w-3.5 fill-current" />
-            Trusted by 200+ classrooms worldwide
+            Selected — Google for Startups Immersion 2026
           </motion.div>
 
           {/* Headline */}
@@ -67,32 +67,32 @@ export const Hero = () => {
               size="lg"
               variant="outline"
               className="h-14 gap-2 rounded-full border-2 border-border px-8 text-base font-semibold transition-all hover:border-primary/30 hover:bg-accent-soft"
-              onClick={() => setLocation("/login")}
+              onClick={() => setLocation("/login?intent=school")}
             >
               <School className="h-5 w-5" />
               Set Up My School
             </Button>
           </div>
 
-          {/* Stats */}
+          {/* Milestones */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.45 }}
             className="grid grid-cols-3 gap-8 border-t border-border pt-12"
           >
-            {stats.map((stat, i) => (
+            {milestones.map((item, i) => (
               <motion.div
-                key={stat.label}
+                key={item.label}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 + i * 0.1 }}
                 className="text-center"
               >
-                <p className="text-3xl font-extrabold tracking-tight text-foreground md:text-4xl">
-                  {stat.value}
+                <p className="text-lg font-extrabold tracking-tight text-foreground md:text-xl">
+                  {item.value}
                 </p>
-                <p className="mt-1 text-sm text-muted-foreground">{stat.label}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{item.label}</p>
               </motion.div>
             ))}
           </motion.div>
