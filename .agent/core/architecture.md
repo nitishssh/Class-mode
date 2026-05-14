@@ -63,7 +63,6 @@ User (Browser / Mobile App)
 
 ### Microservices (`services/`)
 
-- **OpenMAIC** — Next.js AI classroom service (port 3000)
 - **IniClaw** — Agent runtime gateway (port 4000)
 
 ## Database Strategy
