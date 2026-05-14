@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600&family=DM+Sans:wght@300;400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=DM+Sans:wght@300;400;500;600&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -20,18 +20,18 @@
     --ink-400: #9a9a9a;
 
     /* ── Primary Accent ── */
-    --accent: #cc785c;
-    --accent-hover: #b8654a;
-    --accent-soft: #f2e8e3;
+    --accent: #7c3aed;
+    --accent-hover: #6d28d9;
+    --accent-soft: #ede9fe;
 
-    /* ── NEW: Energy Color ── */
-    --energy: #f0a500;
-    --energy-soft: #fef3d0;
-    --energy-dark: #c87e00;
+    /* ── Energy Color ── */
+    --energy: #f59e0b;
+    --energy-soft: #fef3c7;
+    --energy-dark: #d97706;
 
-    /* ── NEW: Progress Color ── */
-    --progress: #4a7c59;
-    --progress-soft: #ebf3ee;
+    /* ── Progress Color ── */
+    --progress: #10b981;
+    --progress-soft: #d1fae5;
 
     /* ── Shadcn Defaults (Mapped to Palette) ── */
     --background: 38 29% 94%;
@@ -40,19 +40,19 @@
     --card-foreground: 0 0% 10%;
     --popover: 38 67% 98%;
     --popover-foreground: 0 0% 10%;
-    --primary: 15 51% 58%;
-    --primary-foreground: 38 29% 94%;
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 48 20% 91%;
     --secondary-foreground: 0 0% 10%;
     --muted: 40 16% 89%;
     --muted-foreground: 0 0% 36%;
-    --accent-base: 20 37% 92%;
-    --accent-foreground: 15 51% 58%;
+    --accent-base: 262 30% 94%;
+    --accent-foreground: 262 83% 58%;
     --destructive: 2 42% 52%;
     --destructive-foreground: 0 0% 100%;
     --border: 39 16% 85%;
     --input: 38 12% 76%;
-    --ring: 15 51% 58% / 0.3;
+    --ring: 262 83% 58% / 0.3;
     --radius: 0.75rem;
 
     --illustration-bg: 38 29% 94%;
@@ -65,16 +65,16 @@
     /* ─── Sidebar (Light) ─── */
     --sidebar-background: 48 20% 91%;
     --sidebar-foreground: 0 0% 10%;
-    --sidebar-primary: 251 83% 75%;
+    --sidebar-primary: 262 83% 58%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 40 16% 89%;
-    --sidebar-accent-foreground: 0 0% 10%;
+    --sidebar-accent: 262 30% 93%;
+    --sidebar-accent-foreground: 262 60% 35%;
     --sidebar-border: 39 16% 85%;
-    --sidebar-ring: 15 51% 58% / 0.3;
+    --sidebar-ring: 262 83% 58% / 0.3;
 
     /* ─── Chart Colors (Vibrant Educational) ─── */
-    --chart-1: 15 51% 58%;
-    --chart-2: 251 83% 75%;
+    --chart-1: 262 83% 58%;
+    --chart-2: 38 95% 51%;
     --chart-3: 215 38% 47%;
     --chart-4: 39 54% 41%;
     --chart-5: 137 25% 39%;
@@ -87,10 +87,10 @@
     --bubble-other-foreground: 0 0% 10%;
 
     /* ─── Gradients (Dynamic) ─── */
-    --grad-streak: linear-gradient(135deg, #fef3d0 0%, #fdeab0 60%, #fbdc80 100%);
-    --grad-xp: linear-gradient(135deg, #f2e8e3 0%, #edd5c8 100%);
-    --grad-badge: linear-gradient(145deg, #fffbf0 0%, #fef3d0 50%, #f2e8e3 100%);
-    --grad-challenge: linear-gradient(135deg, #ebf3ee 0%, #d6eae0 100%);
+    --grad-streak: linear-gradient(135deg, #fef3c7 0%, #fde68a 60%, #fcd34d 100%);
+    --grad-xp: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+    --grad-badge: linear-gradient(145deg, #faf5ff 0%, #ede9fe 50%, #ddd6fe 100%);
+    --grad-challenge: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
     --grad-math: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
     --grad-physics: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
     --grad-chemistry: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%);
@@ -109,20 +109,20 @@
     --card-foreground: 38 29% 94%;
     --popover: 24 10% 15%;
     --popover-foreground: 38 29% 94%;
-    --primary: 15 51% 58%;
-    --primary-foreground: 38 29% 94%;
+    --primary: 262 83% 65%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 24 10% 20%;
     --secondary-foreground: 38 29% 94%;
     --muted: 24 10% 25%;
     --muted-foreground: 0 0% 60%;
-    --accent-base: 24 10% 25%;
-    --accent-foreground: 38 29% 94%;
+    --accent-base: 262 30% 22%;
+    --accent-foreground: 262 83% 75%;
     --destructive: 2 42% 52%;
     --destructive-foreground: 38 29% 94%;
     --border: 24 10% 22%;
     /* #3C3836ish */
     --input: 24 10% 22%;
-    --ring: 15 51% 58% / 0.3;
+    --ring: 262 83% 65% / 0.3;
 
     /* Dark Mode specific variables */
     --cream-50: #292524;
@@ -135,16 +135,16 @@
     --ink-600: #e0dbd3;
     --ink-400: #c8c3bb;
 
-    --accent: #cc785c;
-    --accent-hover: #b8654a;
-    --accent-soft: #4a4543;
+    --accent: #7c3aed;
+    --accent-hover: #6d28d9;
+    --accent-soft: #3b2f6e;
 
-    --energy: #f0a500;
-    --energy-soft: #4a4543;
-    --energy-dark: #c87e00;
+    --energy: #f59e0b;
+    --energy-soft: #4a3f1a;
+    --energy-dark: #d97706;
 
-    --progress: #4a7c59;
-    --progress-soft: #4a4543;
+    --progress: #10b981;
+    --progress-soft: #1a3f32;
 
     --illustration-bg: 24 10% 10%;
     --ticker-bg: 24 10% 15%;
@@ -155,15 +155,15 @@
 
     --sidebar-background: 24 10% 15%;
     --sidebar-foreground: 38 29% 94%;
-    --sidebar-primary: 251 83% 75%;
+    --sidebar-primary: 262 83% 65%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 24 10% 20%;
-    --sidebar-accent-foreground: 38 29% 94%;
+    --sidebar-accent: 262 30% 22%;
+    --sidebar-accent-foreground: 262 83% 80%;
     --sidebar-border: 24 10% 22%;
-    --sidebar-ring: 15 51% 58% / 0.3;
+    --sidebar-ring: 262 83% 65% / 0.3;
 
-    --chart-1: 15 51% 58%;
-    --chart-2: 251 83% 75%;
+    --chart-1: 262 83% 65%;
+    --chart-2: 38 95% 51%;
     --chart-3: 215 38% 47%;
     --chart-4: 39 54% 41%;
     --chart-5: 137 25% 39%;
@@ -174,10 +174,10 @@
     --bubble-other-foreground: 38 29% 94%;
 
     /* ─── Gradients (Dynamic Dark) ─── */
-    --grad-streak: linear-gradient(135deg, #4a3a10 0%, #3b2a08 60%, #2a1d05 100%);
-    --grad-xp: linear-gradient(135deg, #3a2a22 0%, #2a1c15 100%);
-    --grad-badge: linear-gradient(145deg, #2a251e 0%, #3a3018 50%, #3a2a22 100%);
-    --grad-challenge: linear-gradient(135deg, #1c2a22 0%, #15221b 100%);
+    --grad-streak: linear-gradient(135deg, #3a2e10 0%, #2a2008 60%, #1a1405 100%);
+    --grad-xp: linear-gradient(135deg, #2e2050 0%, #1e1438 100%);
+    --grad-badge: linear-gradient(145deg, #1e1830 0%, #2e2050 50%, #1e1438 100%);
+    --grad-challenge: linear-gradient(135deg, #0f2a1e 0%, #0a1e15 100%);
     --grad-math: linear-gradient(135deg, #1a1c30 0%, #101222 100%);
     --grad-physics: linear-gradient(135deg, #1a2235 0%, #121828 100%);
     --grad-chemistry: linear-gradient(135deg, #15302e 0%, #0d2220 100%);

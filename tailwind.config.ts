@@ -30,8 +30,8 @@ export default {
         accent: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
-          hover: "#B8654A",
-          soft: "#F2E8E3",
+          hover: "#6D28D9",
+          soft: "#EDE9FE",
         },
         ink: {
           900: "#1A1A1A",
@@ -41,13 +41,13 @@ export default {
           200: "#D1D1D1",
         },
         energy: {
-          DEFAULT: "#F0A500",
-          soft: "#FEF3D0",
-          dark: "#C87E00",
+          DEFAULT: "#F59E0B",
+          soft: "#FEF3C7",
+          dark: "#D97706",
         },
         progress: {
-          DEFAULT: "#4A7C59",
-          soft: "#EBF3EE",
+          DEFAULT: "#10B981",
+          soft: "#D1FAE5",
         },
         primary: {
           DEFAULT: "hsl(var(--primary))",
@@ -89,8 +89,8 @@ export default {
         },
       },
       fontFamily: {
-        display: ["Crimson Pro", "Georgia", "serif"],
-        heading: ["DM Sans", "system-ui", "sans-serif"],
+        display: ["Plus Jakarta Sans", "system-ui", "sans-serif"],
+        heading: ["Plus Jakarta Sans", "system-ui", "sans-serif"],
         body: ["DM Sans", "system-ui", "sans-serif"],
         sans: ["DM Sans", "system-ui", "sans-serif"],
       },
@@ -106,9 +106,9 @@ export default {
         soft: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
         card: "0 4px 12px rgba(0,0,0,0.06)",
         modal: "0 20px 40px rgba(0,0,0,0.12)",
-        streak: "0 4px 16px rgba(240, 165, 0, 0.12)",
-        xp: "0 4px 16px rgba(204, 120, 92, 0.10)",
-        challenge: "0 4px 16px rgba(74, 124, 89, 0.10)",
+        streak: "0 4px 16px rgba(245, 158, 11, 0.14)",
+        xp: "0 4px 16px rgba(124, 58, 237, 0.12)",
+        challenge: "0 4px 16px rgba(16, 185, 129, 0.12)",
       },
       backgroundImage: {
         "gradient-streak": "var(--grad-streak)",

@@ -108,7 +108,7 @@ export default function StudentDashboard() {
       name: "Knowledge Seeker",
       emoji: "📚",
       description:
-        "You've successfully refactored the EduAI design guide! Your dedication to student psychology is unmatched.",
+        "You've successfully refactored the ClassMode design guide! Your dedication to student psychology is unmatched.",
     });
     setShowBadge(true);
   };

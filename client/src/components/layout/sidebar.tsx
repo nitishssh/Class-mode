@@ -260,14 +260,16 @@ export function Sidebar({ className }: SidebarProps) {
         <div className="flex items-center px-6 py-6">
           {!isCollapsed ? (
             <div className="flex flex-col">
-              <h1 className="font-display text-2xl leading-tight text-foreground">EduAI</h1>
+              <h1 className="font-display text-2xl font-bold leading-tight text-foreground">
+                Class<span className="text-primary">Mode</span>
+              </h1>
               <p className="mt-0.5 font-body text-[10px] uppercase tracking-widest text-muted-foreground">
-                Learning Platform
+                School Platform
               </p>
             </div>
           ) : (
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent-soft font-display text-xl text-accent">
-              E
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent-soft font-display text-sm font-bold text-primary">
+              CM
             </div>
           )}
         </div>
@@ -275,12 +277,12 @@ export function Sidebar({ className }: SidebarProps) {
         {/* User info */}
         <div className={cn("mb-6 mt-2 px-3", isCollapsed && "flex justify-center")}>
           {isCollapsed ? (
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-soft text-sm font-semibold text-accent">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-soft text-sm font-semibold text-primary">
               {user?.displayName ? getInitials(user.displayName) : "U"}
             </div>
           ) : (
             <div className="group flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-muted">
-              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-accent-soft text-sm font-semibold text-accent">
+              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-accent-soft text-sm font-semibold text-primary">
                 {user?.displayName ? getInitials(user.displayName) : "U"}
               </div>
               <div className="overflow-hidden">
@@ -323,7 +325,7 @@ export function Sidebar({ className }: SidebarProps) {
                     {!isCollapsed && (
                       <>
                         <span className="flex-1 truncate text-muted-foreground">{item.title}</span>
-                        <span className="ml-2 flex-shrink-0 rounded-full border border-accent/10 bg-accent-soft px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-accent">
+                        <span className="ml-2 flex-shrink-0 rounded-full border border-primary/10 bg-accent-soft px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-primary">
                           Soon
                         </span>
                       </>
@@ -340,20 +342,20 @@ export function Sidebar({ className }: SidebarProps) {
                   className={cn(
                     "group relative flex items-center rounded-xl py-2.5 text-sm font-medium transition-all duration-150",
                     isActive
-                      ? "bg-accent-soft font-semibold text-accent"
+                      ? "bg-accent-soft font-semibold text-primary"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground",
                     isCollapsed ? "justify-center px-2" : "px-3"
                   )}
                   title={isCollapsed ? item.title : undefined}
                 >
                   {isActive && !isCollapsed && (
-                    <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-accent" />
+                    <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-primary" />
                   )}
                   <span
                     className={cn(
                       "flex h-5 w-5 flex-shrink-0 items-center justify-center transition-colors",
                       isActive
-                        ? "text-accent"
+                        ? "text-primary"
                         : "text-muted-foreground group-hover:text-foreground",
                       !isCollapsed && "mr-3"
                     )}

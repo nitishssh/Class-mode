@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-const APP_NAME = "EduAI";
+const APP_NAME = "ClassMode";
 
 export function usePageTitle(title: string) {
   useEffect(() => {

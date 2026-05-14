@@ -156,7 +156,7 @@ export const NotebookFeature = () => {
             From Concept to Launch
           </h2>
           <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-            EduAI guides students through every stage of learning —{" "}
+            ClassMode guides students through every stage of learning —{" "}
             <br className="hidden md:block" />
             from understanding concepts to mastering exams.
           </p>

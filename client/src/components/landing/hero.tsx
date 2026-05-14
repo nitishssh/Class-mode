@@ -24,26 +24,26 @@ export const Hero = () => {
           transition={{ duration: 0.7 }}
           className="space-y-6"
         >
-          <span className="sketch-border sketch-shadow inline-block bg-card px-4 py-1.5 text-sm font-medium text-foreground">
-            ✨ Ready for a smooth learning journey?
+          <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-accent-soft px-4 py-1.5 text-sm font-semibold text-primary">
+            🎓 Meet ClassMode — your school's AI co-pilot
           </span>
           <h1 className="text-5xl font-extrabold leading-[1.08] tracking-tight md:text-6xl lg:text-7xl">
-            Stop studying <br />
-            <span className="italic text-primary">by accident.</span>
+            Every student <br />
+            <span className="text-primary">deserves to thrive.</span>
             <br />
-            Start learning by design.
+            ClassMode makes it happen.
           </h1>
           <p className="max-w-lg text-lg leading-relaxed text-muted-foreground md:text-xl">
-            The first AI co-pilot that maps your curriculum, clears the noise, and navigates you to
-            mastery—day by day.
+            AI tutoring, live classes, smart grading, and real-time insights — all in one warm,
+            friendly platform every school can love.
           </p>
           <div className="flex flex-wrap gap-4 pt-2">
             <Button
               size="lg"
-              className="sketch-border sketch-shadow-yellow hover-tilt rounded-full bg-primary px-8 font-heading text-base text-primary-foreground hover:bg-primary/90"
+              className="rounded-full bg-primary px-8 font-heading text-base text-primary-foreground shadow-xp hover:bg-primary/90"
               onClick={() => setLocation("/login")}
             >
-              Start My Learning Plan
+              Get Started Free
             </Button>
             <Button
               size="lg"

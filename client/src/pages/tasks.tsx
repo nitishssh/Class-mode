@@ -189,7 +189,7 @@ export default function TasksPage() {
           </div>
           <div>
             <h1 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-zinc-50">
-              Master Plan <ChevronDown className="h-4 w-4 text-zinc-400" />
+              ClassMode <ChevronDown className="h-4 w-4 text-zinc-400" />
             </h1>
             <p className="text-xs font-medium tracking-wide text-zinc-400">STUDY TRACKER</p>
           </div>

@@ -126,7 +126,7 @@ export function RagChatSheet({ isOpen, onClose, subjectName, initialPrompt }: Ra
               <Sparkles className="h-5 w-5 text-accent" />
             </div>
             <div>
-              <h3 className="font-display text-sm text-foreground">EduAI Tutor • {subjectName}</h3>
+              <h3 className="font-display text-sm text-foreground">ClassMode Tutor • {subjectName}</h3>
               <div className="mt-0.5 flex items-center gap-1.5">
                 <span className="relative flex h-1.5 w-1.5">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75"></span>
