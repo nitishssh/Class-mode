@@ -1,9 +1,8 @@
 # ══════════════════════════════════════════════════════════════════
-#  docker-compose.yml — PersonalLearningPro Microservices
+#  docker-compose.yml — PersonalLearningPro
 #
 #  Unified orchestration for:
 #    - EduAI (main web app + backend)
-#    - OpenMAIC (studyArena Next.js AI classroom)
 #    - IniClaw (agent gateway runtime)
 #    - Supporting services (MongoDB, Cassandra, Redis)
 #
@@ -50,7 +49,6 @@ services:
     environment:
       NODE_ENV: development
       SERVICE_NAME: eduai-app
-      OPENMAIC_INTERNAL_URL: http://openmaic-web:3000
       INICLAW_GATEWAY_URL: http://iniclaw-gateway:4000
       MESSAGEPAL_PORT: 5002
     volumes:
@@ -83,42 +81,6 @@ services:
       - "" # default profile
       - dev
 
-  # ── OpenMAIC Web (Next.js AI Classroom) ──────────────────────────
-  openmaic-web:
-    <<: *app-base
-    build:
-      context: ./services/openmaic
-      dockerfile: Dockerfile
-      args:
-        NODE_VERSION: "20-alpine"
-    container_name: openmaic-web
-    ports:
-      - "3000:3000"
-    environment:
-      NODE_ENV: development
-      SERVICE_NAME: openmaic-web
-      NEXT_PUBLIC_FIREBASE_API_KEY: ${VITE_FIREBASE_API_KEY}
-      NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${VITE_FIREBASE_PROJECT_ID}
-      NEXT_PUBLIC_FIREBASE_APP_ID: ${VITE_FIREBASE_APP_ID}
-      FIREBASE_SERVICE_ACCOUNT_JSON: ${FIREBASE_SERVICE_ACCOUNT_JSON}
-      INICLAW_GATEWAY_URL: http://iniclaw-gateway:4000
-      EDUAI_API_URL: http://eduai-app:5001
-    volumes:
-      - ./services/openmaic:/app
-      - /app/node_modules
-      - /app/.next
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 20s
-    depends_on:
-      - iniclaw-gateway
-    profiles:
-      - "" # default profile
-      - dev
-
   # ── IniClaw Gateway (Agent Runtime) ──────────────────────────────
   iniclaw-gateway:
     <<: *app-base
@@ -137,7 +99,7 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       FIREBASE_SERVICE_ACCOUNT_JSON: ${FIREBASE_SERVICE_ACCOUNT_JSON}
       VITE_FIREBASE_PROJECT_ID: ${VITE_FIREBASE_PROJECT_ID}
-      EDUAI_WEBHOOK_URL: http://eduai-app:5001/api/webhooks/openmaic
+      EDUAI_WEBHOOK_URL: http://eduai-app:5001/api/webhooks
       BRIDGE_SECRET: ${BRIDGE_SECRET:-bridge-secret-dev}
     volumes:
       - ./services/iniclaw:/app
@@ -242,7 +204,6 @@ services:
       - ./nginx-ssl:/etc/nginx/ssl:ro
     depends_on:
       - eduai-app
-      - openmaic-web
       - iniclaw-gateway
     networks:
       - app-net
@@ -270,7 +231,6 @@ services:
     environment:
       NODE_ENV: production
       SERVICE_NAME: eduai-app
-      OPENMAIC_INTERNAL_URL: http://openmaic-web:3000
       INICLAW_GATEWAY_URL: http://iniclaw-gateway:4000
     depends_on:
       mongodb:
@@ -283,38 +243,6 @@ services:
           memory: 2g
         reservations:
           memory: 512m
-    profiles:
-      - prod
-
-  # ── OpenMAIC Production Build ────────────────────────────────────
-  openmaic-web-prod:
-    <<: *app-base
-    build:
-      context: ./services/openmaic
-      target: production
-      dockerfile: Dockerfile
-      args:
-        NODE_VERSION: "20-alpine"
-    container_name: openmaic-web-prod
-    ports:
-      - "3000:3000"
-    environment:
-      NODE_ENV: production
-      SERVICE_NAME: openmaic-web
-      NEXT_PUBLIC_FIREBASE_API_KEY: ${VITE_FIREBASE_API_KEY}
-      NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${VITE_FIREBASE_PROJECT_ID}
-      NEXT_PUBLIC_FIREBASE_APP_ID: ${VITE_FIREBASE_APP_ID}
-      FIREBASE_SERVICE_ACCOUNT_JSON: ${FIREBASE_SERVICE_ACCOUNT_JSON}
-      INICLAW_GATEWAY_URL: http://iniclaw-gateway:4000
-      EDUAI_API_URL: http://eduai-app:5001
-    depends_on:
-      - iniclaw-gateway
-    deploy:
-      resources:
-        limits:
-          memory: 1g
-        reservations:
-          memory: 256m
     profiles:
       - prod
 
@@ -337,7 +265,7 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       FIREBASE_SERVICE_ACCOUNT_JSON: ${FIREBASE_SERVICE_ACCOUNT_JSON}
       VITE_FIREBASE_PROJECT_ID: ${VITE_FIREBASE_PROJECT_ID}
-      EDUAI_WEBHOOK_URL: http://eduai-app:5001/api/webhooks/openmaic
+      EDUAI_WEBHOOK_URL: http://eduai-app:5001/api/webhooks
       BRIDGE_SECRET: ${BRIDGE_SECRET}
     depends_on:
       - eduai-app-prod
