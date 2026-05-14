@@ -81,12 +81,15 @@ export async function authenticateToken(req: Request, res: Response, next: expre
 
     if (decodedToken) {
       // Firebase token successfully verified
-      let user = await MongoUser.findOne({ firebaseUid: decodedToken.uid });
+      const firebaseUid = decodedToken.uid;
+      const email = decodedToken.email?.toLowerCase().trim();
 
-      if (!user && decodedToken.email) {
-        user = await MongoUser.findOne({ email: decodedToken.email });
+      let user = await MongoUser.findOne({ firebaseUid });
+
+      if (!user && email) {
+        user = await MongoUser.findOne({ email });
         if (user) {
-          user.firebaseUid = decodedToken.uid;
+          user.firebaseUid = firebaseUid;
           if (decodedToken.role)
             user.role = decodedToken.role as
               | "student"
@@ -102,34 +105,49 @@ export async function authenticateToken(req: Request, res: Response, next: expre
       if (!user) {
         if (req.path === "/api/auth/sync-profile") {
           req.session = req.session || ({} as express.Request["session"]);
-          req.session!.firebaseUid = decodedToken.uid;
+          req.session!.firebaseUid = firebaseUid;
           req.session!.email = decodedToken.email;
           return next();
         }
+
         // Auto-create MongoDB user from Firebase token to prevent auth limbo
-        const numericId = await getNextSequenceValue("userId");
-        user = new MongoUser({
-          id: numericId,
-          firebaseUid: decodedToken.uid,
-          email: decodedToken.email || `user_${decodedToken.uid}@firebase`,
-          username: `user_${numericId}`,
-          name: decodedToken.name || decodedToken.email?.split("@")[0] || `User_${numericId}`,
-          displayName: decodedToken.name || null,
-          role: ((decodedToken as Record<string, unknown>).role as string) || "student",
-          password: "firebase_managed",
-        });
-        await user.save();
-        logger.info(`[auth] Auto-created MongoDB user`, { uid: decodedToken.uid });
+        // Use a try-catch to handle potential race conditions during concurrent requests
+        try {
+          const numericId = await getNextSequenceValue("userId");
+          user = new MongoUser({
+            id: numericId,
+            firebaseUid,
+            email: decodedToken.email || `user_${firebaseUid}@firebase`,
+            username: `user_${numericId}`,
+            name: decodedToken.name || decodedToken.email?.split("@")[0] || `User_${numericId}`,
+            displayName: decodedToken.name || null,
+            role: ((decodedToken as Record<string, unknown>).role as string) || "student",
+            password: "firebase_managed",
+          });
+          await user.save();
+          logger.info(`[auth] Auto-created MongoDB user`, { uid: firebaseUid });
+        } catch (saveErr: any) {
+          // If a duplicate key error occurs, it means the user was likely created by another request
+          if (saveErr.code === 11000) {
+            user = await MongoUser.findOne({ $or: [{ firebaseUid }, { email }] });
+            if (!user) {
+              throw saveErr; // Still not found? Throw the original error
+            }
+          } else {
+            throw saveErr;
+          }
+        }
       }
 
       // Sync role to Firebase Custom Claims if they don't match
       if (user && (!decodedToken.role || decodedToken.role !== user.role)) {
         try {
-          await setCustomUserClaims(decodedToken.uid, { role: user.role });
-          logger.info(`[auth] Synced role to Firebase`, { uid: decodedToken.uid, role: user.role });
+          // Only attempt if not in "PARTIAL" mode or if we really want to try
+          await setCustomUserClaims(firebaseUid, { role: user.role });
+          logger.info(`[auth] Synced role to Firebase`, { uid: firebaseUid, role: user.role });
         } catch (claimsErr) {
           logger.warn(`[auth] Failed to sync role to Firebase`, {
-            uid: decodedToken.uid,
+            uid: firebaseUid,
             role: user.role,
             error: claimsErr instanceof Error ? claimsErr.message : String(claimsErr),
           });
@@ -139,7 +157,7 @@ export async function authenticateToken(req: Request, res: Response, next: expre
       req.session = req.session || ({} as express.Request["session"]);
       req.session!.userId = user.id;
       req.session!.role = user.role;
-      req.session!.firebaseUid = decodedToken.uid;
+      req.session!.firebaseUid = firebaseUid;
       (req as any).user = { id: user.id, role: user.role, email: user.email };
 
       return next();
@@ -1597,87 +1615,7 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
     }
   );
 
-  // ─── Phase 1: Firebase Auth Bridge ──────────────────────────────────────────
-  //
-  // POST /api/auth/firebase
-  // Client sends { idToken } after Firebase login. We verify with firebase-admin,
-  // then find-or-create a MongoDB user and establish an Express session.
 
-  app.post("/api/auth/firebase", async (req: Request, res: Response) => {
-    try {
-      const { idToken, role } = req.body;
-      if (!idToken || typeof idToken !== "string") {
-        return res.status(400).json({ message: "idToken is required" });
-      }
-
-      const decoded = await verifyFirebaseToken(idToken);
-      if (!decoded) {
-        return res.status(401).json({ message: "Invalid or expired Firebase ID token" });
-      }
-
-      const { uid, email, name, picture } = decoded;
-      if (!email) {
-        return res.status(400).json({ message: "Firebase account must have an email address" });
-      }
-
-      // Find by firebaseUid or email
-      type MongoUserType = {
-        id: number;
-        role: string;
-        avatar: string | null;
-        displayName: string | null;
-        name: string;
-        firebaseUid?: string;
-        save: () => Promise<void>;
-      };
-      type MongoUserModelType = {
-        findOne: (query: Record<string, unknown>) => Promise<MongoUserType | null>;
-        new (data: Record<string, unknown>): MongoUserType;
-      };
-      let mongoUser: MongoUserType | null = await (
-        MongoUser as unknown as MongoUserModelType
-      ).findOne({ firebaseUid: uid });
-      if (!mongoUser)
-        mongoUser = await (MongoUser as unknown as MongoUserModelType).findOne({ email });
-
-      if (!mongoUser) {
-        const id = await getNextSequenceValue("user_id");
-        mongoUser = new (MongoUser as unknown as MongoUserModelType)({
-          id,
-          username: email.split("@")[0] + "_" + id,
-          password: "firebase-" + uid,
-          name: name || email.split("@")[0],
-          email,
-          role: role || "student",
-          avatar: picture || null,
-          firebaseUid: uid,
-          displayName: name || null,
-          status: role === "teacher" ? "pending" : "active",
-        });
-        await mongoUser.save();
-        logger.info(`[auth/firebase] Created new user`, { id, role: mongoUser.role });
-      } else if (!mongoUser.firebaseUid) {
-        mongoUser.firebaseUid = uid;
-        if (picture && !mongoUser.avatar) mongoUser.avatar = picture;
-        await mongoUser.save();
-      }
-
-      if (req.session) {
-        req.session.userId = mongoUser.id;
-        req.session.role = mongoUser.role;
-      }
-
-      return res.status(200).json({
-        userId: mongoUser.id,
-        displayName: mongoUser.displayName || mongoUser.name,
-        role: mongoUser.role,
-        avatar: mongoUser.avatar,
-      });
-    } catch (err) {
-      console.error("[auth/firebase] Error:", err);
-      return res.status(500).json({ message: "Firebase auth bridge failed" });
-    }
-  });
 
   // ─── Phase 2: Chat Conversations API ────────────────────────────────────────
   //

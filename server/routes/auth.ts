@@ -107,6 +107,20 @@ router.post("/sync-profile", authenticateToken, async (req: Request, res: Respon
   }
 });
 
+// POST /logout — clears the httpOnly JWT cookie and destroys the session
+router.post("/logout", (req: Request, res: Response) => {
+  res.clearCookie("access_token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+  });
+  if (req.session) {
+    req.session.destroy(() => {});
+  }
+  return res.status(200).json({ message: "Logged out successfully" });
+});
+
 // Email/Password Login (for seeded test accounts — bypasses Firebase)
 router.post("/login", async (req: Request, res: Response) => {
   try {
@@ -197,12 +211,16 @@ router.get("/me", async (req: Request, res: Response) => {
 // POST /register - Backend-only registration (when Firebase email/password is disabled)
 router.post("/register", async (req: Request, res: Response) => {
   try {
-    const { name, email, password, role, class: className } = req.body;
+    const { name, email, password, role, class: className, school_code } = req.body;
     if (!name || !email || !password) {
       return res.status(400).json({ message: "Name, email, and password are required" });
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ message: "Invalid email address" });
+    }
+    // FIX BUG-16: Server-side role-specific validation
+    if (["teacher", "principal", "school_admin"].includes(role) && !school_code) {
+      return res.status(400).json({ message: "school_code is required for teachers and school staff" });
     }
 
     const normalizedEmail = email.toLowerCase().trim();
@@ -263,9 +281,14 @@ router.post("/register", async (req: Request, res: Response) => {
 // POST /firebase
 // Client sends { idToken } after Firebase login. We verify with firebase-admin,
 // then find-or-create a MongoDB user and establish an Express session.
+// FIX BUG-15: role from body is whitelisted — only safe self-registerable roles are accepted.
+const SELF_REGISTERABLE_ROLES = ["student", "teacher", "principal", "school_admin", "parent"];
+
 router.post("/firebase", async (req: Request, res: Response) => {
   try {
-    const { idToken, role } = req.body;
+    const { idToken, role: rawRole } = req.body;
+    // Restrict self-assignable roles to prevent privilege escalation
+    const safeRole = SELF_REGISTERABLE_ROLES.includes(rawRole) ? rawRole : "student";
     if (!idToken || typeof idToken !== "string") {
       return res.status(400).json({ message: "idToken is required" });
     }
@@ -301,18 +324,18 @@ router.post("/firebase", async (req: Request, res: Response) => {
       mongoUser = await (MongoUser as unknown as MongoUserModelType).findOne({ email });
 
     if (!mongoUser) {
-      const id = await getNextSequenceValue("user_id");
+      const id = await getNextSequenceValue("userId");
       mongoUser = new (MongoUser as unknown as MongoUserModelType)({
         id,
         username: email.split("@")[0] + "_" + id,
         password: "firebase-" + uid,
         name: name || email.split("@")[0],
         email,
-        role: role || "student",
+        role: safeRole || "student",  // FIX BUG-15: use whitelisted role
         avatar: picture || null,
         firebaseUid: uid,
         displayName: name || null,
-        status: role === "teacher" ? "pending" : "active",
+        status: safeRole === "teacher" ? "pending" : "active",
       });
       await mongoUser.save();
       logger.info(`[auth/firebase] Created new user`, { id, role: mongoUser.role });
@@ -322,9 +345,12 @@ router.post("/firebase", async (req: Request, res: Response) => {
       await mongoUser.save();
     }
 
+    // FIX BUG-07: Set firebaseUid and email on session so /sync-profile can read them
     if (req.session) {
       req.session.userId = mongoUser.id;
       req.session.role = mongoUser.role;
+      req.session.firebaseUid = uid;
+      req.session.email = email;
     }
 
     return res.status(200).json({
