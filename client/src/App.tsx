@@ -93,7 +93,17 @@ const withProtection = <P extends object>(
   const Protected = (props: P) => {
     const {
       currentUser: { profile },
+      isLoading,
     } = useFirebaseAuth();
+
+    // FIX BUG-13: don't redirect while auth is still initialising
+    if (isLoading) {
+      return (
+        <div className="flex h-screen items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      );
+    }
 
     if (!profile) {
       return <Redirect to="/login" />;
@@ -116,6 +126,62 @@ const withProtection = <P extends object>(
   Protected.displayName = `Protected(${Component.displayName || Component.name || "Component"})`;
   return Protected;
 };
+
+// ── Pre-defined route components (FIX BUG-05) ─────────────────────────────────
+// Defined at module scope so React sees stable component references across renders.
+// Previously defined inside App() which created new types on every render, causing
+// full unmount/remount of pages and losing all page-level state.
+const protect = withProtection;
+
+const TeacherDashboardRoute = withLayout(protect(Dashboard, ["teacher"]));
+const PrincipalDashboardRoute = withLayout(protect(PrincipalDashboard, ["principal"]));
+const SchoolAdminDashboardRoute = withLayout(protect(SchoolAdminDashboard, ["school_admin"]));
+const AdminDashboardRoute = withLayout(protect(AdminDashboard, ["admin"]));
+const StudentDashboardRoute = withLayout(protect(StudentDashboard, ["student"]));
+const ParentDashboardRoute = withLayout(protect(ParentDashboard, ["parent"]));
+
+const CreateTestRoute = withLayout(protect(CreateTest, ["teacher"]));
+const GradingRoute = withLayout(protect(EducatorGrading, ["teacher"]));
+const MyStudentsRoute = withLayout(protect(EducatorStudents, ["teacher"]));
+const OcrScanRoute = withLayout(protect(OcrScan, ["teacher", "student", "parent"]));
+const AnalyticsRoute = withLayout(protect(Analytics));
+const AiTutorRoute = withLayout(protect(AiTutor, ["student"]));
+const StudentDirRoute = withLayout(protect(StudentDirectory, ["teacher", "principal", "admin"]));
+const MessagesRoute = withLayout(protect(Messages), { fullWidth: true });
+const TestPageRoute = withLayout(protect(TestPage, ["student", "teacher", "admin"]), {
+  fullWidth: true,
+});
+const ResourcesRoute = withLayout(protect(ResourcesPage, ["student"]), { fullWidth: true });
+const StudyArenaRoute = withLayout(protect(StudyArena, ["student"]), { fullWidth: true });
+const TasksRoute = withLayout(protect(Tasks));
+const NotificationsRoute = withLayout(protect(Notifications));
+const TestsListRoute = withLayout(protect(TestsList, ["student"]));
+const CalendarRoute = withLayout(protect(AcademicCalendar));
+const FocusRoute = withLayout(protect(Focus, ["student"]));
+const AchievementsRoute = withLayout(protect(Achievements, ["student"]));
+const LiveClassesRoute = withLayout(
+  protect(LiveClasses, ["teacher", "student", "admin", "principal"])
+);
+const LiveClassRoomRoute = withLayout(protect(LiveClassRoom), { fullWidth: true });
+const MyProgressRoute = withLayout(protect(MyProgress, ["student", "parent"]), { fullWidth: true });
+const SettingsRoute = withLayout(protect(Settings));
+const AiStudyPlansRoute = withLayout(protect(AiStudyPlans, ["student"]));
+const AIClassroomRoute = withLayout(protect(AIClassroom, ["student", "teacher"]));
+const OnboardingSchoolRoute = withLayout(protect(SchoolSetup, ["school_admin"]));
+const OnboardingInvTeachRoute = withLayout(protect(InviteTeachers, ["school_admin"]));
+const OnboardingTeacherRoute = withLayout(protect(TeacherClassSetup, ["teacher"]));
+const OnboardingInvStdRoute = withLayout(protect(InviteStudents, ["teacher"]));
+
+// Role → dashboard map (avoids getDashboard() function recreating components on every render)
+const dashboardByRole: Partial<Record<string, React.ComponentType>> = {
+  principal: withLayout(PrincipalDashboard),
+  school_admin: withLayout(SchoolAdminDashboard),
+  admin: withLayout(AdminDashboard),
+  teacher: withLayout(Dashboard),
+  student: withLayout(StudentDashboard),
+  parent: withLayout(ParentDashboard),
+};
+const FallbackDashboardRoute = withLayout(Dashboard);
 
 function App() {
   const {
@@ -147,14 +213,14 @@ function App() {
     );
   }
 
+  // FIX BUG-04: Block suspended and rejected users with dedicated screens
   if (profile.status === "pending") {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4 text-center">
         <div className="max-w-md rounded-xl border border-border bg-card p-8 shadow-sm">
           <h2 className="mb-3 text-2xl font-bold text-foreground">Account Pending Approval</h2>
           <p className="mb-6 text-muted-foreground">
-            Your account has been created successfully but is currently awaiting approval from an
-            administrator. You will be able to access the platform once your account is activated.
+            Your account is awaiting administrator approval. You will receive access once activated.
           </p>
           <Button onClick={() => logout()} variant="default" className="w-full">
             Sign Out
@@ -164,101 +230,77 @@ function App() {
     );
   }
 
-  const role = profile.role;
-  const getDashboard = () => {
-    switch (role) {
-      case "principal":
-        return withLayout(PrincipalDashboard);
-      case "school_admin":
-        return withLayout(SchoolAdminDashboard);
-      case "admin":
-        return withLayout(AdminDashboard);
-      case "teacher":
-        return withLayout(Dashboard);
-      case "student":
-        return withLayout(StudentDashboard);
-      case "parent":
-        return withLayout(ParentDashboard);
-      default:
-        return withLayout(Dashboard);
-    }
-  };
+  if (profile.status === "suspended") {
+    return (
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4 text-center">
+        <div className="max-w-md rounded-xl border border-destructive/30 bg-card p-8 shadow-sm">
+          <h2 className="mb-3 text-2xl font-bold text-destructive">Account Suspended</h2>
+          <p className="mb-6 text-muted-foreground">
+            Your account has been suspended. Please contact support for assistance.
+          </p>
+          <Button onClick={() => logout()} variant="destructive" className="w-full">
+            Sign Out
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
-  const protect = withProtection;
+  if (profile.status === "rejected") {
+    return (
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4 text-center">
+        <div className="max-w-md rounded-xl border border-destructive/30 bg-card p-8 shadow-sm">
+          <h2 className="mb-3 text-2xl font-bold text-destructive">Account Not Approved</h2>
+          <p className="mb-6 text-muted-foreground">
+            Your registration was not approved. Please contact your school administrator.
+          </p>
+          <Button onClick={() => logout()} variant="destructive" className="w-full">
+            Sign Out
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // FIX BUG-05: use pre-defined role dashboard map instead of getDashboard() inline
+  const role = profile.role;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const RootDashboard = (dashboardByRole[role] ||
+    FallbackDashboardRoute) as React.ComponentType<any>;
 
   return (
     <Switch>
-      <Route path="/" component={getDashboard()} />
-      <Route path="/dashboard" component={withLayout(protect(Dashboard, ["teacher"]))} />
-      <Route
-        path="/principal-dashboard"
-        component={withLayout(protect(PrincipalDashboard, ["principal"]))}
-      />
-      <Route
-        path="/school-admin-dashboard"
-        component={withLayout(protect(SchoolAdminDashboard, ["school_admin"]))}
-      />
-      <Route path="/admin-dashboard" component={withLayout(protect(AdminDashboard, ["admin"]))} />
-      <Route
-        path="/student-dashboard"
-        component={withLayout(protect(StudentDashboard, ["student"]))}
-      />
-      <Route
-        path="/parent-dashboard"
-        component={withLayout(protect(ParentDashboard, ["parent"]))}
-      />
+      <Route path="/" component={RootDashboard} />
+      <Route path="/dashboard" component={TeacherDashboardRoute} />
+      <Route path="/principal-dashboard" component={PrincipalDashboardRoute} />
+      <Route path="/school-admin-dashboard" component={SchoolAdminDashboardRoute} />
+      <Route path="/admin-dashboard" component={AdminDashboardRoute} />
+      <Route path="/student-dashboard" component={StudentDashboardRoute} />
+      <Route path="/parent-dashboard" component={ParentDashboardRoute} />
 
-      <Route path="/create-test" component={withLayout(protect(CreateTest, ["teacher"]))} />
-      <Route path="/grading" component={withLayout(protect(EducatorGrading, ["teacher"]))} />
-      <Route path="/my-students" component={withLayout(protect(EducatorStudents, ["teacher"]))} />
-      <Route
-        path="/ocr-scan"
-        component={withLayout(protect(OcrScan, ["teacher", "student", "parent"]))}
-      />
-      <Route path="/analytics" component={withLayout(protect(Analytics))} />
-      <Route path="/ai-tutor" component={withLayout(protect(AiTutor, ["student"]))} />
-      <Route
-        path="/student-directory"
-        component={withLayout(protect(StudentDirectory, ["teacher", "principal", "admin"]))}
-      />
-      <Route path="/messages" component={withLayout(protect(Messages), { fullWidth: true })} />
-      <Route
-        path="/test/:id"
-        component={withLayout(protect(TestPage, ["student", "teacher", "admin"]), {
-          fullWidth: true,
-        })}
-      />
-      <Route
-        path="/resources"
-        component={withLayout(protect(ResourcesPage, ["student"]), { fullWidth: true })}
-      />
-      <Route
-        path="/study-arena"
-        component={withLayout(protect(StudyArena, ["student"]), { fullWidth: true })}
-      />
-      <Route path="/tasks" component={withLayout(protect(Tasks))} />
-
-      <Route path="/notifications" component={withLayout(protect(Notifications))} />
-      <Route path="/tests" component={withLayout(protect(TestsList, ["student"]))} />
-      <Route path="/calendar" component={withLayout(protect(AcademicCalendar))} />
-      <Route path="/focus" component={withLayout(protect(Focus, ["student"]))} />
-      <Route path="/achievements" component={withLayout(protect(Achievements, ["student"]))} />
-
-      <Route
-        path="/live-classes"
-        component={withLayout(protect(LiveClasses, ["teacher", "student", "admin", "principal"]))}
-      />
-      <Route path="/live/:id" component={withLayout(protect(LiveClassRoom), { fullWidth: true })} />
-      <Route
-        path="/progress"
-        component={withLayout(protect(MyProgress, ["student", "parent"]), { fullWidth: true })}
-      />
-      <Route path="/settings" component={withLayout(protect(Settings))} />
-      <Route path="/ai-study-plans" component={withLayout(protect(AiStudyPlans, ["student"]))} />
-      <Route
-        path="/ai-classroom"
-        component={withLayout(protect(AIClassroom, ["student", "teacher"]))}
-      />
+      <Route path="/create-test" component={CreateTestRoute} />
+      <Route path="/grading" component={GradingRoute} />
+      <Route path="/my-students" component={MyStudentsRoute} />
+      <Route path="/ocr-scan" component={OcrScanRoute} />
+      <Route path="/analytics" component={AnalyticsRoute} />
+      <Route path="/ai-tutor" component={AiTutorRoute} />
+      <Route path="/student-directory" component={StudentDirRoute} />
+      <Route path="/messages" component={MessagesRoute} />
+      <Route path="/test/:id" component={TestPageRoute} />
+      <Route path="/resources" component={ResourcesRoute} />
+      <Route path="/study-arena" component={StudyArenaRoute} />
+      <Route path="/tasks" component={TasksRoute} />
+      <Route path="/notifications" component={NotificationsRoute} />
+      <Route path="/tests" component={TestsListRoute} />
+      <Route path="/calendar" component={CalendarRoute} />
+      <Route path="/focus" component={FocusRoute} />
+      <Route path="/achievements" component={AchievementsRoute} />
+      <Route path="/live-classes" component={LiveClassesRoute} />
+      <Route path="/live/:id" component={LiveClassRoomRoute} />
+      <Route path="/progress" component={MyProgressRoute} />
+      <Route path="/settings" component={SettingsRoute} />
+      <Route path="/ai-study-plans" component={AiStudyPlansRoute} />
+      <Route path="/ai-classroom" component={AIClassroomRoute} />
 
       {/* Redirect /login to home if already authenticated */}
       <Route path="/login" component={() => <Redirect to="/" />} />
@@ -267,22 +309,10 @@ function App() {
       <Route path="/accept-invite" component={AcceptInvite} />
 
       {/* Onboarding flows */}
-      <Route
-        path="/onboarding/school"
-        component={withLayout(protect(SchoolSetup, ["school_admin"]))}
-      />
-      <Route
-        path="/onboarding/invite-teachers"
-        component={withLayout(protect(InviteTeachers, ["school_admin"]))}
-      />
-      <Route
-        path="/onboarding/teacher"
-        component={withLayout(protect(TeacherClassSetup, ["teacher"]))}
-      />
-      <Route
-        path="/onboarding/invite-students"
-        component={withLayout(protect(InviteStudents, ["teacher"]))}
-      />
+      <Route path="/onboarding/school" component={OnboardingSchoolRoute} />
+      <Route path="/onboarding/invite-teachers" component={OnboardingInvTeachRoute} />
+      <Route path="/onboarding/teacher" component={OnboardingTeacherRoute} />
+      <Route path="/onboarding/invite-students" component={OnboardingInvStdRoute} />
 
       <Route component={NotFound} />
     </Switch>

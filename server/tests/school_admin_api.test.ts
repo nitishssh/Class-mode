@@ -4,6 +4,17 @@ import request from "supertest";
 import { registerRoutes } from "../routes";
 import { MongoUser } from "../../shared/mongo-schema";
 import session from "express-session";
+import jwt from "jsonwebtoken";
+
+const TEST_SECRET = process.env.JWT_SECRET ?? "super_secret_jwt_key_learning_pro_123";
+const studentToken = jwt.sign(
+  { userId: 1, role: "student", email: "student@test.com" },
+  TEST_SECRET
+);
+const adminToken = jwt.sign(
+  { userId: 100, role: "school_admin", email: "admin@school.com" },
+  TEST_SECRET
+);
 
 // Mock dependencies
 vi.mock("../lib/firebase-admin", () => ({
@@ -89,44 +100,20 @@ describe("School Admin API", () => {
     });
 
     it("should return 403 if not a school_admin", async () => {
-      const { verifyFirebaseToken } = await import("../lib/firebase-admin");
-      (verifyFirebaseToken as vi.Mock).mockResolvedValue({
-        uid: "student-uid",
-        email: "student@test.com",
-      });
-
-      const mockStudent = {
-        id: 1,
-        firebaseUid: "student-uid",
-        email: "student@test.com",
-        role: "student",
-        save: vi.fn().mockResolvedValue(true),
-      };
-      (MongoUser.findOne as vi.Mock).mockResolvedValue(mockStudent);
-
       const res = await request(app)
         .get("/api/school/teachers")
-        .set("Authorization", "Bearer valid-token");
+        .set("Authorization", `Bearer ${studentToken}`);
 
       expect(res.status).toBe(403);
     });
 
     it("should return teachers for the same school if school_admin", async () => {
-      const { verifyFirebaseToken } = await import("../lib/firebase-admin");
-      (verifyFirebaseToken as vi.Mock).mockResolvedValue({
-        uid: "admin-uid",
-        email: "admin@school.com",
-      });
-
       const mockAdmin = {
         id: 100,
-        firebaseUid: "admin-uid",
         email: "admin@school.com",
         role: "school_admin",
         school_code: "SCHOOL123",
-        save: vi.fn().mockResolvedValue(true),
       };
-      (MongoUser.findOne as vi.Mock).mockResolvedValue(mockAdmin);
 
       const { storage } = await import("../storage");
       (storage.getUser as vi.Mock).mockResolvedValue(mockAdmin);
@@ -139,7 +126,7 @@ describe("School Admin API", () => {
 
       const res = await request(app)
         .get("/api/school/teachers")
-        .set("Authorization", "Bearer valid-token");
+        .set("Authorization", `Bearer ${adminToken}`);
 
       expect(res.status).toBe(200);
       expect(res.body).toHaveLength(2);
@@ -152,14 +139,7 @@ describe("School Admin API", () => {
 
   describe("POST /api/school/teachers/:id/approve", () => {
     it("should approve a pending teacher", async () => {
-      const { verifyFirebaseToken } = await import("../lib/firebase-admin");
-      (verifyFirebaseToken as vi.Mock).mockResolvedValue({ uid: "admin-uid" });
-
       const mockAdmin = { id: 100, role: "school_admin", school_code: "SCHOOL123" };
-      (MongoUser.findOne as vi.Mock).mockImplementation((query) => {
-        if (query.firebaseUid === "admin-uid") return Promise.resolve(mockAdmin);
-        return Promise.resolve(null);
-      });
       const { storage } = await import("../storage");
       (storage.getUser as vi.Mock).mockResolvedValue(mockAdmin);
 
@@ -171,14 +151,13 @@ describe("School Admin API", () => {
         save: vi.fn().mockResolvedValue(true),
       };
       (MongoUser.findOne as vi.Mock).mockImplementation((query) => {
-        if (query.firebaseUid === "admin-uid") return Promise.resolve(mockAdmin);
         if (query.id === 2) return Promise.resolve(mockTeacher);
         return Promise.resolve(null);
       });
 
       const res = await request(app)
         .post("/api/school/teachers/2/approve")
-        .set("Authorization", "Bearer valid-token");
+        .set("Authorization", `Bearer ${adminToken}`);
 
       expect(res.status).toBe(200);
       expect(mockTeacher.status).toBe("active");
@@ -186,9 +165,6 @@ describe("School Admin API", () => {
     });
 
     it("should return 403 if teacher belongs to different school", async () => {
-      const { verifyFirebaseToken } = await import("../lib/firebase-admin");
-      (verifyFirebaseToken as vi.Mock).mockResolvedValue({ uid: "admin-uid" });
-
       const mockAdmin = { id: 100, role: "school_admin", school_code: "SCHOOL123" };
       const { storage } = await import("../storage");
       (storage.getUser as vi.Mock).mockResolvedValue(mockAdmin);
@@ -200,14 +176,13 @@ describe("School Admin API", () => {
         status: "pending",
       };
       (MongoUser.findOne as vi.Mock).mockImplementation((query) => {
-        if (query.firebaseUid === "admin-uid") return Promise.resolve(mockAdmin);
         if (query.id === 2) return Promise.resolve(mockTeacher);
         return Promise.resolve(null);
       });
 
       const res = await request(app)
         .post("/api/school/teachers/2/approve")
-        .set("Authorization", "Bearer valid-token");
+        .set("Authorization", `Bearer ${adminToken}`);
 
       expect(res.status).toBe(403);
     });

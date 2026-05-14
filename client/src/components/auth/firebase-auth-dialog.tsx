@@ -217,8 +217,14 @@ const IllustrationPanel = () => {
 };
 
 export function FirebaseAuthDialog() {
-  const { login, register, googleLogin, completeGoogleRegistration, resetUserPassword } =
-    useFirebaseAuth();
+  const {
+    login,
+    register,
+    googleLogin,
+    completeGoogleRegistration,
+    resetUserPassword,
+    refreshSession,
+  } = useFirebaseAuth();
   const [isNewGoogleUser, setIsNewGoogleUser] = useState(false);
   const [tempGoogleUser, setTempGoogleUser] = useState<User | null>(null);
   const [authTab, setAuthTab] = useState<"login" | "register" | "forgotPassword">("login");
@@ -231,7 +237,7 @@ export function FirebaseAuthDialog() {
   const [isRegSubmitting, setIsRegSubmitting] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false); // FIX BUG-11
 
   const loginSchema = useMemo(
     () =>
@@ -353,12 +359,9 @@ export function FirebaseAuthDialog() {
               body: JSON.stringify({ email: data.email, password: data.password }),
             });
             if (res.ok) {
-              const payload = await res.json();
-              if (payload.token) {
-                localStorage.setItem("auth_token", payload.token);
-                localStorage.setItem("auth_user", JSON.stringify(payload));
-              }
-              window.location.href = "/";
+              // FIX BUG-10: no localStorage — httpOnly cookie is already set by server.
+              // FIX BUG-18: use refreshSession() instead of window.location.href reload.
+              await refreshSession();
               return;
             } else {
               const errBody = await res.json().catch(() => ({}));
@@ -375,7 +378,7 @@ export function FirebaseAuthDialog() {
         setIsLoginSubmitting(false);
       }
     },
-    [login]
+    [login, refreshSession]
   );
 
   const onForgotPasswordSubmit = useCallback(async () => {
@@ -446,12 +449,9 @@ export function FirebaseAuthDialog() {
               }),
             });
             if (res.ok) {
-              const payload = await res.json();
-              if (payload.token) {
-                localStorage.setItem("auth_token", payload.token);
-                localStorage.setItem("auth_user", JSON.stringify(payload));
-              }
-              window.location.href = "/";
+              // FIX BUG-10: no localStorage — httpOnly cookie already set by server.
+              // FIX BUG-18: use refreshSession() instead of window.location.href.
+              await refreshSession();
               return;
             } else {
               const errBody = await res.json().catch(() => ({}));
@@ -468,7 +468,7 @@ export function FirebaseAuthDialog() {
         setIsRegSubmitting(false);
       }
     },
-    [register]
+    [register, refreshSession]
   );
 
   const onRoleSubmit = useCallback(
@@ -881,6 +881,14 @@ export function FirebaseAuthDialog() {
                               className={inputClasses + " py-2.5"}
                               {...field}
                             />
+                            {/* FIX BUG-11: show/hide toggle for confirm password */}
+                            <button
+                              type="button"
+                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                              className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                            >
+                              {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                            </button>
                           </div>
                         </FormControl>
                         <FormMessage className="px-2 text-[10px] text-red-500" />
@@ -903,6 +911,7 @@ export function FirebaseAuthDialog() {
                             <option value="student">Student</option>
                             <option value="teacher">Teacher</option>
                             <option value="principal">Principal</option>
+                            <option value="school_admin">School Admin</option>
                             <option value="parent">Parent</option>
                           </select>
                         </FormControl>

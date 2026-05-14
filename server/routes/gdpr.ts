@@ -2,7 +2,9 @@ import { Router, Response, Request as ExpressRequest } from "express";
 import { MongoUser } from "../../shared/mongo-schema";
 import { authenticateToken } from "../routes";
 import { logger } from "../lib/logger";
-import archiver from "archiver";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const archiver = require("archiver");
 
 const router = Router();
 
