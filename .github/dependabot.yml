@@ -1,17 +1,42 @@
 version: 2
 updates:
-  # Maintain dependencies for npm
   - package-ecosystem: "npm"
-    directory: "/PersonalLearningPro"
+    directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Asia/Kolkata"
     open-pull-requests-limit: 10
-    ignore:
-      - dependency-name: "firebase"
-        versions: ["12.*"] # Example: Stay on 11.x if needed
+    groups:
+      radix-ui:
+        patterns:
+          - "@radix-ui/*"
+      langchain:
+        patterns:
+          - "@langchain/*"
+      types:
+        patterns:
+          - "@types/*"
+      firebase:
+        patterns:
+          - "firebase"
+          - "firebase-admin"
 
-  # Maintain dependencies for GitHub Actions
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+
+  - package-ecosystem: "terraform"
+    directory: "/terraform-gcp"
+    schedule:
+      interval: "weekly"
+      day: "monday"

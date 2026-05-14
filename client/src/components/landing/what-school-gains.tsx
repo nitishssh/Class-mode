@@ -60,7 +60,7 @@ const roles = [
 
 export const WhatSchoolGains = () => {
   return (
-    <section className="relative overflow-hidden py-24 bg-card/30 dark:bg-background">
+    <section className="relative overflow-hidden bg-card/30 py-24 dark:bg-background">
       <div className="container relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -87,7 +87,9 @@ export const WhatSchoolGains = () => {
               transition={{ delay: i * 0.1 }}
               className="sketch-border hover-tilt sketch-shadow flex flex-col items-start rounded-2xl bg-card p-6"
             >
-              <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-xl ${item.color}`}>
+              <div
+                className={`mb-4 flex h-12 w-12 items-center justify-center rounded-xl ${item.color}`}
+              >
                 <item.icon size={24} />
               </div>
               <h3 className="font-heading text-2xl font-black leading-tight text-foreground">
@@ -96,9 +98,7 @@ export const WhatSchoolGains = () => {
               <p className="mb-3 font-heading text-sm font-bold uppercase tracking-wider text-primary">
                 {item.title}
               </p>
-              <p className="text-sm text-muted-foreground">
-                {item.desc}
-              </p>
+              <p className="text-sm text-muted-foreground">{item.desc}</p>
             </motion.div>
           ))}
         </div>
@@ -110,9 +110,7 @@ export const WhatSchoolGains = () => {
           viewport={{ once: true }}
           className="mb-10 text-center"
         >
-          <h3 className="text-3xl font-extrabold text-foreground">
-            Role-by-role breakdown
-          </h3>
+          <h3 className="text-3xl font-extrabold text-foreground">Role-by-role breakdown</h3>
         </motion.div>
 
         <div className="grid gap-6 sm:grid-cols-3">
@@ -132,18 +130,14 @@ export const WhatSchoolGains = () => {
                 <div className="mb-6 inline-flex rounded-xl bg-primary/10 p-3 text-primary">
                   <role.icon size={28} />
                 </div>
-                <h4 className="mb-6 font-heading text-xl font-bold text-foreground">
-                  {role.role}
-                </h4>
+                <h4 className="mb-6 font-heading text-xl font-bold text-foreground">{role.role}</h4>
                 <ul className="space-y-4">
                   {role.bullets.map((bullet, idx) => (
                     <li key={idx} className="flex items-start gap-3">
                       <div className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[10px] text-primary">
                         ✓
                       </div>
-                      <span className="text-sm font-medium text-muted-foreground">
-                        {bullet}
-                      </span>
+                      <span className="text-sm font-medium text-muted-foreground">{bullet}</span>
                     </li>
                   ))}
                 </ul>

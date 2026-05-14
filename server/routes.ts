@@ -70,104 +70,39 @@ if (!process.env.JWT_SECRET) {
 const JWT_SECRET: string = process.env.JWT_SECRET;
 
 // Auth Middleware
+// Verifies the server-issued JWT only — never calls Firebase Admin on hot path.
+// Firebase ID tokens are exchanged for server JWTs once at /api/auth/firebase.
 export async function authenticateToken(req: Request, res: Response, next: express.NextFunction) {
   const token = req.cookies?.access_token || req.headers.authorization?.split(" ")[1];
 
-  if (!token) return res.status(401).json({ message: "Authentication required" });
-
-  try {
-    // First attempt: Firebase ID token verification
-    const decodedToken = await verifyFirebaseToken(token);
-
-    if (decodedToken) {
-      // Firebase token successfully verified
-      let user = await MongoUser.findOne({ firebaseUid: decodedToken.uid });
-
-      if (!user && decodedToken.email) {
-        user = await MongoUser.findOne({ email: decodedToken.email });
-        if (user) {
-          user.firebaseUid = decodedToken.uid;
-          if (decodedToken.role)
-            user.role = decodedToken.role as
-              | "student"
-              | "teacher"
-              | "parent"
-              | "principal"
-              | "school_admin"
-              | "admin";
-          await user.save();
-        }
-      }
-
-      if (!user) {
-        if (req.path === "/api/auth/sync-profile") {
-          req.session = req.session || ({} as express.Request["session"]);
-          req.session!.firebaseUid = decodedToken.uid;
-          req.session!.email = decodedToken.email;
-          return next();
-        }
-        // Auto-create MongoDB user from Firebase token to prevent auth limbo
-        const numericId = await getNextSequenceValue("userId");
-        user = new MongoUser({
-          id: numericId,
-          firebaseUid: decodedToken.uid,
-          email: decodedToken.email || `user_${decodedToken.uid}@firebase`,
-          username: `user_${numericId}`,
-          name: decodedToken.name || decodedToken.email?.split("@")[0] || `User_${numericId}`,
-          displayName: decodedToken.name || null,
-          role: ((decodedToken as Record<string, unknown>).role as string) || "student",
-          password: "firebase_managed",
-        });
-        await user.save();
-        logger.info(`[auth] Auto-created MongoDB user`, { uid: decodedToken.uid });
-      }
-
-      // Sync role to Firebase Custom Claims if they don't match
-      if (user && (!decodedToken.role || decodedToken.role !== user.role)) {
-        try {
-          await setCustomUserClaims(decodedToken.uid, { role: user.role });
-          logger.info(`[auth] Synced role to Firebase`, { uid: decodedToken.uid, role: user.role });
-        } catch (claimsErr) {
-          logger.warn(`[auth] Failed to sync role to Firebase`, {
-            uid: decodedToken.uid,
-            role: user.role,
-            error: claimsErr instanceof Error ? claimsErr.message : String(claimsErr),
-          });
-        }
-      }
-
-      req.session = req.session || ({} as express.Request["session"]);
-      req.session!.userId = user.id;
-      req.session!.role = user.role;
-      req.session!.firebaseUid = decodedToken.uid;
-      (req as any).user = { id: user.id, role: user.role, email: user.email };
-
-      return next();
-    }
-
-    // Second attempt: JWT verification (for seeded/test users or if Firebase Admin is not configured)
+  if (token) {
     try {
-      const jwtPayload = jwt.verify(token, JWT_SECRET) as CustomJwtPayload;
-      if (jwtPayload?.userId) {
-        const user = await MongoUser.findOne({ id: jwtPayload.userId });
-        if (!user) return res.status(404).json({ message: "User not found" });
-
-        req.session = req.session || ({} as express.Request["session"]);
-        req.session!.userId = user.id;
-        req.session!.role = user.role;
-        (req as any).user = { id: user.id, role: user.role, email: user.email };
-
+      const payload = jwt.verify(token, JWT_SECRET) as CustomJwtPayload;
+      if (payload?.userId) {
+        req.session!.userId = payload.userId;
+        req.session!.role = payload.role;
+        (req as any).user = { id: payload.userId, role: payload.role, email: payload.email };
         return next();
       }
     } catch {
-      // JWT verification also failed — token is truly invalid
+      // JWT invalid — try session fallback below
     }
-
-    return res.status(403).json({ message: "Invalid or expired token" });
-  } catch (error) {
-    console.error("Auth middleware error:", error);
-    return res.status(500).json({ message: "Internal Server Error during authentication" });
   }
+
+  // Session fallback: WebSocket-established sessions or legacy cookie-only flows
+  if (req.session?.userId) {
+    try {
+      const user = await MongoUser.findOne({ id: req.session.userId }).lean();
+      if (user) {
+        (req as any).user = { id: user.id, role: user.role, email: user.email };
+        return next();
+      }
+    } catch {
+      // DB error — fall through to 401
+    }
+  }
+
+  return res.status(401).json({ message: "Authentication required" });
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -1597,87 +1532,7 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
     }
   );
 
-  // ─── Phase 1: Firebase Auth Bridge ──────────────────────────────────────────
-  //
-  // POST /api/auth/firebase
-  // Client sends { idToken } after Firebase login. We verify with firebase-admin,
-  // then find-or-create a MongoDB user and establish an Express session.
-
-  app.post("/api/auth/firebase", async (req: Request, res: Response) => {
-    try {
-      const { idToken, role } = req.body;
-      if (!idToken || typeof idToken !== "string") {
-        return res.status(400).json({ message: "idToken is required" });
-      }
-
-      const decoded = await verifyFirebaseToken(idToken);
-      if (!decoded) {
-        return res.status(401).json({ message: "Invalid or expired Firebase ID token" });
-      }
-
-      const { uid, email, name, picture } = decoded;
-      if (!email) {
-        return res.status(400).json({ message: "Firebase account must have an email address" });
-      }
-
-      // Find by firebaseUid or email
-      type MongoUserType = {
-        id: number;
-        role: string;
-        avatar: string | null;
-        displayName: string | null;
-        name: string;
-        firebaseUid?: string;
-        save: () => Promise<void>;
-      };
-      type MongoUserModelType = {
-        findOne: (query: Record<string, unknown>) => Promise<MongoUserType | null>;
-        new (data: Record<string, unknown>): MongoUserType;
-      };
-      let mongoUser: MongoUserType | null = await (
-        MongoUser as unknown as MongoUserModelType
-      ).findOne({ firebaseUid: uid });
-      if (!mongoUser)
-        mongoUser = await (MongoUser as unknown as MongoUserModelType).findOne({ email });
-
-      if (!mongoUser) {
-        const id = await getNextSequenceValue("user_id");
-        mongoUser = new (MongoUser as unknown as MongoUserModelType)({
-          id,
-          username: email.split("@")[0] + "_" + id,
-          password: "firebase-" + uid,
-          name: name || email.split("@")[0],
-          email,
-          role: role || "student",
-          avatar: picture || null,
-          firebaseUid: uid,
-          displayName: name || null,
-          status: role === "teacher" ? "pending" : "active",
-        });
-        await mongoUser.save();
-        logger.info(`[auth/firebase] Created new user`, { id, role: mongoUser.role });
-      } else if (!mongoUser.firebaseUid) {
-        mongoUser.firebaseUid = uid;
-        if (picture && !mongoUser.avatar) mongoUser.avatar = picture;
-        await mongoUser.save();
-      }
-
-      if (req.session) {
-        req.session.userId = mongoUser.id;
-        req.session.role = mongoUser.role;
-      }
-
-      return res.status(200).json({
-        userId: mongoUser.id,
-        displayName: mongoUser.displayName || mongoUser.name,
-        role: mongoUser.role,
-        avatar: mongoUser.avatar,
-      });
-    } catch (err) {
-      console.error("[auth/firebase] Error:", err);
-      return res.status(500).json({ message: "Firebase auth bridge failed" });
-    }
-  });
+  // /api/auth/firebase is handled by authRouter (server/routes/auth.ts)
 
   // ─── Phase 2: Chat Conversations API ────────────────────────────────────────
   //

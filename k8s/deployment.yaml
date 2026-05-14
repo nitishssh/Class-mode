@@ -5,6 +5,8 @@ metadata:
   namespace: personallearningpro
   labels:
     app: personallearningpro
+    app.kubernetes.io/name: personallearningpro
+    app.kubernetes.io/component: backend
 spec:
   replicas: 2
   strategy:
@@ -19,23 +21,47 @@ spec:
     metadata:
       labels:
         app: personallearningpro
+        app.kubernetes.io/name: personallearningpro
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "5001"
+        prometheus.io/path: "/api/metrics"
     spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: personallearningpro
           image: ghcr.io/nitishkumar-ai/personallearningpro:latest
-          imagePullPolicy: Always # In a real environment, use specific tags
+          imagePullPolicy: Always
           ports:
             - containerPort: 5001
+              name: http
+              protocol: TCP
           envFrom:
             - secretRef:
-                name: plp-secrets # Secrets managed externally (e.g., Vault or External Secrets Operator)
+                name: plp-secrets
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1001
+            capabilities:
+              drop:
+                - ALL
           resources:
             requests:
               cpu: "250m"
               memory: "256Mi"
             limits:
-              cpu: "500m"
-              memory: "512Mi"
+              cpu: "1000m"
+              memory: "1Gi"
           livenessProbe:
             httpGet:
               path: /api/health
@@ -48,7 +74,23 @@ spec:
             httpGet:
               path: /api/health
               port: 5001
-            initialDelaySeconds: 20
-            periodSeconds: 30
+            initialDelaySeconds: 10
+            periodSeconds: 15
             timeoutSeconds: 5
             failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: 5001
+            failureThreshold: 12
+            periodSeconds: 10
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: app-cache
+              mountPath: /app/.cache
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: app-cache
+          emptyDir: {}
