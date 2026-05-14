@@ -9,7 +9,6 @@
 bash scripts/setup-services.sh
 
 # This creates:
-# - services/openmaic/
 # - services/iniclaw/
 # - Dockerfiles and package.json files
 ```
@@ -17,9 +16,6 @@ bash scripts/setup-services.sh
 ### 2. Copy Your Code (optional companion services)
 
 ```bash
-# Copy OpenMAIC companion UI (optional)
-cp -r /path/to/studyArena/* services/openmaic/
-
 # IniClaw is already in this repo — no copy needed
 # features/ai-classroom/ini_claw/ is the built-in LLM gateway
 ```
@@ -44,14 +40,11 @@ openssl rand -hex 32  # Copy this value to BRIDGE_SECRET in .env
 # With Docker (recommended)
 docker compose up
 
-# Without Docker (2-3 terminals)
+# Without Docker (2 terminals)
 # Terminal 1: EduAI app (includes native Study Arena — no extra process needed)
 npm run dev
 
-# Terminal 2 (optional): OpenMAIC companion UI
-cd services/openmaic && npm run dev
-
-# Terminal 3 (optional): IniClaw LLM gateway
+# Terminal 2 (optional): IniClaw LLM gateway
 cd features/ai-classroom/ini_claw && BRIDGE_SECRET=<secret> INICLAW_PORT=7070 node gateway.js
 ```
 
@@ -63,14 +56,12 @@ curl http://localhost:5001/api/health
 curl http://localhost:5001/api/ai-classroom/health  # native Study Arena
 
 # Optional services
-curl http://localhost:3000/api/health  # OpenMAIC companion UI
 curl http://localhost:4000/api/health  # IniClaw (services/iniclaw, Docker)
 curl http://localhost:7070/health      # IniClaw (local dev gateway)
 
 # Access the apps
 # - EduAI + AI Classroom: http://localhost:5001
 # - EduAI + AI Classroom: http://localhost:5001/ai-classroom
-# - OpenMAIC (optional): http://localhost:3000 (or http://localhost:5001/arena)
 # - IniClaw gateway:      http://localhost:5001/gateway (via Nginx)
 ```
 
@@ -79,7 +70,6 @@ curl http://localhost:7070/health      # IniClaw (local dev gateway)
 ### Docker Compose
 
 - **EduAI** (React + Express + native Study Arena) on port 5001
-- **OpenMAIC** (Next.js companion UI — optional) on port 3000
 - **IniClaw** (`services/iniclaw` — production gateway) on port 4000
 - **IniClaw** (`features/ai-classroom/ini_claw` — local dev gateway) on port 7070
 - **MongoDB** on port 27017
@@ -90,20 +80,17 @@ curl http://localhost:7070/health      # IniClaw (local dev gateway)
 ### Authentication Bridge
 
 - Firebase JWT tokens validated by EduAI
-- OpenMAIC session tokens generated for secure classroom access
 - Automatic user sync between Firebase and MongoDB
 
 ### Webhook Integration
 
-- OpenMAIC sends lesson completion events to EduAI
-- Quiz results stored in MongoDB
+- Gateway events stored in MongoDB
 - Analytics tracked for study plan generation
 
 ### Reverse Proxy Routing
 
 - `/` → EduAI main app
 - `/api/*` → EduAI backend
-- `/arena/*` → OpenMAIC classroom
 - `/gateway/*` → IniClaw agent gateway
 
 ## 🔗 API Examples
@@ -198,12 +185,10 @@ See `docs/MICROSERVICES_INTEGRATION.md` for:
 
 1. ✅ Services initialized
 2. ✅ Docker Compose configured
-3. ✅ Authentication bridge implemented
-4. ✅ Native Study Arena replaces external OpenMAIC for core classroom generation
-5. ✅ IniClaw rewritten as lightweight LLM proxy (zero npm dependencies)
-6. ✅ 25/25 API integration tests passing
-7. ⏳ Copy OpenMAIC companion UI to `services/openmaic/` (optional)
-8. ⏳ Deploy to production
+3. ✅ Native Study Arena replaces external dependency for core classroom generation
+4. ✅ IniClaw rewritten as lightweight LLM proxy (zero npm dependencies)
+5. ✅ 25/25 API integration tests passing
+6. ⏳ Deploy to production
 
 ## 💡 Tips
 
