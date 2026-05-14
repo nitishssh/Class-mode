@@ -11,7 +11,7 @@ const transporter = nodemailer.createTransport({
 });
 
 const APP_URL = process.env.APP_URL || "http://localhost:5001";
-const FROM = process.env.SMTP_FROM || "EduAI Platform <no-reply@eduai.app>";
+const FROM = process.env.SMTP_FROM || "Class Mode Platform <no-reply@classmode.com>";
 
 export async function sendTeacherInvite(
   email: string,
@@ -23,17 +23,17 @@ export async function sendTeacherInvite(
   await transporter.sendMail({
     from: FROM,
     to: email,
-    subject: `You've been invited to join ${schoolName} on EduAI`,
+    subject: `You've been invited to join ${schoolName} on Class Mode`,
     text: `Hi ${name},
 
-You have been invited to join ${schoolName} as a teacher on EduAI.
+You have been invited to join ${schoolName} as a teacher on Class Mode.
 
 Click the link below to set up your account (expires in 7 days):
 ${link}
 
 If you did not expect this invite, you can ignore this email.
 
-— The EduAI Team`,
+— The Class Mode Team`,
   });
 }
 
@@ -48,16 +48,16 @@ export async function sendStudentInvite(
   await transporter.sendMail({
     from: FROM,
     to: parentEmail,
-    subject: `${studentName} has been invited to join ${className} on EduAI`,
+    subject: `${studentName} has been invited to join ${className} on Class Mode`,
     text: `Hello,
 
-${studentName} has been invited to join the class "${className}" at ${schoolName} on EduAI.
+${studentName} has been invited to join the class "${className}" at ${schoolName} on Class Mode.
 
 Click the link below to set up their account (expires in 7 days):
 ${link}
 
 If you did not expect this invite, you can ignore this email.
 
-— The EduAI Team`,
+— The Class Mode Team`,
   });
 }
