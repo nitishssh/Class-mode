@@ -88,7 +88,7 @@
     "multer": "^2.1.1",
     "nanoid": "^5.1.9",
     "nodemailer": "^8.0.5",
-    "openai": "^4.91.0",
+    "openai": "^6.37.0",
     "partial-json": "^0.1.7",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
