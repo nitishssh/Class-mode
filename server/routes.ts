@@ -92,7 +92,7 @@ export async function authenticateToken(req: Request, res: Response, next: expre
   // Session fallback: WebSocket-established sessions or legacy cookie-only flows
   if (req.session?.userId) {
     try {
-      const user = await MongoUser.findOne({ id: req.session.userId }).lean();
+      const user = await MongoUser.findOne({ id: req.session.userId });
       if (user) {
         (req as any).user = { id: user.id, role: user.role, email: user.email };
         return next();

@@ -217,8 +217,14 @@ const IllustrationPanel = () => {
 };
 
 export function FirebaseAuthDialog() {
-  const { login, register, googleLogin, completeGoogleRegistration, resetUserPassword, refreshSession } =
-    useFirebaseAuth();
+  const {
+    login,
+    register,
+    googleLogin,
+    completeGoogleRegistration,
+    resetUserPassword,
+    refreshSession,
+  } = useFirebaseAuth();
   const [isNewGoogleUser, setIsNewGoogleUser] = useState(false);
   const [tempGoogleUser, setTempGoogleUser] = useState<User | null>(null);
   const [authTab, setAuthTab] = useState<"login" | "register" | "forgotPassword">("login");
@@ -961,25 +967,25 @@ export function FirebaseAuthDialog() {
                   {["teacher", "principal", "school_admin"].includes(
                     registerForm.watch("role")
                   ) && (
-                      <FormField
-                        control={registerForm.control}
-                        name="school_code"
-                        render={({ field }) => (
-                          <FormItem className="col-span-2">
-                            <FormControl>
-                              <input
-                                type="text"
-                                placeholder="School Code"
-                                disabled={isRegSubmitting}
-                                className={inputClasses + " py-2.5"}
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage className="px-2 text-[10px] text-red-500" />
-                          </FormItem>
-                        )}
-                      />
-                    )}
+                    <FormField
+                      control={registerForm.control}
+                      name="school_code"
+                      render={({ field }) => (
+                        <FormItem className="col-span-2">
+                          <FormControl>
+                            <input
+                              type="text"
+                              placeholder="School Code"
+                              disabled={isRegSubmitting}
+                              className={inputClasses + " py-2.5"}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage className="px-2 text-[10px] text-red-500" />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </div>
 
                 <button
