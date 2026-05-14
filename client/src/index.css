@@ -20,14 +20,14 @@
     --ink-400: #9a9a9a;
 
     /* ── Primary Accent ── */
-    --accent: #7c3aed;
-    --accent-hover: #6d28d9;
-    --accent-soft: #ede9fe;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --accent-soft: #dbeafe;
 
     /* ── Energy Color ── */
-    --energy: #f59e0b;
-    --energy-soft: #fef3c7;
-    --energy-dark: #d97706;
+    --energy: #e8702a;
+    --energy-soft: #fef3e8;
+    --energy-dark: #c55a1e;
 
     /* ── Progress Color ── */
     --progress: #10b981;
@@ -40,19 +40,19 @@
     --card-foreground: 0 0% 10%;
     --popover: 38 67% 98%;
     --popover-foreground: 0 0% 10%;
-    --primary: 262 83% 58%;
+    --primary: 221 83% 53%;
     --primary-foreground: 0 0% 100%;
     --secondary: 48 20% 91%;
     --secondary-foreground: 0 0% 10%;
     --muted: 40 16% 89%;
     --muted-foreground: 0 0% 36%;
-    --accent-base: 262 30% 94%;
-    --accent-foreground: 262 83% 58%;
+    --accent-base: 221 83% 95%;
+    --accent-foreground: 221 83% 53%;
     --destructive: 2 42% 52%;
     --destructive-foreground: 0 0% 100%;
     --border: 39 16% 85%;
     --input: 38 12% 76%;
-    --ring: 262 83% 58% / 0.3;
+    --ring: 221 83% 53% / 0.3;
     --radius: 0.75rem;
 
     --illustration-bg: 38 29% 94%;
@@ -65,15 +65,15 @@
     /* ─── Sidebar (Light) ─── */
     --sidebar-background: 48 20% 91%;
     --sidebar-foreground: 0 0% 10%;
-    --sidebar-primary: 262 83% 58%;
+    --sidebar-primary: 221 83% 53%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 262 30% 93%;
-    --sidebar-accent-foreground: 262 60% 35%;
+    --sidebar-accent: 221 83% 95%;
+    --sidebar-accent-foreground: 221 83% 35%;
     --sidebar-border: 39 16% 85%;
-    --sidebar-ring: 262 83% 58% / 0.3;
+    --sidebar-ring: 221 83% 53% / 0.3;
 
     /* ─── Chart Colors (Vibrant Educational) ─── */
-    --chart-1: 262 83% 58%;
+    --chart-1: 221 83% 53%;
     --chart-2: 38 95% 51%;
     --chart-3: 215 38% 47%;
     --chart-4: 39 54% 41%;
@@ -88,8 +88,8 @@
 
     /* ─── Gradients (Dynamic) ─── */
     --grad-streak: linear-gradient(135deg, #fef3c7 0%, #fde68a 60%, #fcd34d 100%);
-    --grad-xp: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
-    --grad-badge: linear-gradient(145deg, #faf5ff 0%, #ede9fe 50%, #ddd6fe 100%);
+    --grad-xp: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    --grad-badge: linear-gradient(145deg, #f0f9ff 0%, #dbeafe 50%, #bfdbfe 100%);
     --grad-challenge: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
     --grad-math: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
     --grad-physics: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
@@ -109,20 +109,20 @@
     --card-foreground: 38 29% 94%;
     --popover: 24 10% 15%;
     --popover-foreground: 38 29% 94%;
-    --primary: 262 83% 65%;
+    --primary: 221 83% 62%;
     --primary-foreground: 0 0% 100%;
     --secondary: 24 10% 20%;
     --secondary-foreground: 38 29% 94%;
     --muted: 24 10% 25%;
     --muted-foreground: 0 0% 60%;
-    --accent-base: 262 30% 22%;
-    --accent-foreground: 262 83% 75%;
+    --accent-base: 221 83% 15%;
+    --accent-foreground: 221 83% 72%;
     --destructive: 2 42% 52%;
     --destructive-foreground: 38 29% 94%;
     --border: 24 10% 22%;
     /* #3C3836ish */
     --input: 24 10% 22%;
-    --ring: 262 83% 65% / 0.3;
+    --ring: 221 83% 62% / 0.3;
 
     /* Dark Mode specific variables */
     --cream-50: #292524;
@@ -135,13 +135,13 @@
     --ink-600: #e0dbd3;
     --ink-400: #c8c3bb;
 
-    --accent: #7c3aed;
-    --accent-hover: #6d28d9;
-    --accent-soft: #3b2f6e;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --accent-soft: #1e3a5f;
 
-    --energy: #f59e0b;
-    --energy-soft: #4a3f1a;
-    --energy-dark: #d97706;
+    --energy: #e8702a;
+    --energy-soft: #4a2a15;
+    --energy-dark: #c55a1e;
 
     --progress: #10b981;
     --progress-soft: #1a3f32;
@@ -155,14 +155,14 @@
 
     --sidebar-background: 24 10% 15%;
     --sidebar-foreground: 38 29% 94%;
-    --sidebar-primary: 262 83% 65%;
+    --sidebar-primary: 221 83% 62%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 262 30% 22%;
-    --sidebar-accent-foreground: 262 83% 80%;
+    --sidebar-accent: 221 83% 15%;
+    --sidebar-accent-foreground: 221 83% 78%;
     --sidebar-border: 24 10% 22%;
-    --sidebar-ring: 262 83% 65% / 0.3;
+    --sidebar-ring: 221 83% 62% / 0.3;
 
-    --chart-1: 262 83% 65%;
+    --chart-1: 221 83% 62%;
     --chart-2: 38 95% 51%;
     --chart-3: 215 38% 47%;
     --chart-4: 39 54% 41%;
@@ -175,8 +175,8 @@
 
     /* ─── Gradients (Dynamic Dark) ─── */
     --grad-streak: linear-gradient(135deg, #3a2e10 0%, #2a2008 60%, #1a1405 100%);
-    --grad-xp: linear-gradient(135deg, #2e2050 0%, #1e1438 100%);
-    --grad-badge: linear-gradient(145deg, #1e1830 0%, #2e2050 50%, #1e1438 100%);
+    --grad-xp: linear-gradient(135deg, #1e3a5f 0%, #172d4a 100%);
+    --grad-badge: linear-gradient(145deg, #1a2e4a 0%, #1e3a5f 50%, #172d4a 100%);
     --grad-challenge: linear-gradient(135deg, #0f2a1e 0%, #0a1e15 100%);
     --grad-math: linear-gradient(135deg, #1a1c30 0%, #101222 100%);
     --grad-physics: linear-gradient(135deg, #1a2235 0%, #121828 100%);
@@ -516,26 +516,26 @@
 
 /* ─── Role-Based Themes ─── */
 
-/* Student: focused & calm — soft warm sidebar */
+/* Student: focused & calm — soft blue sidebar */
 [data-role="student"] {
   --sidebar-background: 50 30% 95%;
   --sidebar-foreground: 0 0% 12%;
-  --sidebar-primary: 262 83% 58%;
+  --sidebar-primary: 221 83% 53%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 262 25% 90%;
-  --sidebar-accent-foreground: 262 60% 38%;
+  --sidebar-accent: 221 83% 92%;
+  --sidebar-accent-foreground: 221 83% 35%;
   --sidebar-border: 45 20% 88%;
-  --sidebar-ring: 262 83% 58% / 0.3;
+  --sidebar-ring: 221 83% 53% / 0.3;
 }
 
 /* Staff / Admin: executive — deep navy sidebar */
 [data-role="staff"] {
   --sidebar-background: 222 47% 10%;
   --sidebar-foreground: 213 31% 92%;
-  --sidebar-primary: 262 75% 72%;
+  --sidebar-primary: 221 83% 65%;
   --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 222 40% 18%;
   --sidebar-accent-foreground: 213 31% 92%;
   --sidebar-border: 222 30% 19%;
-  --sidebar-ring: 262 75% 72% / 0.3;
+  --sidebar-ring: 221 83% 65% / 0.3;
 }

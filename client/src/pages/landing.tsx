@@ -32,7 +32,7 @@ const Navbar = () => {
       <div className="container flex h-16 items-center justify-between">
         <a href="#" className="flex items-center gap-2">
           <span className="font-display text-xl font-bold tracking-tight">
-            Class<span className="text-primary">Mode</span>
+            Class<span className="text-primary">Mind</span>
           </span>
         </a>
 
@@ -118,7 +118,7 @@ const Footer = () => (
       <div className="mb-10 grid gap-8 text-sm sm:grid-cols-4">
         <div className="sm:col-span-2">
           <p className="mb-3 font-display text-xl font-bold">
-            Class<span className="text-primary">Mode</span>
+            Class<span className="text-primary">Mind</span>
           </p>
           <p className="max-w-xs text-muted-foreground">
             The warm, friendly platform every school deserves. AI-powered. Human-centred.
@@ -159,17 +159,17 @@ const Footer = () => (
               Contact
             </a>
             <a
-              href="mailto:hello@classmode.com"
+              href="mailto:hello@ClassMind.com"
               className="block transition-colors hover:text-foreground"
             >
-              hello@classmode.com
+              hello@ClassMind.com
             </a>
           </div>
         </div>
       </div>
 
       <div className="border-t border-border pt-6 text-center text-xs text-muted-foreground">
-        © 2026 ClassMode. All rights reserved. Built with 💛 for learners everywhere.
+        © 2026 ClassMind. All rights reserved. Built with 💛 for learners everywhere.
       </div>
     </div>
   </footer>

@@ -159,7 +159,7 @@ export const NotebookFeature = () => {
             Everything a student needs.
           </h2>
           <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-            ClassMode guides every student through their learning journey —{" "}
+            ClassMind guides every student through their learning journey —{" "}
             <br className="hidden md:block" />
             from grasping new concepts to acing their exams.
           </p>
@@ -200,7 +200,7 @@ export const OnboardingFeatures = () => (
           One platform. Every role. Zero chaos.
         </h2>
         <p className="mx-auto max-w-xl text-lg text-muted-foreground">
-          ClassMode is built for the whole school — not just one type of user.
+          ClassMind is built for the whole school — not just one type of user.
         </p>
       </motion.div>
 

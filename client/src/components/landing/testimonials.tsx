@@ -114,7 +114,7 @@ export const ProblemSection = () => {
           className="mt-16 text-center"
         >
           <p className="mb-3 text-sm italic text-zinc-500 dark:text-muted-foreground">
-            ClassMode fixes all of this.
+            ClassMind fixes all of this.
           </p>
           <div className="mx-auto h-12 w-px animate-bounce rounded-full bg-gradient-to-b from-zinc-600 to-primary" />
         </motion.div>
@@ -164,7 +164,7 @@ export const DualAudience = () => {
             to learn and grow.
           </h2>
           <p className="mb-8 max-w-md text-lg leading-relaxed text-muted-foreground">
-            No more overwhelm. ClassMode gives students a clear path, an AI tutor in their pocket,
+            No more overwhelm. ClassMind gives students a clear path, an AI tutor in their pocket,
             and the motivation to keep going.
           </p>
 

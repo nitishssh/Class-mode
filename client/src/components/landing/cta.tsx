@@ -75,7 +75,7 @@ export const DemoWidget = () => {
             Live demo
           </span>
           <h2 className="mb-3 text-3xl font-extrabold md:text-4xl">
-            See ClassMode in action.
+            See ClassMind in action.
           </h2>
           <p className="text-lg text-muted-foreground">
             Pick a subject and get an instant AI-generated 7-day study plan.
@@ -260,7 +260,7 @@ export const ContactForm = () => {
               👋 Get in touch
             </span>
             <h2 className="text-4xl font-extrabold tracking-tight md:text-5xl">
-              Ready to bring ClassMode
+              Ready to bring ClassMind
               <br />to your school?
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-muted-foreground md:text-xl">

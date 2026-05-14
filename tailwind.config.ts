@@ -30,8 +30,8 @@ export default {
         accent: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
-          hover: "#6D28D9",
-          soft: "#EDE9FE",
+          hover: "#1D4ED8",
+          soft: "#DBEAFE",
         },
         ink: {
           900: "#1A1A1A",
@@ -41,9 +41,9 @@ export default {
           200: "#D1D1D1",
         },
         energy: {
-          DEFAULT: "#F59E0B",
-          soft: "#FEF3C7",
-          dark: "#D97706",
+          DEFAULT: "#E8702A",
+          soft: "#FEF3E8",
+          dark: "#C55A1E",
         },
         progress: {
           DEFAULT: "#10B981",
@@ -115,8 +115,8 @@ export default {
         soft: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
         card: "0 4px 12px rgba(0,0,0,0.06)",
         modal: "0 20px 40px rgba(0,0,0,0.12)",
-        streak: "0 4px 16px rgba(245, 158, 11, 0.14)",
-        xp: "0 4px 16px rgba(124, 58, 237, 0.12)",
+        streak: "0 4px 16px rgba(232, 112, 42, 0.14)",
+        xp: "0 4px 16px rgba(37, 99, 235, 0.12)",
         challenge: "0 4px 16px rgba(16, 185, 129, 0.12)",
       },
       backgroundImage: {
