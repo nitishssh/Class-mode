@@ -210,7 +210,7 @@ const IllustrationPanel = () => {
       <p className="relative z-10 mt-5 px-6 text-center text-base text-foreground">
         Make your learning easier and organized
         <br />
-        with <span className="font-bold">EduAI</span>
+        with <span className="font-bold">Class Mode</span>
       </p>
     </div>
   );
@@ -641,7 +641,7 @@ export function FirebaseAuthDialog() {
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
             Simplify your workflow and boost your productivity with{" "}
-            <span className="font-semibold text-foreground">EduAI</span>.{" "}
+            <span className="font-semibold text-foreground">Class Mode</span>.{" "}
             {authTab === "login"
               ? "Get started for free."
               : authTab === "register"
