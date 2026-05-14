@@ -27,13 +27,19 @@ function issueJwt(userId: number, role: string, email: string): string {
   return jwt.sign({ userId, role, email } satisfies JwtPayload, JWT_SECRET, { expiresIn: "7d" });
 }
 
+const SELF_REGISTERABLE_ROLES = ["student", "teacher", "principal", "school_admin", "parent"];
+
 // ── POST /api/auth/firebase ──────────────────────────────────────────────────
 // Exchange a Firebase ID token for a server-issued JWT.
 // This is the ONLY place Firebase Admin token verification happens.
 // All subsequent API requests use the server JWT — never the Firebase ID token.
 router.post("/firebase", async (req: Request, res: Response) => {
   try {
-    const { idToken, role } = req.body as { idToken?: string; role?: string };
+    const { idToken, role: rawRole } = req.body as { idToken?: string; role?: string };
+    
+    // FIX BUG-15: Restrict self-assignable roles to prevent privilege escalation
+    const safeRole = SELF_REGISTERABLE_ROLES.includes(rawRole || "") ? rawRole : "student";
+
     if (!idToken || typeof idToken !== "string") {
       return res.status(400).json({ message: "idToken is required" });
     }
@@ -63,11 +69,11 @@ router.post("/firebase", async (req: Request, res: Response) => {
         password: `firebase_managed_${uid}`,
         name: name || email.split("@")[0],
         email: email.toLowerCase(),
-        role: role || "student",
+        role: safeRole || "student",
         avatar: picture || null,
         firebaseUid: uid,
         displayName: name || null,
-        status: role === "teacher" ? "pending" : "active",
+        status: safeRole === "teacher" ? "pending" : "active",
       });
       await user.save();
       logger.info("[auth/firebase] Created new MongoDB user", { id, role: user.role });
@@ -93,11 +99,13 @@ router.post("/firebase", async (req: Request, res: Response) => {
     // Issue a server JWT so subsequent requests never need to call Firebase Admin
     const token = issueJwt(user.id, user.role, user.email);
 
+    // FIX BUG-07: Set firebaseUid and email on session so /sync-profile can read them
     // Persist session for WebSocket auth compatibility
     if (req.session) {
       req.session.userId = user.id;
       req.session.role = user.role;
       req.session.firebaseUid = uid;
+      req.session.email = email;
     }
 
     // Set httpOnly cookie — client can also store in memory for Authorization header
@@ -199,12 +207,14 @@ router.post("/register", async (req: Request, res: Response) => {
       password,
       role,
       class: className,
+      school_code,
     } = req.body as {
       name?: string;
       email?: string;
       password?: string;
       role?: string;
       class?: string;
+      school_code?: string;
     };
 
     if (!name || !email || !password) {
@@ -212,6 +222,11 @@ router.post("/register", async (req: Request, res: Response) => {
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ message: "Invalid email address" });
+    }
+
+    // FIX BUG-16: Server-side role-specific validation
+    if (["teacher", "principal", "school_admin"].includes(role || "") && !school_code) {
+      return res.status(400).json({ message: "school_code is required for teachers and school staff" });
     }
 
     const normalizedEmail = email.toLowerCase().trim();
@@ -229,6 +244,7 @@ router.post("/register", async (req: Request, res: Response) => {
       role: role || "student",
       displayName: name,
       class: className || null,
+      school_code: school_code || null,
       status: role === "teacher" ? "pending" : "active",
     });
     await newUser.save();
@@ -277,7 +293,7 @@ router.get("/me", async (req: Request, res: Response) => {
     const user = await MongoUser.findOne({ id: userId }).lean();
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    const { password: _pw, ...safeUser } = user as typeof user & { password?: string };
+    const { password: _pw, ...safeUser } = user as any;
     void _pw;
     return res.status(200).json(safeUser);
   } catch {
@@ -288,9 +304,13 @@ router.get("/me", async (req: Request, res: Response) => {
 // ── POST /api/auth/logout ─────────────────────────────────────────────────────
 router.post("/logout", (req: Request, res: Response) => {
   res.clearCookie("access_token");
-  req.session?.destroy(() => {
+  if (req.session) {
+    req.session.destroy(() => {
+      res.status(200).json({ message: "Logged out" });
+    });
+  } else {
     res.status(200).json({ message: "Logged out" });
-  });
+  }
 });
 
 // ── POST /api/auth/sync-profile ───────────────────────────────────────────────

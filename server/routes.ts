@@ -1534,6 +1534,7 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
 
   // /api/auth/firebase is handled by authRouter (server/routes/auth.ts)
 
+
   // ─── Phase 2: Chat Conversations API ────────────────────────────────────────
   //
   // GET /api/chat/conversations — Returns all channels accessible to the user.

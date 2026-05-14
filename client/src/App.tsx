@@ -131,6 +131,7 @@ const withProtection = <P extends object>(
 // Defined at module scope so React sees stable component references across renders.
 // Previously defined inside App() which created new types on every render, causing
 // full unmount/remount of pages and losing all page-level state.
+
 const protect = withProtection;
 
 const TeacherDashboardRoute = withLayout(protect(Dashboard, ["teacher"]));
@@ -267,6 +268,7 @@ function App() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const RootDashboard = (dashboardByRole[role] ||
     FallbackDashboardRoute) as React.ComponentType<any>;
+
 
   return (
     <Switch>
