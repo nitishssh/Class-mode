@@ -2,10 +2,9 @@
 
 ## Overview
 
-PersonalLearningPro now uses a unified microservices architecture that consolidates:
+PersonalLearningPro uses a unified microservices architecture that consolidates:
 
 - **EduAI** (main web app + backend — includes native Study Arena)
-- **OpenMAIC** (optional studyArena Next.js companion UI)
 - **IniClaw** (lightweight LLM proxy gateway — zero npm dependencies)
 
 All services are orchestrated via Docker Compose and communicate through REST APIs, WebSockets, and webhooks.
@@ -15,16 +14,16 @@ All services are orchestrated via Docker Compose and communicate through REST AP
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    Nginx Reverse Proxy                      │
-│  (Routes: / → EduAI, /arena/* → OpenMAIC, /gateway/* → IniClaw)
+│  (Routes: / → EduAI, /gateway/* → IniClaw)
 └─────────────────────────────────────────────────────────────┘
                               │
         ┌─────────────────────┼─────────────────────┐
         │                     │                     │
-    ┌───▼────┐          ┌────▼────┐          ┌────▼────┐
-    │ EduAI  │          │ OpenMAIC │          │ IniClaw │
-    │ (5001) │          │  (3000)  │          │ (4000)  │
-    └───┬────┘          └────┬────┘          └────┬────┘
-        │                    │                    │
+    ┌───▼────┐          ┌────▼────┐          
+    │ EduAI  │          │ IniClaw │          
+    │ (5001) │          │ (4000)  │          
+    └───┬────┘          └────┬────┘          
+        │                    │                    
         └────────────────────┼────────────────────┘
                              │
         ┌────────────────────┼────────────────────┐
@@ -35,7 +34,7 @@ All services are orchestrated via Docker Compose and communicate through REST AP
     └────────┘          └────────┘          └────────┘
 ```
 
-## Phase 1: Repository Merge
+## Phase 1: Service Directories
 
 ### Step 1: Create Service Directories
 
@@ -44,7 +43,6 @@ All services are orchestrated via Docker Compose and communicate through REST AP
 bash scripts/setup-services.sh
 
 # This creates:
-# - services/openmaic/
 # - services/iniclaw/
 # - Placeholder Dockerfiles and package.json files
 ```
@@ -52,9 +50,6 @@ bash scripts/setup-services.sh
 ### Step 2: Move Your Code
 
 ```bash
-# Copy OpenMAIC (studyArena) code
-cp -r /path/to/studyArena/* services/openmaic/
-
 # Copy IniClaw code
 cp -r /path/to/ini_claw/* services/iniclaw/
 
@@ -66,8 +61,7 @@ cp -r /path/to/ini_claw/* services/iniclaw/
 Copy `.env.example` to `.env` and fill in:
 
 ```bash
-# OpenMAIC Integration
-OPENMAIC_INTERNAL_URL=http://openmaic-web:3000
+# IniClaw Gateway
 INICLAW_GATEWAY_URL=http://iniclaw-gateway:4000
 BRIDGE_SECRET=<generate-with-openssl-rand-hex-32>
 
@@ -106,31 +100,8 @@ OPENAI_API_KEY=<your-key>
 ┌─────────────────────────────────────┐
 │   EduAI Backend                     │
 │   (Verifies Firebase JWT)           │
-│   (Generates OpenMAIC session token)│
-└──────┬──────────────────────────────┘
-       │ 3. OpenMAIC session token
-       │
-       ▼
-┌─────────────────────────────────────┐
-│   OpenMAIC                          │
-│   (Validates session token)         │
-│   (Personalizes AI teacher)         │
+│   (Proxies to Study Arena API)      │
 └─────────────────────────────────────┘
-```
-
-### Implementation
-
-The authentication bridge is implemented in `server/lib/openmaic-auth-bridge.ts`:
-
-```typescript
-// Generate OpenMAIC session token
-const token = await generateOpenMAICSessionToken(firebaseUid);
-
-// Verify OpenMAIC session token
-const decoded = verifyOpenMAICSessionToken(token);
-
-// Generate classroom URL with embedded token
-const url = generateOpenMAICClassroomUrl(classroomId, token);
 ```
 
 ### API Endpoints
@@ -155,7 +126,6 @@ Response:
   "classroom": {
     "id": "classroom-123",
     "status": "ready",
-    "url": "http://localhost:3000/classroom/classroom-123?token=...",
     "topic": "Calculus"
   }
 }
@@ -164,40 +134,21 @@ Response:
 **Get Classroom Details:**
 
 ```bash
-GET /api/openmaic/classroom/:classroomId
+GET /api/ai-classroom/classroom/:classroomId
 Authorization: Bearer <firebase-jwt>
 ```
 
-**Generate Classroom Embed:**
-
-```bash
-POST /api/openmaic/classroom/:classroomId/embed
-Authorization: Bearer <firebase-jwt>
-Content-Type: application/json
-
-{
-  "width": "100%",
-  "height": "600px"
-}
-
-Response:
-{
-  "success": true,
-  "embed": "<iframe src=\"...\" ...></iframe>"
-}
-```
-
-## Phase 3: Backend & Data Synchronization
+## Phase 3: Data Synchronization
 
 ### Webhook Events
 
-OpenMAIC sends webhooks to EduAI when:
+IniClaw gateway can send webhooks to EduAI when:
 
 1. **Lesson Completed**
 
    ```
-   POST /api/webhooks/openmaic/lesson-completed
-   X-OpenMAIC-Signature: <hmac-sha256>
+   POST /api/webhooks/lesson-completed
+   X-Signature: <hmac-sha256>
 
    {
      "event": "lesson_completed",
@@ -218,7 +169,7 @@ OpenMAIC sends webhooks to EduAI when:
 2. **Quiz Completed**
 
    ```
-   POST /api/webhooks/openmaic/quiz-completed
+   POST /api/webhooks/quiz-completed
 
    {
      "event": "quiz_completed",
@@ -239,7 +190,7 @@ OpenMAIC sends webhooks to EduAI when:
 3. **Session Ended**
 
    ```
-   POST /api/webhooks/openmaic/session-ended
+   POST /api/webhooks/session-ended
 
    {
      "event": "session_ended",
@@ -258,7 +209,7 @@ OpenMAIC sends webhooks to EduAI when:
 
 Webhook data is stored in MongoDB:
 
-- **Analytics Collection**: Records all OpenMAIC events
+- **Analytics Collection**: Records all events
 - **Test Attempts**: Quiz results stored as test attempts
 - **User Profile**: Weaknesses and strengths tracked for study plan generation
 
@@ -267,105 +218,13 @@ Webhook data is stored in MongoDB:
 All webhooks are signed with HMAC-SHA256:
 
 ```typescript
-// OpenMAIC signs the payload
 const signature = crypto
   .createHmac("sha256", BRIDGE_SECRET)
   .update(JSON.stringify(payload))
   .digest("hex");
 
-// EduAI verifies the signature
-const isValid = verifyOpenMAICWebhookSignature(payload, signature);
+const isValid = verifySignature(payload, signature);
 ```
-
-## Phase 4: UI/UX Harmonization
-
-### Design System Alignment
-
-Both EduAI and OpenMAIC use Tailwind CSS. Ensure consistency:
-
-**EduAI Theme:**
-
-- Colors: Radix UI palette
-- Typography: Inter font
-- Components: shadcn/ui
-
-**OpenMAIC Theme:**
-
-- Colors: Tailwind v4 (align with EduAI)
-- Typography: Inter font
-- Components: Custom or shadcn/ui
-
-### Navigation Integration
-
-Add "Back to Dashboard" button in OpenMAIC:
-
-```tsx
-// In OpenMAIC classroom component
-<button
-  onClick={() => (window.location.href = "/")}
-  className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 hover:bg-gray-200"
->
-  <ArrowLeft size={18} />
-  Back to Dashboard
-</button>
-```
-
-### Deep Linking
-
-EduAI can create deep links to OpenMAIC classrooms:
-
-```tsx
-// In EduAI Study Plan component
-const handleEnterClassroom = async (topic: string) => {
-  const response = await fetch("/api/ai-classroom/create", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ topic, sceneTypes: ["slides", "quiz"] }),
-  });
-
-  const { classroom } = await response.json();
-  window.location.href = classroom.url;
-};
-```
-
-## Phase 5: Feature Mapping
-
-### Study Plan Generator → OpenMAIC Classrooms
-
-```
-EduAI Study Plan
-    ↓
-Identifies weak topics
-    ↓
-Creates OpenMAIC classroom for each topic
-    ↓
-Generates deep links
-    ↓
-Student clicks → Enters AI classroom
-    ↓
-AI teacher personalizes based on weaknesses
-    ↓
-Lesson completion → Webhook to EduAI
-    ↓
-Analytics updated → Study plan adjusted
-```
-
-### Study Arena → IniClaw Integration (optional)
-
-```
-EduAI Study Arena
-    ↓
-Student requests AI classroom
-    ↓
-Routes to IniClaw gateway (if USE_INICLAW=true)
-  OR calls LLM providers directly (default)
-    ↓
-IniClaw proxies to Gemini / OpenAI / Anthropic
-    ↓
-Lesson content streamed back to EduAI
-```
-
-IniClaw (`features/ai-classroom/ini_claw/`) is a pure Node.js HTTP proxy — no Docker, no OpenShell sandbox, no NVIDIA dependencies. It adds auth, concurrency limiting, and audit logging on top of direct LLM calls.
 
 ## Running the Services
 
@@ -377,7 +236,6 @@ docker compose up
 
 # Services will be available at:
 # - EduAI: http://localhost:5001
-# - OpenMAIC: http://localhost:3000 (or http://localhost:5001/arena)
 # - IniClaw: http://localhost:4000 (or http://localhost:5001/gateway)
 # - Nginx: http://localhost:80
 ```
@@ -388,11 +246,7 @@ docker compose up
 # Terminal 1: EduAI main app (includes native Study Arena)
 npm run dev
 
-# Terminal 2: OpenMAIC companion UI (optional)
-cd services/openmaic
-npm run dev
-
-# Terminal 3: IniClaw gateway (optional LLM proxy)
+# Terminal 2: IniClaw gateway (optional LLM proxy)
 cd features/ai-classroom/ini_claw
 BRIDGE_SECRET=<your-secret> INICLAW_PORT=7070 node gateway.js
 ```
@@ -405,7 +259,6 @@ docker compose --profile prod up
 
 # Services will be behind Nginx reverse proxy
 # - http://yourdomain.com → EduAI
-# - http://yourdomain.com/arena → OpenMAIC
 # - http://yourdomain.com/gateway → IniClaw
 ```
 
@@ -417,14 +270,9 @@ docker compose --profile prod up
 # EduAI
 curl http://localhost:5001/api/health
 
-# OpenMAIC
-curl http://localhost:3000/api/health
-
 # IniClaw
 curl http://localhost:4000/api/health
-
-# OpenMAIC API
-curl http://localhost:5001/api/openmaic/health
+curl http://localhost:7070/health
 ```
 
 ### Logs
@@ -435,7 +283,6 @@ docker compose logs -f
 
 # View specific service logs
 docker compose logs -f eduai-app
-docker compose logs -f openmaic-web
 docker compose logs -f iniclaw-gateway
 ```
 
@@ -453,19 +300,6 @@ redis-cli -h localhost -p 6379
 ```
 
 ## Troubleshooting
-
-### OpenMAIC Service Unavailable
-
-```bash
-# Check if service is running
-docker compose ps openmaic-web
-
-# Check logs
-docker compose logs openmaic-web
-
-# Restart service
-docker compose restart openmaic-web
-```
 
 ### Webhook Signature Verification Failed
 
@@ -500,7 +334,7 @@ curl -H "Authorization: Bearer <token>" http://localhost:5001/api/auth/me
 3. **CORS**: Configure allowed origins in `.env`
 
    ```
-   CORS_ORIGIN=https://yourdomain.com,https://arena.yourdomain.com
+   CORS_ORIGIN=https://yourdomain.com
    ```
 
 4. **SSL/TLS**: Use HTTPS in production
@@ -515,13 +349,10 @@ curl -H "Authorization: Bearer <token>" http://localhost:5001/api/auth/me
 ## Next Steps
 
 1. ✅ Set up Docker Compose (done)
-2. ✅ Create authentication bridge (done)
-3. ✅ Implement webhook handlers (done)
-4. ✅ Native Study Arena replaces OpenMAIC dependency for core classroom generation
-5. ✅ IniClaw rewritten as lightweight LLM proxy (zero npm deps, no Docker/sandbox required)
-6. ✅ All 25 API integration tests passing
-7. ⏳ Move OpenMAIC companion UI to `services/openmaic/` (optional)
-8. ⏳ Deploy to production
+2. ✅ Native Study Arena replaces external dependency for core classroom generation
+3. ✅ IniClaw rewritten as lightweight LLM proxy (zero npm deps, no Docker/sandbox required)
+4. ✅ All 25 API integration tests passing
+5. ⏳ Deploy to production
 
 ## References
 
