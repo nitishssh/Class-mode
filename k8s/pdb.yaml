@@ -1,0 +1,10 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: personallearningpro-pdb
+  namespace: personallearningpro
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: personallearningpro
