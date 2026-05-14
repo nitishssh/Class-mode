@@ -6,7 +6,11 @@ import { verifyFirebaseToken } from "../lib/firebase-admin";
 import { MongoUser } from "../../shared/mongo-schema";
 
 // Mock the dependencies
-vi.mock("../lib/firebase-admin");
+vi.mock("../lib/firebase-admin", () => ({
+  verifyFirebaseToken: vi.fn(),
+  setCustomUserClaims: vi.fn().mockResolvedValue(true),
+  checkFirebaseAdminReadiness: vi.fn(),
+}));
 
 // Mock MongoDB
 vi.mock("../../shared/mongo-schema", () => {

@@ -9,6 +9,8 @@ import session from "express-session";
 // Mock dependencies
 vi.mock("../lib/firebase-admin", () => ({
   verifyFirebaseToken: vi.fn(),
+  setCustomUserClaims: vi.fn().mockResolvedValue(true),
+  checkFirebaseAdminReadiness: vi.fn(),
 }));
 
 // Mock MongoDB
@@ -109,12 +111,14 @@ describe("Auth Routes", () => {
       const res = await request(app).post("/api/auth/firebase").send({ idToken: "valid-token" });
 
       expect(res.status).toBe(200);
-      expect(res.body).toEqual({
+      expect(res.body).toMatchObject({
         userId: 1,
         displayName: "Test User",
         role: "student",
-        avatar: undefined,
+        email: "test@test.com",
+        avatar: null,
       });
+      expect(res.body.token).toBeTypeOf("string");
     });
 
     it("should create a new user if one does not exist", async () => {
@@ -131,12 +135,14 @@ describe("Auth Routes", () => {
       const res = await request(app).post("/api/auth/firebase").send({ idToken: "valid-token" });
 
       expect(res.status).toBe(200);
-      expect(res.body).toEqual({
+      expect(res.body).toMatchObject({
         userId: 123,
         displayName: "New User",
         role: "student",
+        email: "new@test.com",
         avatar: "pic_url",
       });
+      expect(res.body.token).toBeTypeOf("string");
     });
   });
 });

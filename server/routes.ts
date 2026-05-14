@@ -18,7 +18,7 @@ import { z } from "zod";
 import { processOCRImage } from "./lib/tesseract";
 import { evaluateSubjectiveAnswer, aiChat } from "./lib/openai";
 import { upload, diskPathToUrl } from "./lib/upload";
-import { verifyFirebaseToken, setCustomUserClaims } from "./lib/firebase-admin";
+// firebase-admin is used only in server/routes/auth.ts (the exchange endpoint)
 import {
   MongoUser,
   MongoWorkspace,
@@ -92,7 +92,7 @@ export async function authenticateToken(req: Request, res: Response, next: expre
   // Session fallback: WebSocket-established sessions or legacy cookie-only flows
   if (req.session?.userId) {
     try {
-      const user = await MongoUser.findOne({ id: req.session.userId }).lean();
+      const user = await MongoUser.findOne({ id: req.session.userId });
       if (user) {
         (req as any).user = { id: user.id, role: user.role, email: user.email };
         return next();
