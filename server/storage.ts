@@ -254,7 +254,7 @@ export class MongoStorage implements IStorage {
   }
 
   async createUser(user: InsertUser): Promise<User> {
-    const id = await getNextSequenceValue("user_id");
+    const id = await getNextSequenceValue("userId");
     const newUser = new MongoUser({ ...user, id });
     await newUser.save();
     return this.mapMongoDoc<User>(newUser);

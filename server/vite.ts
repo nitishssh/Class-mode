@@ -24,7 +24,11 @@ export async function setupVite(app: Express, server: Server) {
 
   const serverOptions = {
     middlewareMode: true as const,
-    hmr: { server },
+    hmr: { 
+      server,
+      port: 5001,
+      clientPort: 5001,
+    },
     allowedHosts: true as const,
   };
 

@@ -125,8 +125,20 @@ jobs:
       packages: read
 
     steps:
+      - name: Check staging secrets
+        id: check
+        env:
+          STAGING_HOST: ${{ secrets.STAGING_HOST }}
+        run: |
+          if [ -n "$STAGING_HOST" ]; then
+            echo "has_secrets=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_secrets=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Deploy to staging server
-        uses: appleboy/ssh-action@v1
+        if: steps.check.outputs.has_secrets == 'true'
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.STAGING_HOST }}
           username: ${{ secrets.STAGING_USER }}
