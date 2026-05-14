@@ -30,7 +30,7 @@ const Navbar = () => {
     <nav className="fixed left-0 right-0 top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
       <div className="container flex h-16 items-center justify-between">
         <a href="#" className="font-heading text-xl font-bold tracking-tight">
-          Edu<span className="text-primary">AI</span> ✨
+          Class <span className="text-primary">Mode</span> ✨
         </a>
 
         {/* Desktop */}
@@ -105,7 +105,7 @@ const Footer = () => (
       <div className="grid gap-8 text-sm sm:grid-cols-3">
         <div>
           <p className="mb-2 font-heading text-lg font-bold">
-            Edu<span className="text-primary">AI</span> ✨
+            Class <span className="text-primary">Mode</span> ✨
           </p>
           <p className="text-muted-foreground">
             AI-powered personalised learning for every student.
@@ -141,17 +141,17 @@ const Footer = () => (
               Instagram
             </a>
             <a
-              href="mailto:hello@eduai.com"
+              href="mailto:hello@classmode.com"
               className="block transition-colors hover:text-foreground"
             >
-              hello@eduai.com
+              hello@classmode.com
             </a>
           </div>
         </div>
       </div>
 
       <div className="mt-10 border-t border-border pt-6 text-center text-xs text-muted-foreground">
-        © 2026 EduAI. All rights reserved. Built with 💛 for learners everywhere.
+        © 2026 Class Mode. All rights reserved. Built with 💛 for learners everywhere.
       </div>
     </div>
   </footer>
