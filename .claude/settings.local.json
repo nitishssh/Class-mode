@@ -40,7 +40,8 @@
       "Bash(gh run *)",
       "Bash(gcloud builds triggers create *)",
       "Bash(gcloud builds *)",
-      "Bash(curl *)"
+      "Bash(curl *)",
+      "Bash(gcloud auth *)"
     ]
   }
 }
