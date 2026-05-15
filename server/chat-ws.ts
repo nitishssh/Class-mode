@@ -18,7 +18,8 @@ import type { Store } from "express-session";
 import { storage } from "./storage";
 import { aiChat } from "./lib/openai";
 import { verifyFirebaseToken } from "./lib/firebase-admin";
-import { MongoUser, MongoChannel } from "@shared/mongo-schema";
+import { pgFindUserByAuthSubject, pgFindUserByEmail } from "./lib/pg-queries";
+import { getPgPool, isPgReady } from "./db-pg";
 
 const AI_TUTOR_ID = 999;
 const AI_TUTOR_NAME = "AI Tutor";
@@ -141,19 +142,16 @@ async function resolveUserId(
 
     const { uid, name, email } = decoded;
 
-    // Find the MongoDB user linked to this Firebase UID
-    let mongoUser: any = await (MongoUser as any).findOne({ firebaseUid: uid });
-    if (!mongoUser && email) {
-      mongoUser = await (MongoUser as any).findOne({ email });
-    }
+    let pgUser = await pgFindUserByAuthSubject("firebase", uid);
+    if (!pgUser && email) pgUser = await pgFindUserByEmail(email);
 
-    if (!mongoUser) return null;
+    if (!pgUser) return null;
 
     return {
-      userId: mongoUser.id,
+      userId: pgUser.id,
       firebaseUid: uid,
-      displayName: mongoUser.displayName || mongoUser.name || name || email || "User",
-      role: mongoUser.role ?? "student",
+      displayName: pgUser.displayName || pgUser.name || name || email || "User",
+      role: pgUser.role ?? "student",
     };
   }
 
@@ -405,10 +403,16 @@ export function setupChatWebSocket(httpServer: Server, sessionStore: Store) {
               for (const [subWs, subMeta] of Array.from(clientMeta.entries())) {
                 if (subMeta.channels.has(channelId) && subMeta.firebaseUid !== firebaseUid) {
                   // Increment in DB
-                  await (MongoChannel as any).findOneAndUpdate(
-                    { id: channelId },
-                    { $inc: { [`unreadCounts.${subMeta.firebaseUid}`]: 1 } }
-                  );
+                  if (isPgReady()) {
+                    await getPgPool().query(
+                      `UPDATE channels SET unread_counts = jsonb_set(
+                         unread_counts,
+                         $1::text[],
+                         (COALESCE(unread_counts->$2, '0')::int + 1)::text::jsonb
+                       ) WHERE id = $3`,
+                      [[subMeta.firebaseUid], subMeta.firebaseUid, channelId]
+                    ).catch(() => null);
+                  }
                   // Real-time push to that client
                   if (subs.has(subWs)) {
                     send(subWs, {
@@ -485,9 +489,13 @@ export function setupChatWebSocket(httpServer: Server, sessionStore: Store) {
           );
 
           // Auto-update typingUsers in DB
-          await (MongoChannel as any)
-            .findOneAndUpdate({ id: channelId }, { $addToSet: { typingUsers: firebaseUid } })
-            .catch(() => null);
+          if (isPgReady()) {
+            getPgPool().query(
+              `UPDATE channels SET typing_users = array_append(typing_users, $1)
+               WHERE id = $2 AND NOT ($1 = ANY(typing_users))`,
+              [firebaseUid, channelId]
+            ).catch(() => null);
+          }
           break;
         }
 
@@ -508,9 +516,12 @@ export function setupChatWebSocket(httpServer: Server, sessionStore: Store) {
             ws
           );
 
-          await (MongoChannel as any)
-            .findOneAndUpdate({ id: channelId }, { $pull: { typingUsers: firebaseUid } })
-            .catch(() => null);
+          if (isPgReady()) {
+            getPgPool().query(
+              "UPDATE channels SET typing_users = array_remove(typing_users, $1) WHERE id = $2",
+              [firebaseUid, channelId]
+            ).catch(() => null);
+          }
           break;
         }
 
@@ -522,9 +533,12 @@ export function setupChatWebSocket(httpServer: Server, sessionStore: Store) {
           await storage.markMessageAsRead(messageId, userId);
 
           // Reset unread count in channel for this user
-          await (MongoChannel as any)
-            .findOneAndUpdate({ id: channelId }, { $set: { [`unreadCounts.${firebaseUid}`]: 0 } })
-            .catch(() => null);
+          if (isPgReady()) {
+            getPgPool().query(
+              "UPDATE channels SET unread_counts = unread_counts - $1 WHERE id = $2",
+              [firebaseUid, channelId]
+            ).catch(() => null);
+          }
 
           broadcastToChannel(
             channelId,

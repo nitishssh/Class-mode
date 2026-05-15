@@ -61,3 +61,51 @@ If you did not expect this invite, you can ignore this email.
 — The Class Mode Team`,
   });
 }
+
+export async function sendPrincipalInvite(
+  email: string,
+  name: string,
+  schoolName: string,
+  token: string
+) {
+  const link = `${APP_URL}/accept-invite?token=${token}`;
+  await transporter.sendMail({
+    from: FROM,
+    to: email,
+    subject: `You've been invited as Principal of ${schoolName} on Class Mode`,
+    text: `Hi ${name},
+
+You have been invited to join ${schoolName} as a Principal on Class Mode.
+
+This role was assigned by a platform administrator. Click the link below to set up your account (expires in 7 days):
+${link}
+
+If you did not expect this invite, please disregard this email.
+
+— The Class Mode Team`,
+  });
+}
+
+export async function sendSchoolAdminInvite(
+  email: string,
+  name: string,
+  schoolName: string,
+  token: string
+) {
+  const link = `${APP_URL}/accept-invite?token=${token}`;
+  await transporter.sendMail({
+    from: FROM,
+    to: email,
+    subject: `You've been invited as School Administrator of ${schoolName} on Class Mode`,
+    text: `Hi ${name},
+
+You have been invited to join ${schoolName} as a School Administrator on Class Mode.
+
+This role was assigned by a platform administrator. Click the link below to set up your account (expires in 7 days):
+${link}
+
+If you did not expect this invite, please disregard this email.
+
+— The Class Mode Team`,
+  });
+}

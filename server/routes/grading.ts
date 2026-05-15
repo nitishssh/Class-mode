@@ -6,7 +6,7 @@ import {
   getGradingHistory,
   regradeSubmission,
 } from "../services/gradingService";
-import { MongoGradingResult } from "../../shared/mongo-schema";
+import { pgFindGradingResultBySubmissionId } from "../lib/pg-queries";
 import { authenticateToken } from "../routes";
 import { logger } from "../lib/logger";
 
@@ -142,7 +142,7 @@ router.get("/history/:studentId", authenticateToken, async (req: Request, res: R
 router.get("/status/:submissionId", authenticateToken, async (req: Request, res: Response) => {
   try {
     const { submissionId } = req.params;
-    const result = await MongoGradingResult.findOne({ submissionId });
+    const result = await pgFindGradingResultBySubmissionId(submissionId);
 
     if (!result) {
       return res.status(404).json({

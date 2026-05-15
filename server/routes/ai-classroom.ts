@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { studyArenaInternalService } from "../services/study-arena/internal-service";
-import { MongoAIClassroom } from "../../shared/mongo-schema";
+import { pgFindAIClassroomById } from "../lib/pg-queries";
 import { orchestrateChat } from "../services/study-arena/orchestrator";
 import { StatelessChatRequest } from "../services/study-arena/types";
 import { logger } from "../lib/logger";
@@ -140,7 +140,7 @@ router.get("/classroom/:classroomId", async (req, res) => {
       return res.status(401).json({ error: "Authentication required" });
     }
 
-    const classroom = await MongoAIClassroom.findOne({ id: parseInt(classroomId) });
+    const classroom = await pgFindAIClassroomById(parseInt(classroomId));
     if (!classroom) {
       return res.status(404).json({ error: "Classroom not found" });
     }

@@ -25,7 +25,7 @@ import path from "path";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
 import { storage } from "./storage";
-import { connectMongoDB } from "./db";
+import { connectPostgres } from "./db-pg";
 import { setupChatWebSocket } from "./chat-ws";
 import { setupMessagePalWebSocket } from "./message";
 import { initCassandra } from "./lib/cassandra";
@@ -119,8 +119,8 @@ app.use(
 // Serve uploaded files
 app.use("/uploads", express.static(path.resolve("public", "uploads")));
 
-// Initialize Databases
-connectMongoDB();
+// Initialize Database
+connectPostgres();
 initCassandra();
 
 // Check Firebase Admin readiness at startup

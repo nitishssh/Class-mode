@@ -1,6 +1,9 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
-import { MongoUser, MongoSubscription, getNextSequenceValue } from "../../shared/mongo-schema";
+import {
+  pgFindSubscriptionByUser, pgFindSubscriptionByStripeCustomer,
+  pgUpsertSubscription, pgUpdateSubscriptionByStripeCustomer, pgFindUserById,
+} from "../lib/pg-queries";
 import { authenticateToken } from "../routes";
 import { logger } from "../lib/logger";
 import StripeImport from "stripe";
@@ -48,7 +51,7 @@ export async function requireSubscription(minTier: "pro" | "educator" | "institu
     const user = req.user;
     if (!user?.id) return res.status(401).json({ error: "Authentication required" });
 
-    const sub = await MongoSubscription.findOne({ userId: user.id, status: "active" }).lean();
+    const sub = await pgFindSubscriptionByUser(user.id);
     const userTier = sub?.tier || "free";
     const requiredLevel = tierLevel[minTier] || 1;
     const userLevel = tierLevel[userTier] || 0;
@@ -73,7 +76,7 @@ router.get("/subscription", authenticateToken, async (req: Request, res: Respons
     const user = (req as any).user;
     if (!user?.id) return res.status(401).json({ error: "Authentication required" });
 
-    const sub = await MongoSubscription.findOne({ userId: user.id });
+    const sub = await pgFindSubscriptionByUser(user.id);
 
     const tier = sub?.tier || "free";
     const config = TIER_CONFIG[tier as keyof typeof TIER_CONFIG] || TIER_CONFIG.free;
@@ -116,31 +119,18 @@ router.post("/checkout", authenticateToken, async (req: Request, res: Response) 
     }
 
     // Get or create Stripe customer
-    let sub = await MongoSubscription.findOne({ userId: user.id });
+    let sub = await pgFindSubscriptionByUser(user.id);
     let customerId = sub?.stripeCustomerId;
 
     if (!customerId) {
-      const userDoc = await MongoUser.findOne({ id: user.id });
+      const userDoc = await pgFindUserById(user.id);
       const customer = await stripe.customers.create({
         email: userDoc?.email || undefined,
         name: userDoc?.name || undefined,
         metadata: { userId: String(user.id) },
       });
       customerId = customer.id;
-
-      if (!sub) {
-        sub = new MongoSubscription({
-          id: await getNextSequenceValue("Subscription"),
-          userId: user.id,
-          tier: "free",
-          stripeCustomerId: customerId,
-          status: "active",
-        });
-        await sub.save();
-      } else {
-        sub.stripeCustomerId = customerId;
-        await sub.save();
-      }
+      sub = await pgUpsertSubscription(user.id, { tier: "free", stripeCustomerId: customerId, status: "active" });
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -168,7 +158,7 @@ router.get("/portal", authenticateToken, async (req: Request, res: Response) => 
     const user = (req as any).user;
     if (!user?.id) return res.status(401).json({ error: "Authentication required" });
 
-    const sub = await MongoSubscription.findOne({ userId: user.id });
+    const sub = await pgFindSubscriptionByUser(user.id);
     if (!sub?.stripeCustomerId) {
       return res
         .status(400)
@@ -210,25 +200,20 @@ router.post("/webhook", async (req: Request, res: Response) => {
       case "customer.subscription.updated": {
         const subscription = event.data.object as any;
         const customerId = subscription.customer;
-        const sub = await MongoSubscription.findOne({ stripeCustomerId: customerId });
-        if (sub) {
-          const newTier = getTierFromPriceId(subscription.items.data[0]?.price?.id);
-          sub.tier = newTier;
-          sub.status = subscription.status;
-          sub.currentPeriodStart = new Date(subscription.current_period_start * 1000);
-          sub.currentPeriodEnd = new Date(subscription.current_period_end * 1000);
-          sub.cancelAtPeriodEnd = subscription.cancel_at_period_end;
-          await sub.save();
-        }
+        await pgUpdateSubscriptionByStripeCustomer(customerId, {
+          tier: getTierFromPriceId(subscription.items.data[0]?.price?.id),
+          status: subscription.status,
+          currentPeriodStart: new Date(subscription.current_period_start * 1000),
+          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+          cancelAtPeriodEnd: subscription.cancel_at_period_end,
+        });
         break;
       }
       case "customer.subscription.deleted": {
         const subscription = event.data.object as any;
-        const customerId = subscription.customer;
-        await MongoSubscription.updateOne(
-          { stripeCustomerId: customerId },
-          { $set: { status: "canceled", tier: "free" } }
-        );
+        await pgUpdateSubscriptionByStripeCustomer(subscription.customer, {
+          status: "canceled", tier: "free",
+        });
         break;
       }
     }

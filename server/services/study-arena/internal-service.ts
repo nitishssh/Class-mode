@@ -11,7 +11,10 @@
 import { nanoid } from "nanoid";
 import { EventEmitter } from "events";
 import { generateFullClassroom } from "./generator";
-import { MongoAIClassroom, getNextSequenceValue } from "../../../shared/mongo-schema";
+import {
+  pgCreateAIClassroom, pgFindAIClassroomByJobId, pgFindAIClassroomById,
+  pgUpdateAIClassroom, pgDeleteAIClassroom, pgFindAIClassroomsByTeacher, pgCountAIClassrooms,
+} from "../../lib/pg-queries";
 import type { ClassroomData, ClassroomGenerationProgress } from "./types";
 import { logger } from "../../lib/logger";
 
@@ -128,20 +131,17 @@ export class StudyArenaService extends EventEmitter {
         signal
       );
 
-      // Persist to MongoDB
-      const id = await getNextSequenceValue("classroomId");
-      const classroom = new MongoAIClassroom({
-        id,
+      // Persist to PostgreSQL
+      const classroom = await pgCreateAIClassroom({
         teacherId,
         topic: requirement,
         studyArenaJobId: jobId,
-        data: classroomData,
-        status: "ready",
+        status: "pending",
       });
-      await classroom.save();
+      await pgUpdateAIClassroom(classroom.id, { status: "ready", data: classroomData });
 
       logger.info(
-        `[StudyArena] Job ${jobId} completed. ClassroomId: ${id}, ${classroomData.scenes.length} scenes`
+        `[StudyArena] Job ${jobId} completed. ClassroomId: ${classroom.id}, ${classroomData.scenes.length} scenes`
       );
 
       updateJob({
@@ -152,7 +152,7 @@ export class StudyArenaService extends EventEmitter {
         done: true,
         scenesGenerated: classroomData.scenes.length,
         totalScenes: classroomData.scenes.length,
-        result: { classroomId: id },
+        result: { classroomId: classroom.id },
       });
 
       jobAbortControllers.delete(jobId);
@@ -170,12 +170,10 @@ export class StudyArenaService extends EventEmitter {
         message: `Generation failed: ${errorMsg}`,
       });
 
-      // Try to update DB record if one was created
       try {
-        await MongoAIClassroom.findOneAndUpdate({ studyArenaJobId: jobId }, { status: "error" });
-      } catch {
-        // Ignore — record might not exist yet
-      }
+        const rec = await pgFindAIClassroomByJobId(jobId);
+        if (rec) await pgUpdateAIClassroom(rec.id, { status: "error" });
+      } catch { /* ignore — record might not exist yet */ }
     }
   }
 
@@ -186,8 +184,7 @@ export class StudyArenaService extends EventEmitter {
   async pollJob(jobId: string): Promise<JobStatus> {
     const job = jobs.get(jobId);
     if (!job) {
-      // Check MongoDB — job might have completed in a previous server lifecycle
-      const dbClassroom = await MongoAIClassroom.findOne({ studyArenaJobId: jobId });
+      const dbClassroom = await pgFindAIClassroomByJobId(jobId);
       if (dbClassroom) {
         return {
           jobId,
@@ -208,7 +205,7 @@ export class StudyArenaService extends EventEmitter {
    * Get classroom data by ID.
    */
   async getClassroom(id: number): Promise<ClassroomData | null> {
-    const classroom = await MongoAIClassroom.findOne({ id });
+    const classroom = await pgFindAIClassroomById(id);
     return (classroom?.data as ClassroomData) || null;
   }
 
@@ -221,8 +218,9 @@ export class StudyArenaService extends EventEmitter {
   }
 
   async deleteClassroom(id: number, teacherId: number): Promise<boolean> {
-    const result = await MongoAIClassroom.findOneAndDelete({ id, teacherId });
-    return !!result;
+    const rec = await pgFindAIClassroomById(id);
+    if (!rec || rec.teacherId !== teacherId) return false;
+    return pgDeleteAIClassroom(id);
   }
 
   async listClassrooms(
@@ -231,8 +229,8 @@ export class StudyArenaService extends EventEmitter {
     offset: number = 0
   ): Promise<{ classrooms: any[]; total: number }> {
     const [classrooms, total] = await Promise.all([
-      MongoAIClassroom.find({ teacherId }).sort({ createdAt: -1 }).skip(offset).limit(limit).lean(),
-      MongoAIClassroom.countDocuments({ teacherId }),
+      pgFindAIClassroomsByTeacher(teacherId, offset, limit),
+      pgCountAIClassrooms(teacherId),
     ]);
     return {
       classrooms: classrooms.map((c) => ({

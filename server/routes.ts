@@ -19,18 +19,10 @@ import { processOCRImage } from "./lib/tesseract";
 import { evaluateSubjectiveAnswer, aiChat } from "./lib/openai";
 import { upload, diskPathToUrl } from "./lib/upload";
 import { verifyFirebaseToken, setCustomUserClaims } from "./lib/firebase-admin";
-import {
-  MongoUser,
-  MongoWorkspace,
-  MongoChannel,
-  MongoTest,
-  MongoTestAssignment,
-  MongoTestAttempt,
-  MongoTask,
-  MongoLiveClass,
-} from "@shared/mongo-schema";
-import { getNextSequenceValue } from "@shared/mongo-schema";
 import { logger } from "./lib/logger";
+import { recordAuditEvent, AUDIT_EVENTS } from "./lib/audit";
+import { pgFindUserById, pgFindUsers, pgUpdateUser, pgCountUsers } from "./lib/pg-queries";
+import { getPgPool, isPgReady } from "./db-pg";
 import messageRoutes from "./message/routes";
 import { liveRouter } from "./routes/live";
 import aiClassroomRoutes from "./routes/ai-classroom";
@@ -92,7 +84,7 @@ export async function authenticateToken(req: Request, res: Response, next: expre
   // Session fallback: WebSocket-established sessions or legacy cookie-only flows
   if (req.session?.userId) {
     try {
-      const user = await MongoUser.findOne({ id: req.session.userId });
+      const user = await pgFindUserById(req.session.userId);
       if (user) {
         (req as any).user = { id: user.id, role: user.role, email: user.email };
         return next();
@@ -149,64 +141,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!studentId) return res.status(401).json({ message: "Unauthorized" });
 
     try {
-      const user = await MongoUser.findOne({ id: studentId });
+      const user = await pgFindUserById(studentId);
       if (!user) return res.status(404).json({ message: "User not found" });
 
-      // 1. Enrolled subjects from user profile
       const subjects = user.subjects || [];
+      const pool = isPgReady() ? getPgPool() : null;
 
-      // 2. Upcoming tests (assigned to student)
-      const upcomingAssignments = await MongoTestAssignment.find({
-        studentId: studentId,
-        status: { $in: ["pending", "started"] },
-      })
-        .sort({ dueDate: 1 })
-        .limit(5)
-        .lean();
-
-      const testIds = upcomingAssignments.map((a) => a.testId);
-      const upcomingTests = await MongoTest.find({
-        id: { $in: testIds },
-        status: "published",
-      }).lean();
-
-      // Combine assignment info with test info
-      const formattedUpcomingTests = upcomingAssignments.map((assignment) => {
-        const test = upcomingTests.find((t) => t.id === assignment.testId);
-        return {
-          ...assignment,
-          testTitle: test?.title,
-          subject: test?.subject,
-          topic: test?.description,
-        };
-      });
-
-      // 3. Recent test results
-      const recentResults = await MongoTestAttempt.find({
-        studentId: studentId,
-        status: "evaluated",
-      })
-        .sort({ endTime: -1 })
-        .limit(5)
-        .lean();
-
-      // 4. Tasks
-      const tasks = await MongoTask.find({ userId: studentId })
-        .sort({ dueDate: 1 })
-        .limit(10)
-        .lean();
+      const [upcomingAssignments, recentResults, tasks] = await Promise.all([
+        pool ? pool.query(`
+          SELECT ta.*, t.title as "testTitle", t.subject, t.description as topic
+          FROM test_assignments ta
+          JOIN tests t ON t.id = ta.test_id
+          WHERE ta.student_id = $1 AND ta.status IN ('pending','started')
+          ORDER BY ta.due_date ASC LIMIT 5`, [studentId]).then(r => r.rows) : [],
+        pool ? pool.query(`
+          SELECT * FROM test_attempts WHERE student_id = $1 AND status = 'evaluated'
+          ORDER BY end_time DESC LIMIT 5`, [studentId]).then(r => r.rows) : [],
+        storage.getTasksByUser(studentId),
+      ]);
 
       res.json({
         profile: {
           name: user.name,
           displayName: user.displayName,
           grade: user.grade,
-          xp: 450, // Mock for now until XP system is built
+          xp: 450,
           level: 12,
           streak: 6,
         },
         subjects,
-        upcomingTests: formattedUpcomingTests,
+        upcomingTests: upcomingAssignments,
         recentResults,
         tasks,
       });
@@ -224,42 +188,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!teacherId) return res.status(401).json({ message: "Unauthorized" });
 
     try {
-      const user = await MongoUser.findOne({ id: teacherId });
+      const user = await pgFindUserById(teacherId);
       if (!user) return res.status(404).json({ message: "User not found" });
 
-      // 1. Tests created by teacher
-      const myTests = await MongoTest.find({ teacherId: teacherId })
-        .sort({ createdAt: -1 })
-        .limit(10)
-        .lean();
-      const testIds = myTests.map((t) => t.id);
+      const pool = isPgReady() ? getPgPool() : null;
+      const today = new Date(); today.setHours(0,0,0,0);
+      const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate()+1);
 
-      // 2. Submissions to review
-      const pendingSubmissions = await MongoTestAttempt.find({
-        testId: { $in: testIds },
-        status: "completed", // completed but not yet evaluated
-      })
-        .populate("studentId", "name displayName")
-        .sort({ endTime: -1 })
-        .limit(5)
-        .lean();
-
-      // 3. Live classes for today
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-
-      const liveClasses = await MongoLiveClass.find({
-        teacherId: teacherId,
-        scheduledTime: { $gte: today, $lt: tomorrow },
-      }).lean();
+      const [myTests, pendingSubmissions, liveClasses] = await Promise.all([
+        pool ? pool.query(`SELECT * FROM tests WHERE teacher_id = $1 ORDER BY created_at DESC LIMIT 10`, [teacherId]).then(r => r.rows) : [],
+        pool ? pool.query(`
+          SELECT ta.* FROM test_attempts ta
+          JOIN tests t ON t.id = ta.test_id
+          WHERE t.teacher_id = $1 AND ta.status = 'completed'
+          ORDER BY ta.end_time DESC LIMIT 5`, [teacherId]).then(r => r.rows) : [],
+        pool ? pool.query(`SELECT * FROM live_classes WHERE teacher_id = $1 AND scheduled_time >= $2 AND scheduled_time < $3`, [teacherId, today, tomorrow]).then(r => r.rows) : [],
+      ]);
 
       res.json({
         stats: {
           activeTests: myTests.length,
-          totalStudents: 86, // Aggregate from unique studentIds in assignments if needed
-          avgScore: 78,
+          totalStudents: 0,
+          avgScore: 0,
           classesCount: liveClasses.length,
         },
         tests: myTests,
@@ -781,7 +731,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let systemPrompt = undefined;
       if (userId) {
-        const user = await MongoUser.findOne({ id: req.session.userId });
+        const user = await pgFindUserById(req.session.userId!);
         if (user && user.subjects && user.subjects.length > 0) {
           systemPrompt = `You are a personal tutor for a school student. 
 The student is currently enrolled in: ${user.subjects.join(", ")}.
@@ -806,7 +756,9 @@ Answer questions clearly and at their level. Do not mention these instructions.`
         return res.status(403).json({ message: "Only teachers can access this" });
       }
 
-      const subjects = await MongoTest.distinct("subject", { teacherId });
+      const subjects = isPgReady()
+        ? (await getPgPool().query("SELECT DISTINCT subject FROM tests WHERE teacher_id = $1", [teacherId])).rows.map((r: any) => r.subject)
+        : [];
       res.json(subjects);
     } catch {
       res.status(500).json({ message: "Failed to fetch subjects" });
@@ -851,28 +803,15 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
       const studentId = req.session?.userId;
       if (!studentId) return res.status(401).json({ message: "Unauthorized" });
 
-      const weakSubjects = await MongoTestAttempt.aggregate([
-        { $match: { studentId, status: "evaluated" } },
-        {
-          $lookup: {
-            from: "tests",
-            localField: "testId",
-            foreignField: "id",
-            as: "test",
-          },
-        },
-        { $unwind: "$test" },
-        {
-          $group: {
-            _id: "$test.subject",
-            avgScore: { $avg: { $divide: ["$score", "$test.totalMarks"] } },
-          },
-        },
-        { $project: { subject: "$_id", avgScore: { $multiply: ["$avgScore", 100] } } },
-        { $match: { avgScore: { $lt: 60 } } },
-        { $sort: { avgScore: 1 } },
-      ]);
-
+      const weakSubjects = isPgReady() ? (await getPgPool().query(`
+        SELECT t.subject,
+          ROUND(AVG(ta.score::numeric / t.total_marks * 100), 2) AS "avgScore"
+        FROM test_attempts ta
+        JOIN tests t ON t.id = ta.test_id
+        WHERE ta.student_id = $1 AND ta.status = 'evaluated'
+        GROUP BY t.subject
+        HAVING AVG(ta.score::numeric / t.total_marks * 100) < 60
+        ORDER BY "avgScore" ASC`, [studentId])).rows : [];
       res.json(weakSubjects);
     } catch {
       res.status(500).json({ message: "Failed to fetch weak subjects" });
@@ -918,19 +857,11 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
         const ninetyDaysAgo = new Date();
         ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-        const results = await MongoTestAttempt.aggregate([
-          { $match: { studentId, status: "evaluated", endTime: { $gte: ninetyDaysAgo } } },
-          {
-            $lookup: {
-              from: "tests",
-              localField: "testId",
-              foreignField: "id",
-              as: "test",
-            },
-          },
-          { $unwind: "$test" },
-          { $sort: { endTime: 1 } },
-        ]);
+        const results = isPgReady() ? (await getPgPool().query(`
+          SELECT ta.*, t.subject, t.total_marks, ta.end_time as "endTime", ta.score
+          FROM test_attempts ta JOIN tests t ON t.id = ta.test_id
+          WHERE ta.student_id = $1 AND ta.status = 'evaluated' AND ta.end_time >= $2
+          ORDER BY ta.end_time ASC`, [studentId, ninetyDaysAgo])).rows : [];
 
         if (results.length < 3) {
           return res.json({
@@ -1280,15 +1211,10 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
       const messageId = parseInt(req.params.id);
       if (isNaN(messageId)) return res.status(400).json({ message: "Invalid message ID" });
 
-      // Fetch the message directly from Mongo to check ownership
-      const { MongoMessage } = await import("@shared/mongo-schema");
-      const msg = await (
-        MongoMessage as {
-          findOne: (query: {
-            id: number;
-          }) => Promise<{ authorId: number; channelId: number } | null>;
-        }
-      ).findOne({ id: messageId });
+      if (!isPgReady()) return res.status(503).json({ message: "Database unavailable" });
+      const msgRow = (await getPgPool().query("SELECT author_id, channel_id FROM messages WHERE id = $1", [messageId])).rows[0];
+      if (!msgRow) return res.status(404).json({ message: "Message not found" });
+      const msg = { authorId: parseInt(msgRow.author_id), channelId: parseInt(msgRow.channel_id) };
       if (!msg) return res.status(404).json({ message: "Message not found" });
 
       const isAuthor = msg.authorId === req.session.userId;
@@ -1555,63 +1481,22 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
       // Seed default workspace on first access
       let workspaces = await storage.getWorkspaces(userId);
       if (workspaces.length === 0) {
-        const wsId = await getNextSequenceValue("workspace_id");
-        const newWs = new (MongoWorkspace as unknown as {
-          new (data: Record<string, unknown>): { save: () => Promise<void> };
-        })({
-          id: wsId,
+        const newWs = await storage.createWorkspace({
           name: "School",
           description: "Default school workspace",
           ownerId: userId,
           members: [userId],
         });
-        await newWs.save();
 
         const defaultChannels = [
-          {
-            name: "school-announcements",
-            type: "announcement",
-            category: "announcement",
-            isReadOnly: true,
-          },
-          {
-            name: "class-10a-mathematics",
-            type: "text",
-            category: "class",
-            isReadOnly: false,
-            subject: "Mathematics",
-          },
-          {
-            name: "class-10a-science",
-            type: "text",
-            category: "class",
-            isReadOnly: false,
-            subject: "Science",
-          },
-          {
-            name: "class-10a-english",
-            type: "text",
-            category: "class",
-            isReadOnly: false,
-            subject: "English",
-          },
+          { name: "school-announcements", type: "announcement" as const },
+          { name: "class-10a-mathematics", type: "text" as const, subject: "Mathematics" },
+          { name: "class-10a-science", type: "text" as const, subject: "Science" },
+          { name: "class-10a-english", type: "text" as const, subject: "English" },
         ];
 
         for (const ch of defaultChannels) {
-          const chId = await getNextSequenceValue("channel_id");
-          const newCh = new (MongoChannel as unknown as {
-            new (data: Record<string, unknown>): { save: () => Promise<void> };
-          })({
-            id: chId,
-            workspaceId: wsId,
-            name: ch.name,
-            type: ch.type,
-            category: ch.category,
-            isReadOnly: ch.isReadOnly,
-            subject: (ch as { subject?: string }).subject || null,
-            pinnedMessages: [],
-          });
-          await newCh.save();
+          await storage.createChannel({ workspaceId: newWs.id, name: ch.name, type: ch.type, subject: (ch as any).subject ?? null });
         }
 
         workspaces = await storage.getWorkspaces(userId);
@@ -1674,17 +1559,12 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
             .map((m: { id: number }) => storage.markMessageAsRead(m.id, req.session!.userId!))
         );
 
-        await (
-          MongoChannel as unknown as {
-            findOneAndUpdate: (
-              q: Record<string, unknown>,
-              update: Record<string, unknown>
-            ) => Promise<void>;
-          }
-        ).findOneAndUpdate(
-          { id: channelId },
-          { $set: { [`unreadCounts.${req.session.userId}`]: 0 } }
-        );
+        if (isPgReady()) {
+          getPgPool().query(
+            "UPDATE channels SET unread_counts = unread_counts - $1 WHERE id = $2",
+            [String(req.session.userId), channelId]
+          ).catch(() => null);
+        }
 
         return res.status(200).json({ message: "Marked as read" });
       } catch {
@@ -1715,33 +1595,23 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
           return res.status(403).json({ message: "Forbidden: Can only view your own analytics" });
         }
 
-        // Get all test attempts for this student with status 'completed' or 'evaluated'
-        const { MongoTestAttempt, MongoTest } = await import("@shared/mongo-schema");
-        const attempts = await MongoTestAttempt.find({
-          studentId,
-          status: { $in: ["completed", "evaluated"] },
-          score: { $ne: null },
-        }).lean();
+        if (!isPgReady()) return res.status(503).json({ message: "Database unavailable" });
+        const attempts = (await getPgPool().query(`
+          SELECT ta.score, t.subject, t.total_marks
+          FROM test_attempts ta JOIN tests t ON t.id = ta.test_id
+          WHERE ta.student_id = $1 AND ta.status IN ('completed','evaluated') AND ta.score IS NOT NULL`,
+          [studentId])).rows;
 
-        if (attempts.length === 0) {
-          return res.status(200).json([]);
-        }
+        if (attempts.length === 0) return res.status(200).json([]);
 
-        // Get test details to extract subjects
-        const testIds = attempts.map((a: { testId: number }) => a.testId);
-        const tests = await MongoTest.find({ id: { $in: testIds } }).lean();
-        const testMap = new Map(tests.map((t: { id: number; subject: string }) => [t.id, t]));
-
-        // Group by subject and calculate average
         const subjectScores = new Map<string, { total: number; count: number }>();
 
         for (const attempt of attempts) {
-          const attemptData = attempt as { testId: number; score?: number | null };
-          const test = testMap.get(attemptData.testId);
-          if (test && attemptData.score != null) {
-            const subject = test.subject;
+          const subject: string = attempt.subject;
+          const score: number | null = attempt.score != null ? parseFloat(attempt.score) : null;
+          if (subject && score != null) {
             const current = subjectScores.get(subject) || { total: 0, count: 0 };
-            current.total += attemptData.score;
+            current.total += score;
             current.count += 1;
             subjectScores.set(subject, current);
           }
@@ -1781,40 +1651,14 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
           return res.status(403).json({ message: "Forbidden: Can only view your own progress" });
         }
 
-        const { MongoTestAttempt } = await import("@shared/mongo-schema");
+        if (!isPgReady()) return res.status(503).json({ message: "Database unavailable" });
+        const pgRows = (await getPgPool().query(`
+          SELECT TO_CHAR(end_time, 'YYYY-MM') as month, ROUND(AVG(score::numeric), 2) as "avgScore"
+          FROM test_attempts
+          WHERE student_id = $1 AND status IN ('completed','evaluated') AND score IS NOT NULL AND end_time IS NOT NULL
+          GROUP BY month ORDER BY month ASC`, [studentId])).rows;
 
-        // Aggregate by month
-        const results = await MongoTestAttempt.aggregate([
-          {
-            $match: {
-              studentId,
-              status: { $in: ["completed", "evaluated"] },
-              score: { $ne: null },
-              endTime: { $ne: null },
-            },
-          },
-          {
-            $addFields: {
-              month: {
-                $dateToString: { format: "%Y-%m", date: "$endTime" },
-              },
-            },
-          },
-          {
-            $group: {
-              _id: "$month",
-              avgScore: { $avg: "$score" },
-            },
-          },
-          {
-            $sort: { _id: 1 },
-          },
-        ]);
-
-        const formatted = results.map((r: { _id: string; avgScore: number }) => ({
-          month: r._id,
-          avgScore: Math.round(r.avgScore * 100) / 100,
-        }));
+        const formatted = pgRows.map((r: any) => ({ month: r.month, avgScore: parseFloat(r.avgScore) }));
 
         res.status(200).json(formatted);
       } catch (error) {
@@ -1836,21 +1680,16 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
         return res.status(403).json({ message: "Forbidden: Admin access required" });
       }
 
-      const { MongoUser, MongoTest, MongoTestAttempt } = await import("@shared/mongo-schema");
-
-      // Calculate start of current month
+      if (!isPgReady()) return res.status(503).json({ message: "Database unavailable" });
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const pool2 = getPgPool();
 
-      // Run queries in parallel
       const [studentCount, teacherCount, testsThisMonth, submissionsThisMonth] = await Promise.all([
-        MongoUser.countDocuments({ role: "student" }),
-        MongoUser.countDocuments({ role: "teacher" }),
-        MongoTest.countDocuments({ createdAt: { $gte: startOfMonth } }),
-        MongoTestAttempt.countDocuments({
-          status: { $in: ["completed", "evaluated"] },
-          endTime: { $gte: startOfMonth },
-        }),
+        pgCountUsers({ role: "student" }),
+        pgCountUsers({ role: "teacher" }),
+        pool2.query("SELECT COUNT(*) FROM tests WHERE created_at >= $1", [startOfMonth]).then(r => parseInt(r.rows[0].count)),
+        pool2.query("SELECT COUNT(*) FROM test_attempts WHERE status IN ('completed','evaluated') AND end_time >= $1", [startOfMonth]).then(r => parseInt(r.rows[0].count)),
       ]);
 
       res.status(200).json({
@@ -1883,11 +1722,7 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
         return res.status(400).json({ message: "Admin school code not found" });
       }
 
-      const teachers = await MongoUser.find({
-        role: "teacher",
-        school_code: admin.school_code,
-      });
-
+      const teachers = await pgFindUsers({ role: "teacher", schoolCode: admin.school_code ?? undefined });
       res.status(200).json(teachers);
     } catch (error) {
       console.error("[api/school/teachers] Error:", error);
@@ -1915,20 +1750,33 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
         }
 
         const teacherId = parseInt(req.params.id);
-        const teacher = await MongoUser.findOne({ id: teacherId, role: "teacher" });
+        const teacher = await pgFindUserById(teacherId);
 
-        if (!teacher) {
+        if (!teacher || teacher.role !== "teacher") {
           return res.status(404).json({ message: "Teacher not found" });
         }
 
-        if (teacher.school_code !== admin.school_code) {
-          return res
-            .status(403)
-            .json({ message: "Forbidden: Teacher belongs to a different school" });
+        if (teacher.schoolCode !== admin.school_code) {
+          return res.status(403).json({ message: "Forbidden: Teacher belongs to a different school" });
         }
 
-        teacher.status = "active";
-        await teacher.save();
+        await pgUpdateUser(teacherId, { status: "active" });
+        if (teacher.firebaseUid) {
+          setCustomUserClaims(teacher.firebaseUid, { role: teacher.role, status: "active" }).catch(
+            (e) => logger.warn("[approve] Failed to update custom claims", { error: String(e) })
+          );
+        }
+        if (isPgReady()) {
+          getPgPool().query("UPDATE memberships SET status = 'active' WHERE user_id = $1", [teacherId]).catch(() => null);
+        }
+
+        recordAuditEvent({
+          actorUserId: admin.id,
+          targetUserId: teacher.id,
+          schoolCode: admin.school_code,
+          eventType: AUDIT_EVENTS.TEACHER_APPROVED,
+          payload: { previousStatus: "pending" },
+        });
 
         res.status(200).json({ message: "Teacher approved", teacher });
       } catch (error) {

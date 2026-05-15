@@ -54,7 +54,7 @@ describe("Role Logic - School Admin", () => {
   });
 
   describe("POST /api/auth/firebase with school_admin role", () => {
-    it("should successfully sync a profile with school_admin role", async () => {
+    it("should not let new users self-assign school_admin", async () => {
       const mockDecodedToken = {
         uid: "school-admin-uid",
         email: "admin@school.com",
@@ -66,21 +66,12 @@ describe("Role Logic - School Admin", () => {
       // Mock MongoUser.findOne to return null (new user)
       (MongoUser.findOne as any).mockResolvedValue(null);
 
-      // Mock MongoUser.findOneAndUpdate to return the user
-      (MongoUser.findOneAndUpdate as any).mockImplementation((query: any, update: any) =>
-        Promise.resolve({
-          ...update,
-          id: 101,
-          role: "school_admin",
-        })
-      );
-
       const res = await request(app)
         .post("/api/auth/firebase")
         .send({ idToken: "valid-school-admin-token", role: "school_admin" });
 
       expect(res.status).toBe(200);
-      expect(res.body.role).toBe("school_admin");
+      expect(res.body.role).toBe("student");
     });
 
     it("should maintain school_admin role for existing users", async () => {

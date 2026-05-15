@@ -4,12 +4,12 @@ if (process.env.NODE_ENV === "production") {
 }
 
 import "dotenv/config";
-import { connectMongoDB } from "../db";
+import { connectPostgres } from "../db-pg";
 import { storage } from "../storage";
 import { InsertTest, InsertQuestion } from "../../shared/schema";
 
 async function seedData() {
-  await connectMongoDB();
+  await connectPostgres();
 
   // Create or get a mock teacher
   let users = await storage.getUsers("teacher");

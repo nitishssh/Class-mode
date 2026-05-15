@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { MongoSubscription } from "../../shared/mongo-schema";
+import { pgFindSubscriptionByUser } from "../lib/pg-queries";
 
 const TIER_LEVEL: Record<string, number> = { free: 0, pro: 1, educator: 2, institution: 3 };
 
@@ -21,7 +21,7 @@ export function requireSubscription(minTier: "pro" | "educator" | "institution")
       return res.status(401).json({ error: "Authentication required" });
     }
 
-    const sub = await MongoSubscription.findOne({ userId: user.id });
+    const sub = await pgFindSubscriptionByUser(user.id);
     const userTier = sub?.tier || "free";
     const userLevel = TIER_LEVEL[userTier] || 0;
 

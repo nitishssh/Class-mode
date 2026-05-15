@@ -1,7 +1,12 @@
 import { Router, Request, Response } from "express";
-import { MongoUser, getNextSequenceValue } from "../../shared/mongo-schema";
+import { normalizeSelfRegisterableRole, SCHOOL_STAFF_ROLES, isTenantAdminRole } from "../../shared/authz";
 import { setCustomUserClaims, verifyFirebaseToken } from "../lib/firebase-admin";
 import { logger } from "../lib/logger";
+import { recordAuditEvent, AUDIT_EVENTS } from "../lib/audit";
+import {
+  pgFindUserByAuthSubject, pgFindUserByEmail, pgFindUserById,
+  pgCreateUser, pgUpdateUser, pgSetUserLastLogin, pgUpsertMembership,
+} from "../lib/pg-queries";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
@@ -27,8 +32,6 @@ function issueJwt(userId: number, role: string, email: string): string {
   return jwt.sign({ userId, role, email } satisfies JwtPayload, JWT_SECRET, { expiresIn: "7d" });
 }
 
-const SELF_REGISTERABLE_ROLES = ["student", "teacher", "principal", "school_admin", "parent"];
-
 // ── POST /api/auth/firebase ──────────────────────────────────────────────────
 // Exchange a Firebase ID token for a server-issued JWT.
 // This is the ONLY place Firebase Admin token verification happens.
@@ -37,8 +40,7 @@ router.post("/firebase", async (req: Request, res: Response) => {
   try {
     const { idToken, role: rawRole } = req.body as { idToken?: string; role?: string };
     
-    // FIX BUG-15: Restrict self-assignable roles to prevent privilege escalation
-    const safeRole = SELF_REGISTERABLE_ROLES.includes(rawRole || "") ? rawRole : "student";
+    const safeRole = normalizeSelfRegisterableRole(rawRole);
 
     if (!idToken || typeof idToken !== "string") {
       return res.status(400).json({ message: "idToken is required" });
@@ -54,53 +56,50 @@ router.post("/firebase", async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Firebase account must have an email address" });
     }
 
-    // Find existing user by Firebase UID, fall back to email match
-    let user = await MongoUser.findOne({ firebaseUid: uid });
-    if (!user) {
-      user = await MongoUser.findOne({ email: email.toLowerCase() });
-    }
+    // Look up existing user — PostgreSQL is the sole source of truth
+    let user = await pgFindUserByAuthSubject("firebase", uid);
+    if (!user) user = await pgFindUserByEmail(email.toLowerCase());
 
     if (!user) {
-      // First Firebase login — create MongoDB record
-      const id = await getNextSequenceValue("userId");
-      user = new MongoUser({
-        id,
-        username: `${email.split("@")[0]}_${id}`,
-        password: `firebase_managed_${uid}`,
-        name: name || email.split("@")[0],
+      // First Firebase login — create PG record
+      const baseUsername = email.split("@")[0];
+      user = await pgCreateUser({
+        authProvider: "firebase",
+        authSubject: uid,
         email: email.toLowerCase(),
-        role: safeRole || "student",
-        avatar: picture || null,
-        firebaseUid: uid,
+        username: `${baseUsername}_${Date.now()}`,
+        passwordHash: `firebase_managed_${uid}`,
+        name: name || baseUsername,
         displayName: name || null,
+        avatar: picture || null,
+        role: safeRole,
         status: safeRole === "teacher" ? "pending" : "active",
       });
-      await user.save();
-      logger.info("[auth/firebase] Created new MongoDB user", { id, role: user.role });
+      logger.info("[auth/firebase] Created new PG user", { id: user.id, role: user.role });
+      recordAuditEvent({
+        targetUserId: user.id,
+        eventType: AUDIT_EVENTS.USER_REGISTERED,
+        payload: { role: user.role, provider: "firebase", uid },
+      });
+      if (user.schoolCode) {
+        pgUpsertMembership({ userId: user.id, schoolCode: user.schoolCode, status: (user.status as any) || "active", roleKey: user.role });
+      }
     } else {
-      // Patch missing fields on returning users
-      let dirty = false;
-      if (!user.firebaseUid) {
-        user.firebaseUid = uid;
-        dirty = true;
-      }
-      if (picture && !user.avatar) {
-        user.avatar = picture;
-        dirty = true;
-      }
-      if (dirty) await user.save();
+      // Patch missing fields and update last login
+      const updates: Record<string, any> = {};
+      if (!user.firebaseUid) updates.authSubject = uid;
+      if (picture && !user.avatar) updates.avatar = picture;
+      if (Object.keys(updates).length) await pgUpdateUser(user.id, updates);
+      pgSetUserLastLogin(user.id);
     }
 
-    // Keep Firebase custom claims in sync (fire-and-forget, never block login)
+    // Keep Firebase custom claims in sync (fire-and-forget)
     setCustomUserClaims(uid, { role: user.role, status: user.status }).catch((e) =>
       logger.warn("[auth/firebase] Failed to set custom claims", { uid, error: String(e) })
     );
 
-    // Issue a server JWT so subsequent requests never need to call Firebase Admin
     const token = issueJwt(user.id, user.role, user.email);
 
-    // FIX BUG-07: Set firebaseUid and email on session so /sync-profile can read them
-    // Persist session for WebSocket auth compatibility
     if (req.session) {
       req.session.userId = user.id;
       req.session.role = user.role;
@@ -108,7 +107,6 @@ router.post("/firebase", async (req: Request, res: Response) => {
       req.session.email = email;
     }
 
-    // Set httpOnly cookie — client can also store in memory for Authorization header
     res.cookie("access_token", token, COOKIE_OPTS);
 
     return res.status(200).json({
@@ -143,8 +141,8 @@ router.post("/refresh", async (req: Request, res: Response) => {
     }
 
     const user =
-      (await MongoUser.findOne({ firebaseUid: decoded.uid })) ||
-      (decoded.email ? await MongoUser.findOne({ email: decoded.email.toLowerCase() }) : null);
+      (await pgFindUserByAuthSubject("firebase", decoded.uid)) ||
+      (decoded.email ? await pgFindUserByEmail(decoded.email.toLowerCase()) : null);
 
     if (!user) {
       return res.status(404).json({ message: "User not found. Please log in again." });
@@ -169,7 +167,7 @@ router.post("/login", async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Email and password are required" });
     }
 
-    const user = await MongoUser.findOne({ email: email.toLowerCase().trim() });
+    const user = await pgFindUserByEmail(email.toLowerCase().trim());
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
@@ -182,7 +180,14 @@ router.post("/login", async (req: Request, res: Response) => {
     }
 
     res.cookie("access_token", token, COOKIE_OPTS);
+    recordAuditEvent({
+      actorUserId: user.id,
+      targetUserId: user.id,
+      eventType: AUDIT_EVENTS.USER_LOGIN,
+      payload: { ip: req.ip, ua: req.headers["user-agent"] },
+    });
 
+    pgSetUserLastLogin(user.id);
     return res.status(200).json({
       token,
       userId: user.id,
@@ -224,44 +229,63 @@ router.post("/register", async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Invalid email address" });
     }
 
-    // FIX BUG-16: Server-side role-specific validation
-    if (["teacher", "principal", "school_admin"].includes(role || "") && !school_code) {
+    // Explicitly block tenant-admin roles from self-registration
+    if (isTenantAdminRole(role)) {
+      recordAuditEvent({
+        eventType: AUDIT_EVENTS.ROLE_CLAIM_REJECTED,
+        payload: { attempted_role: role, path: "register" },
+      });
+      return res.status(400).json({ message: "This role requires an invitation. Contact your administrator." });
+    }
+
+    const safeRole = normalizeSelfRegisterableRole(role);
+
+    // Server-side role-specific validation
+    if (SCHOOL_STAFF_ROLES.includes(safeRole as any) && !school_code) {
       return res.status(400).json({ message: "school_code is required for teachers and school staff" });
     }
 
     const normalizedEmail = email.toLowerCase().trim();
-    if (await MongoUser.findOne({ email: normalizedEmail })) {
+    if (await pgFindUserByEmail(normalizedEmail)) {
       return res.status(409).json({ message: "An account with this email already exists" });
     }
 
-    const id = await getNextSequenceValue("userId");
-    const newUser = new MongoUser({
-      id,
-      username: `${normalizedEmail.split("@")[0]}_${id}`,
-      password: await bcrypt.hash(password, 12),
-      name,
+    const baseUsername = normalizedEmail.split("@")[0];
+    const newUser = await pgCreateUser({
+      authProvider: "local",
+      authSubject: normalizedEmail,
       email: normalizedEmail,
-      role: role || "student",
+      username: `${baseUsername}_${Date.now()}`,
+      passwordHash: await bcrypt.hash(password, 12),
+      name,
       displayName: name,
-      class: className || null,
-      school_code: school_code || null,
-      status: role === "teacher" ? "pending" : "active",
+      role: safeRole,
+      status: safeRole === "teacher" ? "pending" : "active",
+      className: className || null,
+      schoolCode: school_code || null,
     });
-    await newUser.save();
 
-    const token = issueJwt(id, newUser.role, normalizedEmail);
+    const token = issueJwt(newUser.id, newUser.role, normalizedEmail);
 
     if (req.session) {
-      req.session.userId = id;
+      req.session.userId = newUser.id;
       req.session.role = newUser.role;
     }
 
     res.cookie("access_token", token, COOKIE_OPTS);
-    logger.info("[auth/register] Created new user", { id, role: newUser.role });
+    logger.info("[auth/register] Created new PG user", { id: newUser.id, role: newUser.role });
+    recordAuditEvent({
+      targetUserId: newUser.id,
+      eventType: AUDIT_EVENTS.USER_REGISTERED,
+      payload: { role: newUser.role, provider: "local" },
+    });
+    if (school_code) {
+      pgUpsertMembership({ userId: newUser.id, schoolCode: school_code, status: (newUser.status as any) || "active", roleKey: safeRole });
+    }
 
     return res.status(201).json({
       token,
-      userId: id,
+      userId: newUser.id,
       displayName: newUser.displayName || newUser.name,
       role: newUser.role,
       email: newUser.email,
@@ -290,7 +314,7 @@ router.get("/me", async (req: Request, res: Response) => {
 
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
 
-    const user = await MongoUser.findOne({ id: userId }).lean();
+    const user = await pgFindUserById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const { password: _pw, ...safeUser } = user as any;
@@ -342,37 +366,46 @@ router.post("/sync-profile", async (req: Request, res: Response) => {
       displayName,
       class: className,
       subject,
-      role,
+      role: _requestedRole,
       school_code,
       grade,
       board,
       subjects,
       district,
-      status,
+      status: _requestedStatus,
     } = req.body as Record<string, unknown>;
 
     let user = sessionUserId
-      ? await MongoUser.findOne({ id: sessionUserId })
+      ? await pgFindUserById(sessionUserId)
       : firebaseUid
-        ? await MongoUser.findOne({ firebaseUid })
+        ? await pgFindUserByAuthSubject("firebase", firebaseUid)
         : null;
 
     if (!user) return res.status(401).json({ message: "Unauthorized" });
 
-    type ValidRole = "student" | "teacher" | "parent" | "principal" | "school_admin" | "admin";
-    type ValidStatus = "active" | "pending" | "suspended" | "rejected";
+    if (_requestedRole !== undefined || _requestedStatus !== undefined) {
+      logger.warn("[auth/sync-profile] Ignored client-controlled role/status update", { userId: user.id });
+      recordAuditEvent({
+        actorUserId: user.id,
+        targetUserId: user.id,
+        eventType: AUDIT_EVENTS.ROLE_CLAIM_REJECTED,
+        payload: { attempted_role: _requestedRole, attempted_status: _requestedStatus },
+      });
+    }
 
-    if (displayName !== undefined) user.displayName = displayName as string;
-    if (className !== undefined) user.class = className as string;
-    if (subject !== undefined) user.subject = subject as string;
-    if (role !== undefined) user.role = role as ValidRole;
-    if (school_code !== undefined) user.school_code = school_code as string;
-    if (grade !== undefined) user.grade = grade as string;
-    if (board !== undefined) user.board = board as string;
-    if (subjects !== undefined) user.subjects = subjects as string[];
-    if (district !== undefined) user.district = district as string;
-    if (status !== undefined) user.status = status as ValidStatus;
-    await user.save();
+    const updates: Record<string, any> = {};
+    if (displayName !== undefined) updates.displayName = displayName;
+    if (className !== undefined) updates.className = className;
+    if (subject !== undefined) updates.subject = subject;
+    if (school_code !== undefined) updates.schoolCode = school_code;
+    if (grade !== undefined) updates.grade = grade;
+    if (board !== undefined) updates.board = board;
+    if (subjects !== undefined) updates.subjects = subjects;
+    if (district !== undefined) updates.district = district;
+
+    if (Object.keys(updates).length) {
+      user = (await pgUpdateUser(user.id, updates)) ?? user;
+    }
 
     if (user.firebaseUid) {
       setCustomUserClaims(user.firebaseUid, { role: user.role, status: user.status }).catch((e) =>

@@ -1,5 +1,5 @@
 import { type Request, type Response, type NextFunction } from "express";
-import mongoose from "mongoose";
+import { isPgReady } from "./db-pg";
 
 // ── DB health guard ───────────────────────────────────────────────────────────
 export function requireDb(req: Request, res: Response, next: NextFunction) {
@@ -11,11 +11,10 @@ export function requireDb(req: Request, res: Response, next: NextFunction) {
   ) {
     return next();
   }
-  if (mongoose.connection.readyState !== 1) {
+  if (!isPgReady()) {
     return res.status(503).json({
       error: "Database unavailable",
-      message:
-        "The application is unable to reach the database. If you're running locally, ensure your current IP address is whitelisted in MongoDB Atlas.",
+      message: "The application is unable to reach the database. Check that POSTGRESQL_URL is set and the server started.",
       action: "Check the server logs for connection errors.",
     });
   }
@@ -39,6 +38,14 @@ export function requireRole(...roles: string[]) {
     }
     next();
   };
+}
+
+// ── PostgreSQL health guard (for Phase 8+ migrated routes) ───────────────────
+export function requirePg(req: Request, res: Response, next: NextFunction) {
+  if (!isPgReady()) {
+    return res.status(503).json({ error: "PostgreSQL unavailable" });
+  }
+  next();
 }
 
 // ── Student data scoping ──────────────────────────────────────────────────────

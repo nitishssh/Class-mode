@@ -1,7 +1,6 @@
 import { Router } from "express";
-import mongoose from "mongoose";
 import { isCassandraConnected } from "../lib/cassandra";
-import { isMongoConnected } from "../db";
+import { isPgReady } from "../db-pg";
 
 const router = Router();
 
@@ -10,27 +9,19 @@ const router = Router();
  * GET /api/health
  */
 router.get("/", async (req, res) => {
-  const mongoStatus = mongoose.connection.readyState === 1 && isMongoConnected();
+  const pgStatus = isPgReady();
   const cassandraStatus = isCassandraConnected();
 
   const health = {
-    status: mongoStatus ? "healthy" : "degraded",
+    status: pgStatus ? "healthy" : "degraded",
     timestamp: new Date().toISOString(),
     databases: {
-      mongodb: {
-        connected: mongoStatus,
-        readyState: mongoose.connection.readyState,
-        readyStateLabel: getMongoReadyStateLabel(mongoose.connection.readyState),
-      },
-      cassandra: {
-        connected: cassandraStatus,
-        fallbackToMongo: !cassandraStatus,
-      },
+      postgresql: { connected: pgStatus, available: pgStatus },
+      cassandra: { connected: cassandraStatus, fallbackToPg: !cassandraStatus },
     },
   };
 
-  const statusCode = mongoStatus ? 200 : 503;
-  res.status(statusCode).json(health);
+  res.status(pgStatus ? 200 : 503).json(health);
 });
 
 /**
@@ -38,23 +29,17 @@ router.get("/", async (req, res) => {
  * GET /api/health/detailed
  */
 router.get("/detailed", async (req, res) => {
-  const mongoStatus = mongoose.connection.readyState === 1 && isMongoConnected();
+  const pgStatus = isPgReady();
   const cassandraStatus = isCassandraConnected();
 
   const health = {
-    status: mongoStatus ? "healthy" : "degraded",
+    status: pgStatus ? "healthy" : "degraded",
     timestamp: new Date().toISOString(),
     databases: {
-      mongodb: {
-        connected: mongoStatus,
-        readyState: mongoose.connection.readyState,
-        readyStateLabel: getMongoReadyStateLabel(mongoose.connection.readyState),
-        host: mongoose.connection.host || "unknown",
-        name: mongoose.connection.name || "unknown",
-      },
+      postgresql: { connected: pgStatus, available: pgStatus },
       cassandra: {
         connected: cassandraStatus,
-        fallbackToMongo: !cassandraStatus,
+        fallbackToPg: !cassandraStatus,
         keyspace: process.env.ASTRA_DB_KEYSPACE || "not configured",
       },
     },
@@ -62,18 +47,8 @@ router.get("/detailed", async (req, res) => {
     memory: process.memoryUsage(),
   };
 
-  const statusCode = mongoStatus ? 200 : 503;
-  res.status(statusCode).json(health);
+  res.status(pgStatus ? 200 : 503).json(health);
 });
 
-function getMongoReadyStateLabel(state: number): string {
-  const states: Record<number, string> = {
-    0: "disconnected",
-    1: "connected",
-    2: "connecting",
-    3: "disconnecting",
-  };
-  return states[state] || "unknown";
-}
 
 export default router;

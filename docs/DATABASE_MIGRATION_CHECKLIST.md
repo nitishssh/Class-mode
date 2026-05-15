@@ -1,5 +1,8 @@
 # Database Migration Checklist
 
+For the auth and role-system upgrade target, review
+[AUTH_DB_UPGRADE_PLAN.md](AUTH_DB_UPGRADE_PLAN.md) before changing production data.
+
 ## Pre-Migration
 
 - [ ] **Backup your database**
@@ -297,6 +300,65 @@ If you encounter issues:
 **Performed By**: **\*\***\_**\*\***
 **Status**: ⬜ Pending | ⬜ In Progress | ⬜ Complete | ⬜ Rolled Back
 **Notes**:
+
+---
+
+## Auth Upgrade Phases (2026)
+
+See full plan in [AUTH_DB_UPGRADE_PLAN.md](AUTH_DB_UPGRADE_PLAN.md).
+
+### Phase 3 — Persistent Audit Logging ✅
+- [x] `MongoAuditEvent` model added to `shared/mongo-schema.ts` (TTL 90 days)
+- [x] `server/lib/audit.ts` created with `recordAuditEvent()` and `AUDIT_EVENTS` constants
+- [x] Audit calls wired into `/api/auth/firebase`, `/api/auth/register`, `/api/auth/login`, `/api/auth/sync-profile`
+- [x] Teacher approval route emits `TEACHER_APPROVED` + missing `setCustomUserClaims` call added
+- [x] Invite send/accept/resend routes emit audit events
+- [ ] `server/tests/audit_logging.test.ts` — write and run
+
+### Phase 4 — Invite Enforcement ✅
+- [x] `IInvite.role` expanded to include `principal`, `school_admin`, `admin`
+- [x] `POST /api/auth/register` blocks tenant-admin roles with 400 + audit event
+- [x] `POST /api/invite/accept` enforces email match (403 on mismatch)
+- [x] `POST /api/invite/accept` now calls `getNextSequenceValue("userId")` — critical bug fixed
+- [x] `sendPrincipalInvite`, `sendSchoolAdminInvite` added to `server/lib/mailer.ts`
+- [x] `POST /api/invite/staff` route added (school_admin/admin guarded)
+- [x] `POST /api/invite/platform-admin` route added (admin only)
+- [ ] `server/tests/invite_flow.test.ts` — write and run
+- [ ] Update `server/tests/role_logic.test.ts` — add tenant-admin registration tests
+
+### Phase 5 — PostgreSQL Introduction ✅
+- [x] `server/db-pg.ts` created (`connectPostgres`, `getPgPool`, `isPgReady`, `withPgClient`)
+- [x] `scripts/pg-schema.sql` created (all tables, indexes, role seeds, `IF NOT EXISTS`)
+- [x] `scripts/pg-migrate.ts` created — run with `npx tsx scripts/pg-migrate.ts`
+- [x] `server/index.ts` calls `connectPostgres()` at startup
+- [x] Health endpoints include `postgresql: { connected, available }` field
+- [x] `requirePg` middleware added to `server/middleware.ts`
+- [ ] Set `POSTGRESQL_URL` in `.env`
+- [ ] Run `npx tsx scripts/pg-migrate.ts` against target database
+- [ ] `server/tests/pg_connection.test.ts` — write and run
+
+### Phase 6 — Dual-Write ✅
+- [x] `server/lib/pg-sync.ts` created (`upsertPgUser`, `upsertPgMembership`, `setPgUserLastLogin`, `setPgMembershipStatus`)
+- [x] Firebase registration path calls `upsertPgUser` + `upsertPgMembership` (fire-and-forget)
+- [x] Firebase returning-user login calls `setPgUserLastLogin` (fire-and-forget)
+- [x] Password registration calls `upsertPgUser` + `upsertPgMembership` (fire-and-forget)
+- [x] Invite acceptance calls `upsertPgUser` + `upsertPgMembership` (fire-and-forget)
+- [x] Teacher approval calls `setPgMembershipStatus` (fire-and-forget)
+- [ ] `server/tests/dual_write.test.ts` — write and run
+- [ ] Verify new registrations appear in both MongoDB and PostgreSQL after deploying
+
+### Phase 7 — Backfill ⬜
+- [x] `scripts/pg-backfill-users.ts` created (batched cursor, idempotent, reconciliation report)
+- [ ] Run `npx tsx scripts/pg-backfill-users.ts`
+- [ ] Confirm delta = 0 in backfill output
+- [ ] Record: Backfill date ________ / Performed by ________ / Delta ________
+
+### Phase 8 — Migrate Auth Lookups to PostgreSQL ✅
+- [x] `pgFindUserByAuthSubject` and `pgFindUserByEmail` implemented in `server/lib/pg-sync.ts`
+- [x] `POST /api/auth/firebase` now uses PG-first lookup with MongoDB fallback
+- [ ] Monitor `[auth/firebase] PG miss` log hits after Phase 7 backfill
+- [ ] Confirm fallback rate = 0% in logs
+- [ ] Remove MongoDB fallback block from `/api/auth/firebase` after confirmed 0%
 
 ---
 

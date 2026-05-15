@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import crypto from "crypto";
-import { MongoLmsConnection, getNextSequenceValue } from "../../shared/mongo-schema";
+import { pgCreateLmsConnection, pgFindLmsConnection } from "../lib/pg-queries";
 import { authenticateToken } from "../routes";
 import { getAuthUrl, exchangeCode, syncAssignments } from "../lib/lms/googleClassroom";
 import { logger } from "../lib/logger";
@@ -36,9 +36,7 @@ router.get("/google/callback", async (req: Request, res: Response) => {
 
   try {
     const tokens = await exchangeCode(code);
-    const seq = await getNextSequenceValue("LmsConnection");
-    await MongoLmsConnection.create({
-      id: seq,
+    await pgCreateLmsConnection({
       userId,
       provider: "google_classroom",
       accessToken: tokens.accessToken as string,
@@ -54,7 +52,7 @@ router.get("/google/callback", async (req: Request, res: Response) => {
 
 router.get("/google/sync", authenticateToken, async (req: Request, res: Response) => {
   const user = (req as any).user;
-  const conn = await MongoLmsConnection.findOne({ userId: user.id, provider: "google_classroom" });
+  const conn = await pgFindLmsConnection(user.id, "google_classroom");
   if (!conn) return res.status(400).json({ error: "Not connected to Google Classroom" });
 
   const assignments = await syncAssignments(user.id, (conn as any).accessToken);

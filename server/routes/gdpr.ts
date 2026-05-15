@@ -1,5 +1,5 @@
 import { Router, Response, Request as ExpressRequest } from "express";
-import { MongoUser } from "../../shared/mongo-schema";
+import { pgFindUserById, pgDeleteUser } from "../lib/pg-queries";
 import { authenticateToken } from "../routes";
 import { logger } from "../lib/logger";
 import { createRequire } from "module";
@@ -11,7 +11,7 @@ const router = Router();
 router.get("/export", authenticateToken, async (req: ExpressRequest, res: Response) => {
   const user = (req as any).user;
   try {
-    const userDoc = await MongoUser.findOne({ id: user.id }).lean();
+    const userDoc = await pgFindUserById(user.id);
     if (!userDoc) return res.status(404).json({ error: "User not found" });
 
     const zip = archiver("zip", { zlib: { level: 9 } });
@@ -28,7 +28,7 @@ router.get("/export", authenticateToken, async (req: ExpressRequest, res: Respon
 router.delete("/delete", authenticateToken, async (req: ExpressRequest, res: Response) => {
   const user = (req as any).user;
   try {
-    await MongoUser.deleteOne({ id: user.id });
+    await pgDeleteUser(user.id);
     res.json({ success: true, message: "User data deleted" });
   } catch (err: any) {
     logger.error("GDPR delete error:", err);

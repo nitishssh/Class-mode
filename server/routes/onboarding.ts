@@ -2,11 +2,21 @@ import { Router, Request, Response } from "express";
 import crypto from "crypto";
 import { z } from "zod";
 import admin from "firebase-admin";
-import { School, Invite, SchoolClass } from "@shared/onboarding-schema";
-import { MongoUser } from "@shared/mongo-schema";
+import { setCustomUserClaims } from "../lib/firebase-admin";
 import { authenticateToken } from "../routes";
 import { upload, diskPathToUrl } from "../lib/upload";
-import { sendTeacherInvite, sendStudentInvite } from "../lib/mailer";
+import { sendTeacherInvite, sendStudentInvite, sendPrincipalInvite, sendSchoolAdminInvite } from "../lib/mailer";
+import { requireRole } from "../middleware";
+import { recordAuditEvent, AUDIT_EVENTS } from "../lib/audit";
+import {
+  pgFindSchoolByCreatedByUid, pgUpsertSchool, pgFindSchoolById,
+  pgCreateInvite, pgFindInviteByToken, pgAcceptInvite, pgResendInvite,
+  pgFindInviteById, pgFindInvitesBySchool, pgFindInvitesByInvitedBy,
+  pgCreateSchoolClass, pgFindSchoolClassesByTeacher, pgFindSchoolClassById,
+  pgFindUserByAuthSubject, pgCreateUser, pgUpdateUser, pgUpsertMembership,
+  pgUpdateUserOnboardingComplete,
+} from "../lib/pg-queries";
+import { logger } from "../lib/logger";
 
 const router = Router();
 
@@ -35,20 +45,23 @@ router.post("/school/setup", authenticateToken, async (req: Request, res: Respon
   const parsed = schoolSetupSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
 
-  const existing = await School.findOne({ createdBy: uid });
+  const existing = await pgFindSchoolByCreatedByUid(uid);
   if (existing && existing.onboardingComplete) {
     return res.status(409).json({ message: "School already set up" });
   }
 
-  const school = existing
-    ? Object.assign(existing, parsed.data)
-    : new School({ ...parsed.data, createdBy: uid });
+  const school = await pgUpsertSchool({
+    uid,
+    name: parsed.data.name,
+    city: parsed.data.city,
+    board: parsed.data.board,
+    gradesOffered: parsed.data.gradesOffered,
+    onboardingComplete: true,
+  });
 
-  school.onboardingComplete = true;
-  await school.save();
-
-  // Persist schoolId on the admin's MongoUser
-  await MongoUser.findOneAndUpdate({ firebaseUid: uid }, { schoolId: school._id });
+  // Link school to user
+  const pgUser = await pgFindUserByAuthSubject("firebase", uid);
+  if (pgUser) await pgUpdateUser(pgUser.id, { schoolId: school.id });
 
   return res.status(200).json(school);
 });
@@ -63,7 +76,7 @@ router.post(
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
 
     const url = diskPathToUrl(req.file.path);
-    await School.findOneAndUpdate({ createdBy: uid }, { logo: url });
+    await pgUpsertSchool({ uid, name: "", logo: url });
     return res.json({ url });
   }
 );
@@ -71,7 +84,7 @@ router.post(
 // GET /api/school/me
 router.get("/school/me", authenticateToken, async (req: Request, res: Response) => {
   const uid = firebaseUid(req);
-  const school = await School.findOne({ createdBy: uid });
+  const school = await pgFindSchoolByCreatedByUid(uid);
   if (!school) return res.status(404).json({ message: "School not found" });
   return res.json(school);
 });
@@ -90,15 +103,15 @@ router.post("/invite/teacher", authenticateToken, async (req: Request, res: Resp
   const parsed = teacherInviteSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
 
-  const school = await School.findOne({ createdBy: uid });
+  const school = await pgFindSchoolByCreatedByUid(uid);
   if (!school) return res.status(404).json({ message: "Complete school setup first" });
 
   const token = crypto.randomUUID();
-  const invite = await Invite.create({
+  const invite = await pgCreateInvite({
     email: parsed.data.email,
     name: parsed.data.name,
     role: "teacher",
-    schoolId: school._id,
+    schoolId: school.id,
     grades: parsed.data.grades,
     token,
     invitedBy: uid,
@@ -106,16 +119,20 @@ router.post("/invite/teacher", authenticateToken, async (req: Request, res: Resp
   });
 
   await sendTeacherInvite(parsed.data.email, parsed.data.name, school.name, token);
-  return res.status(201).json({ id: invite._id, status: invite.status });
+  recordAuditEvent({
+    eventType: AUDIT_EVENTS.INVITE_SENT,
+    payload: { email: parsed.data.email, role: "teacher", schoolId: school.id },
+  });
+  return res.status(201).json({ id: invite.id, status: invite.status });
 });
 
 // GET /api/invite/teacher/list
 router.get("/invite/teacher/list", authenticateToken, async (req: Request, res: Response) => {
   const uid = firebaseUid(req);
-  const school = await School.findOne({ createdBy: uid });
+  const school = await pgFindSchoolByCreatedByUid(uid);
   if (!school) return res.status(404).json({ message: "School not found" });
 
-  const invites = await Invite.find({ schoolId: school._id, role: "teacher" }).select("-token");
+  const invites = await pgFindInvitesBySchool(school.id, "teacher");
   return res.json(invites);
 });
 
@@ -123,6 +140,7 @@ router.get("/invite/teacher/list", authenticateToken, async (req: Request, res: 
 
 const acceptInviteSchema = z.object({
   token: z.string().uuid(),
+  email: z.string().email(),
   displayName: z.string().min(1),
   password: z.string().min(6),
 });
@@ -132,13 +150,15 @@ router.post("/invite/accept", async (req: Request, res: Response) => {
   const parsed = acceptInviteSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
 
-  const invite = await Invite.findOne({ token: parsed.data.token });
+  const invite = await pgFindInviteByToken(parsed.data.token);
   if (!invite) return res.status(404).json({ message: "Invalid invite link" });
   if (invite.status !== "pending") return res.status(409).json({ message: "Invite already used" });
   if (invite.expiresAt < new Date())
-    return res
-      .status(410)
-      .json({ message: "This invite has expired. Ask your admin to resend it." });
+    return res.status(410).json({ message: "This invite has expired. Ask your admin to resend it." });
+
+  if (parsed.data.email.toLowerCase().trim() !== invite.email.toLowerCase().trim()) {
+    return res.status(403).json({ message: "This invite was sent to a different email address." });
+  }
 
   // Create Firebase Auth user
   const fbUser = await admin.auth().createUser({
@@ -147,31 +167,45 @@ router.post("/invite/accept", async (req: Request, res: Response) => {
     displayName: parsed.data.displayName,
   });
 
-  // Set custom claim for role
-  await admin.auth().setCustomUserClaims(fbUser.uid, { role: invite.role });
+  await setCustomUserClaims(fbUser.uid, { role: invite.role, status: "active" });
 
-  // Create MongoDB user
-  const mongoUser = await MongoUser.create({
-    firebaseUid: fbUser.uid,
+  // Create PG user
+  const pgUser = await pgCreateUser({
+    authProvider: "firebase",
+    authSubject: fbUser.uid,
     email: invite.email,
-    username: invite.email.split("@")[0],
+    username: `${invite.email.split("@")[0]}_${Date.now()}`,
+    passwordHash: "firebase_managed",
     name: parsed.data.displayName,
     displayName: parsed.data.displayName,
-    password: "firebase_managed",
     role: invite.role,
     status: "active",
-    schoolId: invite.schoolId,
-    onboardingComplete: invite.role === "student", // students are done immediately
+    schoolCode: null,
   });
 
-  // Mark invite accepted
-  invite.status = "accepted";
-  await invite.save();
+  // Link membership
+  if (invite.schoolId) {
+    const school = await pgFindSchoolById(invite.schoolId);
+    if (school) {
+      await pgUpsertMembership({ userId: pgUser.id, schoolCode: school.code, status: "active", roleKey: invite.role });
+    }
+  }
+
+  await pgAcceptInvite(parsed.data.token);
+
+  const onboardingComplete = invite.role === "student";
+  if (onboardingComplete) await pgUpdateUserOnboardingComplete(pgUser.id);
+
+  recordAuditEvent({
+    targetUserId: pgUser.id,
+    eventType: AUDIT_EVENTS.INVITE_ACCEPTED,
+    payload: { role: invite.role, schoolId: invite.schoolId },
+  });
 
   return res.status(201).json({
     uid: fbUser.uid,
     role: invite.role,
-    onboardingComplete: mongoUser.onboardingComplete,
+    onboardingComplete,
   });
 });
 
@@ -188,21 +222,17 @@ router.post("/classes", authenticateToken, async (req: Request, res: Response) =
   const parsed = classSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
 
-  const user = await MongoUser.findOne({ firebaseUid: uid });
+  const user = await pgFindUserByAuthSubject("firebase", uid);
   if (!user?.schoolId) return res.status(400).json({ message: "Not linked to a school" });
 
-  const cls = await SchoolClass.create({
+  const cls = await pgCreateSchoolClass({
     name: parsed.data.name,
     grade: parsed.data.grade,
     teacherFirebaseUid: uid,
     schoolId: user.schoolId,
   });
 
-  // Mark teacher onboarding complete once first class is created
-  if (!user.onboardingComplete) {
-    user.onboardingComplete = true;
-    await user.save();
-  }
+  if (!user.onboardingComplete) await pgUpdateUserOnboardingComplete(user.id);
 
   return res.status(201).json(cls);
 });
@@ -210,7 +240,7 @@ router.post("/classes", authenticateToken, async (req: Request, res: Response) =
 // GET /api/classes/mine
 router.get("/classes/mine", authenticateToken, async (req: Request, res: Response) => {
   const uid = firebaseUid(req);
-  const classes = await SchoolClass.find({ teacherFirebaseUid: uid });
+  const classes = await pgFindSchoolClassesByTeacher(uid);
   return res.json(classes);
 });
 
@@ -229,25 +259,25 @@ router.post("/invite/student", authenticateToken, async (req: Request, res: Resp
   const parsed = studentInviteSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
 
-  const cls = await SchoolClass.findById(parsed.data.classId);
+  const cls = await pgFindSchoolClassById(parseInt(parsed.data.classId, 10));
   if (!cls || cls.teacherFirebaseUid !== uid) {
     return res.status(403).json({ message: "Class not found or not yours" });
   }
 
   const token = crypto.randomUUID();
-  const invite = await Invite.create({
+  const invite = await pgCreateInvite({
     email: parsed.data.parentEmail,
     name: parsed.data.studentName,
     role: "student",
     schoolId: cls.schoolId,
-    classId: cls._id,
+    classId: String(cls.id),
     grades: [parsed.data.grade],
     token,
     invitedBy: uid,
     expiresAt: sevenDaysFromNow(),
   });
 
-  const school = await School.findById(cls.schoolId);
+  const school = cls.schoolId ? await pgFindSchoolById(cls.schoolId) : null;
   await sendStudentInvite(
     parsed.data.parentEmail,
     parsed.data.studentName,
@@ -256,16 +286,21 @@ router.post("/invite/student", authenticateToken, async (req: Request, res: Resp
     token
   );
 
-  return res.status(201).json({ id: invite._id, status: invite.status });
+  recordAuditEvent({
+    eventType: AUDIT_EVENTS.INVITE_SENT,
+    payload: { email: parsed.data.parentEmail, role: "student", classId: parsed.data.classId },
+  });
+  return res.status(201).json({ id: invite.id, status: invite.status });
 });
 
 // GET /api/invite/student/list?classId=
 router.get("/invite/student/list", authenticateToken, async (req: Request, res: Response) => {
   const uid = firebaseUid(req);
   const { classId } = req.query;
-  const filter: any = { role: "student", invitedBy: uid };
-  if (classId) filter.classId = classId;
-  const invites = await Invite.find(filter).select("-token");
+  const invites = await pgFindInvitesByInvitedBy(uid, {
+    role: "student",
+    classId: classId as string | undefined,
+  });
   return res.json(invites);
 });
 
@@ -274,42 +309,37 @@ router.get("/invite/student/list", authenticateToken, async (req: Request, res: 
 // POST /api/invite/resend/:inviteId
 router.post("/invite/resend/:inviteId", authenticateToken, async (req: Request, res: Response) => {
   const uid = firebaseUid(req);
-  const invite = await Invite.findById(req.params.inviteId);
+  const invite = await pgFindInviteById(parseInt(req.params.inviteId, 10));
   if (!invite) return res.status(404).json({ message: "Invite not found" });
   if (invite.invitedBy !== uid) return res.status(403).json({ message: "Forbidden" });
   if (invite.status === "accepted") return res.status(409).json({ message: "Already accepted" });
 
-  invite.token = crypto.randomUUID();
-  invite.status = "pending";
-  invite.expiresAt = sevenDaysFromNow();
-  await invite.save();
+  const newToken = crypto.randomUUID();
+  const newExpiry = sevenDaysFromNow();
+  await pgResendInvite(invite.id, newToken, newExpiry);
 
-  const school = await School.findById(invite.schoolId);
+  const school = invite.schoolId ? await pgFindSchoolById(invite.schoolId) : null;
   if (invite.role === "teacher") {
-    await sendTeacherInvite(invite.email, invite.name, school?.name ?? "", invite.token);
+    await sendTeacherInvite(invite.email, invite.name ?? "", school?.name ?? "", newToken);
   } else {
-    const cls = invite.classId ? await SchoolClass.findById(invite.classId) : null;
-    await sendStudentInvite(
-      invite.email,
-      invite.name,
-      school?.name ?? "",
-      cls?.name ?? "",
-      invite.token
-    );
+    const cls = invite.classId ? await pgFindSchoolClassById(parseInt(invite.classId, 10)) : null;
+    await sendStudentInvite(invite.email, invite.name ?? "", school?.name ?? "", cls?.name ?? "", newToken);
   }
 
+  recordAuditEvent({
+    eventType: AUDIT_EVENTS.INVITE_RESENT,
+    payload: { inviteId: invite.id, role: invite.role },
+  });
   return res.json({ message: "Invite resent" });
 });
 
 // GET /api/invite/validate/:token  (used by accept-invite page to pre-fill info)
 router.get("/invite/validate/:token", async (req: Request, res: Response) => {
-  const invite = await Invite.findOne({ token: req.params.token }).select("-token");
+  const invite = await pgFindInviteByToken(req.params.token);
   if (!invite) return res.status(404).json({ message: "Invalid invite link" });
   if (invite.status !== "pending") return res.status(409).json({ message: "Invite already used" });
   if (invite.expiresAt < new Date())
-    return res
-      .status(410)
-      .json({ message: "This invite has expired. Ask your admin to resend it." });
+    return res.status(410).json({ message: "This invite has expired. Ask your admin to resend it." });
   return res.json({
     name: invite.name,
     email: invite.email,
@@ -317,5 +347,108 @@ router.get("/invite/validate/:token", async (req: Request, res: Response) => {
     grades: invite.grades,
   });
 });
+
+// ─── Staff invite (principal / school_admin) ──────────────────────────────────
+// school_admin can invite teacher or principal; admin can invite any staff role.
+
+const staffInviteSchema = z.object({
+  email: z.string().email(),
+  name: z.string().min(1),
+  role: z.enum(["teacher", "principal", "school_admin"]),
+  grades: z.array(z.string()).optional(),
+});
+
+// POST /api/invite/staff
+router.post(
+  "/invite/staff",
+  authenticateToken,
+  requireRole("school_admin", "admin"),
+  async (req: Request, res: Response) => {
+    const uid = firebaseUid(req);
+    const actorRole = (req.session as any).role as string;
+    const parsed = staffInviteSchema.safeParse(req.body);
+    if (!parsed.success)
+      return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+
+    // school_admin cannot invite another school_admin — only platform admin can
+    if (actorRole === "school_admin" && parsed.data.role === "school_admin") {
+      return res
+        .status(403)
+        .json({ message: "Only a platform admin can invite school administrators." });
+    }
+
+    const school = await pgFindSchoolByCreatedByUid(uid);
+    if (!school) return res.status(404).json({ message: "Complete school setup first" });
+
+    const token = crypto.randomUUID();
+    const invite = await pgCreateInvite({
+      email: parsed.data.email,
+      name: parsed.data.name,
+      role: parsed.data.role,
+      schoolId: school.id,
+      grades: parsed.data.grades ?? [],
+      token,
+      invitedBy: uid,
+      expiresAt: sevenDaysFromNow(),
+    });
+
+    if (parsed.data.role === "principal") {
+      await sendPrincipalInvite(parsed.data.email, parsed.data.name, school.name, token);
+    } else if (parsed.data.role === "school_admin") {
+      await sendSchoolAdminInvite(parsed.data.email, parsed.data.name, school.name, token);
+    } else {
+      await sendTeacherInvite(parsed.data.email, parsed.data.name, school.name, token);
+    }
+
+    recordAuditEvent({
+      eventType: AUDIT_EVENTS.INVITE_SENT,
+      payload: { email: parsed.data.email, role: parsed.data.role, schoolId: school.id },
+    });
+
+    return res.status(201).json({ id: invite.id, status: invite.status });
+  }
+);
+
+// ─── Platform admin invite ────────────────────────────────────────────────────
+// Only platform admin can create another admin account.
+
+const platformAdminInviteSchema = z.object({
+  email: z.string().email(),
+  name: z.string().min(1),
+});
+
+// POST /api/invite/platform-admin
+router.post(
+  "/invite/platform-admin",
+  authenticateToken,
+  requireRole("admin"),
+  async (req: Request, res: Response) => {
+    const uid = firebaseUid(req);
+    const parsed = platformAdminInviteSchema.safeParse(req.body);
+    if (!parsed.success)
+      return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+
+    const token = crypto.randomUUID();
+    const invite = await pgCreateInvite({
+      email: parsed.data.email,
+      name: parsed.data.name,
+      role: "admin",
+      schoolId: null,
+      grades: [],
+      token,
+      invitedBy: uid,
+      expiresAt: sevenDaysFromNow(),
+    });
+
+    await sendSchoolAdminInvite(parsed.data.email, parsed.data.name, "Class Mode Platform", token);
+
+    recordAuditEvent({
+      eventType: AUDIT_EVENTS.INVITE_SENT,
+      payload: { email: parsed.data.email, role: "admin" },
+    });
+
+    return res.status(201).json({ id: invite.id, status: invite.status });
+  }
+);
 
 export default router;

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { USER_ROLES, USER_STATUSES } from "./authz";
 
 // Zod schemas for validation
 export const insertUserSchema = z.object({
@@ -7,9 +8,9 @@ export const insertUserSchema = z.object({
   name: z.string().min(1),
   email: z.string().email(),
   role: z
-    .enum(["student", "teacher", "parent", "principal", "school_admin", "admin"])
+    .enum(USER_ROLES)
     .default("student"),
-  status: z.enum(["active", "pending", "suspended", "rejected"]).default("active"),
+  status: z.enum(USER_STATUSES).default("active"),
   avatar: z.string().optional().nullable(),
   class: z.string().optional().nullable(),
   subject: z.string().optional().nullable(),

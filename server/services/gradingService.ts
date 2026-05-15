@@ -14,7 +14,10 @@ import {
   getSystemPrompt,
   getEssayFewShotExamples,
 } from "../lib/prompts/grading";
-import { MongoGradingResult, getNextSequenceValue } from "../../shared/mongo-schema";
+import {
+  pgCreateGradingResult, pgFindGradingResultBySubmissionId,
+  pgFindGradingResults, pgDeleteGradingResult,
+} from "../lib/pg-queries";
 import { geminiChat } from "../lib/gemini";
 import { logger } from "../lib/logger";
 
@@ -80,14 +83,13 @@ export async function gradeSubmission(request: GradingRequest): Promise<GradingR
 
     const processingTimeMs = Date.now() - startTime;
 
-    // 6. Store result in MongoDB
-    const gradingResult = new MongoGradingResult({
-      id: await getNextSequenceValue("GradingResult"),
+    // 6. Store result in PostgreSQL
+    await pgCreateGradingResult({
       submissionId: request.submissionId,
       studentId: request.studentId,
-      teacherId: 0, // TODO: get from auth context
-      rubric: rubric as any,
-      scoreBreakdown: scoreBreakdown as any,
+      teacherId: 0,
+      rubric,
+      scoreBreakdown,
       overallFeedback: parsed.overallFeedback || "",
       strengths: parsed.strengths || [],
       areasForImprovement: parsed.areasForImprovement || [],
@@ -98,7 +100,6 @@ export async function gradeSubmission(request: GradingRequest): Promise<GradingR
       contentType: request.contentType,
       completedAt: new Date(),
     });
-    await gradingResult.save();
 
     return {
       submissionId: request.submissionId,
@@ -115,18 +116,14 @@ export async function gradeSubmission(request: GradingRequest): Promise<GradingR
   } catch (error: any) {
     logger.error("Grading service error:", error);
 
-    // Store failed result
-    const failedResult = new MongoGradingResult({
-      id: await getNextSequenceValue("GradingResult"),
+    await pgCreateGradingResult({
       submissionId: request.submissionId,
       studentId: request.studentId,
       teacherId: 0,
-      rubric: rubric as any,
+      rubric,
       status: "failed",
       contentType: request.contentType,
-      createdAt: new Date(),
     });
-    await failedResult.save();
 
     throw new Error(`Grading failed: ${error.message}`);
   }
@@ -136,21 +133,14 @@ export async function gradeSubmission(request: GradingRequest): Promise<GradingR
  * Get a grading result by submission ID.
  */
 export async function getGradingResult(submissionId: string) {
-  return MongoGradingResult.findOne({ submissionId });
+  return pgFindGradingResultBySubmissionId(submissionId);
 }
 
-/**
- * Get grading history for a student.
- */
 export async function getGradingHistory(studentId: number, limit = 20, offset = 0) {
-  return MongoGradingResult.find({ studentId }).sort({ createdAt: -1 }).skip(offset).limit(limit);
+  return pgFindGradingResults({ studentId, limit, skip: offset });
 }
 
-/**
- * Re-grade a submission (delete old result and re-process).
- */
 export async function regradeSubmission(submissionId: string, request: GradingRequest) {
-  // Delete old result if exists
-  await MongoGradingResult.deleteOne({ submissionId });
+  await pgDeleteGradingResult(submissionId);
   return gradeSubmission(request);
 }
