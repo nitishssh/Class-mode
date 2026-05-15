@@ -79,6 +79,7 @@
     "framer-motion": "^11.18.2",
     "helmet": "^8.1.0",
     "input-otp": "^1.2.4",
+    "jotai": "^2.20.0",
     "jsonrepair": "^3.14.0",
     "jsonwebtoken": "^9.0.3",
     "katex": "^0.16.46",
