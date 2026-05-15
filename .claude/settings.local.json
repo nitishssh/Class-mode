@@ -37,7 +37,10 @@
       "Bash(npm test *)",
       "Bash(dir /s /b)",
       "Bash(findstr /v node_modules)",
-      "Bash(gh run *)"
+      "Bash(gh run *)",
+      "Bash(gcloud builds triggers create *)",
+      "Bash(gcloud builds *)",
+      "Bash(curl *)"
     ]
   }
 }
