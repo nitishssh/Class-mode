@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -24,12 +24,20 @@ import {
   X,
   Users,
   BookOpen,
+  Download,
+  Code2,
 } from "lucide-react";
 import { useOrchestrator } from "../hooks/use-orchestrator";
+import { usePlayback } from "../hooks/use-playback";
 import { StatelessChatRequest } from "@shared/study-arena";
 import "katex/dist/katex.min.css";
 import { InlineMath } from "react-katex";
 import { useToast } from "@/hooks/use-toast";
+import { PlaybackControls } from "@/components/ai-classroom/PlaybackControls";
+import { DiscussionCard } from "@/components/ai-classroom/DiscussionCard";
+import { SpotlightOverlay } from "@/components/ai-classroom/SpotlightOverlay";
+import { WhiteboardCanvas } from "@/components/ai-classroom/WhiteboardCanvas";
+import { WidgetRenderer } from "@/components/ai-classroom/WidgetRenderer";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -51,9 +59,10 @@ import { cn } from "@/lib/utils";
 
 interface Scene {
   id: string;
-  type: "slides" | "quiz" | "simulation" | "pbl";
+  type: "slides" | "quiz" | "simulation" | "pbl" | "interactive" | "code" | "diagram" | "game" | "visualization3d";
   title: string;
   content: any;
+  actions?: any[];
   duration?: number;
 }
 
@@ -218,11 +227,40 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
 
   // Multi-agent state
   const [whiteboardOpen, setWhiteboardOpen] = useState(false);
-  const [wbElements, setWbElements] = useState<WhiteboardElement[]>([]);
   const [chatOpen, setChatOpen] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
   const [userInput, setUserInput] = useState("");
   const { sendMessage, isGenerating } = useOrchestrator();
+  const { toast } = useToast();
+  const slideAreaRef = useRef<HTMLDivElement>(null);
+
+  // Playback engine
+  const {
+    mode: playbackMode,
+    progress: playbackProgress,
+    discussion,
+    lastAction,
+    start: startPlayback,
+    pause: pausePlayback,
+    resume: resumePlayback,
+    stop: stopPlayback,
+    confirmDiscussion,
+    skipDiscussion,
+    handleUserInterrupt,
+  } = usePlayback();
+
+  // Chat-driven actions (separate from playback-driven actions)
+  const [lastChatAction, setLastChatAction] = useState<{ name: string; params: Record<string, any> } | null>(null);
+
+  // Combined action: prefer playback, fall back to chat
+  const activeAction = lastAction || lastChatAction;
+
+  // Wire lastAction → whiteboard open/close state
+  useEffect(() => {
+    if (!lastAction) return;
+    if (lastAction.name === "wb_open") setWhiteboardOpen(true);
+    else if (lastAction.name === "wb_close") setWhiteboardOpen(false);
+  }, [lastAction]);
 
   const nextScene = () => {
     if (currentSceneIndex < data.scenes.length - 1) {
@@ -271,8 +309,16 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
             color: agentColors[i % agentColors.length],
             allowedActions:
               a.role === "teacher"
-                ? ["wb_open", "wb_draw_text", "wb_draw_latex", "wb_close", "wb_clear", "wb_delete"]
-                : [],
+                ? [
+                    "spotlight", "laser",
+                    "wb_open", "wb_close", "wb_clear", "wb_delete",
+                    "wb_draw_text", "wb_draw_shape", "wb_draw_chart", "wb_draw_latex",
+                    "wb_draw_table", "wb_draw_line", "wb_draw_code", "wb_edit_code",
+                    "discussion",
+                  ]
+                : a.role === "assistant"
+                  ? ["wb_open", "wb_draw_text", "wb_draw_latex", "wb_close", "discussion"]
+                  : [],
           }))
         : [
             {
@@ -283,12 +329,11 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
               persona: "Encouraging expert",
               color: "#7c3aed",
               allowedActions: [
-                "wb_open",
-                "wb_draw_text",
-                "wb_draw_latex",
-                "wb_close",
-                "wb_clear",
-                "wb_delete",
+                "spotlight", "laser",
+                "wb_open", "wb_close", "wb_clear", "wb_delete",
+                "wb_draw_text", "wb_draw_shape", "wb_draw_chart", "wb_draw_latex",
+                "wb_draw_table", "wb_draw_line", "wb_draw_code", "wb_edit_code",
+                "discussion",
               ],
             },
             {
@@ -343,26 +388,8 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
         const name = event.data.actionName;
         if (name === "wb_open") setWhiteboardOpen(true);
         else if (name === "wb_close") setWhiteboardOpen(false);
-        else if (name === "wb_clear") setWbElements([]);
-        else if (name === "wb_delete" && event.data.params?.elementId) {
-          setWbElements((prev) => prev.filter((el) => el.id !== event.data.params.elementId));
-        } else if (name.startsWith("wb_draw_")) {
-          const type = name.replace("wb_draw_", "");
-          setWbElements((prev) => [
-            ...prev,
-            {
-              id: event.data.actionId,
-              type,
-              x: event.data.params.x,
-              y: event.data.params.y,
-              content: event.data.params.content,
-              latex: event.data.params.latex,
-              width: event.data.params.width,
-              height: event.data.params.height,
-              data: event.data.params,
-            },
-          ]);
-        }
+        // All other wb_* and widget_* actions are handled by WhiteboardCanvas/WidgetRenderer via lastAction
+        setLastChatAction({ name, params: event.data.params ?? {} });
       }
     });
   };
@@ -382,7 +409,19 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {/* Playback controls */}
+          <PlaybackControls
+            mode={playbackMode}
+            progress={playbackProgress}
+            onPlay={() => {
+              if (playbackMode === "paused") resumePlayback();
+              else if (currentScene.actions?.length) startPlayback(currentScene.actions);
+            }}
+            onPause={pausePlayback}
+            onStop={stopPlayback}
+            className="w-52"
+          />
           <Button
             variant="outline"
             size="sm"
@@ -399,7 +438,30 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
             onClick={() => setChatOpen(!chatOpen)}
           >
             <MessageSquare className="h-4 w-4" />
-            Class Chat
+            Chat
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={async () => {
+              try {
+                const res = await fetch(`/api/ai-classroom/export/${(data as any).classroomId || (data as any).id}`, { method: "POST" });
+                if (!res.ok) throw new Error("Export failed");
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `${data.topic.slice(0, 30)}.pptx`;
+                a.click();
+                URL.revokeObjectURL(url);
+              } catch {
+                toast({ title: "Export failed", description: "Could not generate PPTX", variant: "destructive" });
+              }
+            }}
+            title="Export as PPTX"
+          >
+            <Download className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -431,8 +493,9 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                     >
                       {scene.type === "slides" && <Layout className="h-4 w-4" />}
                       {scene.type === "quiz" && <HelpCircle className="h-4 w-4" />}
-                      {scene.type === "simulation" && <Dna className="h-4 w-4" />}
+                      {(scene.type === "simulation" || scene.type === "interactive") && <Dna className="h-4 w-4" />}
                       {scene.type === "pbl" && <FileText className="h-4 w-4" />}
+                      {(scene.type === "code" || scene.type === "diagram" || scene.type === "game" || scene.type === "visualization3d") && <Code2 className="h-4 w-4" />}
                     </div>
                     <div className="flex-1 overflow-hidden">
                       <p
@@ -461,8 +524,23 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
 
         {/* Main Content Area */}
         <div className="relative flex flex-1 flex-col overflow-hidden bg-slate-50 p-4 md:p-8">
+          {/* Whiteboard */}
+          {whiteboardOpen && (
+            <WhiteboardCanvas
+              isOpen={whiteboardOpen}
+              action={activeAction}
+              onClose={() => setWhiteboardOpen(false)}
+              className="mb-3 h-56 shrink-0"
+            />
+          )}
+
           <ScrollArea className="flex-1 overflow-hidden rounded-3xl border bg-white shadow-2xl">
-            <div className="relative h-full min-h-[500px] w-full">
+            <div ref={slideAreaRef as any} className="relative h-full min-h-[500px] w-full">
+              {/* Spotlight overlay for spotlight/laser actions */}
+              <SpotlightOverlay
+                containerRef={slideAreaRef as React.RefObject<HTMLElement>}
+                action={activeAction}
+              />
               {/* Scene Content */}
               <div className="p-8">
                 {currentScene.type === "slides" && (
@@ -576,28 +654,23 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                   </div>
                 )}
 
-                {currentScene.type === "simulation" && (
+                {(currentScene.type === "simulation" || currentScene.type === "interactive" ||
+                  currentScene.type === "code" || currentScene.type === "diagram" ||
+                  currentScene.type === "game" || currentScene.type === "visualization3d") && (
                   <div className="h-full space-y-4">
                     <div className="flex items-center justify-between">
                       <h2 className="text-2xl font-bold">
-                        {currentScene.content.title || currentScene.title}
+                        {currentScene.content?.title || currentScene.title}
                       </h2>
+                      <Badge variant="outline" className="capitalize">
+                        {currentScene.content?.widgetType || currentScene.type}
+                      </Badge>
                     </div>
-                    <div className="flex aspect-video w-full items-center justify-center rounded-2xl border-4 border-dashed border-slate-200 bg-slate-50">
-                      {currentScene.content.html ? (
-                        <iframe
-                          srcDoc={currentScene.content.html}
-                          className="h-full w-full rounded-xl border-none"
-                          sandbox="allow-scripts allow-same-origin"
-                          title="Simulation"
-                        />
-                      ) : (
-                        <div className="text-center text-muted-foreground">
-                          <Brain className="mx-auto mb-2 h-12 w-12 opacity-20" />
-                          <p>Interactive Simulation Engine</p>
-                        </div>
-                      )}
-                    </div>
+                    <WidgetRenderer
+                      scene={currentScene}
+                      action={activeAction}
+                      className="aspect-video"
+                    />
                   </div>
                 )}
 
@@ -687,13 +760,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                 )}
               </div>
 
-              {/* Whiteboard Overlay */}
-              <Whiteboard
-                isOpen={whiteboardOpen}
-                elements={wbElements}
-                onClose={() => setWhiteboardOpen(false)}
-                onClear={() => setWbElements([])}
-              />
+              {/* Whiteboard is now rendered above the ScrollArea */}
             </div>
           </ScrollArea>
 
@@ -828,6 +895,16 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
           )}
         </AnimatePresence>
       </div>
+
+      {/* Discussion Card — appears mid-lesson */}
+      {discussion && (
+        <DiscussionCard
+          topic={discussion.topic}
+          prompt={discussion.prompt}
+          onJoin={confirmDiscussion}
+          onSkip={skipDiscussion}
+        />
+      )}
     </div>
   );
 };

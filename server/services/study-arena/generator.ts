@@ -44,35 +44,178 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   });
 }
 
-function createAICallFn(): AICallFn {
-  const hasGemini = !!process.env.GOOGLE_API_KEY;
-  const hasOpenAI = !!process.env.OPENAI_API_KEY;
+async function callAnthropicAPI(
+  systemPrompt: string,
+  userPrompt: string,
+  timeoutMs: number
+): Promise<string> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY not set");
+  const res = await withTimeout(
+    fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: process.env.ANTHROPIC_MODEL || "claude-haiku-4-5-20251001",
+        max_tokens: 16384,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userPrompt }],
+      }),
+    }).then(async (r) => {
+      if (!r.ok) throw new Error(`Anthropic API ${r.status}`);
+      const j = await r.json();
+      return j.content[0].text as string;
+    }),
+    timeoutMs,
+    "anthropic"
+  );
+  return res;
+}
 
-  return async (systemPrompt: string, userPrompt: string): Promise<string> => {
-    const label = userPrompt.substring(0, 60);
-
-    if (hasGemini) {
-      try {
-        return await withTimeout(geminiChat(systemPrompt, userPrompt), LLM_TIMEOUT_MS, label);
-      } catch (err) {
-        logger.warn("[StudyArena] Gemini call failed, falling back to OpenAI if available:", err);
-        if (!hasOpenAI) throw err;
-      }
-    }
-
-    const response = await withTimeout(
-      openai.chat.completions.create({
-        model: "gpt-4o",
+async function callDeepSeekAPI(
+  systemPrompt: string,
+  userPrompt: string,
+  timeoutMs: number
+): Promise<string> {
+  const apiKey = process.env.DEEPSEEK_API_KEY;
+  if (!apiKey) throw new Error("DEEPSEEK_API_KEY not set");
+  const baseUrl = process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com";
+  const res = await withTimeout(
+    fetch(`${baseUrl}/v1/chat/completions`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        model: process.env.DEEPSEEK_MODEL || "deepseek-chat",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
         max_tokens: 16384,
       }),
-      LLM_TIMEOUT_MS,
-      label
+    }).then(async (r) => {
+      if (!r.ok) throw new Error(`DeepSeek API ${r.status}`);
+      const j = await r.json();
+      return j.choices[0].message.content as string;
+    }),
+    timeoutMs,
+    "deepseek"
+  );
+  return res;
+}
+
+async function callQwenAPI(
+  systemPrompt: string,
+  userPrompt: string,
+  timeoutMs: number
+): Promise<string> {
+  const apiKey = process.env.QWEN_API_KEY;
+  if (!apiKey) throw new Error("QWEN_API_KEY not set");
+  const baseUrl = process.env.QWEN_BASE_URL || "https://dashscope.aliyuncs.com/compatible-mode";
+  const res = await withTimeout(
+    fetch(`${baseUrl}/v1/chat/completions`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        model: process.env.QWEN_MODEL || "qwen-max",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        max_tokens: 8192,
+      }),
+    }).then(async (r) => {
+      if (!r.ok) throw new Error(`Qwen API ${r.status}`);
+      const j = await r.json();
+      return j.choices[0].message.content as string;
+    }),
+    timeoutMs,
+    "qwen"
+  );
+  return res;
+}
+
+async function callOllamaAPI(
+  systemPrompt: string,
+  userPrompt: string,
+  timeoutMs: number
+): Promise<string> {
+  const baseUrl = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
+  const res = await withTimeout(
+    fetch(`${baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        model: process.env.OLLAMA_MODEL || "llama3.1",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        stream: false,
+      }),
+    }).then(async (r) => {
+      if (!r.ok) throw new Error(`Ollama API ${r.status}`);
+      const j = await r.json();
+      return j.message.content as string;
+    }),
+    timeoutMs,
+    "ollama"
+  );
+  return res;
+}
+
+function createAICallFn(): AICallFn {
+  const hasGemini = !!process.env.GOOGLE_API_KEY;
+  const hasAnthropic = !!process.env.ANTHROPIC_API_KEY;
+  const hasDeepSeek = !!process.env.DEEPSEEK_API_KEY;
+  const hasQwen = !!process.env.QWEN_API_KEY;
+  const hasOllama = !!process.env.OLLAMA_BASE_URL;
+  const hasOpenAI = !!process.env.OPENAI_API_KEY;
+
+  const providers: Array<{ name: string; available: boolean; call: (s: string, u: string) => Promise<string> }> = [
+    { name: "gemini", available: hasGemini, call: (s, u) => geminiChat(s, u) },
+    { name: "anthropic", available: hasAnthropic, call: (s, u) => callAnthropicAPI(s, u, LLM_TIMEOUT_MS) },
+    { name: "deepseek", available: hasDeepSeek, call: (s, u) => callDeepSeekAPI(s, u, LLM_TIMEOUT_MS) },
+    { name: "qwen", available: hasQwen, call: (s, u) => callQwenAPI(s, u, LLM_TIMEOUT_MS) },
+    { name: "ollama", available: hasOllama, call: (s, u) => callOllamaAPI(s, u, LLM_TIMEOUT_MS) },
+    {
+      name: "openai",
+      available: hasOpenAI,
+      call: async (s, u) => {
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [{ role: "system", content: s }, { role: "user", content: u }],
+          max_tokens: 16384,
+        });
+        return response.choices[0].message.content || "";
+      },
+    },
+  ];
+
+  const activeProviders = providers.filter((p) => p.available);
+  if (activeProviders.length === 0) {
+    throw new Error(
+      "No LLM provider configured. Set GOOGLE_API_KEY, ANTHROPIC_API_KEY, DEEPSEEK_API_KEY, QWEN_API_KEY, OLLAMA_BASE_URL, or OPENAI_API_KEY."
     );
-    return response.choices[0].message.content || "";
+  }
+
+  return async (systemPrompt: string, userPrompt: string): Promise<string> => {
+    const label = userPrompt.substring(0, 60);
+    let lastError: Error | undefined;
+
+    for (const provider of activeProviders) {
+      try {
+        return await withTimeout(provider.call(systemPrompt, userPrompt), LLM_TIMEOUT_MS, label);
+      } catch (err) {
+        lastError = err as Error;
+        logger.warn(`[StudyArena] ${provider.name} failed (${lastError.message}), trying next provider`);
+      }
+    }
+
+    throw lastError || new Error("All LLM providers failed");
   };
 }
 
@@ -413,6 +556,89 @@ async function generatePBLSceneContent(outline: SceneOutline, aiCall: AICallFn):
   return parseJsonResponse(response);
 }
 
+async function generateWidgetContent(outline: SceneOutline, aiCall: AICallFn): Promise<any> {
+  const widgetType = outline.widgetType || outline.type;
+  const wo = outline.widgetOutline || {};
+
+  let promptId: string;
+  let promptVars: Record<string, any>;
+
+  switch (widgetType) {
+    case "code":
+      promptId = "code-content";
+      promptVars = {
+        title: outline.title,
+        description: outline.description,
+        keyPoints: (outline.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n"),
+        language: wo.language || "python",
+      };
+      break;
+    case "diagram":
+      promptId = "diagram-content";
+      promptVars = {
+        title: outline.title,
+        description: outline.description,
+        keyPoints: (outline.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n"),
+        diagramType: wo.diagramType || "flowchart",
+        nodeCount: wo.nodeCount || 6,
+      };
+      break;
+    case "game":
+      promptId = "game-content";
+      promptVars = {
+        title: outline.title,
+        description: outline.description,
+        keyPoints: (outline.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n"),
+        gameType: wo.gameType || "action",
+        challenge: wo.challenge || outline.description,
+      };
+      break;
+    case "visualization3d":
+      promptId = "visualization3d-content";
+      promptVars = {
+        title: outline.title,
+        description: outline.description,
+        keyPoints: (outline.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n"),
+        conceptName: wo.conceptName || outline.title,
+        designIdea: wo.designIdea || outline.description,
+      };
+      break;
+    case "simulation":
+    default:
+      promptId = "simulation-content";
+      promptVars = {
+        title: outline.title,
+        description: outline.description,
+        keyPoints: (outline.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join("\n"),
+        conceptName: wo.conceptName || outline.title,
+        subject: wo.subject || "",
+        designIdea: wo.designIdea || outline.description,
+      };
+  }
+
+  const prompt = buildPrompt(promptId, promptVars);
+  if (!prompt) {
+    logger.warn(`[StudyArena] Widget prompt not found: ${promptId}, falling back to interactive`);
+    return generateInteractiveContent(outline, aiCall);
+  }
+
+  try {
+    const response = await aiCall(prompt.system, prompt.user || "");
+
+    // Code/diagram/game widgets may return JSON config or HTML
+    const html = extractHtml(response);
+    if (html) return { widgetType, html: postProcessInteractiveHtml(html) };
+
+    const parsed = parseJsonResponse<any>(response);
+    if (parsed) return { widgetType, config: parsed };
+
+    return { widgetType, html: postProcessInteractiveHtml(response) };
+  } catch (err) {
+    logger.warn(`[StudyArena] Widget content generation failed for ${widgetType}:`, err);
+    return null;
+  }
+}
+
 async function generateSceneContent(
   outline: SceneOutline,
   aiCall: AICallFn,
@@ -425,7 +651,15 @@ async function generateSceneContent(
       return generateQuizContent(outline, aiCall);
     case "interactive":
     case "simulation":
+      if (outline.widgetType && outline.widgetType !== "simulation") {
+        return generateWidgetContent(outline, aiCall);
+      }
       return generateInteractiveContent(outline, aiCall);
+    case "code":
+    case "diagram":
+    case "game":
+    case "visualization3d":
+      return generateWidgetContent(outline, aiCall);
     case "pbl":
       return generatePBLSceneContent(outline, aiCall);
     default:
@@ -439,14 +673,20 @@ async function generateSceneActions(
   aiCall: AICallFn,
   agents: AgentInfo[]
 ): Promise<any[]> {
+  const isWidgetScene =
+    outline.widgetType != null ||
+    ["code", "diagram", "game", "visualization3d"].includes(outline.type);
+
   const promptId =
     outline.type === "quiz"
       ? "quiz-actions"
       : outline.type === "pbl"
         ? "pbl-actions"
-        : outline.type === "interactive" || outline.type === "simulation"
-          ? "interactive-actions"
-          : "slide-actions";
+        : isWidgetScene
+          ? "widget-teacher-actions"
+          : outline.type === "interactive" || outline.type === "simulation"
+            ? "interactive-actions"
+            : "slide-actions";
 
   const teacherAgent = agents.find((a) => a.role === "teacher");
 

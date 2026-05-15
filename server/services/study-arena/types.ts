@@ -5,7 +5,8 @@
  * for use within PersonalLearningPro's Express server.
  */
 
-export type SceneType = "slide" | "quiz" | "simulation" | "pbl" | "interactive";
+export type SceneType = "slide" | "quiz" | "simulation" | "pbl" | "interactive" | "code" | "diagram" | "game" | "visualization3d";
+export type WidgetType = "simulation" | "diagram" | "code" | "game" | "visualization3d";
 
 /** Lightweight agent info passed to the generation pipeline */
 // ── Orchestration Types ───────────────────────────────────────────────────
@@ -124,6 +125,23 @@ export interface SceneOutline {
     conceptName: string;
     conceptOverview: string;
     designIdea: string;
+  };
+  widgetType?: WidgetType;
+  widgetOutline?: {
+    // code
+    language?: string;
+    starterCode?: string;
+    // diagram
+    diagramType?: string;
+    nodeCount?: number;
+    // game
+    gameType?: string;
+    challenge?: string;
+    // simulation / visualization3d
+    subject?: string;
+    conceptName?: string;
+    designIdea?: string;
+    [key: string]: any;
   };
   mediaGenerations?: Array<{
     elementId: string;

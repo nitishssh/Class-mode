@@ -4,6 +4,7 @@ import { studyArenaInternalService } from "../services/study-arena/internal-serv
 import { pgFindAIClassroomById } from "../lib/pg-queries";
 import { orchestrateChat } from "../services/study-arena/orchestrator";
 import { StatelessChatRequest } from "../services/study-arena/types";
+import { generatePPTX } from "../services/study-arena/pptx-export";
 import { logger } from "../lib/logger";
 import { authenticateToken } from "../routes";
 
@@ -29,6 +30,22 @@ router.get("/health", async (req, res) => {
     service: "study-arena-native",
     timestamp: new Date().toISOString(),
   });
+});
+
+/**
+ * GET /api/ai-classroom/providers
+ * Returns which LLM providers are currently configured
+ */
+router.get("/providers", (_req, res) => {
+  const providers = [
+    { id: "gemini", name: "Google Gemini", configured: !!process.env.GOOGLE_API_KEY },
+    { id: "anthropic", name: "Anthropic Claude", configured: !!process.env.ANTHROPIC_API_KEY },
+    { id: "deepseek", name: "DeepSeek", configured: !!process.env.DEEPSEEK_API_KEY },
+    { id: "qwen", name: "Qwen (Alibaba)", configured: !!process.env.QWEN_API_KEY },
+    { id: "ollama", name: "Ollama (local)", configured: !!process.env.OLLAMA_BASE_URL },
+    { id: "openai", name: "OpenAI", configured: !!process.env.OPENAI_API_KEY },
+  ];
+  res.json({ providers, active: providers.filter((p) => p.configured).map((p) => p.id) });
 });
 
 // Middleware to protect subsequent routes
@@ -267,6 +284,30 @@ router.post("/chat", async (req, res) => {
     logger.error("Chat orchestration error:", error);
     res.write(`data: ${JSON.stringify({ type: "error", data: { message: String(error) } })}\n\n`);
     res.end();
+  }
+});
+
+// ── PPTX Export ─────────────────────────────────────────────────────────────
+
+router.post("/export/:classroomId", async (req: Request, res: Response) => {
+  try {
+    const user = req.user as { id: number } | undefined;
+    const userId = user?.id || req.session?.userId;
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
+
+    const classroom = await pgFindAIClassroomById(parseInt(req.params.classroomId));
+    if (!classroom) return res.status(404).json({ error: "Classroom not found" });
+    if (classroom.teacherId !== userId) return res.status(403).json({ error: "Access denied" });
+
+    const pptxBuffer = await generatePPTX(classroom.data as any);
+    const filename = `classroom-${classroom.data.topic?.slice(0, 30).replace(/[^a-z0-9]/gi, "-") || "export"}.pptx`;
+
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.presentationml.presentation");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(pptxBuffer);
+  } catch (error: unknown) {
+    logger.error("PPTX export error:", error);
+    res.status(500).json({ error: (error as Error).message || "Export failed" });
   }
 });
 
