@@ -18,7 +18,7 @@ RUN apk add --no-cache libc6-compat python3 make g++
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci --prefer-offline
+RUN npm ci --prefer-offline --legacy-peer-deps
 
 # ── Stage 2: Development ──────────────────────────────────────────
 FROM node:${NODE_VERSION} AS development
@@ -80,7 +80,7 @@ RUN addgroup --system --gid 1001 nodejs \
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev --omit=optional --prefer-offline \
+RUN npm ci --omit=dev --omit=optional --prefer-offline --legacy-peer-deps \
     && npm cache clean --force
 
 COPY --from=build /app/dist ./dist
