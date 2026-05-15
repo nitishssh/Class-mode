@@ -4,7 +4,7 @@ steps:
     args:
       - "build"
       - "-t"
-      - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:${SHORT_SHA}"
+      - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:${_TAG}"
       - "-t"
       - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:latest"
       - "--build-arg"
@@ -23,7 +23,7 @@ steps:
   - name: "gcr.io/cloud-builders/docker"
     args:
       - "push"
-      - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:${SHORT_SHA}"
+      - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:${_TAG}"
 
   - name: "gcr.io/cloud-builders/docker"
     args:
@@ -38,7 +38,7 @@ steps:
       - "deploy"
       - "${_SERVICE_NAME}"
       - "--image"
-      - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:${SHORT_SHA}"
+      - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:${_TAG}"
       - "--region"
       - "${_REGION}"
       - "--add-cloudsql-instances"
@@ -62,7 +62,7 @@ steps:
       - "--allow-unauthenticated"
 
 images:
-  - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:${SHORT_SHA}"
+  - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:${_TAG}"
   - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:latest"
 
 substitutions:
@@ -70,6 +70,7 @@ substitutions:
   _REPO_NAME: plp-repo
   _SERVICE_NAME: personallearningpro
   _CLOUDSQL_INSTANCE: plp-pg
+  _TAG: latest   # GitHub triggers override this with $SHORT_SHA
   # Set these in Cloud Build Trigger configuration in GCP Console
   _VITE_FIREBASE_API_KEY: ""
   _VITE_FIREBASE_APP_ID: ""
