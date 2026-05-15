@@ -61,6 +61,18 @@ steps:
       - "60"
       - "--allow-unauthenticated"
 
+  # ─── Ensure public access (org policy may block --allow-unauthenticated) ────
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: gcloud
+    args:
+      - "run"
+      - "services"
+      - "add-iam-policy-binding"
+      - "${_SERVICE_NAME}"
+      - "--region=${_REGION}"
+      - "--member=allUsers"
+      - "--role=roles/run.invoker"
+
 images:
   - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:${_TAG}"
   - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:latest"
