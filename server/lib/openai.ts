@@ -8,8 +8,19 @@ if (!process.env.OPENAI_API_KEY) {
   logger.warn("OPENAI_API_KEY is not set. AI features (tutor, test generation) will not work.");
 }
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "",
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not set");
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openai;
+}
+// Keep `openai` as a proxy so existing call sites don't change
+const openai = new Proxy({} as OpenAI, {
+  get(_target, prop) {
+    return (getOpenAI() as any)[prop];
+  },
 });
 
 interface ChatMessage {
