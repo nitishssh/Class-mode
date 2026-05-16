@@ -53,6 +53,8 @@ export function usePlayback() {
     getEngine().skipDiscussion();
   }, []);
 
+  const skip = useCallback(() => getEngine().skip(), []);
+
   const handleUserInterrupt = useCallback(() => {
     getEngine().handleUserInterrupt();
   }, []);
@@ -70,6 +72,7 @@ export function usePlayback() {
     pause,
     resume,
     stop,
+    skip,
     confirmDiscussion,
     skipDiscussion,
     handleUserInterrupt,

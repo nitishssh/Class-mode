@@ -11,8 +11,10 @@ const SLIDE_H_INCHES = 5.625;
 const WB_W = 1000;
 const WB_H = 562;
 
-function wbToInch(val: number, axis: "x" | "w"): number {
-  return axis === "x" || axis === "w" ? (val / WB_W) * SLIDE_W_INCHES : (val / WB_H) * SLIDE_H_INCHES;
+function wbToInch(val: number, axis: "x" | "y" | "w" | "h"): number {
+  return (axis === "y" || axis === "h")
+    ? (val / WB_H) * SLIDE_H_INCHES
+    : (val / WB_W) * SLIDE_W_INCHES;
 }
 
 function colorHex(c?: string): string {
@@ -77,9 +79,9 @@ export async function generatePPTX(classroom: ClassroomData): Promise<Buffer> {
       if (!el || !el.type) continue;
 
       const x = wbToInch(el.left ?? el.x ?? 0, "x");
-      const y = wbToInch(el.top ?? el.y ?? 0, "x");
+      const y = wbToInch(el.top ?? el.y ?? 0, "y");
       const w = wbToInch(el.width ?? el.w ?? 200, "w");
-      const h = wbToInch(el.height ?? el.h ?? 100, "w");
+      const h = wbToInch(el.height ?? el.h ?? 100, "h");
 
       try {
         if (el.type === "text") {
@@ -138,7 +140,7 @@ export async function generatePPTX(classroom: ClassroomData): Promise<Buffer> {
 
   // Quiz summary slides
   for (const scene of classroom.scenes) {
-    if (scene.type !== ("quiz" as string)) continue;
+    if (scene.type !== "quiz") continue;
 
     const slide = pptx.addSlide();
     slide.background = { color: "f0f4ff" };

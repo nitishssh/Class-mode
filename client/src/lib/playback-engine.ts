@@ -118,9 +118,21 @@ export class PlaybackEngine {
       this.resolveDiscussion();
       this.resolveDiscussion = null;
     }
-    this.currentIndex++;
     this.setMode("playing");
     this.processNext();
+  }
+
+  skip() {
+    if (this.mode === "idle") return;
+    this.tts.cancel();
+    if (this.resolveDiscussion) {
+      this.resolveDiscussion();
+      this.resolveDiscussion = null;
+      this.setMode("playing");
+      this.processNext();
+    }
+    // In "playing" mode, tts.cancel() resolves the pending speak() promise
+    // so the async processNext() chain continues automatically.
   }
 
   handleEndDiscussion() {

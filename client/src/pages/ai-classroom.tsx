@@ -244,6 +244,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
     pause: pausePlayback,
     resume: resumePlayback,
     stop: stopPlayback,
+    skip: skipAction,
     confirmDiscussion,
     skipDiscussion,
     handleUserInterrupt,
@@ -420,6 +421,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
             }}
             onPause={pausePlayback}
             onStop={stopPlayback}
+            onSkip={skipAction}
             className="w-52"
           />
           <Button

@@ -21,7 +21,7 @@ export function WidgetRenderer({ scene, action, className }: WidgetRendererProps
 
     iframeRef.current.contentWindow?.postMessage(
       { type: "widget_action", name: action.name, params: action.params },
-      "*"
+      window.location.origin
     );
   }, [action]);
 
@@ -34,7 +34,7 @@ export function WidgetRenderer({ scene, action, className }: WidgetRendererProps
         ref={iframeRef}
         title={scene.type}
         srcDoc={html}
-        sandbox="allow-scripts allow-same-origin allow-forms"
+        sandbox="allow-scripts allow-forms"
         className={cn("w-full rounded-lg border border-slate-700", className)}
         style={{ minHeight: 420 }}
       />

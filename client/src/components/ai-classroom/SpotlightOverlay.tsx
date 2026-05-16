@@ -59,7 +59,7 @@ export function SpotlightOverlay({ containerRef, action }: SpotlightOverlayProps
       w: rect.width,
       h: rect.height,
     };
-    queueMicrotask(() => setState(newState));
+    setState(newState);
 
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => setState(null), action.name === "laser" ? 1500 : 3000);
