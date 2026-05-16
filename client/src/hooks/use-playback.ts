@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from "react";
-import { PlaybackEngine, EngineMode, PlaybackAction } from "@/lib/playback-engine";
+import { PlaybackEngine, EngineMode, EngineSnapshot, PlaybackAction } from "@/lib/playback-engine";
 
 export interface DiscussionState {
   topic: string;
@@ -7,11 +7,17 @@ export interface DiscussionState {
   actionId: string;
 }
 
+export interface VideoState {
+  elementId?: string;
+  src?: string;
+}
+
 export function usePlayback() {
   const engineRef = useRef<PlaybackEngine | null>(null);
   const [mode, setMode] = useState<EngineMode>("idle");
   const [progress, setProgress] = useState({ index: 0, total: 0 });
   const [discussion, setDiscussion] = useState<DiscussionState | null>(null);
+  const [videoPrompt, setVideoPrompt] = useState<VideoState | null>(null);
   const [lastAction, setLastAction] = useState<{ name: string; params: Record<string, any> } | null>(null);
 
   function getEngine(): PlaybackEngine {
@@ -28,6 +34,7 @@ export function usePlayback() {
       engine.on("progressChange", setProgress),
       engine.on("actionFire", (a) => setLastAction({ ...a })),
       engine.on("discussionPrompt", (d) => setDiscussion(d)),
+      engine.on("videoPlay", (v) => setVideoPrompt(v)),
     ];
     return () => offs.forEach((off) => off());
   }, []);
@@ -41,7 +48,10 @@ export function usePlayback() {
   const stop = useCallback(() => {
     getEngine().stop();
     setDiscussion(null);
+    setVideoPrompt(null);
   }, []);
+
+  const skip = useCallback(() => getEngine().skip(), []);
 
   const confirmDiscussion = useCallback(() => {
     setDiscussion(null);
@@ -53,7 +63,10 @@ export function usePlayback() {
     getEngine().skipDiscussion();
   }, []);
 
-  const skip = useCallback(() => getEngine().skip(), []);
+  const confirmVideo = useCallback(() => {
+    setVideoPrompt(null);
+    getEngine().confirmVideo();
+  }, []);
 
   const handleUserInterrupt = useCallback(() => {
     getEngine().handleUserInterrupt();
@@ -63,10 +76,23 @@ export function usePlayback() {
     getEngine().handleEndDiscussion();
   }, []);
 
+  const getSnapshot = useCallback((): EngineSnapshot | null => {
+    return engineRef.current?.getSnapshot() ?? null;
+  }, []);
+
+  const restoreFromSnapshot = useCallback((snap: EngineSnapshot) => {
+    getEngine().restoreFromSnapshot(snap);
+  }, []);
+
+  const setTTSMode = useCallback((mode: "browser" | "server") => {
+    getEngine().setTTSMode(mode);
+  }, []);
+
   return {
     mode,
     progress,
     discussion,
+    videoPrompt,
     lastAction,
     start,
     pause,
@@ -75,7 +101,11 @@ export function usePlayback() {
     skip,
     confirmDiscussion,
     skipDiscussion,
+    confirmVideo,
     handleUserInterrupt,
     handleEndDiscussion,
+    getSnapshot,
+    restoreFromSnapshot,
+    setTTSMode,
   };
 }

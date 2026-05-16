@@ -8,6 +8,9 @@ const __dirname = dirname(__filename);
 
 export default defineConfig({
   plugins: [react()],
+  optimizeDeps: {
+    include: ["shiki"],
+  },
   server: {
     hmr: {
       port: 5002,

@@ -4,9 +4,10 @@
  * States: idle → playing → paused → live
  *
  * Mirrors OpenMAIC's lib/playback/engine.ts, adapted for this stack.
- * - speech actions → SpeechSynthesisQueue (sentence-chunked, Chrome 15s fix)
+ * - speech actions → SpeechSynthesisQueue (browser) or fetch+Audio (server TTS)
  * - spotlight/laser → fire-and-forget via queueMicrotask
  * - discussion → engine pauses, emits onDiscussion, resumes via confirm/skip
+ * - play_video → engine pauses, emits videoPlay, resumes via confirmVideo
  * - wb_* / widget_* → synchronous via onAction callback
  */
 
@@ -23,12 +24,19 @@ export interface PlaybackAction {
   actionId?: string;
 }
 
+export interface EngineSnapshot {
+  currentIndex: number;
+  mode: EngineMode;
+  consumedDiscussions: string[];
+}
+
 export type EngineEvents = {
   modeChange: EngineMode;
   actionFire: { name: string; params: Record<string, any> };
   speechStart: { text: string };
   speechEnd: undefined;
   discussionPrompt: { topic: string; prompt?: string; actionId: string };
+  videoPlay: { elementId?: string; src?: string };
   progressChange: { index: number; total: number };
   sceneComplete: undefined;
   error: string;
@@ -43,6 +51,9 @@ export class PlaybackEngine {
   private consumedDiscussions = new Set<string>();
   private emitter: Emitter<EngineEvents>;
   private resolveDiscussion: (() => void) | null = null;
+  private resolveVideo: (() => void) | null = null;
+  private audioMode: "browser" | "server" = "browser";
+  private currentAudio: HTMLAudioElement | null = null;
 
   constructor() {
     this.tts = new SpeechSynthesisQueue();
@@ -54,12 +65,27 @@ export class PlaybackEngine {
     return () => this.emitter.off(event, handler as any);
   }
 
-  getMode(): EngineMode {
-    return this.mode;
+  getMode(): EngineMode { return this.mode; }
+
+  getProgress() { return { index: this.currentIndex, total: this.actions.length }; }
+
+  getSnapshot(): EngineSnapshot {
+    return {
+      currentIndex: this.currentIndex,
+      mode: this.mode,
+      consumedDiscussions: [...this.consumedDiscussions],
+    };
   }
 
-  getProgress() {
-    return { index: this.currentIndex, total: this.actions.length };
+  restoreFromSnapshot(snap: EngineSnapshot) {
+    this.tts.cancel();
+    this.currentIndex = snap.currentIndex;
+    this.consumedDiscussions = new Set(snap.consumedDiscussions);
+    this.setMode(snap.mode);
+  }
+
+  setTTSMode(mode: "browser" | "server") {
+    this.audioMode = mode;
   }
 
   load(actions: PlaybackAction[]) {
@@ -85,22 +111,33 @@ export class PlaybackEngine {
   pause() {
     if (this.mode === "playing" || this.mode === "live") {
       this.setMode("paused");
-      this.tts.pause();
+      if (this.audioMode === "server") {
+        this.currentAudio?.pause();
+      } else {
+        this.tts.pause();
+      }
     }
   }
 
   resume() {
     if (this.mode === "paused") {
       this.setMode("playing");
-      this.tts.resume();
+      if (this.audioMode === "server" && this.currentAudio) {
+        this.currentAudio.play().catch(() => {});
+      } else {
+        this.tts.resume();
+      }
       this.processNext();
     }
   }
 
   stop() {
     this.tts.cancel();
+    this._stopAudio();
     this.resolveDiscussion?.();
     this.resolveDiscussion = null;
+    this.resolveVideo?.();
+    this.resolveVideo = null;
     this.setMode("idle");
     this.currentIndex = 0;
   }
@@ -122,12 +159,25 @@ export class PlaybackEngine {
     this.processNext();
   }
 
+  confirmVideo() {
+    if (this.resolveVideo) {
+      this.resolveVideo();
+      this.resolveVideo = null;
+    }
+  }
+
   skip() {
     if (this.mode === "idle") return;
     this.tts.cancel();
+    this._stopAudio();
     if (this.resolveDiscussion) {
       this.resolveDiscussion();
       this.resolveDiscussion = null;
+      this.setMode("playing");
+      this.processNext();
+    } else if (this.resolveVideo) {
+      this.resolveVideo();
+      this.resolveVideo = null;
       this.setMode("playing");
       this.processNext();
     }
@@ -142,6 +192,15 @@ export class PlaybackEngine {
   handleUserInterrupt() {
     this.setMode("live");
     this.tts.cancel();
+    this._stopAudio();
+  }
+
+  private _stopAudio() {
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      this.currentAudio.src = "";
+      this.currentAudio = null;
+    }
   }
 
   private setMode(mode: EngineMode) {
@@ -149,6 +208,31 @@ export class PlaybackEngine {
       this.mode = mode;
       this.emitter.emit("modeChange", mode);
     }
+  }
+
+  private async _speakServer(text: string, voice?: string, speed?: number): Promise<void> {
+    return new Promise<void>((resolve) => {
+      const audio = new Audio();
+      this.currentAudio = audio;
+
+      fetch("/api/ai-classroom/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, voice, speed }),
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error("TTS fetch failed");
+          return res.blob();
+        })
+        .then((blob) => {
+          const url = URL.createObjectURL(blob);
+          audio.src = url;
+          audio.onended = () => { URL.revokeObjectURL(url); this.currentAudio = null; resolve(); };
+          audio.onerror = () => { URL.revokeObjectURL(url); this.currentAudio = null; resolve(); };
+          audio.play().catch(() => resolve());
+        })
+        .catch(() => resolve()); // fall through on error
+    });
   }
 
   private async processNext(): Promise<void> {
@@ -167,11 +251,16 @@ export class PlaybackEngine {
       const text = action.content || action.params?.text || "";
       if (!text) return this.processNext();
       this.emitter.emit("speechStart", { text });
-      const opts: SpeechOptions = {
-        voice: action.params?.voice,
-        rate: action.params?.speed ?? 1.0,
-      };
-      await this.tts.speak(text, opts);
+
+      if (this.audioMode === "server") {
+        await this._speakServer(text, action.params?.voice, action.params?.speed);
+      } else {
+        const opts: SpeechOptions = {
+          voice: action.params?.voice,
+          rate: action.params?.speed ?? 1.0,
+        };
+        await this.tts.speak(text, opts);
+      }
       (this.emitter.emit as any)("speechEnd", undefined);
       return this.processNext();
     }
@@ -202,8 +291,17 @@ export class PlaybackEngine {
       return;
     }
 
+    if (name === "play_video") {
+      await new Promise<void>((resolve) => {
+        this.resolveVideo = resolve;
+        this.emitter.emit("videoPlay", { elementId: params.elementId, src: params.src });
+      });
+      return this.processNext();
+    }
+
     this.emitter.emit("actionFire", { name, params });
-    await new Promise<void>((resolve) => setTimeout(resolve, 80));
+    const delay = name.startsWith("widget_") ? 500 : 80;
+    await new Promise<void>((resolve) => setTimeout(resolve, delay));
     return this.processNext();
   }
 }

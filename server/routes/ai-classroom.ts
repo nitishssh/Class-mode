@@ -1,12 +1,18 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
+import multer from "multer";
+import OpenAI from "openai";
+import archiver from "archiver";
 import { studyArenaInternalService } from "../services/study-arena/internal-service";
 import { pgFindAIClassroomById } from "../lib/pg-queries";
 import { orchestrateChat } from "../services/study-arena/orchestrator";
 import { StatelessChatRequest } from "../services/study-arena/types";
 import { generatePPTX } from "../services/study-arena/pptx-export";
+import { generateClassroomHTML } from "../services/study-arena/html-export";
 import { logger } from "../lib/logger";
 import { authenticateToken } from "../routes";
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 
 const router = Router();
 
@@ -38,12 +44,15 @@ router.get("/health", async (req, res) => {
  */
 router.get("/providers", (_req, res) => {
   const providers = [
-    { id: "gemini", name: "Google Gemini", configured: !!process.env.GOOGLE_API_KEY },
-    { id: "anthropic", name: "Anthropic Claude", configured: !!process.env.ANTHROPIC_API_KEY },
-    { id: "deepseek", name: "DeepSeek", configured: !!process.env.DEEPSEEK_API_KEY },
-    { id: "qwen", name: "Qwen (Alibaba)", configured: !!process.env.QWEN_API_KEY },
-    { id: "ollama", name: "Ollama (local)", configured: !!process.env.OLLAMA_BASE_URL },
-    { id: "openai", name: "OpenAI", configured: !!process.env.OPENAI_API_KEY },
+    { id: "gemini",     name: "Google Gemini",     configured: !!process.env.GOOGLE_API_KEY },
+    { id: "anthropic",  name: "Anthropic Claude",   configured: !!process.env.ANTHROPIC_API_KEY },
+    { id: "deepseek",   name: "DeepSeek",           configured: !!process.env.DEEPSEEK_API_KEY },
+    { id: "qwen",       name: "Qwen (Alibaba)",     configured: !!process.env.QWEN_API_KEY },
+    { id: "openrouter", name: "OpenRouter",         configured: !!process.env.OPENROUTER_API_KEY },
+    { id: "kimi",       name: "Kimi (Moonshot)",    configured: !!process.env.KIMI_API_KEY },
+    { id: "grok",       name: "Grok (xAI)",         configured: !!process.env.GROK_API_KEY },
+    { id: "ollama",     name: "Ollama (local)",     configured: !!process.env.OLLAMA_BASE_URL },
+    { id: "openai",     name: "OpenAI",             configured: !!process.env.OPENAI_API_KEY },
   ];
   res.json({ providers, active: providers.filter((p) => p.configured).map((p) => p.id) });
 });
@@ -287,6 +296,57 @@ router.post("/chat", async (req, res) => {
   }
 });
 
+// ── TTS ─────────────────────────────────────────────────────────────────────
+
+router.post("/tts", async (req: Request, res: Response) => {
+  const { text, voice = "alloy", speed = 1.0 } = req.body;
+  if (!text || typeof text !== "string") {
+    return res.status(400).json({ error: "text required" });
+  }
+  if (!process.env.OPENAI_API_KEY) {
+    return res.status(503).json({ error: "TTS not configured (OPENAI_API_KEY missing)" });
+  }
+  try {
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const response = await openai.audio.speech.create({
+      model: "tts-1",
+      voice: voice as any,
+      input: text.slice(0, 4096),
+      speed: Math.max(0.25, Math.min(4.0, Number(speed) || 1.0)),
+    });
+    const buffer = Buffer.from(await response.arrayBuffer());
+    res.setHeader("Content-Type", "audio/mpeg");
+    res.setHeader("Content-Length", buffer.length);
+    res.setHeader("Cache-Control", "public, max-age=3600");
+    res.send(buffer);
+  } catch (err: any) {
+    logger.error("TTS error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── ASR ─────────────────────────────────────────────────────────────────────
+
+router.post("/asr", upload.single("audio"), async (req: Request, res: Response) => {
+  if (!req.file) return res.status(400).json({ error: "audio file required" });
+  if (!process.env.OPENAI_API_KEY) {
+    return res.status(503).json({ error: "ASR not configured (OPENAI_API_KEY missing)" });
+  }
+  try {
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const audioFile = new File([req.file.buffer], "audio.webm", { type: req.file.mimetype });
+    const transcription = await openai.audio.transcriptions.create({
+      model: "whisper-1",
+      file: audioFile,
+      language: (req.body.language as string) || undefined,
+    });
+    res.json({ text: transcription.text });
+  } catch (err: any) {
+    logger.error("ASR error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── PPTX Export ─────────────────────────────────────────────────────────────
 
 router.post("/export/:classroomId", async (req: Request, res: Response) => {
@@ -308,6 +368,60 @@ router.post("/export/:classroomId", async (req: Request, res: Response) => {
   } catch (error: unknown) {
     logger.error("PPTX export error:", error);
     res.status(500).json({ error: (error as Error).message || "Export failed" });
+  }
+});
+
+// ── HTML Export ──────────────────────────────────────────────────────────────
+
+router.get("/export/:classroomId/html", async (req: Request, res: Response) => {
+  try {
+    const user = req.user as { id: number } | undefined;
+    const userId = user?.id || req.session?.userId;
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
+
+    const classroom = await pgFindAIClassroomById(parseInt(req.params.classroomId));
+    if (!classroom) return res.status(404).json({ error: "Classroom not found" });
+    if (classroom.teacherId !== userId) return res.status(403).json({ error: "Access denied" });
+
+    const html = generateClassroomHTML(classroom.data as any);
+    const filename = `classroom-${(classroom.data as any).topic?.slice(0, 30).replace(/[^a-z0-9]/gi, "-") || "export"}.html`;
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(html);
+  } catch (err: any) {
+    logger.error("HTML export error:", err);
+    res.status(500).json({ error: err.message || "Export failed" });
+  }
+});
+
+// ── ZIP Export ───────────────────────────────────────────────────────────────
+
+router.get("/export/:classroomId/zip", async (req: Request, res: Response) => {
+  try {
+    const user = req.user as { id: number } | undefined;
+    const userId = user?.id || req.session?.userId;
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
+
+    const classroom = await pgFindAIClassroomById(parseInt(req.params.classroomId));
+    if (!classroom) return res.status(404).json({ error: "Classroom not found" });
+    if (classroom.teacherId !== userId) return res.status(403).json({ error: "Access denied" });
+
+    const html = generateClassroomHTML(classroom.data as any);
+    const dataJson = JSON.stringify(classroom.data, null, 2);
+    const topicSlug = (classroom.data as any).topic?.slice(0, 30).replace(/[^a-z0-9]/gi, "-") || "export";
+
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader("Content-Disposition", `attachment; filename="classroom-${topicSlug}.zip"`);
+
+    const archive = archiver("zip", { zlib: { level: 6 } });
+    archive.on("error", (err) => { logger.error("ZIP error:", err); });
+    archive.pipe(res);
+    archive.append(html, { name: "classroom.html" });
+    archive.append(dataJson, { name: "classroom-data.json" });
+    archive.finalize();
+  } catch (err: any) {
+    logger.error("ZIP export error:", err);
+    res.status(500).json({ error: err.message || "Export failed" });
   }
 });
 

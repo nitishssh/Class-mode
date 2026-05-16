@@ -26,6 +26,13 @@ import {
   BookOpen,
   Download,
   Code2,
+  Mic,
+  MicOff,
+  Volume2,
+  VolumeX,
+  FileCode,
+  Archive,
+  ChevronDown,
 } from "lucide-react";
 import { useOrchestrator } from "../hooks/use-orchestrator";
 import { usePlayback } from "../hooks/use-playback";
@@ -38,6 +45,14 @@ import { DiscussionCard } from "@/components/ai-classroom/DiscussionCard";
 import { SpotlightOverlay } from "@/components/ai-classroom/SpotlightOverlay";
 import { WhiteboardCanvas } from "@/components/ai-classroom/WhiteboardCanvas";
 import { WidgetRenderer } from "@/components/ai-classroom/WidgetRenderer";
+import { VideoPlayer } from "@/components/ai-classroom/VideoPlayer";
+import { cacheClassroom, getCachedClassroom } from "@/lib/classroom-db";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -239,6 +254,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
     mode: playbackMode,
     progress: playbackProgress,
     discussion,
+    videoPrompt,
     lastAction,
     start: startPlayback,
     pause: pausePlayback,
@@ -247,8 +263,56 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
     skip: skipAction,
     confirmDiscussion,
     skipDiscussion,
+    confirmVideo,
     handleUserInterrupt,
+    setTTSMode,
   } = usePlayback();
+
+  // TTS mode toggle (browser vs server)
+  const [serverTTS, setServerTTS] = useState(false);
+  const toggleTTS = () => {
+    const next = !serverTTS;
+    setServerTTS(next);
+    setTTSMode(next ? "server" : "browser");
+  };
+
+  // Microphone recording state
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const [isRecording, setIsRecording] = useState(false);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        const fd = new FormData();
+        fd.append("audio", blob, "audio.webm");
+        try {
+          const res = await fetch("/api/ai-classroom/asr", { method: "POST", body: fd });
+          if (res.ok) {
+            const { text } = await res.json();
+            if (text) setUserInput((prev) => prev ? `${prev} ${text}` : text);
+          }
+        } catch { /* ignore ASR errors */ }
+      };
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setIsRecording(true);
+    } catch {
+      toast({ title: "Mic unavailable", description: "Could not access microphone", variant: "destructive" });
+    }
+  };
+
+  const stopRecording = () => {
+    mediaRecorderRef.current?.stop();
+    mediaRecorderRef.current = null;
+    setIsRecording(false);
+  };
 
   // Chat-driven actions (separate from playback-driven actions)
   const [lastChatAction, setLastChatAction] = useState<{ name: string; params: Record<string, any> } | null>(null);
@@ -445,26 +509,49 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
           <Button
             variant="outline"
             size="sm"
-            className="gap-2"
-            onClick={async () => {
-              try {
-                const res = await fetch(`/api/ai-classroom/export/${(data as any).classroomId || (data as any).id}`, { method: "POST" });
-                if (!res.ok) throw new Error("Export failed");
-                const blob = await res.blob();
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `${data.topic.slice(0, 30)}.pptx`;
-                a.click();
-                URL.revokeObjectURL(url);
-              } catch {
-                toast({ title: "Export failed", description: "Could not generate PPTX", variant: "destructive" });
-              }
-            }}
-            title="Export as PPTX"
+            className={cn("gap-1", serverTTS ? "border-indigo-400 text-indigo-600" : "")}
+            onClick={toggleTTS}
+            title={serverTTS ? "Using server TTS — click to switch to browser TTS" : "Using browser TTS — click to switch to server TTS"}
           >
-            <Download className="h-4 w-4" />
+            {serverTTS ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
           </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1">
+                <Download className="h-4 w-4" />
+                <ChevronDown className="h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={async () => {
+                try {
+                  const cid = (data as any).classroomId || (data as any).id;
+                  const res = await fetch(`/api/ai-classroom/export/${cid}`, { method: "POST" });
+                  if (!res.ok) throw new Error("Export failed");
+                  const blob = await res.blob();
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a"); a.href = url; a.download = `${data.topic.slice(0, 30)}.pptx`; a.click(); URL.revokeObjectURL(url);
+                } catch { toast({ title: "Export failed", description: "Could not generate PPTX", variant: "destructive" }); }
+              }}>
+                <Download className="mr-2 h-4 w-4" /> Export as PPTX
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={async () => {
+                try {
+                  const cid = (data as any).classroomId || (data as any).id;
+                  const a = document.createElement("a"); a.href = `/api/ai-classroom/export/${cid}/html`; a.download = `${data.topic.slice(0, 30)}.html`; a.click();
+                } catch { toast({ title: "Export failed", description: "Could not generate HTML", variant: "destructive" }); }
+              }}>
+                <FileCode className="mr-2 h-4 w-4" /> Export as HTML
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                const cid = (data as any).classroomId || (data as any).id;
+                const a = document.createElement("a"); a.href = `/api/ai-classroom/export/${cid}/zip`; a.download = `classroom-${cid}.zip`; a.click();
+              }}>
+                <Archive className="mr-2 h-4 w-4" /> Export as ZIP
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -877,8 +964,21 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                     value={userInput}
                     onChange={(e) => setUserInput(e.target.value)}
                     disabled={isGenerating}
-                    className="rounded-xl border-slate-200 pr-12 focus-visible:ring-blue-500"
+                    className="rounded-xl border-slate-200 pr-20 focus-visible:ring-blue-500"
                   />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onMouseDown={startRecording}
+                    onMouseUp={stopRecording}
+                    onTouchStart={startRecording}
+                    onTouchEnd={stopRecording}
+                    className={cn("absolute right-10 top-1 h-8 w-8 rounded-lg", isRecording ? "text-red-500 bg-red-50" : "text-slate-400 hover:text-slate-600")}
+                    title="Hold to speak"
+                  >
+                    {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  </Button>
                   <Button
                     type="submit"
                     size="icon"
@@ -897,6 +997,18 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
           )}
         </AnimatePresence>
       </div>
+
+      {/* Video Player — blocks playback until video ends or is skipped */}
+      <AnimatePresence>
+        {videoPrompt && (
+          <VideoPlayer
+            src={videoPrompt.src}
+            elementId={videoPrompt.elementId}
+            onEnd={confirmVideo}
+            onSkip={confirmVideo}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Discussion Card — appears mid-lesson */}
       {discussion && (
@@ -1000,9 +1112,18 @@ export default function StudyArenaPage() {
 
   const handleOpenClassroom = async (id: string) => {
     try {
+      // Check IndexedDB cache first (24h TTL)
+      const cached = await getCachedClassroom(id);
+      if (cached) {
+        setClassroomData(cached);
+        setActiveClassroomId(id);
+        return;
+      }
       const res = await fetch(`/api/ai-classroom/classroom/${id}`);
       if (!res.ok) throw new Error("Failed to load classroom");
       const data = await res.json();
+      // Cache for offline use
+      cacheClassroom(data, parseInt(id)).catch(() => {});
       setClassroomData(data);
       setActiveClassroomId(id);
     } catch (error: any) {

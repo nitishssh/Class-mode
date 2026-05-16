@@ -167,20 +167,119 @@ async function callOllamaAPI(
   return res;
 }
 
+async function callOpenRouterAPI(
+  systemPrompt: string,
+  userPrompt: string,
+  timeoutMs: number
+): Promise<string> {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) throw new Error("OPENROUTER_API_KEY not set");
+  const baseUrl = process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1";
+  const res = await withTimeout(
+    fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        model: process.env.OPENROUTER_MODEL || "openai/gpt-4o",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        max_tokens: 16384,
+      }),
+    }).then(async (r) => {
+      if (!r.ok) throw new Error(`OpenRouter API ${r.status}`);
+      const j = await r.json();
+      return j.choices[0].message.content as string;
+    }),
+    timeoutMs,
+    "openrouter"
+  );
+  return res;
+}
+
+async function callKimiAPI(
+  systemPrompt: string,
+  userPrompt: string,
+  timeoutMs: number
+): Promise<string> {
+  const apiKey = process.env.KIMI_API_KEY;
+  if (!apiKey) throw new Error("KIMI_API_KEY not set");
+  const baseUrl = process.env.KIMI_BASE_URL || "https://api.moonshot.cn/v1";
+  const res = await withTimeout(
+    fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        model: process.env.KIMI_MODEL || "moonshot-v1-8k",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        max_tokens: 8192,
+      }),
+    }).then(async (r) => {
+      if (!r.ok) throw new Error(`Kimi API ${r.status}`);
+      const j = await r.json();
+      return j.choices[0].message.content as string;
+    }),
+    timeoutMs,
+    "kimi"
+  );
+  return res;
+}
+
+async function callGrokAPI(
+  systemPrompt: string,
+  userPrompt: string,
+  timeoutMs: number
+): Promise<string> {
+  const apiKey = process.env.GROK_API_KEY;
+  if (!apiKey) throw new Error("GROK_API_KEY not set");
+  const baseUrl = process.env.GROK_BASE_URL || "https://api.x.ai/v1";
+  const res = await withTimeout(
+    fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        model: process.env.GROK_MODEL || "grok-beta",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        max_tokens: 16384,
+      }),
+    }).then(async (r) => {
+      if (!r.ok) throw new Error(`Grok API ${r.status}`);
+      const j = await r.json();
+      return j.choices[0].message.content as string;
+    }),
+    timeoutMs,
+    "grok"
+  );
+  return res;
+}
+
 function createAICallFn(): AICallFn {
-  const hasGemini = !!process.env.GOOGLE_API_KEY;
-  const hasAnthropic = !!process.env.ANTHROPIC_API_KEY;
-  const hasDeepSeek = !!process.env.DEEPSEEK_API_KEY;
-  const hasQwen = !!process.env.QWEN_API_KEY;
-  const hasOllama = !!process.env.OLLAMA_BASE_URL;
-  const hasOpenAI = !!process.env.OPENAI_API_KEY;
+  const hasGemini     = !!process.env.GOOGLE_API_KEY;
+  const hasAnthropic  = !!process.env.ANTHROPIC_API_KEY;
+  const hasDeepSeek   = !!process.env.DEEPSEEK_API_KEY;
+  const hasQwen       = !!process.env.QWEN_API_KEY;
+  const hasOpenRouter = !!process.env.OPENROUTER_API_KEY;
+  const hasKimi       = !!process.env.KIMI_API_KEY;
+  const hasGrok       = !!process.env.GROK_API_KEY;
+  const hasOllama     = !!process.env.OLLAMA_BASE_URL;
+  const hasOpenAI     = !!process.env.OPENAI_API_KEY;
 
   const providers: Array<{ name: string; available: boolean; call: (s: string, u: string) => Promise<string> }> = [
-    { name: "gemini", available: hasGemini, call: (s, u) => geminiChat(s, u) },
-    { name: "anthropic", available: hasAnthropic, call: (s, u) => callAnthropicAPI(s, u, LLM_TIMEOUT_MS) },
-    { name: "deepseek", available: hasDeepSeek, call: (s, u) => callDeepSeekAPI(s, u, LLM_TIMEOUT_MS) },
-    { name: "qwen", available: hasQwen, call: (s, u) => callQwenAPI(s, u, LLM_TIMEOUT_MS) },
-    { name: "ollama", available: hasOllama, call: (s, u) => callOllamaAPI(s, u, LLM_TIMEOUT_MS) },
+    { name: "gemini",     available: hasGemini,     call: (s, u) => geminiChat(s, u) },
+    { name: "anthropic",  available: hasAnthropic,  call: (s, u) => callAnthropicAPI(s, u, LLM_TIMEOUT_MS) },
+    { name: "deepseek",   available: hasDeepSeek,   call: (s, u) => callDeepSeekAPI(s, u, LLM_TIMEOUT_MS) },
+    { name: "qwen",       available: hasQwen,       call: (s, u) => callQwenAPI(s, u, LLM_TIMEOUT_MS) },
+    { name: "openrouter", available: hasOpenRouter, call: (s, u) => callOpenRouterAPI(s, u, LLM_TIMEOUT_MS) },
+    { name: "kimi",       available: hasKimi,       call: (s, u) => callKimiAPI(s, u, LLM_TIMEOUT_MS) },
+    { name: "grok",       available: hasGrok,       call: (s, u) => callGrokAPI(s, u, LLM_TIMEOUT_MS) },
+    { name: "ollama",     available: hasOllama,     call: (s, u) => callOllamaAPI(s, u, LLM_TIMEOUT_MS) },
     {
       name: "openai",
       available: hasOpenAI,
