@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
+import { useLocation } from "wouter";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { UserRole } from "@/lib/firebase";
 import { User } from "firebase/auth";
@@ -225,6 +226,7 @@ export function FirebaseAuthDialog() {
     resetUserPassword,
     refreshSession,
   } = useFirebaseAuth();
+  const [, setLocation] = useLocation();
 
 
   const [isNewGoogleUser, setIsNewGoogleUser] = useState(false);
@@ -343,6 +345,8 @@ export function FirebaseAuthDialog() {
       setIsLoginSubmitting(true);
       try {
         await login(data.email, data.password);
+        setLocation("/");
+        return;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
         const code = error.code || "";
@@ -361,9 +365,8 @@ export function FirebaseAuthDialog() {
               body: JSON.stringify({ email: data.email, password: data.password }),
             });
             if (res.ok) {
-              // FIX BUG-10: no localStorage — httpOnly cookie is already set by server.
-              // FIX BUG-18: use refreshSession() instead of window.location.href reload.
               await refreshSession();
+              setLocation("/");
               return;
             } else {
               const errBody = await res.json().catch(() => ({}));
@@ -380,7 +383,7 @@ export function FirebaseAuthDialog() {
         setIsLoginSubmitting(false);
       }
     },
-    [login, refreshSession]
+    [login, refreshSession, setLocation]
   );
 
   const onForgotPasswordSubmit = useCallback(async () => {
@@ -429,6 +432,8 @@ export function FirebaseAuthDialog() {
       try {
         const additionalData = getRoleSpecificData(data.role, data);
         await register(data.email, data.password, data.name, data.role as UserRole, additionalData);
+        setLocation("/");
+        return;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
         const code = error.code || "";
@@ -451,9 +456,8 @@ export function FirebaseAuthDialog() {
               }),
             });
             if (res.ok) {
-              // FIX BUG-10: no localStorage — httpOnly cookie already set by server.
-              // FIX BUG-18: use refreshSession() instead of window.location.href.
               await refreshSession();
+              setLocation("/");
               return;
             } else {
               const errBody = await res.json().catch(() => ({}));
@@ -470,7 +474,7 @@ export function FirebaseAuthDialog() {
         setIsRegSubmitting(false);
       }
     },
-    [register, refreshSession]
+    [register, refreshSession, setLocation]
   );
 
   const onRoleSubmit = useCallback(
@@ -481,11 +485,12 @@ export function FirebaseAuthDialog() {
         await completeGoogleRegistration(tempGoogleUser, data.role as UserRole, additionalData);
         setIsNewGoogleUser(false);
         setTempGoogleUser(null);
+        setLocation("/");
       } catch (error) {
         console.error("Google registration completion failed:", error);
       }
     },
-    [tempGoogleUser, completeGoogleRegistration]
+    [tempGoogleUser, completeGoogleRegistration, setLocation]
   );
 
   const handleGoogleLogin = useCallback(async () => {
@@ -497,6 +502,8 @@ export function FirebaseAuthDialog() {
       if (result.isNewUser) {
         setIsNewGoogleUser(true);
         setTempGoogleUser(result.user);
+      } else {
+        setLocation("/");
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
@@ -506,7 +513,7 @@ export function FirebaseAuthDialog() {
     } finally {
       setGoogleLoading(false);
     }
-  }, [googleLogin, authTab]);
+  }, [googleLogin, authTab, setLocation]);
 
   if (isNewGoogleUser) {
     return (

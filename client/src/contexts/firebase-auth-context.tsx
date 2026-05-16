@@ -277,6 +277,7 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       skipNextAuthStateProfile.current = true;
       setCurrentUser({ user, profile: resolvedProfile });
+      setIsLoading(false);
 
       const ok = await exchangeForServerJwt(user);
       if (!ok) {
@@ -360,6 +361,7 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       skipNextAuthStateProfile.current = true;
       setCurrentUser({ user: result.user, profile: result.profile });
+      setIsLoading(false);
 
       const ok = await exchangeForServerJwt(result.user);
       if (!ok) {
