@@ -18,7 +18,7 @@ import { z } from "zod";
 import { processOCRImage } from "./lib/tesseract";
 import { evaluateSubjectiveAnswer, aiChat } from "./lib/openai";
 import { upload, diskPathToUrl } from "./lib/upload";
-import { verifyFirebaseToken, setCustomUserClaims } from "./lib/firebase-admin";
+import { setCustomUserClaims } from "./lib/firebase-admin";
 import { logger } from "./lib/logger";
 import { recordAuditEvent, AUDIT_EVENTS } from "./lib/audit";
 import { pgFindUserById, pgFindUsers, pgUpdateUser, pgCountUsers } from "./lib/pg-queries";

@@ -16,7 +16,6 @@ import {
   pgFindUserByAuthSubject, pgCreateUser, pgUpdateUser, pgUpsertMembership,
   pgUpdateUserOnboardingComplete,
 } from "../lib/pg-queries";
-import { logger } from "../lib/logger";
 
 const router = Router();
 

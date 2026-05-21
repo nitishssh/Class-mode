@@ -9,7 +9,6 @@ export {
 
 import { getPgPool, isPgReady } from "../db-pg";
 import { logger } from "./logger";
-import { pgUpsertMembership } from "./pg-queries";
 
 /** Compatibility shim: inserts or updates a user record given a Firebase login. */
 export async function upsertPgUser(record: {

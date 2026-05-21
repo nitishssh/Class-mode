@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import {
-  pgFindSubscriptionByUser, pgFindSubscriptionByStripeCustomer,
+  pgFindSubscriptionByUser,
   pgUpsertSubscription, pgUpdateSubscriptionByStripeCustomer, pgFindUserById,
 } from "../lib/pg-queries";
 import { authenticateToken } from "../routes";
