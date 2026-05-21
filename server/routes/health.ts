@@ -47,7 +47,7 @@ router.get("/detailed", authenticateToken, async (_req, res) => {
   const cassandraReady = isCassandraConnected();
 
   // Live ping — more reliable than the cached isPgReady() flag
-  let pgLive = false;
+  let pgLive: boolean;
   let pgLatencyMs: number | null = null;
   try {
     const t0 = Date.now();

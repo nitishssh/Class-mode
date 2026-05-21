@@ -27,7 +27,7 @@ import type {
   ClassroomGenerationProgress,
 } from "./types";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "" });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "dummy-key-for-test" });
 
 const LLM_TIMEOUT_MS = 120_000;
 const PARALLEL_SCENE_BATCH_SIZE = 3;
