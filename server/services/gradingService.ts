@@ -125,7 +125,7 @@ export async function gradeSubmission(request: GradingRequest): Promise<GradingR
       contentType: request.contentType,
     });
 
-    throw new Error(`Grading failed: ${error.message}`);
+    throw new Error(`Grading failed: ${error.message}`, { cause: error });
   }
 }
 

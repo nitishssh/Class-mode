@@ -227,7 +227,7 @@ export const completeGoogleSignUp = async (
   } catch (error: any) {
     const friendlyMsg = mapFirebaseError(error);
     console.error("Error completing Google sign up:", error);
-    throw new Error(friendlyMsg);
+    throw new Error(friendlyMsg, { cause: error });
   }
 };
 
@@ -237,7 +237,7 @@ export const logoutUser = async () => {
     await signOut(auth);
   } catch (error: any) {
     console.error("Error signing out:", error);
-    throw new Error(mapFirebaseError(error));
+    throw new Error(mapFirebaseError(error), { cause: error });
   }
 };
 
@@ -247,7 +247,7 @@ export const resetPassword = async (email: string) => {
     await sendPasswordResetEmail(auth, email);
   } catch (error: any) {
     console.error("Error sending password reset email:", error);
-    throw new Error(mapFirebaseError(error));
+    throw new Error(mapFirebaseError(error), { cause: error });
   }
 };
 
