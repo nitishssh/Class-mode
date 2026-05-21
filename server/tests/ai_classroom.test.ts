@@ -4,6 +4,7 @@ import request from "supertest";
 import { registerRoutes } from "../routes";
 import { verifyFirebaseToken } from "../lib/firebase-admin";
 import session from "express-session";
+import { pgFindUserById } from "../lib/pg-queries";
 
 // Mock dependencies
 vi.mock("../lib/firebase-admin", () => ({
@@ -106,6 +107,11 @@ describe("AI Classroom Routes", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    (pgFindUserById as vi.Mock).mockResolvedValue({
+      id: 1,
+      role: "student",
+      email: "test@test.com",
+    });
     app = express();
     app.use(express.json());
     app.use(

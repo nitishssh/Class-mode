@@ -4,6 +4,11 @@ import request from "supertest";
 import { registerRoutes } from "../routes";
 import { MongoUser } from "../../shared/mongo-schema";
 import session from "express-session";
+import {
+  pgFindUsers,
+  pgFindUserById,
+  pgUpdateUser,
+} from "../lib/pg-queries";
 import jwt from "jsonwebtoken";
 
 const TEST_SECRET = process.env.JWT_SECRET ?? "super_secret_jwt_key_learning_pro_123";
@@ -124,15 +129,17 @@ describe("School Admin API", () => {
       ];
       (MongoUser.find as vi.Mock).mockResolvedValue(mockTeachers);
 
+      (pgFindUsers as vi.Mock).mockResolvedValue(mockTeachers);
+
       const res = await request(app)
         .get("/api/school/teachers")
         .set("Authorization", `Bearer ${adminToken}`);
 
       expect(res.status).toBe(200);
       expect(res.body).toHaveLength(2);
-      expect(MongoUser.find).toHaveBeenCalledWith({
+      expect(pgFindUsers).toHaveBeenCalledWith({
         role: "teacher",
-        school_code: "SCHOOL123",
+        schoolCode: "SCHOOL123",
       });
     });
   });
@@ -146,7 +153,7 @@ describe("School Admin API", () => {
       const mockTeacher = {
         id: 2,
         role: "teacher",
-        school_code: "SCHOOL123",
+        schoolCode: "SCHOOL123",
         status: "pending",
         save: vi.fn().mockResolvedValue(true),
       };
@@ -155,13 +162,18 @@ describe("School Admin API", () => {
         return Promise.resolve(null);
       });
 
+      (pgFindUserById as vi.Mock).mockImplementation((id) => {
+        if (id === 2) return Promise.resolve(mockTeacher);
+        return Promise.resolve(null);
+      });
+      (pgUpdateUser as vi.Mock).mockResolvedValue(mockTeacher);
+
       const res = await request(app)
         .post("/api/school/teachers/2/approve")
         .set("Authorization", `Bearer ${adminToken}`);
 
       expect(res.status).toBe(200);
-      expect(mockTeacher.status).toBe("active");
-      expect(mockTeacher.save).toHaveBeenCalled();
+      expect(pgUpdateUser).toHaveBeenCalledWith(2, { status: "active" });
     });
 
     it("should return 403 if teacher belongs to different school", async () => {
@@ -172,11 +184,16 @@ describe("School Admin API", () => {
       const mockTeacher = {
         id: 2,
         role: "teacher",
-        school_code: "DIFFERENT_SCHOOL",
+        schoolCode: "DIFFERENT_SCHOOL",
         status: "pending",
       };
       (MongoUser.findOne as vi.Mock).mockImplementation((query) => {
         if (query.id === 2) return Promise.resolve(mockTeacher);
+        return Promise.resolve(null);
+      });
+
+      (pgFindUserById as vi.Mock).mockImplementation((id) => {
+        if (id === 2) return Promise.resolve(mockTeacher);
         return Promise.resolve(null);
       });
 

@@ -4,6 +4,11 @@ import request from "supertest";
 import { registerRoutes } from "../routes";
 import { MongoUser } from "../../shared/mongo-schema";
 import session from "express-session";
+import {
+  pgFindUserByEmail,
+  pgFindUserByAuthSubject,
+  pgCreateUser,
+} from "../lib/pg-queries";
 
 // Mock dependencies
 vi.mock("../lib/firebase-admin", () => ({
@@ -87,6 +92,16 @@ describe("User Registration Status", () => {
   it("should set status to pending when a teacher registers", async () => {
     (MongoUser.findOne as vi.Mock).mockResolvedValue(null);
 
+    (pgFindUserByEmail as vi.Mock).mockResolvedValue(null);
+    (pgCreateUser as vi.Mock).mockImplementation((userData: any) => {
+      const createdUser = {
+        id: 123,
+        ...userData,
+      };
+      instances.push(createdUser);
+      return Promise.resolve(createdUser);
+    });
+
     const registrationData = {
       name: "Teacher Test",
       email: "teacher@test.com",
@@ -105,6 +120,16 @@ describe("User Registration Status", () => {
 
   it("should set status to active when a student registers", async () => {
     (MongoUser.findOne as vi.Mock).mockResolvedValue(null);
+
+    (pgFindUserByEmail as vi.Mock).mockResolvedValue(null);
+    (pgCreateUser as vi.Mock).mockImplementation((userData: any) => {
+      const createdUser = {
+        id: 123,
+        ...userData,
+      };
+      instances.push(createdUser);
+      return Promise.resolve(createdUser);
+    });
 
     const registrationData = {
       name: "Student Test",
@@ -129,6 +154,17 @@ describe("User Registration Status", () => {
       name: "Fire Teacher",
     });
     (MongoUser.findOne as vi.Mock).mockResolvedValue(null);
+
+    (pgFindUserByAuthSubject as vi.Mock).mockResolvedValue(null);
+    (pgFindUserByEmail as vi.Mock).mockResolvedValue(null);
+    (pgCreateUser as vi.Mock).mockImplementation((userData: any) => {
+      const createdUser = {
+        id: 123,
+        ...userData,
+      };
+      instances.push(createdUser);
+      return Promise.resolve(createdUser);
+    });
 
     const res = await request(app)
       .post("/api/auth/firebase")

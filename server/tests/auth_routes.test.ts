@@ -5,6 +5,11 @@ import { registerRoutes } from "../routes";
 import { verifyFirebaseToken } from "../lib/firebase-admin";
 import { MongoUser } from "../../shared/mongo-schema";
 import session from "express-session";
+import {
+  pgFindUserByAuthSubject,
+  pgFindUserByEmail,
+  pgCreateUser,
+} from "../lib/pg-queries";
 
 // Mock dependencies
 vi.mock("../lib/firebase-admin", () => ({
@@ -14,27 +19,7 @@ vi.mock("../lib/firebase-admin", () => ({
 }));
 
 // Mock MongoDB
-vi.mock("../../shared/mongo-schema", () => {
-  const saveMock = vi.fn().mockResolvedValue(true);
-  function MockUser(this: any, data: any) {
-    Object.assign(this, data);
-    this.save = saveMock;
-  }
-  MockUser.findOne = vi.fn();
-
-  return {
-    MongoUser: MockUser,
-    getNextSequenceValue: vi.fn().mockResolvedValue(123),
-    MongoWorkspace: { findOne: vi.fn() },
-    MongoChannel: { findOne: vi.fn() },
-    MongoMessage: {
-      findOne: vi.fn(),
-      find: vi.fn().mockReturnValue({
-        sort: vi.fn().mockReturnValue({ limit: vi.fn().mockResolvedValue([]) }),
-      }),
-    },
-  };
-});
+vi.mock("../../shared/mongo-schema");
 
 vi.mock("../storage", () => ({
   storage: {
@@ -100,11 +85,14 @@ describe("Auth Routes", () => {
         email: "test@test.com",
         role: "student",
         displayName: "Test User",
-        save: vi.fn().mockResolvedValue(true),
       };
 
-      (MongoUser.findOne as vi.Mock).mockImplementation((query) => {
-        if (query.firebaseUid === "uid123") return Promise.resolve(mockDbUser);
+      (pgFindUserByAuthSubject as vi.Mock).mockImplementation((provider, uid) => {
+        if (provider === "firebase" && uid === "uid123") return Promise.resolve(mockDbUser);
+        return Promise.resolve(null);
+      });
+      (pgFindUserByEmail as vi.Mock).mockImplementation((email) => {
+        if (email === "test@test.com") return Promise.resolve(mockDbUser);
         return Promise.resolve(null);
       });
 
@@ -129,7 +117,17 @@ describe("Auth Routes", () => {
       };
       (verifyFirebaseToken as vi.Mock).mockResolvedValue(decoded);
 
-      (MongoUser.findOne as vi.Mock).mockResolvedValue(null);
+      (pgFindUserByAuthSubject as vi.Mock).mockResolvedValue(null);
+      (pgFindUserByEmail as vi.Mock).mockResolvedValue(null);
+      const mockCreatedUser = {
+        id: 123,
+        firebaseUid: "new_uid",
+        email: "new@test.com",
+        role: "student",
+        displayName: "New User",
+        avatar: "pic_url",
+      };
+      (pgCreateUser as vi.Mock).mockResolvedValue(mockCreatedUser);
 
       const res = await request(app).post("/api/auth/firebase").send({ idToken: "valid-token" });
 
