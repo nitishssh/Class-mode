@@ -265,7 +265,7 @@ function App() {
 
   // FIX BUG-05: use pre-defined role dashboard map instead of getDashboard() inline
   const role = profile.role;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const RootDashboard = (dashboardByRole[role] ||
     FallbackDashboardRoute) as React.ComponentType<any>;
 
