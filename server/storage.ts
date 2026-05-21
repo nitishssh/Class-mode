@@ -545,7 +545,7 @@ export class PgStorage implements IStorage {
     const params: any[] = [];
     let i = 1;
     if (teacherId) { conditions.push(`teacher_id = $${i++}`); params.push(teacherId); }
-    if (status) { conditions.push(`status = $${i++}`); params.push(status); }
+    if (status) { conditions.push(`status = $${i}`); params.push(status); }
     const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
     const { rows } = await this.pool.query(`SELECT * FROM tests ${where}`, params);
     return rows.map(mapTest);
@@ -764,7 +764,7 @@ export class PgStorage implements IStorage {
     let i = 1;
     if (filters.studentId != null) { conditions.push(`student_id = $${i++}`); params.push(filters.studentId); }
     if (filters.testId != null) { conditions.push(`test_id = $${i++}`); params.push(filters.testId); }
-    if (filters.status) { conditions.push(`status = $${i++}`); params.push(filters.status); }
+    if (filters.status) { conditions.push(`status = $${i}`); params.push(filters.status); }
     const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
     const { rows } = await this.pool.query(`SELECT * FROM test_assignments ${where}`, params);
     return rows.map(mapAssignment);
