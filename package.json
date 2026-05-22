@@ -127,7 +127,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.60.0",
-    "@replit/vite-plugin-cartographer": "^0.0.11",
+    "@replit/vite-plugin-cartographer": "^0.5.5",
     "@replit/vite-plugin-runtime-error-modal": "^0.0.3",
     "@tailwindcss/typography": "^0.5.15",
     "@testing-library/jest-dom": "^6.9.1",
