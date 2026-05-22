@@ -132,6 +132,7 @@ function mapUser(r: any): User {
     password: r.password_hash ?? "",
     name: r.name ?? "",
     email: r.email,
+    emailVerified: r.email_verified ?? false,
     role: r.role as any,
     status: r.status as any,
     avatar: r.avatar ?? null,
@@ -258,6 +259,8 @@ function mapWorkspace(r: any): Workspace {
   return {
     id: n(r.id)!,
     name: r.name,
+    slug: r.slug ?? null,
+    type: r.type ?? "business",
     description: r.description ?? null,
     ownerId: n(r.owner_id)!,
     members: (r.members ?? []).map(Number),
@@ -405,13 +408,13 @@ export class PgStorage implements IStorage {
   async createUser(user: InsertUser): Promise<User> {
     const { rows } = await this.pool.query(
       `INSERT INTO users
-         (auth_provider, auth_subject, email, username, password_hash, name, role, status,
-          avatar, class_name, subject, school_code, grade, board, subjects, district)
-       VALUES ('local', $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+         (auth_provider, auth_subject, email, username, password_hash, name, email_verified,
+          role, status, avatar, class_name, subject, school_code, grade, board, subjects, district)
+       VALUES ('local', $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
        RETURNING *`,
       [
         user.username, user.email.toLowerCase(), user.username, user.password, user.name,
-        user.role ?? "student", user.status ?? "active", user.avatar ?? null,
+        user.emailVerified ?? false, user.role ?? "student", user.status ?? "active", user.avatar ?? null,
         user.class ?? null, user.subject ?? null, user.school_code ?? null,
         user.grade ?? null, user.board ?? null, user.subjects ?? [], user.district ?? null,
       ]
@@ -437,7 +440,7 @@ export class PgStorage implements IStorage {
   async updateUser(id: number, userUpdate: Partial<InsertUser>): Promise<User | undefined> {
     const colMap: Record<string, string> = {
       username: "username", password: "password_hash", name: "name", email: "email",
-      role: "role", status: "status", avatar: "avatar", class: "class_name",
+      role: "role", status: "status", emailVerified: "email_verified", avatar: "avatar", class: "class_name",
       subject: "subject", school_code: "school_code", grade: "grade", board: "board",
       subjects: "subjects", district: "district",
     };
@@ -806,8 +809,16 @@ export class PgStorage implements IStorage {
   async createWorkspace(workspace: InsertWorkspace): Promise<Workspace> {
     const members = Array.from(new Set([workspace.ownerId, ...(workspace.members ?? [])]));
     const { rows } = await this.pool.query(
-      `INSERT INTO workspaces (name, description, owner_id, members) VALUES ($1,$2,$3,$4) RETURNING *`,
-      [workspace.name, workspace.description ?? null, workspace.ownerId, members]
+      `INSERT INTO workspaces (name, slug, type, description, owner_id, members)
+       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+      [
+        workspace.name,
+        workspace.slug ?? null,
+        workspace.type ?? "business",
+        workspace.description ?? null,
+        workspace.ownerId,
+        members,
+      ]
     );
     return mapWorkspace(rows[0]);
   }
