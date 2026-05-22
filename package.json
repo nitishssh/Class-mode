@@ -19,7 +19,7 @@
     "@daily-co/daily-js": "^0.87.0",
     "@daily-co/daily-react": "^0.24.0",
     "@google/generative-ai": "^0.24.1",
-    "@hookform/resolvers": "^3.9.1",
+    "@hookform/resolvers": "^5.4.0",
     "@jridgewell/trace-mapping": "^0.3.25",
     "@langchain/core": "^1.1.45",
     "@langchain/langgraph": "^1.2.9",
