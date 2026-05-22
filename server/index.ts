@@ -19,6 +19,7 @@ process.on("unhandledRejection", (reason: any) => {
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
 import helmet from "helmet";
+import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import session from "express-session";
 import path from "path";
@@ -34,6 +35,7 @@ import { checkFirebaseAdminReadiness } from "./lib/firebase-admin";
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
 
 // ── Security headers ──────────────────────────────────────────────────────────
 app.use(
