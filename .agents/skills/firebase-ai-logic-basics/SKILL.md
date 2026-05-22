@@ -11,7 +11,8 @@ version: 1.0.1
 Firebase AI Logic is a product of Firebase that allows developers to add gen AI to their mobile and web apps using client-side SDKs. You can call Gemini models directly from your app without managing a dedicated backend. Firebase AI Logic, which was previously known as "Vertex AI for Firebase", represents the evolution of Google's AI integration platform for mobile and web developers.
 
 It supports the two Gemini API providers:
-- **Gemini Developer API**: It has a free tier ideal for prototyping, and pay-as-you-go for production 
+
+- **Gemini Developer API**: It has a free tier ideal for prototyping, and pay-as-you-go for production
 - **Vertex AI Gemini API**: Ideal for scale with enterprise-grade production readiness, requires Blaze plan
 
 Use the Gemini Developer API as a default, and only Vertex AI Gemini API if the application requires it.
@@ -20,7 +21,7 @@ Use the Gemini Developer API as a default, and only Vertex AI Gemini API if the 
 
 ### Prerequisites
 
-- Before starting, ensure you have **Node.js 16+** and npm installed. Install them if they aren’t already available. 
+- Before starting, ensure you have **Node.js 16+** and npm installed. Install them if they aren’t already available.
 - Identify the platform the user is interested in building on prior to starting: Android, iOS, Flutter or Web.
 - If their platform is unsupported, Direct the user to Firebase Docs to learn how to set up AI Logic for their application (share this link with the user https://firebase.google.com/docs/ai-logic/get-started)
 
@@ -30,11 +31,11 @@ The library is part of the standard Firebase Web SDK.
 
 `npm install -g firebase@latest`
 
-If you're in a firebase directory (with a firebase.json) the currently selected project will be marked with "current" using this command:  
+If you're in a firebase directory (with a firebase.json) the currently selected project will be marked with "current" using this command:
 
 `npx -y firebase-tools@latest projects:list`
 
-Ensure there's at least one app associated with the current project 
+Ensure there's at least one app associated with the current project
 
 `npx -y firebase-tools@latest apps:list`
 
@@ -94,19 +95,19 @@ See [App Check with reCAPTCHA Enterprise](https://firebase.google.com/docs/app-c
 
 ### Remote Config
 
-Consider that you do not need to hardcode model names (e.g., `gemini-flash-lite-latest`). Use Firebase Remote Config to update model versions dynamically without deploying new client code.  See [Changing model names remotely](https://firebase.google.com/docs/ai-logic/change-model-name-remotely.md.txt) 
-
+Consider that you do not need to hardcode model names (e.g., `gemini-flash-lite-latest`). Use Firebase Remote Config to update model versions dynamically without deploying new client code. See [Changing model names remotely](https://firebase.google.com/docs/ai-logic/change-model-name-remotely.md.txt)
 
 > [!WARNING]
 > **CRITICAL: Backend Provisioning Required**
 > For all platforms (Flutter, Android, iOS, Web), you MUST run `npx firebase-tools init ailogic` to provision the service. `flutterfire configure` ONLY handles client configuration and does NOT enable the AI service, leading to `PERMISSION_DENIED` errors.
+
 ## Initialization Code References
 
-| Language, Framework, Platform | Gemini API provider | Context URL |
-| :---- | :---- | :---- |
-| Web Modular API | Gemini Developer API (Developer API) | firebase://docs/ai-logic/get-started  |
-| iOS (Swift) | Gemini Developer API | [ios_setup.md](references/ios_setup.md) |
-| Flutter (Dart) | Gemini Developer API | [flutter_setup.md](references/flutter_setup.md) |
+| Language, Framework, Platform | Gemini API provider                  | Context URL                                     |
+| :---------------------------- | :----------------------------------- | :---------------------------------------------- |
+| Web Modular API               | Gemini Developer API (Developer API) | firebase://docs/ai-logic/get-started            |
+| iOS (Swift)                   | Gemini Developer API                 | [ios_setup.md](references/ios_setup.md)         |
+| Flutter (Dart)                | Gemini Developer API                 | [flutter_setup.md](references/flutter_setup.md) |
 
 **Always use the most recent version of Gemini (gemini-flash-latest) unless another model is requested by the docs or the user. DO NOT USE gemini-1.5-flash. **
 
@@ -116,8 +117,4 @@ Consider that you do not need to hardcode model names (e.g., `gemini-flash-lite-
 [iOS SDK code examples and usage patterns](references/ios_setup.md)
 [Flutter SDK code examples and usage patterns](references/flutter_setup.md)
 
-
 [Android (Kotlin) SDK usage patterns](references/usage_patterns_android.md)
-
-
-

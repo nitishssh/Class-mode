@@ -1,14 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import express from "express";
 import request from "supertest";
 import { registerRoutes } from "../routes";
-import { MongoUser } from "../../shared/mongo-schema";
 import session from "express-session";
-import {
-  pgFindUserByEmail,
-  pgFindUserByAuthSubject,
-  pgCreateUser,
-} from "../lib/pg-queries";
+import { pgFindUserByEmail, pgFindUserByAuthSubject, pgCreateUser } from "../lib/pg-queries";
 
 // Mock dependencies
 vi.mock("../lib/firebase-admin", () => ({
@@ -17,35 +12,7 @@ vi.mock("../lib/firebase-admin", () => ({
   checkFirebaseAdminReadiness: vi.fn(),
 }));
 
-// Mock MongoDB
-const instances: any[] = [];
-vi.mock("../../shared/mongo-schema", () => {
-  const saveMock = vi.fn().mockResolvedValue(true);
-  function MockUser(this: any, data: any) {
-    Object.assign(this, data);
-    this.save = saveMock;
-    instances.push(this);
-  }
-  // @ts-ignore
-  MockUser.findOne = vi.fn();
-  // @ts-ignore
-  MockUser.findOneAndUpdate = vi.fn();
-  // @ts-ignore
-  MockUser.save = saveMock;
-
-  return {
-    MongoUser: MockUser,
-    getNextSequenceValue: vi.fn().mockResolvedValue(123),
-    MongoWorkspace: { findOne: vi.fn() },
-    MongoChannel: { findOne: vi.fn() },
-    MongoMessage: {
-      findOne: vi.fn(),
-      find: vi.fn().mockReturnValue({
-        sort: vi.fn().mockReturnValue({ limit: vi.fn().mockResolvedValue([]) }),
-      }),
-    },
-  };
-});
+const instances: Record<string, unknown>[] = [];
 
 vi.mock("../storage", () => ({
   storage: {
@@ -90,10 +57,8 @@ describe("User Registration Status", () => {
   });
 
   it("should set status to pending when a teacher registers", async () => {
-    (MongoUser.findOne as vi.Mock).mockResolvedValue(null);
-
-    (pgFindUserByEmail as vi.Mock).mockResolvedValue(null);
-    (pgCreateUser as vi.Mock).mockImplementation((userData: any) => {
+    (pgFindUserByEmail as Mock).mockResolvedValue(null);
+    (pgCreateUser as Mock).mockImplementation((userData: Record<string, unknown>) => {
       const createdUser = {
         id: 123,
         ...userData,
@@ -119,10 +84,8 @@ describe("User Registration Status", () => {
   });
 
   it("should set status to active when a student registers", async () => {
-    (MongoUser.findOne as vi.Mock).mockResolvedValue(null);
-
-    (pgFindUserByEmail as vi.Mock).mockResolvedValue(null);
-    (pgCreateUser as vi.Mock).mockImplementation((userData: any) => {
+    (pgFindUserByEmail as Mock).mockResolvedValue(null);
+    (pgCreateUser as Mock).mockImplementation((userData: Record<string, unknown>) => {
       const createdUser = {
         id: 123,
         ...userData,
@@ -148,16 +111,15 @@ describe("User Registration Status", () => {
 
   it("should set status to pending when a teacher registers via Firebase bridge", async () => {
     const { verifyFirebaseToken } = await import("../lib/firebase-admin");
-    (verifyFirebaseToken as vi.Mock).mockResolvedValue({
+    (verifyFirebaseToken as Mock).mockResolvedValue({
       uid: "fire-uid-1",
       email: "fire-teacher@test.com",
       name: "Fire Teacher",
     });
-    (MongoUser.findOne as vi.Mock).mockResolvedValue(null);
 
-    (pgFindUserByAuthSubject as vi.Mock).mockResolvedValue(null);
-    (pgFindUserByEmail as vi.Mock).mockResolvedValue(null);
-    (pgCreateUser as vi.Mock).mockImplementation((userData: any) => {
+    (pgFindUserByAuthSubject as Mock).mockResolvedValue(null);
+    (pgFindUserByEmail as Mock).mockResolvedValue(null);
+    (pgCreateUser as Mock).mockImplementation((userData: Record<string, unknown>) => {
       const createdUser = {
         id: 123,
         ...userData,

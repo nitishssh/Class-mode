@@ -27,11 +27,11 @@ PersonalLearningPro uses a multi-layered permission system. Access is controlled
 
 Roles are defined per workspace and stored in the `workspace_memberships` table.
 
-| Role | Access Level | Responsibilities |
-| ---- | ------------ | ---------------- |
-| **Owner** | Full Control | Billing, workspace settings, deleting workspace, managing admins. |
-| **Admin** | Management | Inviting members/students, content moderation, analytics. |
-| **Member** | Standard | Accessing channels, participating in tests, using AI tutor. |
+| Role       | Access Level | Responsibilities                                                  |
+| ---------- | ------------ | ----------------------------------------------------------------- |
+| **Owner**  | Full Control | Billing, workspace settings, deleting workspace, managing admins. |
+| **Admin**  | Management   | Inviting members/students, content moderation, analytics.         |
+| **Member** | Standard     | Accessing channels, participating in tests, using AI tutor.       |
 
 ## Educational Role Mapping
 

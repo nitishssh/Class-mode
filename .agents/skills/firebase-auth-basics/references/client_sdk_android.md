@@ -10,7 +10,7 @@ Before adding dependencies in your app, make sure you enable the Auth service in
 npx -y firebase-tools@latest init auth
 ```
 
- ---
+---
 
 ### 2. Add Dependencies
 
@@ -45,7 +45,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val auth = Firebase.auth
-        
+
         setContent {
             MaterialTheme {
                 Text("Auth initialized!")
@@ -72,7 +72,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val auth = Firebase.auth
-        
+
         setContent {
             MaterialTheme {
                 Text("Auth initialized!")

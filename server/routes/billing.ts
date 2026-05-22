@@ -2,7 +2,9 @@ import { Router, Request, Response } from "express";
 import { z } from "zod";
 import {
   pgFindSubscriptionByUser,
-  pgUpsertSubscription, pgUpdateSubscriptionByStripeCustomer, pgFindUserById,
+  pgUpsertSubscription,
+  pgUpdateSubscriptionByStripeCustomer,
+  pgFindUserById,
 } from "../lib/pg-queries";
 import { authenticateToken } from "../routes";
 import { logger } from "../lib/logger";
@@ -136,7 +138,11 @@ router.post("/checkout", authenticateToken, async (req: Request, res: Response) 
         metadata: { userId: String(user.id) },
       });
       customerId = customer.id;
-      sub = await pgUpsertSubscription(user.id, { tier: "free", stripeCustomerId: customerId, status: "active" });
+      sub = await pgUpsertSubscription(user.id, {
+        tier: "free",
+        stripeCustomerId: customerId,
+        status: "active",
+      });
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -218,7 +224,8 @@ router.post("/webhook", async (req: Request, res: Response) => {
       case "customer.subscription.deleted": {
         const subscription = event.data.object as any;
         await pgUpdateSubscriptionByStripeCustomer(subscription.customer, {
-          status: "canceled", tier: "free",
+          status: "canceled",
+          tier: "free",
         });
         break;
       }

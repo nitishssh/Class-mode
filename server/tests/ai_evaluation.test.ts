@@ -1,4 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
+
+import { pgFindUserById, pgFindFirstWorkspaceMembership } from "../lib/pg-queries";
 
 const { mockEvaluate, mockStorage } = vi.hoisted(() => ({
   mockEvaluate: vi.fn(),
@@ -24,27 +26,6 @@ import { registerRoutes } from "../routes";
 vi.mock("../lib/firebase-admin", () => ({
   verifyFirebaseToken: vi.fn().mockResolvedValue(null),
 }));
-
-vi.mock("../../shared/mongo-schema", () => {
-  const saveMock = vi.fn().mockResolvedValue(true);
-  function MockUser(this: any, data: any) {
-    Object.assign(this, data);
-    this.save = saveMock;
-  }
-  MockUser.findOne = vi.fn();
-  return {
-    MongoUser: MockUser,
-    getNextSequenceValue: vi.fn().mockResolvedValue(1),
-    MongoWorkspace: { findOne: vi.fn() },
-    MongoChannel: { findOne: vi.fn() },
-    MongoMessage: {
-      findOne: vi.fn(),
-      find: vi.fn().mockReturnValue({
-        sort: vi.fn().mockReturnValue({ limit: vi.fn().mockResolvedValue([]) }),
-      }),
-    },
-  };
-});
 
 vi.mock("../message", () => ({
   setupMessagePalWebSocket: vi.fn(),
@@ -122,23 +103,41 @@ describe("POST /api/evaluate — AI-Powered Subjective Grading", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    const { MongoUser } = await import("../../shared/mongo-schema");
-    (MongoUser.findOne as any).mockImplementation((q: any) => {
-      if (q.id === TEACHER_ID)
-        return Promise.resolve({ id: TEACHER_ID, role: "teacher", email: "teacher@test.com" });
-      if (q.id === OTHER_TEACHER_ID)
-        return Promise.resolve({ id: OTHER_TEACHER_ID, role: "teacher", email: "other@test.com" });
-      if (q.id === STUDENT_ID)
-        return Promise.resolve({ id: STUDENT_ID, role: "student", email: "student@test.com" });
+    (pgFindUserById as Mock).mockImplementation((id: number) => {
+      if (id === TEACHER_ID)
+        return Promise.resolve({
+          id: TEACHER_ID,
+          role: "teacher",
+          email: "teacher@test.com",
+          status: "active",
+          emailVerified: true,
+        });
+      if (id === OTHER_TEACHER_ID)
+        return Promise.resolve({
+          id: OTHER_TEACHER_ID,
+          role: "teacher",
+          email: "other@test.com",
+          status: "active",
+          emailVerified: true,
+        });
+      if (id === STUDENT_ID)
+        return Promise.resolve({
+          id: STUDENT_ID,
+          role: "student",
+          email: "student@test.com",
+          status: "active",
+          emailVerified: true,
+        });
       return Promise.resolve(null);
     });
+    (pgFindFirstWorkspaceMembership as Mock).mockResolvedValue(null);
 
     // Default happy-path storage chain
     mockStorage.getAnswer.mockResolvedValue(mockAnswer);
     mockStorage.getQuestion.mockResolvedValue(mockQuestion);
     mockStorage.getTestAttempt.mockResolvedValue(mockAttempt);
     mockStorage.getTest.mockResolvedValue(mockTest);
-    mockStorage.updateAnswer.mockImplementation((id: any, updates: any) =>
+    (mockStorage.updateAnswer as Mock).mockImplementation((id: number, updates: Record<string, unknown>) =>
       Promise.resolve({ ...mockAnswer, ...updates })
     );
 

@@ -4,8 +4,12 @@ import { requireRole } from "../middleware";
 import { requireSubscription } from "../middleware/requireSubscription";
 import { Router, Request, Response } from "express";
 import {
-  pgCountUsers, pgFindUsers, pgCountTests,
-  pgFindGradingResults, pgCountGradingResults, pgUpdateGradingResultById,
+  pgCountUsers,
+  pgFindUsers,
+  pgCountTests,
+  pgFindGradingResults,
+  pgCountGradingResults,
+  pgUpdateGradingResultById,
 } from "../lib/pg-queries";
 
 const router = Router();
@@ -34,9 +38,16 @@ router.get(
   async (req: Request, res: Response) => {
     const user = (req as any).user;
     const students = await pgFindUsers({ role: "student", schoolCode: user.school_code });
-    res.json(students.map((s) => ({
-      id: s.id, name: s.name, email: s.email, class: s.class, grade: s.grade, avatar: s.avatar,
-    })));
+    res.json(
+      students.map((s) => ({
+        id: s.id,
+        name: s.name,
+        email: s.email,
+        class: s.class,
+        grade: s.grade,
+        avatar: s.avatar,
+      }))
+    );
   }
 );
 
@@ -61,7 +72,8 @@ router.post(
   async (req: Request, res: Response) => {
     const user = (req as any).user;
     const parsed = OverrideSchema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+    if (!parsed.success)
+      return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
     const id = parseInt(req.params.id, 10);
     const updated = await pgUpdateGradingResultById(id, {
       score: parsed.data.score,

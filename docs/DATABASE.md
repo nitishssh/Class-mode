@@ -17,7 +17,9 @@ PostgreSQL is the source of truth for all critical business logic and multi-tena
 ### Tables
 
 #### `users`
+
 Stores core identity and profile data.
+
 - `id`: `bigserial` (Primary Key)
 - `email`: `citext` (Unique, case-insensitive)
 - `username`: `text` (Unique)
@@ -33,7 +35,9 @@ Stores core identity and profile data.
 - `last_login_at`: `timestamptz`
 
 #### `workspaces`
+
 Core multi-tenancy containers.
+
 - `id`: `bigserial` (Primary Key)
 - `name`: `text`
 - `slug`: `text` (Unique, URL-friendly)
@@ -44,7 +48,9 @@ Core multi-tenancy containers.
 - `created_at`: `timestamptz`
 
 #### `workspace_memberships`
+
 Join table linking users to workspaces with specific roles.
+
 - `id`: `bigserial` (Primary Key)
 - `workspace_id`: `bigint` (References `workspaces.id`)
 - `user_id`: `bigint` (References `users.id`)
@@ -53,7 +59,9 @@ Join table linking users to workspaces with specific roles.
 - `created_at`: `timestamptz`
 
 #### `workspace_invites`
+
 Secure invitation tokens for joining workspaces.
+
 - `id`: `bigserial` (Primary Key)
 - `workspace_id`: `bigint` (References `workspaces.id`)
 - `email`: `citext`
@@ -65,7 +73,9 @@ Secure invitation tokens for joining workspaces.
 - `expires_at`: `timestamptz`
 
 #### `sessions`
+
 Server-side session management for local auth.
+
 - `id`: `bigserial` (Primary Key)
 - `user_id`: `bigint` (References `users.id`)
 - `refresh_token_hash`: `text` (Unique)
@@ -80,7 +90,9 @@ Server-side session management for local auth.
 ### Collections
 
 #### Tests
+
 Test definitions created by teachers.
+
 ```typescript
 {
   id: number,
@@ -98,7 +110,9 @@ Test definitions created by teachers.
 ```
 
 #### Questions
+
 Individual questions belonging to tests.
+
 ```typescript
 {
   id: number,
@@ -118,7 +132,9 @@ Individual questions belonging to tests.
 ## ⚡ Cassandra Schema
 
 ### Messages Table
+
 High-performance message storage partitioned by channel.
+
 ```cql
 CREATE TABLE messages (
   channel_id      text,
@@ -144,6 +160,7 @@ CREATE TABLE messages (
 ## Maintenance
 
 ### Backup Strategy
+
 1. **PostgreSQL**: Standard WAL-based backups (Point-in-time recovery).
 2. **MongoDB**: Atlas automated snapshots.
 3. **Cassandra**: Astra DB built-in backups.

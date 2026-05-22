@@ -29,6 +29,7 @@
 This document explains the workspace-based local authentication and authorization system for PersonalLearningPro. The platform has migrated from a Firebase-centric model to a self-hosted, PostgreSQL-backed identity system that supports multi-tenancy via "Workspaces".
 
 Key features:
+
 - Local email/password registration and login
 - Multi-tenant Workspace architecture (Owner, Admin, Member roles)
 - Secure session handling using JWT Access Tokens and PostgreSQL-backed Refresh Tokens
@@ -99,6 +100,7 @@ Server-->>Browser : "Authorized Data"
 ### Workspace Signup & Tenancy
 
 Registration now follows a "Workspace-first" model. When a user signs up:
+
 1. A **User** record is created in PostgreSQL.
 2. A **Workspace** is automatically created with the user as the **Owner**.
 3. A **WorkspaceMembership** links the two.
@@ -106,12 +108,14 @@ Registration now follows a "Workspace-first" model. When a user signs up:
 ### Token Rotation (Security)
 
 To mitigate session hijacking, the system implements **Refresh Token Rotation**:
+
 - Every time `/api/auth/refresh` is called, the old refresh token is invalidated and a new one is issued.
 - If a leaked refresh token is reused, the entire session chain is invalidated.
 
 ### RBAC and Permissions
 
 Roles are scoped to the **Active Workspace**:
+
 - `owner`: Full control, billing, member management.
 - `admin`: Content management, invites, analytics.
 - `member`: Standard access to workspace features.

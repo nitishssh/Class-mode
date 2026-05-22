@@ -1,7 +1,7 @@
 ---
 name: firebase-crashlytics
 description: Comprehensive guide for Firebase Crashlytics, including provisioning and SDK usage. Use this skill when the user needs help setting up Crashlytics, adding crash reporting, or using the Crashlytics SDK in their application.
-compatibility: This skill is best used with the Firebase CLI, but does not require it. Firebase CLI can be accessed through `npx -y firebase-tools@latest`. 
+compatibility: This skill is best used with the Firebase CLI, but does not require it. Firebase CLI can be accessed through `npx -y firebase-tools@latest`.
 ---
 
 # Crashlytics
@@ -16,19 +16,19 @@ Provisioning Crashlytics requires both a Firebase project and a Firebase app, ei
 
 To learn how to setup Crashlytics in your application code, choose your platform:
 
-*   **Android**: [android_setup.md](references/android_setup.md)
-*   **iOS**: [ios_setup.md](references/ios_setup.md)
+- **Android**: [android_setup.md](references/android_setup.md)
+- **iOS**: [ios_setup.md](references/ios_setup.md)
 
 ## SDK Usage
 
 The SDK provides a number of features to make crash reports more actionable.
 
-* Add custom keys
-* Add custom logs
-* Set user identifiers
-* Report non-fatal exceptions
+- Add custom keys
+- Add custom logs
+- Set user identifiers
+- Report non-fatal exceptions
 
 To learn how to customize crash reports and add additional debugging data, consult the documentation for your platform.
 
-*   **Android**: [Customize Crash Reports for Android](https://firebase.google.com/docs/crashlytics/android/customize-crash-reports.md)
-*   **iOS**: [Customize Crash Reports for Apple Platforms](https://firebase.google.com/docs/crashlytics/ios/customize-crash-reports.md)
+- **Android**: [Customize Crash Reports for Android](https://firebase.google.com/docs/crashlytics/android/customize-crash-reports.md)
+- **iOS**: [Customize Crash Reports for Apple Platforms](https://firebase.google.com/docs/crashlytics/ios/customize-crash-reports.md)

@@ -55,14 +55,14 @@ plugins {
     }
     ```
 
-
 ## Follow up Steps
 
 The following steps cover the essential patterns for using Remote Config effectively.
 
 ### Set In-App Defaults
+
 Define default values so your app has functional logic before it ever fetches a template from the server. Create an XML file (e.g., `res/xml/remote_config_defaults.xml`):
-    ```xml
+`xml
     <!-- Example Remote Config Defaults File -->
     <?xml version="1.0" encoding="utf-8"?>
     <defaultsMap>
@@ -75,7 +75,7 @@ Define default values so your app has functional logic before it ever fetches a 
             <value>false</value>
         </entry>
     </defaultsMap>
-    ```
+    `
 Then, initialize the SDK in your Activity or Application class:
 
     ```kotlin
@@ -83,10 +83,10 @@ Then, initialize the SDK in your Activity or Application class:
     remoteConfig.setDefaultsAsync(R.xml.remote_config_defaults)
     ```
 
-
 ### Fetch and Activate Values
+
 To apply values from the cloud, you must fetch them and then activate them.
-    ```kotlin
+`kotlin
     remoteConfig.fetchAndActivate()
     .addOnCompleteListener(this) { task ->
         if (task.isSuccessful) {
@@ -98,4 +98,4 @@ To apply values from the cloud, you must fetch them and then activate them.
         // Access a value
         val message = remoteConfig.getString("welcome_message")
     }
-    ```
+    `

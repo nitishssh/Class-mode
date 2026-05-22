@@ -4,7 +4,7 @@ Schemantic is a general-purpose Dart library used for defining strongly typed da
 
 ## Core Concepts
 
-Always use `schemantic` when strongly typed JSON parsing or programmatic schema validation is required. 
+Always use `schemantic` when strongly typed JSON parsing or programmatic schema validation is required.
 
 - Annotate your abstract classes with `@Schema()`.
 - Use the `$` prefix for abstract schema class names (e.g., `abstract class $User`).
@@ -48,7 +48,7 @@ The builder creates a concrete class `MyObj` (no `$`) with a factory constructor
 final obj = MyObj(name: 'test', subObj: MySubObj(foo: 'bar'));
 
 // Serializing to JSON
-print(obj.toJson()); 
+print(obj.toJson());
 
 // Parsing from JSON
 final parsed = MyObj.fromJson({'name': 'test', 'subObj': {'foo': 'bar'}});
@@ -117,7 +117,7 @@ abstract class $User {
 
   @StringField(
     minLength: 2,
-    enumValues: ['user', 'admin'], 
+    enumValues: ['user', 'admin'],
   )
   String get role;
 }
@@ -134,4 +134,5 @@ abstract class $Node {
   List<$Node>? get children;
 }
 ```
-*Note*: `Node.$schema.jsonSchema(useRefs: true)` generates schemas with JSON Schema `$ref`.
+
+_Note_: `Node.$schema.jsonSchema(useRefs: true)` generates schemas with JSON Schema `$ref`.

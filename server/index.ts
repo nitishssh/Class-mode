@@ -13,7 +13,7 @@ if (process.env.DNS_IPV4_FIRST === "true") {
 import { logger } from "./lib/logger";
 
 // Prevent unhandled promise rejections from crashing the server
-process.on("unhandledRejection", (reason: any) => {
+process.on("unhandledRejection", (reason: unknown) => {
   logger.error("[unhandledRejection] non-fatal:", reason);
 });
 import express, { type Request, Response, NextFunction } from "express";
@@ -98,7 +98,7 @@ app.use(
             process.env.ALLOWED_PROD_DOMAINS?.split(",").includes(url.hostname);
 
           if (isAllowedDomain) return cb(null, true);
-        } catch (e) {
+        } catch {
           // Fall through to error
         }
       }
@@ -183,7 +183,7 @@ app.use("/api", requireDb);
     try {
       await setupVite(app, server);
     } catch (error) {
-      if (error && (error as any).code === "ERR_MODULE_NOT_FOUND") {
+      if (error && (error as { code?: string }).code === "ERR_MODULE_NOT_FOUND") {
         logger.info("Vite not found. Assuming production mode and falling back to static serving.");
         serveStatic(app);
       } else {
@@ -195,7 +195,7 @@ app.use("/api", requireDb);
   }
 
   // Error handler must be LAST
-  app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
+  app.use((err: { status?: number; statusCode?: number; message?: string; code?: string }, req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message =
       process.env.NODE_ENV === "production" && status === 500

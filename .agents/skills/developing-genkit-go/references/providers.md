@@ -98,6 +98,7 @@ model := openaiPlugin.DefineModel("openai", "gpt-4o", compat_oai.ModelOptions{})
 ```
 
 Use with:
+
 ```go
 ai.WithModel(model)
 ```
@@ -127,6 +128,7 @@ model := ollamaPlugin.DefineModel(g,
 ```
 
 Use with:
+
 ```go
 ai.WithModel(model)
 ```

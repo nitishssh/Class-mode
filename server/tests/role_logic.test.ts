@@ -12,9 +12,6 @@ vi.mock("../lib/firebase-admin", () => ({
   checkFirebaseAdminReadiness: vi.fn(),
 }));
 
-// Mock MongoDB
-vi.mock("../../shared/mongo-schema");
-
 describe("Role Logic - School Admin", () => {
   let app: express.Express;
 

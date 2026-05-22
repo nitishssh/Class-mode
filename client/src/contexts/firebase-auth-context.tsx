@@ -143,13 +143,22 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (data.token) setServerToken(data.token);
       const profile = profileFromMe(data);
       setCurrentUser({ user: runtimeUserFromProfile(profile), profile });
-      toast({ title: "Login successful", description: `Welcome back, ${data.user?.displayName || email}!` });
+      toast({
+        title: "Login successful",
+        description: `Welcome back, ${data.user?.displayName || email}!`,
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const register: AuthContextType["register"] = async (email, password, name, role, additionalData) => {
+  const register: AuthContextType["register"] = async (
+    email,
+    password,
+    name,
+    role,
+    additionalData
+  ) => {
     if (role === "student") {
       throw new Error("Student accounts are invite-only. Use an invite link from your workspace.");
     }
@@ -198,7 +207,10 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       body: JSON.stringify({ email }),
     });
     if (!res.ok) throw await parseError(res, "Failed to send reset email");
-    toast({ title: "Password reset email sent", description: "Check your email for reset instructions." });
+    toast({
+      title: "Password reset email sent",
+      description: "Check your email for reset instructions.",
+    });
   };
 
   return (

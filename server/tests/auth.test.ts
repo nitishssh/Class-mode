@@ -58,7 +58,11 @@ describe("Authentication Middleware", () => {
     expect(jwt.verify).toHaveBeenCalledWith("valid-token", expect.any(String));
     expect(req.session!.userId).toBe(123);
     expect(req.session!.role).toBe("student");
-    expect((req as any).user).toMatchObject({ id: 123, role: "student", email: "test@example.com" });
+    expect((req as any).user).toMatchObject({
+      id: 123,
+      role: "student",
+      email: "test@example.com",
+    });
     expect(next).toHaveBeenCalled();
   });
 
@@ -89,7 +93,13 @@ describe("Authentication Middleware", () => {
     });
     req.session!.userId = 789;
 
-    const mockUser = { id: 789, role: "admin", email: "admin@example.com", status: "active", emailVerified: true };
+    const mockUser = {
+      id: 789,
+      role: "admin",
+      email: "admin@example.com",
+      status: "active",
+      emailVerified: true,
+    };
     (pgFindUserById as Mock).mockResolvedValue(mockUser);
 
     await authenticateToken(req as Request, res as Response, next);

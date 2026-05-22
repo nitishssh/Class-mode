@@ -7,9 +7,7 @@ export const insertUserSchema = z.object({
   password: z.string().min(1),
   name: z.string().min(1),
   email: z.string().email(),
-  role: z
-    .enum(USER_ROLES)
-    .default("student"),
+  role: z.enum(USER_ROLES).default("student"),
   status: z.enum(USER_STATUSES).default("active"),
   avatar: z.string().optional().nullable(),
   emailVerified: z.boolean().optional(),

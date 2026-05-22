@@ -21,7 +21,15 @@ dist/
 .DS_Store
 .vscode/
 .kiro
+.agent/
+.agents/
+.claude/
+.idea/
 vite.config.ts.*
 *.tar.gz
+*.log
+eslint-output.json
+eslint-output.txt
+eslint_output.txt
 server/.env.env
 GEMINI.md

@@ -22,14 +22,14 @@ firebase-tools@latest firestore:databases:list`
 ### A. Instance Found
 
 1.  For each database found, inspect its edition and details: `bash npx -y
-    firebase-tools@latest firestore:databases:get <database-id>`
+firebase-tools@latest firestore:databases:get <database-id>`
 2.  Ask the user which database instance they wish to target or if they would
     prefer to create a new instance.
 3.  Once the target instance is established:
-    -   If the **`edition`** is `STANDARD`, follow the guides under
-        `references/standard/`.
-    -   If the **`edition`** is `ENTERPRISE` or native mode, follow the guides
-        under `references/enterprise/`.
+    - If the **`edition`** is `STANDARD`, follow the guides under
+      `references/standard/`.
+    - If the **`edition`** is `ENTERPRISE` or native mode, follow the guides
+      under `references/enterprise/`.
 
 ### B. No Instance Found (or New Requested)
 
@@ -43,7 +43,7 @@ Once the location is determined, create the database:
 
 Proceed with using the guides under `references/enterprise/`.
 
---------------------------------------------------------------------------------
+---
 
 ## 2. Specialized Guides
 
@@ -52,15 +52,15 @@ corresponding reference guides:
 
 ### Standard Edition (`references/standard/`)
 
--   **Provisioning**: Read [provisioning.md](references/standard/provisioning.md)
--   **Security Rules**: Read [security_rules.md](references/standard/security_rules.md)
--   **SDK Usage**: Read [web_sdk_usage.md](references/standard/web_sdk_usage.md), [android_sdk_usage.md](references/standard/android_sdk_usage.md), [ios_setup.md](references/standard/ios_setup.md), or [flutter_setup.md](references/standard/flutter_setup.md)
--   **Indexes**: Read [indexes.md](references/standard/indexes.md)
+- **Provisioning**: Read [provisioning.md](references/standard/provisioning.md)
+- **Security Rules**: Read [security_rules.md](references/standard/security_rules.md)
+- **SDK Usage**: Read [web_sdk_usage.md](references/standard/web_sdk_usage.md), [android_sdk_usage.md](references/standard/android_sdk_usage.md), [ios_setup.md](references/standard/ios_setup.md), or [flutter_setup.md](references/standard/flutter_setup.md)
+- **Indexes**: Read [indexes.md](references/standard/indexes.md)
 
 ### Enterprise Edition / Native Mode (`references/enterprise/`)
 
--   **Provisioning**: Read [provisioning.md](references/enterprise/provisioning.md)
--   **Data Model**: Read [data_model.md](references/enterprise/data_model.md)
--   **Security Rules**: Read [security_rules.md](references/enterprise/security_rules.md)
--   **SDK Usage**: Read [web_sdk_usage.md](references/enterprise/web_sdk_usage.md), [python_sdk_usage.md](references/enterprise/python_sdk_usage.md), [android_sdk_usage.md](references/enterprise/android_sdk_usage.md), [ios_setup.md](references/enterprise/ios_setup.md), or [flutter_setup.md](references/enterprise/flutter_setup.md)
--   **Indexes**: Read [indexes.md](references/enterprise/indexes.md)
+- **Provisioning**: Read [provisioning.md](references/enterprise/provisioning.md)
+- **Data Model**: Read [data_model.md](references/enterprise/data_model.md)
+- **Security Rules**: Read [security_rules.md](references/enterprise/security_rules.md)
+- **SDK Usage**: Read [web_sdk_usage.md](references/enterprise/web_sdk_usage.md), [python_sdk_usage.md](references/enterprise/python_sdk_usage.md), [android_sdk_usage.md](references/enterprise/android_sdk_usage.md), [ios_setup.md](references/enterprise/ios_setup.md), or [flutter_setup.md](references/enterprise/flutter_setup.md)
+- **Indexes**: Read [indexes.md](references/enterprise/indexes.md)

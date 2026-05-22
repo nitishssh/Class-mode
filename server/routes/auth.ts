@@ -121,7 +121,8 @@ const signupSchema = z.object({
 router.post("/signup", async (req: Request, res: Response) => {
   try {
     const parsed = signupSchema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+    if (!parsed.success)
+      return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
 
     const email = parsed.data.email.toLowerCase().trim();
     if (await pgFindUserByEmail(email)) {
@@ -147,7 +148,11 @@ router.post("/signup", async (req: Request, res: Response) => {
       type: "business",
       ownerId: user.id,
     });
-    await pgUpsertWorkspaceMembership({ workspaceId: workspace.id, userId: user.id, role: "owner" });
+    await pgUpsertWorkspaceMembership({
+      workspaceId: workspace.id,
+      userId: user.id,
+      role: "owner",
+    });
 
     const verifyToken = await createVerificationToken(user.id);
     sendEmailVerification(user.email, user.displayName || user.name, verifyToken).catch((e) =>
@@ -174,7 +179,8 @@ const loginSchema = z.object({ email: z.string().email(), password: z.string().m
 router.post("/login", async (req: Request, res: Response) => {
   try {
     const parsed = loginSchema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ message: "Email and password are required" });
+    if (!parsed.success)
+      return res.status(400).json({ message: "Email and password are required" });
 
     const user = await pgFindUserByEmail(parsed.data.email);
     if (!user || !(await bcrypt.compare(parsed.data.password, user.password || ""))) {
@@ -293,7 +299,8 @@ router.post("/email/verify", async (req: Request, res: Response) => {
 
 router.post("/password/forgot", async (req: Request, res: Response) => {
   const parsed = z.object({ email: z.string().email() }).safeParse(req.body);
-  if (!parsed.success) return res.status(200).json({ message: "If the account exists, reset instructions were sent" });
+  if (!parsed.success)
+    return res.status(200).json({ message: "If the account exists, reset instructions were sent" });
   const user = await pgFindUserByEmail(parsed.data.email);
   if (user) {
     const token = randomToken();
@@ -312,8 +319,11 @@ router.post("/password/forgot", async (req: Request, res: Response) => {
 });
 
 router.post("/password/reset", async (req: Request, res: Response) => {
-  const parsed = z.object({ token: z.string().min(10), password: z.string().min(6) }).safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ message: "Valid token and password are required" });
+  const parsed = z
+    .object({ token: z.string().min(10), password: z.string().min(6) })
+    .safeParse(req.body);
+  if (!parsed.success)
+    return res.status(400).json({ message: "Valid token and password are required" });
   const otp = await findOtpByTokenHash(tokenHash(parsed.data.token), "password_reset");
   if (!otp) return res.status(400).json({ message: "Invalid or expired reset token" });
   const userId = Number(otp.user_id);
@@ -327,7 +337,8 @@ router.get("/invite/validate/:token", async (req: Request, res: Response) => {
   const invite = await pgFindWorkspaceInviteByTokenHash(tokenHash(req.params.token));
   if (!invite) return res.status(404).json({ message: "Invalid invite link" });
   if (invite.status !== "pending") return res.status(409).json({ message: "Invite already used" });
-  if (invite.expiresAt < new Date()) return res.status(410).json({ message: "This invite has expired" });
+  if (invite.expiresAt < new Date())
+    return res.status(410).json({ message: "This invite has expired" });
   return res.json({
     name: invite.name,
     email: invite.email,
@@ -351,9 +362,11 @@ async function acceptWorkspaceInvite(req: Request, res: Response) {
   const invite = await pgFindWorkspaceInviteByTokenHash(tokenHash(parsed.data.token));
   if (!invite) return res.status(404).json({ message: "Invalid invite link" });
   if (invite.status !== "pending") return res.status(409).json({ message: "Invite already used" });
-  if (invite.expiresAt < new Date()) return res.status(410).json({ message: "This invite has expired" });
+  if (invite.expiresAt < new Date())
+    return res.status(410).json({ message: "This invite has expired" });
 
-  const displayName = parsed.data.name || parsed.data.displayName || invite.name || invite.email.split("@")[0];
+  const displayName =
+    parsed.data.name || parsed.data.displayName || invite.name || invite.email.split("@")[0];
   let user = await pgFindUserByEmail(invite.email);
   if (!user) {
     user = await pgCreateUser({
@@ -402,7 +415,11 @@ router.post("/invites/:token/accept", (req, res) => {
 router.post("/invite/accept", acceptWorkspaceInvite);
 
 router.post("/register", (_req: Request, res: Response) => {
-  return res.status(403).json({ message: "Public student registration is disabled. Use workspace signup or an invite link." });
+  return res
+    .status(403)
+    .json({
+      message: "Public student registration is disabled. Use workspace signup or an invite link.",
+    });
 });
 
 router.post("/firebase", async (req: Request, res: Response) => {
@@ -412,7 +429,8 @@ router.post("/firebase", async (req: Request, res: Response) => {
   const { idToken } = req.body as { idToken?: string };
   if (!idToken) return res.status(400).json({ message: "idToken is required" });
   const decoded = await verifyFirebaseToken(idToken);
-  if (!decoded?.email) return res.status(401).json({ message: "Invalid or expired Firebase ID token" });
+  if (!decoded?.email)
+    return res.status(401).json({ message: "Invalid or expired Firebase ID token" });
   let user =
     (await pgFindUserByAuthSubject("firebase", decoded.uid)) ||
     (await pgFindUserByEmail(decoded.email.toLowerCase()));

@@ -3,6 +3,7 @@
 Shelf integration for Genkit Dart, used to serve Genkit Flows.
 
 ## Standalone Server
+
 Serve Genkit Flows easily on an isolated HTTP server using `startFlowServer`.
 
 ```dart
@@ -27,7 +28,8 @@ void main() async {
 ```
 
 ## Existing Shelf Application
-Mount Genkit Flow endpoints directly to an existing Shelf `Router` using `shelfHandler`. 
+
+Mount Genkit Flow endpoints directly to an existing Shelf `Router` using `shelfHandler`.
 
 ```dart
 import 'package:genkit/genkit.dart';

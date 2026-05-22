@@ -87,11 +87,13 @@ g := genkit.Init(ctx,
 The Genkit CLI provides a local Developer UI for running flows, tracing executions, and inspecting model interactions.
 
 **Install:**
+
 ```bash
 curl -sL cli.genkit.dev | bash
 ```
 
 **Verify:**
+
 ```bash
 genkit --version
 ```
@@ -105,16 +107,19 @@ genkit start -- go run .
 ```
 
 This launches:
+
 - Your app (with tracing enabled)
 - The Developer UI at `http://localhost:4000`
 - A telemetry API at `http://localhost:4033`
 
 Add `-o` to auto-open the UI in your browser:
+
 ```bash
 genkit start -o -- go run .
 ```
 
 The Developer UI lets you:
+
 - Run and test flows interactively
 - View traces for each generation call (inputs, outputs, latency, token usage)
 - Inspect prompt rendering and tool calls

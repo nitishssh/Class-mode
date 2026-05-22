@@ -82,7 +82,7 @@ substitutions:
   _REPO_NAME: plp-repo
   _SERVICE_NAME: personallearningpro
   _CLOUDSQL_INSTANCE: plp-pg
-  _TAG: latest   # GitHub triggers override this with $SHORT_SHA
+  _TAG: latest # GitHub triggers override this with $SHORT_SHA
   # Set these in Cloud Build Trigger configuration in GCP Console
   _VITE_FIREBASE_API_KEY: ""
   _VITE_FIREBASE_APP_ID: ""

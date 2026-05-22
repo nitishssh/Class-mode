@@ -26,6 +26,7 @@ content. If this file already exists, instead append to the existing JSON:
 
 This will use the default database with the Standard edition. To use a different
 database, specify the database ID and location:
+
 1.  Run `npx -y firebase-tools@latest firestore:locations` to get the list of locations.
 2.  Ask the user which location to use, suggesting colocation if other parts of the app already have a region selected.
 
@@ -60,7 +61,7 @@ service cloud.firestore {
 }
 ```
 
-*See [security_rules.md](security_rules.md) for how to write actual rules.*
+_See [security_rules.md](security_rules.md) for how to write actual rules._
 
 ### 3. Create `firestore.indexes.json`
 
@@ -74,11 +75,12 @@ start:
 }
 ```
 
-*See [indexes.md](indexes.md) for how to configure indexes.*
+_See [indexes.md](indexes.md) for how to configure indexes._
 
 ## Deploy database, rules and indexes
 
 **CRITICAL**: You MUST deploy the firestore configuration for the database to be provisioned in the cloud and for your rules/indexes to take effect. If you don't run this, your database will not exist.
+
 ```bash
 # To deploy all rules and indexes
 npx -y firebase-tools@latest deploy --only firestore

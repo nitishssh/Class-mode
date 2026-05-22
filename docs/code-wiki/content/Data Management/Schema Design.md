@@ -24,33 +24,39 @@ PersonalLearningPro uses a multi-database strategy to handle diverse workloads: 
 
 ## Multi-Database Architecture
 
-| Storage | Purpose | Tech Stack |
-| ------- | ------- | ---------- |
+| Storage        | Purpose                                  | Tech Stack                     |
+| -------------- | ---------------------------------------- | ------------------------------ |
 | **PostgreSQL** | Transactions, Tenancy, Sessions, Billing | SQL / Drizzle-style Relational |
-| **MongoDB** | Tests, Questions, Analytics, State | NoSQL Document Store |
-| **Cassandra** | Real-time Chat, Activity Streams | Time-series Wide Column |
+| **MongoDB**    | Tests, Questions, Analytics, State       | NoSQL Document Store           |
+| **Cassandra**  | Real-time Chat, Activity Streams         | Time-series Wide Column        |
 
 ## PostgreSQL Schema (Primary)
 
 The source of truth for all "Identity" and "Tenancy" data.
 
 ### `users` (Transactional)
+
 Relational user data replacing the legacy Firebase-only model.
+
 - `id`: `bigserial`
 - `email`: `citext` (Hashed/Indexed)
 - `password_hash`: `text` (Bcrypt)
 - `email_verified`: `boolean`
 
 ### `workspaces` (Multi-Tenancy)
+
 Containers for organizational data.
+
 - `id`: `bigserial`
 - `slug`: `text` (Unique, indexed for URL lookup)
 - `owner_id`: `bigint` (FK to `users.id`)
 
 ### `workspace_memberships` (RBAC)
+
 Maps users to workspaces with roles (`owner`, `admin`, `member`).
 
 ### `sessions` (Auth Lifecycle)
+
 Server-side session tracking for secure logout and token rotation.
 
 ## MongoDB Schema (Specialized)

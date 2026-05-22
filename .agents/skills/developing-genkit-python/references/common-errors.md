@@ -9,6 +9,7 @@
 **Cause:** Plugin package not installed.
 
 **Fix:** Add dependencies from PyPI:
+
 ```bash
 uv add genkit genkit-plugin-google-genai
 ```
@@ -20,6 +21,7 @@ uv add genkit genkit-plugin-google-genai
 **Cause:** Tool function has bare scalar parameters (e.g. `city: str`). Gemini requires object schema.
 
 **Fix:** Wrap parameters in a Pydantic BaseModel:
+
 ```python
 from pydantic import BaseModel
 
@@ -75,6 +77,7 @@ async def get_weather(input: WeatherInput) -> str: ...
 **Cause:** `generate_stream` is synchronous — do not await it.
 
 **Fix:**
+
 ```python
 sr = ai.generate_stream(prompt='...')   # no await
 async for chunk in sr.stream: ...

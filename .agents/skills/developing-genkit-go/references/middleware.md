@@ -32,11 +32,11 @@ A nil hook is a pass-through. Implement only what the middleware needs.
 
 A `Generate` call executes a tool loop: model produces output, any tool calls execute, results feed back into a new model call, repeat until the model stops. The hooks fire at three different layers of this loop:
 
-| Hook | Fires | Sees |
-| --- | --- | --- |
-| `WrapGenerate` | Once per tool-loop iteration. `N` tool turns means `N+1` invocations. | The accumulated `ModelRequest`, the iteration index, the streaming callback, and `MessageIndex` (the next streamed-message slot). |
-| `WrapModel` | Once per actual model API call, inside the iteration. | The `ModelRequest` about to go to the model and the streaming callback. |
-| `WrapTool` | Once per tool execution. May run **concurrently** for parallel tool calls in the same iteration. | The `ToolRequest` and the resolved `Tool`. |
+| Hook           | Fires                                                                                            | Sees                                                                                                                              |
+| -------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| `WrapGenerate` | Once per tool-loop iteration. `N` tool turns means `N+1` invocations.                            | The accumulated `ModelRequest`, the iteration index, the streaming callback, and `MessageIndex` (the next streamed-message slot). |
+| `WrapModel`    | Once per actual model API call, inside the iteration.                                            | The `ModelRequest` about to go to the model and the streaming callback.                                                           |
+| `WrapTool`     | Once per tool execution. May run **concurrently** for parallel tool calls in the same iteration. | The `ToolRequest` and the resolved `Tool`.                                                                                        |
 
 `WrapGenerate` is the right place for logic that needs to see the whole conversation (rewrites, system-prompt injection, message accumulation). `WrapModel` is the right place for logic about the model call itself (retry, fallback, caching). `WrapTool` is the right place for logic about a single tool execution (approval, sandboxing, logging).
 

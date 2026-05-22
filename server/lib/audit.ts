@@ -39,6 +39,9 @@ export async function recordAuditEvent(params: AuditParams): Promise<void> {
       ]
     );
   } catch (err) {
-    logger.error("[audit] Failed to record audit event", { eventType: params.eventType, err: String(err) });
+    logger.error("[audit] Failed to record audit event", {
+      eventType: params.eventType,
+      err: String(err),
+    });
   }
 }

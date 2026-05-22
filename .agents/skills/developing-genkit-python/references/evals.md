@@ -14,10 +14,11 @@ uv add genkit-plugin-evaluators
 ## Dataset format
 
 A JSON file, one object per test case:
+
 ```json
 [
-  {"testCaseId": "case1", "input": "x", "output": "banana", "reference": "ba?a?a"},
-  {"testCaseId": "case2", "input": "x", "output": "apple",  "reference": "ba?a?a"}
+  { "testCaseId": "case1", "input": "x", "output": "banana", "reference": "ba?a?a" },
+  { "testCaseId": "case2", "input": "x", "output": "apple", "reference": "ba?a?a" }
 ]
 ```
 
@@ -31,6 +32,7 @@ register_genkit_evaluators(ai)
 ```
 
 Registered evaluators include `genkitEval/regex`. Run via CLI:
+
 ```bash
 genkit eval:run datasets/my_dataset.json --evaluators=genkitEval/regex
 ```
@@ -67,6 +69,7 @@ ai.define_evaluator(
 Use a prompt + stronger model to score. See `py/samples/evaluators/src/main.py` for full examples (`byo/maliciousness`, `byo/answer_accuracy`).
 
 Core pattern:
+
 ```python
 async def llm_eval(datapoint: BaseDataPoint, _options: dict | None = None) -> EvalFnResponse:
     prompt = ai.prompt('my_judge_prompt')

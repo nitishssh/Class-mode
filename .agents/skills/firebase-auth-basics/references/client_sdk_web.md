@@ -96,7 +96,7 @@ signInWithPopup(auth, provider)
 import { getAuth, signInWithPopup, OAuthProvider } from "firebase/auth";
 
 const auth = getAuth();
-const provider = new OAuthProvider('apple.com');
+const provider = new OAuthProvider("apple.com");
 
 signInWithPopup(auth, provider)
   .then((result) => {
@@ -156,7 +156,7 @@ signInWithPopup(auth, provider)
 import { getAuth, signInWithPopup, OAuthProvider } from "firebase/auth";
 
 const auth = getAuth();
-const provider = new OAuthProvider('microsoft.com');
+const provider = new OAuthProvider("microsoft.com");
 
 signInWithPopup(auth, provider)
   .then((result) => {
@@ -175,7 +175,7 @@ signInWithPopup(auth, provider)
 import { getAuth, signInWithPopup, OAuthProvider } from "firebase/auth";
 
 const auth = getAuth();
-const provider = new OAuthProvider('yahoo.com');
+const provider = new OAuthProvider("yahoo.com");
 
 signInWithPopup(auth, provider)
   .then((result) => {
@@ -214,14 +214,14 @@ import { getAuth, sendSignInLinkToEmail } from "firebase/auth";
 const auth = getAuth();
 const actionCodeSettings = {
   // URL you want to redirect back to. The domain must be in the authorized domains list in Firebase Console.
-  url: 'https://www.example.com/finishSignUp?cartId=1234',
+  url: "https://www.example.com/finishSignUp?cartId=1234",
   handleCodeInApp: true,
 };
 
 sendSignInLinkToEmail(auth, email, actionCodeSettings)
   .then(() => {
     // Save the email locally so you don't need to ask the user for it again
-    window.localStorage.setItem('emailForSignIn', email);
+    window.localStorage.setItem("emailForSignIn", email);
   })
   .catch((error) => {
     // Error
@@ -236,14 +236,14 @@ import { getAuth, isSignInWithEmailLink, signInWithEmailLink } from "firebase/au
 const auth = getAuth();
 
 if (isSignInWithEmailLink(auth, window.location.href)) {
-  let email = window.localStorage.getItem('emailForSignIn');
+  let email = window.localStorage.getItem("emailForSignIn");
   if (!email) {
-    email = window.prompt('Please provide your email for confirmation');
+    email = window.prompt("Please provide your email for confirmation");
   }
 
   signInWithEmailLink(auth, email, window.location.href)
     .then((result) => {
-      window.localStorage.removeItem('emailForSignIn');
+      window.localStorage.removeItem("emailForSignIn");
       // You can check result.user
     })
     .catch((error) => {
@@ -279,9 +279,11 @@ onAuthStateChanged(auth, (user) => {
 import { getAuth, signOut } from "firebase/auth";
 
 const auth = getAuth();
-signOut(auth).then(() => {
-  // Sign-out successful.
-}).catch((error) => {
-  // An error happened.
-});
+signOut(auth)
+  .then(() => {
+    // Sign-out successful.
+  })
+  .catch((error) => {
+    // An error happened.
+  });
 ```

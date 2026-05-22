@@ -33,23 +33,29 @@ The platform is structured around "Workspaces". A workspace is a logical contain
 ## User Lifecycle
 
 ### 1. Onboarding (Signup)
+
 Users sign up by creating their first workspace. This process simultaneously creates:
+
 - A global `User` account.
 - A new `Workspace` entry.
 - A `WorkspaceMembership` linking the two with the `owner` role.
 
 ### 2. Invitations
+
 New members are brought into workspaces via a secure invitation system:
+
 - Admins send an invite to an email address.
 - A tokenized link is generated and sent via email.
 - Upon clicking, the user joins the workspace and completes their profile.
 
 ### 3. Session & Logout
+
 Sessions are tracked in the `sessions` table in PostgreSQL, allowing for remote logout and session revocation.
 
 ## Role Hierarchy
 
 Roles are enforced at two levels:
+
 1. **System Level**: `admin`, `teacher`, `student`, `parent`.
 2. **Workspace Level**: `owner`, `admin`, `member`.
 

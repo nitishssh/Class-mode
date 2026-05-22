@@ -14,6 +14,7 @@ The `genkit_fastapi_handler` decorator auto-streams when the client sends `Accep
 No extra setup — just add the header on the frontend and it works.
 
 **Wire format (SSE):**
+
 ```
 data: {"message": "<chunk text>"}   ← one per ctx.send_chunk() call
 data: {"message": "<chunk text>"}
@@ -21,17 +22,19 @@ data: {"result": <final output>}    ← sent once when flow completes
 ```
 
 **Frontend (JS EventSource):**
+
 ```js
-const res = await fetch('/flow/chat', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
-  body: JSON.stringify({ data: { topic: 'quantum computing' } }),
+const res = await fetch("/flow/chat", {
+  method: "POST",
+  headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
+  body: JSON.stringify({ data: { topic: "quantum computing" } }),
 });
 const reader = res.body.getReader();
 // decode and parse each `data: {...}` line
 ```
 
 **curl test:**
+
 ```bash
 curl -N -X POST http://localhost:8080/flow/chat \
   -H 'Content-Type: application/json' \
@@ -130,6 +133,7 @@ async def report(input: ReportInput, ctx: ActionRunContext) -> str:
 ```
 
 **Rules for nested streaming:**
+
 - Child flows that should stream must also accept `ctx: ActionRunContext`
 - Pass the parent's `ctx` when calling child flows: `await child(input, ctx)`
 - Non-streaming child flows don't need `ctx` — just `await` them normally

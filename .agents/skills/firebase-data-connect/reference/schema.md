@@ -1,6 +1,7 @@
 # Schema Reference
 
 ## Contents
+
 - [Defining Types](#defining-types)
 - [Core Directives](#core-directives)
 - [Relationships](#relationships)
@@ -49,39 +50,44 @@ type User @table(key: "uid") {
 ## Core Directives
 
 ### @table
+
 Defines a database table.
 
-| Argument | Description |
-|----------|-------------|
-| `name` | PostgreSQL table name (snake_case default) |
-| `key` | Primary key field(s), default `["id"]` |
-| `singular` | Singular name for generated fields |
-| `plural` | Plural name for generated fields |
+| Argument   | Description                                |
+| ---------- | ------------------------------------------ |
+| `name`     | PostgreSQL table name (snake_case default) |
+| `key`      | Primary key field(s), default `["id"]`     |
+| `singular` | Singular name for generated fields         |
+| `plural`   | Plural name for generated fields           |
 
 ### @col
+
 Customizes column mapping.
 
-| Argument | Description |
-|----------|-------------|
-| `name` | Column name in PostgreSQL |
+| Argument   | Description                                           |
+| ---------- | ----------------------------------------------------- |
+| `name`     | Column name in PostgreSQL                             |
 | `dataType` | PostgreSQL type: `serial`, `varchar(n)`, `text`, etc. |
-| `size` | Required for `Vector` type |
+| `size`     | Required for `Vector` type                            |
 
 ### @default
+
 Sets default value for inserts.
 
-| Argument | Description |
-|----------|-------------|
-| `value` | Literal value: `@default(value: "draft")` |
-| `expr` | CEL expression: `@default(expr: "uuidV4()")`, `@default(expr: "auth.uid")`, `@default(expr: "request.time")` |
-| `sql` | Raw SQL: `@default(sql: "now()")` |
+| Argument | Description                                                                                                  |
+| -------- | ------------------------------------------------------------------------------------------------------------ |
+| `value`  | Literal value: `@default(value: "draft")`                                                                    |
+| `expr`   | CEL expression: `@default(expr: "uuidV4()")`, `@default(expr: "auth.uid")`, `@default(expr: "request.time")` |
+| `sql`    | Raw SQL: `@default(sql: "now()")`                                                                            |
 
 **Common expressions:**
+
 - `uuidV4()` - Generate UUID
 - `auth.uid` - Current user's Firebase Auth UID
 - `request.time` - Server timestamp
 
 ### @unique
+
 Adds unique constraint.
 
 ```graphql
@@ -98,6 +104,7 @@ type Review @table @unique(fields: ["movie", "user"]) {
 ```
 
 ### @index
+
 Creates database index for query performance.
 
 ```graphql
@@ -108,13 +115,14 @@ type Movie @table @index(fields: ["genre", "releaseYear"], order: [ASC, DESC]) {
 }
 ```
 
-| Argument | Description |
-|----------|-------------|
-| `fields` | Fields for composite index (on @table) |
-| `order` | `[ASC]` or `[DESC]` for each field |
-| `type` | `BTREE` (default), `GIN` (arrays), `HNSW`/`IVFFLAT` (vectors) |
+| Argument | Description                                                   |
+| -------- | ------------------------------------------------------------- |
+| `fields` | Fields for composite index (on @table)                        |
+| `order`  | `[ASC]` or `[DESC]` for each field                            |
+| `type`   | `BTREE` (default), `GIN` (arrays), `HNSW`/`IVFFLAT` (vectors) |
 
 ### @searchable
+
 Enables full-text search on String fields.
 
 ```graphql
@@ -125,7 +133,11 @@ type Post @table {
 
 # Usage
 query SearchPosts($q: String!) @auth(level: PUBLIC) {
-  posts_search(query: $q) { id title body }
+  posts_search(query: $q) {
+    id
+    title
+    body
+  }
 }
 ```
 
@@ -138,7 +150,7 @@ query SearchPosts($q: String!) @auth(level: PUBLIC) {
 ```graphql
 type Post @table {
   id: UUID! @default(expr: "uuidV4()")
-  author: User!  # Creates authorId foreign key
+  author: User! # Creates authorId foreign key
   title: String!
 }
 
@@ -150,22 +162,24 @@ type User @table {
 ```
 
 ### @ref Directive
+
 Customizes foreign key reference.
 
 ```graphql
 type Post @table {
   author: User! @ref(fields: "authorId", references: "id")
-  authorId: UUID!  # Explicit FK field
+  authorId: UUID! # Explicit FK field
 }
 ```
 
-| Argument | Description |
-|----------|-------------|
-| `fields` | Local FK field name(s) |
-| `references` | Target field(s) in referenced table |
-| `constraintName` | PostgreSQL constraint name |
+| Argument         | Description                         |
+| ---------------- | ----------------------------------- |
+| `fields`         | Local FK field name(s)              |
+| `references`     | Target field(s) in referenced table |
+| `constraintName` | PostgreSQL constraint name          |
 
 **Cascade behavior:**
+
 - Required reference (`User!`): CASCADE DELETE (post deleted when user deleted)
 - Optional reference (`User`): SET NULL (authorId set to null when user deleted)
 
@@ -174,10 +188,13 @@ type Post @table {
 Use `@unique` on the reference field:
 
 ```graphql
-type User @table { id: UUID! name: String! }
+type User @table {
+  id: UUID!
+  name: String!
+}
 
 type UserProfile @table {
-  user: User! @unique  # One profile per user
+  user: User! @unique # One profile per user
   bio: String
   avatarUrl: String
 }
@@ -190,13 +207,19 @@ type UserProfile @table {
 Use a join table with composite primary key:
 
 ```graphql
-type Movie @table { id: UUID! title: String! }
-type Actor @table { id: UUID! name: String! }
+type Movie @table {
+  id: UUID!
+  title: String!
+}
+type Actor @table {
+  id: UUID!
+  name: String!
+}
 
 type MovieActor @table(key: ["movie", "actor"]) {
   movie: Movie!
   actor: Actor!
-  role: String!  # Extra data on relationship
+  role: String! # Extra data on relationship
 }
 
 # Generated fields:
@@ -209,19 +232,19 @@ type MovieActor @table(key: ["movie", "actor"]) {
 
 ## Data Types
 
-| GraphQL Type | PostgreSQL Default | Other PostgreSQL Types |
-|--------------|-------------------|----------------------|
-| `String` | `text` | `varchar(n)`, `char(n)` |
-| `Int` | `int4` | `int2`, `serial` |
-| `Int64` | `bigint` | `bigserial`, `numeric` |
-| `Float` | `float8` | `float4`, `numeric` |
-| `Boolean` | `boolean` | |
-| `UUID` | `uuid` | |
-| `Date` | `date` | |
-| `Timestamp` | `timestamptz` | Stored as UTC |
-| `Any` | `jsonb` | |
-| `Vector` | `vector` | Requires `@col(size: N)` |
-| `[Type]` | Array | e.g., `[String]` → `text[]` |
+| GraphQL Type | PostgreSQL Default | Other PostgreSQL Types      |
+| ------------ | ------------------ | --------------------------- |
+| `String`     | `text`             | `varchar(n)`, `char(n)`     |
+| `Int`        | `int4`             | `int2`, `serial`            |
+| `Int64`      | `bigint`           | `bigserial`, `numeric`      |
+| `Float`      | `float8`           | `float4`, `numeric`         |
+| `Boolean`    | `boolean`          |                             |
+| `UUID`       | `uuid`             |                             |
+| `Date`       | `date`             |                             |
+| `Timestamp`  | `timestamptz`      | Stored as UTC               |
+| `Any`        | `jsonb`            |                             |
+| `Vector`     | `vector`           | Requires `@col(size: N)`    |
+| `[Type]`     | Array              | e.g., `[String]` → `text[]` |
 
 ---
 
@@ -241,6 +264,7 @@ type Post @table {
 ```
 
 **Rules:**
+
 - Enum names: PascalCase, no underscores
 - Enum values: UPPER_SNAKE_CASE
 - Values are ordered (for comparison operations)
@@ -253,14 +277,17 @@ type Post @table {
 Map custom SQL queries to GraphQL types:
 
 ```graphql
-type MovieStats @view(sql: """
-  SELECT
-    movie_id,
-    COUNT(*) as review_count,
-    AVG(rating) as avg_rating
-  FROM review
-  GROUP BY movie_id
-""") {
+type MovieStats
+  @view(
+    sql: """
+    SELECT
+      movie_id,
+      COUNT(*) as review_count,
+      AVG(rating) as avg_rating
+    FROM review
+    GROUP BY movie_id
+    """
+  ) {
   movie: Movie @unique
   reviewCount: Int
   avgRating: Float
@@ -271,7 +298,8 @@ query TopMovies @auth(level: PUBLIC) {
   movies(orderBy: [{ rating: DESC }]) {
     title
     stats: movieStats_on_movie {
-      reviewCount avgRating
+      reviewCount
+      avgRating
     }
   }
 }

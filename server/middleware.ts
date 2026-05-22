@@ -14,7 +14,8 @@ export function requireDb(req: Request, res: Response, next: NextFunction) {
   if (!isPgReady()) {
     return res.status(503).json({
       error: "Database unavailable",
-      message: "The application is unable to reach the database. Check that POSTGRESQL_URL is set and the server started.",
+      message:
+        "The application is unable to reach the database. Check that POSTGRESQL_URL is set and the server started.",
       action: "Check the server logs for connection errors.",
     });
   }

@@ -8,4 +8,4 @@ Use the native Gemini CLI extension manager instead of `npx`.
    ```bash
    gemini extensions update firebase
    ```
-   *Note: If the extension is named differently, replace `firebase` with the correct name from `gemini extensions list`.*
+   _Note: If the extension is named differently, replace `firebase` with the correct name from `gemini extensions list`._

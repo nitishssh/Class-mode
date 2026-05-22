@@ -5,9 +5,11 @@ This guide covers basic CRUD operations, type-safe data modeling, and real-time 
 ## 1. Setup
 
 Ensure you have added the required dependency:
+
 ```bash
 flutter pub add cloud_firestore
 ```
+
 Also, ensure FlutterFire is configured properly for your target platforms.
 
 ---
@@ -38,8 +40,8 @@ class Item {
       id: doc.id,
       name: data['name'] as String? ?? '',
       ownerId: data['ownerId'] as String? ?? '',
-      createdAt: data['createdAt'] is Timestamp 
-          ? (data['createdAt'] as Timestamp).toDate() 
+      createdAt: data['createdAt'] is Timestamp
+          ? (data['createdAt'] as Timestamp).toDate()
           : DateTime.now(),
     );
   }

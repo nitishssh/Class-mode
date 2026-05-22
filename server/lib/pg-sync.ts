@@ -34,9 +34,14 @@ export async function upsertPgUser(record: {
            last_login_at = now()
        RETURNING id`,
       [
-        record.authProvider, record.authSubject, record.email.toLowerCase().trim(),
-        record.displayName ?? null, record.avatarUrl ?? null,
-        record.role ?? "student", record.status ?? "active", record.schoolCode ?? null,
+        record.authProvider,
+        record.authSubject,
+        record.email.toLowerCase().trim(),
+        record.displayName ?? null,
+        record.avatarUrl ?? null,
+        record.role ?? "student",
+        record.status ?? "active",
+        record.schoolCode ?? null,
       ]
     );
     return rows[0] ? parseInt(rows[0].id, 10) : null;
@@ -49,10 +54,10 @@ export async function upsertPgUser(record: {
 export async function setPgMembershipStatus(userId: number, status: string): Promise<void> {
   if (!isPgReady()) return;
   try {
-    await getPgPool().query(
-      "UPDATE memberships SET status = $1 WHERE user_id = $2",
-      [status, userId]
-    );
+    await getPgPool().query("UPDATE memberships SET status = $1 WHERE user_id = $2", [
+      status,
+      userId,
+    ]);
   } catch (err) {
     logger.error("[pg-sync] setPgMembershipStatus failed", { err: String(err), userId, status });
   }

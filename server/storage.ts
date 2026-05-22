@@ -1,28 +1,50 @@
 import {
-  type User, type InsertUser,
-  type Session, type InsertSession,
-  type Otp, type InsertOtp,
-  type Test, type InsertTest,
-  type Question, type InsertQuestion,
-  type TestAttempt, type InsertTestAttempt,
-  type Answer, type InsertAnswer,
-  type Analytics, type InsertAnalytics,
-  type TestAssignment, type InsertTestAssignment,
-  type Workspace, type InsertWorkspace,
-  type Channel, type InsertChannel,
-  type Message, type InsertMessage,
-  type LiveClass, type InsertLiveClass,
-  type LiveSessionAttendance, type InsertLiveSessionAttendance,
-  type FcmToken, type InsertFcmToken,
-  type Task, type InsertTask,
-  type Notification as AppNotification, type InsertNotification,
-  type FocusSession, type InsertFocusSession,
+  type User,
+  type InsertUser,
+  type Session,
+  type InsertSession,
+  type Otp,
+  type InsertOtp,
+  type Test,
+  type InsertTest,
+  type Question,
+  type InsertQuestion,
+  type TestAttempt,
+  type InsertTestAttempt,
+  type Answer,
+  type InsertAnswer,
+  type Analytics,
+  type InsertAnalytics,
+  type TestAssignment,
+  type InsertTestAssignment,
+  type Workspace,
+  type InsertWorkspace,
+  type Channel,
+  type InsertChannel,
+  type Message,
+  type InsertMessage,
+  type LiveClass,
+  type InsertLiveClass,
+  type LiveSessionAttendance,
+  type InsertLiveSessionAttendance,
+  type FcmToken,
+  type InsertFcmToken,
+  type Task,
+  type InsertTask,
+  type Notification as AppNotification,
+  type InsertNotification,
+  type FocusSession,
+  type InsertFocusSession,
 } from "@shared/schema";
 import { getPgPool } from "./db-pg";
 import { getCassandraClient } from "./lib/cassandra";
 import {
-  cassandraCreateMessage, cassandraGetMessagesByChannel, cassandraDeleteMessage,
-  cassandraPinMessage, cassandraGradeMessage, cassandraMarkMessageAsRead,
+  cassandraCreateMessage,
+  cassandraGetMessagesByChannel,
+  cassandraDeleteMessage,
+  cassandraPinMessage,
+  cassandraGradeMessage,
+  cassandraMarkMessageAsRead,
   cassandraGetPinnedMessages,
 } from "./lib/cassandra-message-store";
 import session from "express-session";
@@ -59,7 +81,10 @@ export interface IStorage {
   getTestAttempt(id: number): Promise<TestAttempt | undefined>;
   getTestAttemptsByStudent(studentId: number): Promise<TestAttempt[]>;
   getTestAttemptsByTest(testId: number): Promise<TestAttempt[]>;
-  updateTestAttempt(id: number, attempt: Partial<InsertTestAttempt>): Promise<TestAttempt | undefined>;
+  updateTestAttempt(
+    id: number,
+    attempt: Partial<InsertTestAttempt>
+  ): Promise<TestAttempt | undefined>;
   createAnswer(answer: InsertAnswer): Promise<Answer>;
   getAnswer(id: number): Promise<Answer | undefined>;
   getAnswersByAttempt(attemptId: number): Promise<Answer[]>;
@@ -69,10 +94,20 @@ export interface IStorage {
   getAnalyticsByTest(testId: number): Promise<Analytics[]>;
   createTestAssignment(assignment: InsertTestAssignment): Promise<TestAssignment>;
   getTestAssignment(id: number): Promise<TestAssignment | undefined>;
-  getTestAssignments(filters: { studentId?: number; testId?: number; status?: string }): Promise<TestAssignment[]>;
-  updateTestAssignment(id: number, update: Partial<InsertTestAssignment>): Promise<TestAssignment | undefined>;
+  getTestAssignments(filters: {
+    studentId?: number;
+    testId?: number;
+    status?: string;
+  }): Promise<TestAssignment[]>;
+  updateTestAssignment(
+    id: number,
+    update: Partial<InsertTestAssignment>
+  ): Promise<TestAssignment | undefined>;
   getTestAssignmentsByTest(testId: number): Promise<TestAssignment[]>;
-  getTestAssignmentByStudentAndTest(studentId: number, testId: number): Promise<TestAssignment | undefined>;
+  getTestAssignmentByStudentAndTest(
+    studentId: number,
+    testId: number
+  ): Promise<TestAssignment | undefined>;
   createWorkspace(workspace: InsertWorkspace): Promise<Workspace>;
   getWorkspace(id: number): Promise<Workspace | undefined>;
   getWorkspaces(userId: number): Promise<Workspace[]>;
@@ -90,15 +125,28 @@ export interface IStorage {
   pinMessage(channelId: number, messageId: number): Promise<Channel | undefined>;
   unpinMessage(channelId: number, messageId: number): Promise<Channel | undefined>;
   getPinnedMessages(channelId: number): Promise<Message[]>;
-  gradeMessage(messageId: number, status: "pending" | "graded", channelId?: number): Promise<Message | undefined>;
-  markMessageAsRead(messageId: number, userId: number, channelId?: number): Promise<Message | undefined>;
+  gradeMessage(
+    messageId: number,
+    status: "pending" | "graded",
+    channelId?: number
+  ): Promise<Message | undefined>;
+  markMessageAsRead(
+    messageId: number,
+    userId: number,
+    channelId?: number
+  ): Promise<Message | undefined>;
   createLiveClass(liveClass: InsertLiveClass): Promise<LiveClass>;
   getLiveClass(id: number): Promise<LiveClass | undefined>;
   getLiveClassesBySchoolAndClass(schoolCode: string, className: string): Promise<LiveClass[]>;
   updateLiveClass(id: number, update: Partial<InsertLiveClass>): Promise<LiveClass | undefined>;
-  createLiveSessionAttendance(attendance: InsertLiveSessionAttendance): Promise<LiveSessionAttendance>;
+  createLiveSessionAttendance(
+    attendance: InsertLiveSessionAttendance
+  ): Promise<LiveSessionAttendance>;
   getAttendanceBySession(sessionId: number): Promise<LiveSessionAttendance[]>;
-  updateLiveSessionAttendance(id: number, update: Partial<InsertLiveSessionAttendance>): Promise<LiveSessionAttendance | undefined>;
+  updateLiveSessionAttendance(
+    id: number,
+    update: Partial<InsertLiveSessionAttendance>
+  ): Promise<LiveSessionAttendance | undefined>;
   upsertFcmToken(token: InsertFcmToken): Promise<FcmToken>;
   getFcmTokensByUser(userId: number): Promise<FcmToken[]>;
   removeFcmToken(token: string): Promise<boolean>;
@@ -386,7 +434,9 @@ export class PgStorage implements IStorage {
     this.sessionStore = new MemStore({ checkPeriod: 24 * 60 * 60 * 1000 });
   }
 
-  private get pool() { return getPgPool(); }
+  private get pool() {
+    return getPgPool();
+  }
 
   // ── Users ──────────────────────────────────────────────────────────────────
 
@@ -401,7 +451,9 @@ export class PgStorage implements IStorage {
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const { rows } = await this.pool.query("SELECT * FROM users WHERE email = $1", [email.toLowerCase()]);
+    const { rows } = await this.pool.query("SELECT * FROM users WHERE email = $1", [
+      email.toLowerCase(),
+    ]);
     return rows[0] ? mapUser(rows[0]) : undefined;
   }
 
@@ -413,10 +465,22 @@ export class PgStorage implements IStorage {
        VALUES ('local', $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
        RETURNING *`,
       [
-        user.username, user.email.toLowerCase(), user.username, user.password, user.name,
-        user.emailVerified ?? false, user.role ?? "student", user.status ?? "active", user.avatar ?? null,
-        user.class ?? null, user.subject ?? null, user.school_code ?? null,
-        user.grade ?? null, user.board ?? null, user.subjects ?? [], user.district ?? null,
+        user.username,
+        user.email.toLowerCase(),
+        user.username,
+        user.password,
+        user.name,
+        user.emailVerified ?? false,
+        user.role ?? "student",
+        user.status ?? "active",
+        user.avatar ?? null,
+        user.class ?? null,
+        user.subject ?? null,
+        user.school_code ?? null,
+        user.grade ?? null,
+        user.board ?? null,
+        user.subjects ?? [],
+        user.district ?? null,
       ]
     );
     return mapUser(rows[0]);
@@ -439,16 +503,30 @@ export class PgStorage implements IStorage {
 
   async updateUser(id: number, userUpdate: Partial<InsertUser>): Promise<User | undefined> {
     const colMap: Record<string, string> = {
-      username: "username", password: "password_hash", name: "name", email: "email",
-      role: "role", status: "status", emailVerified: "email_verified", avatar: "avatar", class: "class_name",
-      subject: "subject", school_code: "school_code", grade: "grade", board: "board",
-      subjects: "subjects", district: "district",
+      username: "username",
+      password: "password_hash",
+      name: "name",
+      email: "email",
+      role: "role",
+      status: "status",
+      emailVerified: "email_verified",
+      avatar: "avatar",
+      class: "class_name",
+      subject: "subject",
+      school_code: "school_code",
+      grade: "grade",
+      board: "board",
+      subjects: "subjects",
+      district: "district",
     };
     const sets: string[] = [];
     const params: any[] = [];
     let i = 1;
     for (const [k, col] of Object.entries(colMap)) {
-      if (k in userUpdate) { sets.push(`${col} = $${i++}`); params.push((userUpdate as any)[k]); }
+      if (k in userUpdate) {
+        sets.push(`${col} = $${i++}`);
+        params.push((userUpdate as any)[k]);
+      }
     }
     if (!sets.length) return this.getUser(id);
     params.push(id);
@@ -465,8 +543,13 @@ export class PgStorage implements IStorage {
     const { rows } = await this.pool.query(
       `INSERT INTO sessions (user_id, refresh_token_hash, device_info, ip_address, expires_at)
        VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-      [sessionData.userId, sessionData.refreshTokenHash, sessionData.deviceInfo ?? null,
-       sessionData.ipAddress ?? null, sessionData.expiresAt]
+      [
+        sessionData.userId,
+        sessionData.refreshTokenHash,
+        sessionData.deviceInfo ?? null,
+        sessionData.ipAddress ?? null,
+        sessionData.expiresAt,
+      ]
     );
     return mapSession(rows[0]);
   }
@@ -477,10 +560,9 @@ export class PgStorage implements IStorage {
   }
 
   async getSessionByRefreshToken(refreshTokenHash: string): Promise<Session | undefined> {
-    const { rows } = await this.pool.query(
-      "SELECT * FROM sessions WHERE refresh_token_hash = $1",
-      [refreshTokenHash]
-    );
+    const { rows } = await this.pool.query("SELECT * FROM sessions WHERE refresh_token_hash = $1", [
+      refreshTokenHash,
+    ]);
     return rows[0] ? mapSession(rows[0]) : undefined;
   }
 
@@ -531,9 +613,18 @@ export class PgStorage implements IStorage {
       `INSERT INTO tests (title, description, subject, class_name, teacher_id, total_marks,
          duration, test_date, question_types, status)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
-      [test.title, test.description ?? null, test.subject, test.class, test.teacherId,
-       test.totalMarks ?? 100, test.duration ?? 60, test.testDate,
-       test.questionTypes ?? [], test.status ?? "draft"]
+      [
+        test.title,
+        test.description ?? null,
+        test.subject,
+        test.class,
+        test.teacherId,
+        test.totalMarks ?? 100,
+        test.duration ?? 60,
+        test.testDate,
+        test.questionTypes ?? [],
+        test.status ?? "draft",
+      ]
     );
     return mapTest(rows[0]);
   }
@@ -547,34 +638,53 @@ export class PgStorage implements IStorage {
     const conditions: string[] = [];
     const params: any[] = [];
     let i = 1;
-    if (teacherId) { conditions.push(`teacher_id = $${i++}`); params.push(teacherId); }
-    if (status) { conditions.push(`status = $${i}`); params.push(status); }
+    if (teacherId) {
+      conditions.push(`teacher_id = $${i++}`);
+      params.push(teacherId);
+    }
+    if (status) {
+      conditions.push(`status = $${i}`);
+      params.push(status);
+    }
     const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
     const { rows } = await this.pool.query(`SELECT * FROM tests ${where}`, params);
     return rows.map(mapTest);
   }
 
   async getTestsByClass(className: string): Promise<Test[]> {
-    const { rows } = await this.pool.query("SELECT * FROM tests WHERE class_name = $1", [className]);
+    const { rows } = await this.pool.query("SELECT * FROM tests WHERE class_name = $1", [
+      className,
+    ]);
     return rows.map(mapTest);
   }
 
   async updateTest(id: number, testUpdate: Partial<InsertTest>): Promise<Test | undefined> {
     const colMap: Record<string, string> = {
-      title: "title", description: "description", subject: "subject", class: "class_name",
-      teacherId: "teacher_id", totalMarks: "total_marks", duration: "duration",
-      testDate: "test_date", questionTypes: "question_types", status: "status",
+      title: "title",
+      description: "description",
+      subject: "subject",
+      class: "class_name",
+      teacherId: "teacher_id",
+      totalMarks: "total_marks",
+      duration: "duration",
+      testDate: "test_date",
+      questionTypes: "question_types",
+      status: "status",
     };
     const sets: string[] = [];
     const params: any[] = [];
     let i = 1;
     for (const [k, col] of Object.entries(colMap)) {
-      if (k in testUpdate) { sets.push(`${col} = $${i++}`); params.push((testUpdate as any)[k]); }
+      if (k in testUpdate) {
+        sets.push(`${col} = $${i++}`);
+        params.push((testUpdate as any)[k]);
+      }
     }
     if (!sets.length) return this.getTest(id);
     params.push(id);
     const { rows } = await this.pool.query(
-      `UPDATE tests SET ${sets.join(", ")} WHERE id = $${i} RETURNING *`, params
+      `UPDATE tests SET ${sets.join(", ")} WHERE id = $${i} RETURNING *`,
+      params
     );
     return rows[0] ? mapTest(rows[0]) : undefined;
   }
@@ -585,10 +695,16 @@ export class PgStorage implements IStorage {
     const { rows } = await this.pool.query(
       `INSERT INTO questions (test_id, type, text, options, correct_answer, marks, ord, ai_rubric)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-      [question.testId, question.type, question.text,
-       question.options ? JSON.stringify(question.options) : null,
-       question.correctAnswer ?? null, question.marks ?? 1, question.order,
-       question.aiRubric ?? null]
+      [
+        question.testId,
+        question.type,
+        question.text,
+        question.options ? JSON.stringify(question.options) : null,
+        question.correctAnswer ?? null,
+        question.marks ?? 1,
+        question.order,
+        question.aiRubric ?? null,
+      ]
     );
     return mapQuestion(rows[0]);
   }
@@ -600,15 +716,24 @@ export class PgStorage implements IStorage {
 
   async getQuestionsByTest(testId: number): Promise<Question[]> {
     const { rows } = await this.pool.query(
-      "SELECT * FROM questions WHERE test_id = $1 ORDER BY ord", [testId]
+      "SELECT * FROM questions WHERE test_id = $1 ORDER BY ord",
+      [testId]
     );
     return rows.map(mapQuestion);
   }
 
-  async updateQuestion(id: number, questionUpdate: Partial<InsertQuestion>): Promise<Question | undefined> {
+  async updateQuestion(
+    id: number,
+    questionUpdate: Partial<InsertQuestion>
+  ): Promise<Question | undefined> {
     const colMap: Record<string, string> = {
-      type: "type", text: "text", options: "options", correctAnswer: "correct_answer",
-      marks: "marks", order: "ord", aiRubric: "ai_rubric",
+      type: "type",
+      text: "text",
+      options: "options",
+      correctAnswer: "correct_answer",
+      marks: "marks",
+      order: "ord",
+      aiRubric: "ai_rubric",
     };
     const sets: string[] = [];
     const params: any[] = [];
@@ -624,7 +749,8 @@ export class PgStorage implements IStorage {
     if (!sets.length) return this.getQuestion(id);
     params.push(id);
     const { rows } = await this.pool.query(
-      `UPDATE questions SET ${sets.join(", ")} WHERE id = $${i} RETURNING *`, params
+      `UPDATE questions SET ${sets.join(", ")} WHERE id = $${i} RETURNING *`,
+      params
     );
     return rows[0] ? mapQuestion(rows[0]) : undefined;
   }
@@ -635,8 +761,14 @@ export class PgStorage implements IStorage {
     const { rows } = await this.pool.query(
       `INSERT INTO test_attempts (test_id, student_id, start_time, end_time, score, status)
        VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-      [attempt.testId, attempt.studentId, attempt.startTime ?? new Date(),
-       attempt.endTime ?? null, attempt.score ?? null, attempt.status ?? "in_progress"]
+      [
+        attempt.testId,
+        attempt.studentId,
+        attempt.startTime ?? new Date(),
+        attempt.endTime ?? null,
+        attempt.score ?? null,
+        attempt.status ?? "in_progress",
+      ]
     );
     return mapAttempt(rows[0]);
   }
@@ -647,29 +779,42 @@ export class PgStorage implements IStorage {
   }
 
   async getTestAttemptsByStudent(studentId: number): Promise<TestAttempt[]> {
-    const { rows } = await this.pool.query("SELECT * FROM test_attempts WHERE student_id = $1", [studentId]);
+    const { rows } = await this.pool.query("SELECT * FROM test_attempts WHERE student_id = $1", [
+      studentId,
+    ]);
     return rows.map(mapAttempt);
   }
 
   async getTestAttemptsByTest(testId: number): Promise<TestAttempt[]> {
-    const { rows } = await this.pool.query("SELECT * FROM test_attempts WHERE test_id = $1", [testId]);
+    const { rows } = await this.pool.query("SELECT * FROM test_attempts WHERE test_id = $1", [
+      testId,
+    ]);
     return rows.map(mapAttempt);
   }
 
-  async updateTestAttempt(id: number, attemptUpdate: Partial<InsertTestAttempt>): Promise<TestAttempt | undefined> {
+  async updateTestAttempt(
+    id: number,
+    attemptUpdate: Partial<InsertTestAttempt>
+  ): Promise<TestAttempt | undefined> {
     const colMap: Record<string, string> = {
-      endTime: "end_time", score: "score", status: "status",
+      endTime: "end_time",
+      score: "score",
+      status: "status",
     };
     const sets: string[] = [];
     const params: any[] = [];
     let i = 1;
     for (const [k, col] of Object.entries(colMap)) {
-      if (k in attemptUpdate) { sets.push(`${col} = $${i++}`); params.push((attemptUpdate as any)[k]); }
+      if (k in attemptUpdate) {
+        sets.push(`${col} = $${i++}`);
+        params.push((attemptUpdate as any)[k]);
+      }
     }
     if (!sets.length) return this.getTestAttempt(id);
     params.push(id);
     const { rows } = await this.pool.query(
-      `UPDATE test_attempts SET ${sets.join(", ")} WHERE id = $${i} RETURNING *`, params
+      `UPDATE test_attempts SET ${sets.join(", ")} WHERE id = $${i} RETURNING *`,
+      params
     );
     return rows[0] ? mapAttempt(rows[0]) : undefined;
   }
@@ -681,9 +826,18 @@ export class PgStorage implements IStorage {
       `INSERT INTO answers (attempt_id, question_id, text, selected_option, image_url,
          ocr_text, score, ai_confidence, ai_feedback, is_correct)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
-      [answer.attemptId, answer.questionId, answer.text ?? null, answer.selectedOption ?? null,
-       answer.imageUrl ?? null, answer.ocrText ?? null, answer.score ?? null,
-       answer.aiConfidence ?? null, answer.aiFeedback ?? null, answer.isCorrect ?? null]
+      [
+        answer.attemptId,
+        answer.questionId,
+        answer.text ?? null,
+        answer.selectedOption ?? null,
+        answer.imageUrl ?? null,
+        answer.ocrText ?? null,
+        answer.score ?? null,
+        answer.aiConfidence ?? null,
+        answer.aiFeedback ?? null,
+        answer.isCorrect ?? null,
+      ]
     );
     return mapAnswer(rows[0]);
   }
@@ -694,26 +848,37 @@ export class PgStorage implements IStorage {
   }
 
   async getAnswersByAttempt(attemptId: number): Promise<Answer[]> {
-    const { rows } = await this.pool.query("SELECT * FROM answers WHERE attempt_id = $1", [attemptId]);
+    const { rows } = await this.pool.query("SELECT * FROM answers WHERE attempt_id = $1", [
+      attemptId,
+    ]);
     return rows.map(mapAnswer);
   }
 
   async updateAnswer(id: number, answerUpdate: Partial<InsertAnswer>): Promise<Answer | undefined> {
     const colMap: Record<string, string> = {
-      text: "text", selectedOption: "selected_option", imageUrl: "image_url",
-      ocrText: "ocr_text", score: "score", aiConfidence: "ai_confidence",
-      aiFeedback: "ai_feedback", isCorrect: "is_correct",
+      text: "text",
+      selectedOption: "selected_option",
+      imageUrl: "image_url",
+      ocrText: "ocr_text",
+      score: "score",
+      aiConfidence: "ai_confidence",
+      aiFeedback: "ai_feedback",
+      isCorrect: "is_correct",
     };
     const sets: string[] = [];
     const params: any[] = [];
     let i = 1;
     for (const [k, col] of Object.entries(colMap)) {
-      if (k in answerUpdate) { sets.push(`${col} = $${i++}`); params.push((answerUpdate as any)[k]); }
+      if (k in answerUpdate) {
+        sets.push(`${col} = $${i++}`);
+        params.push((answerUpdate as any)[k]);
+      }
     }
     if (!sets.length) return this.getAnswer(id);
     params.push(id);
     const { rows } = await this.pool.query(
-      `UPDATE answers SET ${sets.join(", ")} WHERE id = $${i} RETURNING *`, params
+      `UPDATE answers SET ${sets.join(", ")} WHERE id = $${i} RETURNING *`,
+      params
     );
     return rows[0] ? mapAnswer(rows[0]) : undefined;
   }
@@ -724,16 +889,22 @@ export class PgStorage implements IStorage {
     const { rows } = await this.pool.query(
       `INSERT INTO analytics (user_id, test_id, weak_topics, strong_topics, recommended_resources, insight_date)
        VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-      [insertAnalytics.userId, insertAnalytics.testId, insertAnalytics.weakTopics,
-       insertAnalytics.strongTopics, insertAnalytics.recommendedResources,
-       insertAnalytics.insightDate ?? new Date()]
+      [
+        insertAnalytics.userId,
+        insertAnalytics.testId,
+        insertAnalytics.weakTopics,
+        insertAnalytics.strongTopics,
+        insertAnalytics.recommendedResources,
+        insertAnalytics.insightDate ?? new Date(),
+      ]
     );
     return mapAnalytics(rows[0]);
   }
 
   async getAnalyticsByUser(userId: number): Promise<Analytics[]> {
     const { rows } = await this.pool.query(
-      "SELECT * FROM analytics WHERE user_id = $1 ORDER BY insight_date DESC", [userId]
+      "SELECT * FROM analytics WHERE user_id = $1 ORDER BY insight_date DESC",
+      [userId]
     );
     return rows.map(mapAnalytics);
   }
@@ -749,9 +920,15 @@ export class PgStorage implements IStorage {
     const { rows } = await this.pool.query(
       `INSERT INTO test_assignments (test_id, student_id, assigned_by, assigned_date, due_date, status, notification_sent)
        VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-      [assignment.testId, assignment.studentId, assignment.assignedBy,
-       assignment.assignedDate ?? new Date(), assignment.dueDate,
-       assignment.status ?? "pending", assignment.notificationSent ?? false]
+      [
+        assignment.testId,
+        assignment.studentId,
+        assignment.assignedBy,
+        assignment.assignedDate ?? new Date(),
+        assignment.dueDate,
+        assignment.status ?? "pending",
+        assignment.notificationSent ?? false,
+      ]
     );
     return mapAssignment(rows[0]);
   }
@@ -761,42 +938,69 @@ export class PgStorage implements IStorage {
     return rows[0] ? mapAssignment(rows[0]) : undefined;
   }
 
-  async getTestAssignments(filters: { studentId?: number; testId?: number; status?: string }): Promise<TestAssignment[]> {
+  async getTestAssignments(filters: {
+    studentId?: number;
+    testId?: number;
+    status?: string;
+  }): Promise<TestAssignment[]> {
     const conditions: string[] = [];
     const params: any[] = [];
     let i = 1;
-    if (filters.studentId != null) { conditions.push(`student_id = $${i++}`); params.push(filters.studentId); }
-    if (filters.testId != null) { conditions.push(`test_id = $${i++}`); params.push(filters.testId); }
-    if (filters.status) { conditions.push(`status = $${i}`); params.push(filters.status); }
+    if (filters.studentId != null) {
+      conditions.push(`student_id = $${i++}`);
+      params.push(filters.studentId);
+    }
+    if (filters.testId != null) {
+      conditions.push(`test_id = $${i++}`);
+      params.push(filters.testId);
+    }
+    if (filters.status) {
+      conditions.push(`status = $${i}`);
+      params.push(filters.status);
+    }
     const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
     const { rows } = await this.pool.query(`SELECT * FROM test_assignments ${where}`, params);
     return rows.map(mapAssignment);
   }
 
-  async updateTestAssignment(id: number, update: Partial<InsertTestAssignment>): Promise<TestAssignment | undefined> {
+  async updateTestAssignment(
+    id: number,
+    update: Partial<InsertTestAssignment>
+  ): Promise<TestAssignment | undefined> {
     const colMap: Record<string, string> = {
-      status: "status", dueDate: "due_date", notificationSent: "notification_sent",
+      status: "status",
+      dueDate: "due_date",
+      notificationSent: "notification_sent",
     };
     const sets: string[] = [];
     const params: any[] = [];
     let i = 1;
     for (const [k, col] of Object.entries(colMap)) {
-      if (k in update) { sets.push(`${col} = $${i++}`); params.push((update as any)[k]); }
+      if (k in update) {
+        sets.push(`${col} = $${i++}`);
+        params.push((update as any)[k]);
+      }
     }
     if (!sets.length) return this.getTestAssignment(id);
     params.push(id);
     const { rows } = await this.pool.query(
-      `UPDATE test_assignments SET ${sets.join(", ")} WHERE id = $${i} RETURNING *`, params
+      `UPDATE test_assignments SET ${sets.join(", ")} WHERE id = $${i} RETURNING *`,
+      params
     );
     return rows[0] ? mapAssignment(rows[0]) : undefined;
   }
 
   async getTestAssignmentsByTest(testId: number): Promise<TestAssignment[]> {
-    const { rows } = await this.pool.query("SELECT * FROM test_assignments WHERE test_id = $1", [testId]);
+    const { rows } = await this.pool.query("SELECT * FROM test_assignments WHERE test_id = $1", [
+      testId,
+    ]);
     return rows.map(mapAssignment);
   }
 
-  async getTestAssignmentByStudentAndTest(studentId: number, testId: number): Promise<TestAssignment | undefined> {
+  async getTestAssignmentByStudentAndTest(
+    studentId: number,
+    testId: number
+  ): Promise<TestAssignment | undefined> {
     const { rows } = await this.pool.query(
       "SELECT * FROM test_assignments WHERE student_id = $1 AND test_id = $2 LIMIT 1",
       [studentId, testId]
@@ -829,9 +1033,9 @@ export class PgStorage implements IStorage {
   }
 
   async getWorkspaces(userId: number): Promise<Workspace[]> {
-    const { rows } = await this.pool.query(
-      "SELECT * FROM workspaces WHERE $1 = ANY(members)", [userId]
-    );
+    const { rows } = await this.pool.query("SELECT * FROM workspaces WHERE $1 = ANY(members)", [
+      userId,
+    ]);
     return rows.map(mapWorkspace);
   }
 
@@ -844,7 +1048,10 @@ export class PgStorage implements IStorage {
     return rows[0] ? mapWorkspace(rows[0]) : this.getWorkspace(workspaceId);
   }
 
-  async removeMemberFromWorkspace(workspaceId: number, userId: number): Promise<Workspace | undefined> {
+  async removeMemberFromWorkspace(
+    workspaceId: number,
+    userId: number
+  ): Promise<Workspace | undefined> {
     const { rows } = await this.pool.query(
       `UPDATE workspaces SET members = array_remove(members, $1::bigint) WHERE id = $2 RETURNING *`,
       [userId, workspaceId]
@@ -858,8 +1065,13 @@ export class PgStorage implements IStorage {
     const { rows } = await this.pool.query(
       `INSERT INTO channels (workspace_id, name, type, class_name, subject, pinned_messages)
        VALUES ($1,$2,$3,$4,$5,'{}') RETURNING *`,
-      [channel.workspaceId ?? null, channel.name, channel.type ?? "text",
-       channel.class ?? null, channel.subject ?? null]
+      [
+        channel.workspaceId ?? null,
+        channel.name,
+        channel.type ?? "text",
+        channel.class ?? null,
+        channel.subject ?? null,
+      ]
     );
     return mapChannel(rows[0]);
   }
@@ -871,7 +1083,8 @@ export class PgStorage implements IStorage {
 
   async getChannelsByWorkspace(workspaceId: number): Promise<Channel[]> {
     const { rows } = await this.pool.query(
-      "SELECT * FROM channels WHERE workspace_id = $1 ORDER BY created_at", [workspaceId]
+      "SELECT * FROM channels WHERE workspace_id = $1 ORDER BY created_at",
+      [workspaceId]
     );
     return rows.map(mapChannel);
   }
@@ -890,7 +1103,8 @@ export class PgStorage implements IStorage {
     const maxId = Math.max(userId1, userId2);
     const dmName = `dm_${minId}_${maxId}`;
     const { rows: existing } = await this.pool.query(
-      "SELECT * FROM channels WHERE type = 'dm' AND name = $1", [dmName]
+      "SELECT * FROM channels WHERE type = 'dm' AND name = $1",
+      [dmName]
     );
     if (existing[0]) return mapChannel(existing[0]);
     const { rows } = await this.pool.query(
@@ -915,8 +1129,15 @@ export class PgStorage implements IStorage {
     const { rows } = await this.pool.query(
       `INSERT INTO messages (channel_id, author_id, content, type, file_url, is_homework, grading_status, read_by)
        VALUES ($1,$2,$3,$4,$5,$6,$7,'{}') RETURNING *`,
-      [message.channelId, message.authorId, message.content, message.type ?? "text",
-       message.fileUrl ?? null, message.isHomework ?? false, message.gradingStatus ?? null]
+      [
+        message.channelId,
+        message.authorId,
+        message.content,
+        message.type ?? "text",
+        message.fileUrl ?? null,
+        message.isHomework ?? false,
+        message.gradingStatus ?? null,
+      ]
     );
     return mapMessage(rows[0]);
   }
@@ -964,28 +1185,60 @@ export class PgStorage implements IStorage {
   async getPinnedMessages(channelId: number): Promise<Message[]> {
     if (getCassandraClient()) return cassandraGetPinnedMessages(channelId);
     const { rows } = await this.pool.query(
-      "SELECT * FROM messages WHERE channel_id=$1 AND is_pinned=true ORDER BY id", [channelId]
+      "SELECT * FROM messages WHERE channel_id=$1 AND is_pinned=true ORDER BY id",
+      [channelId]
     );
     return rows.map(mapMessage);
   }
 
-  async gradeMessage(messageId: number, status: "pending" | "graded", channelId?: number): Promise<Message | undefined> {
+  async gradeMessage(
+    messageId: number,
+    status: "pending" | "graded",
+    channelId?: number
+  ): Promise<Message | undefined> {
     if (getCassandraClient() && channelId != null) {
       await cassandraGradeMessage(channelId, messageId, status);
-      return { id: messageId, channelId: channelId!, authorId: 0, content: "", type: "text",
-        fileUrl: null, isPinned: false, isHomework: false, gradingStatus: status, readBy: [], createdAt: new Date() };
+      return {
+        id: messageId,
+        channelId: channelId!,
+        authorId: 0,
+        content: "",
+        type: "text",
+        fileUrl: null,
+        isPinned: false,
+        isHomework: false,
+        gradingStatus: status,
+        readBy: [],
+        createdAt: new Date(),
+      };
     }
     const { rows } = await this.pool.query(
-      "UPDATE messages SET grading_status=$1 WHERE id=$2 RETURNING *", [status, messageId]
+      "UPDATE messages SET grading_status=$1 WHERE id=$2 RETURNING *",
+      [status, messageId]
     );
     return rows[0] ? mapMessage(rows[0]) : undefined;
   }
 
-  async markMessageAsRead(messageId: number, userId: number, channelId?: number): Promise<Message | undefined> {
+  async markMessageAsRead(
+    messageId: number,
+    userId: number,
+    channelId?: number
+  ): Promise<Message | undefined> {
     if (getCassandraClient() && channelId != null) {
       await cassandraMarkMessageAsRead(channelId, messageId, userId);
-      return { id: messageId, channelId: channelId!, authorId: 0, content: "", type: "text",
-        fileUrl: null, isPinned: false, isHomework: false, gradingStatus: null, readBy: [userId], createdAt: new Date() };
+      return {
+        id: messageId,
+        channelId: channelId!,
+        authorId: 0,
+        content: "",
+        type: "text",
+        fileUrl: null,
+        isPinned: false,
+        isHomework: false,
+        gradingStatus: null,
+        readBy: [userId],
+        createdAt: new Date(),
+      };
     }
     const { rows } = await this.pool.query(
       `UPDATE messages SET read_by = array_append(read_by, $1::bigint)
@@ -1002,10 +1255,20 @@ export class PgStorage implements IStorage {
       `INSERT INTO live_classes (title, description, teacher_id, class_name, scheduled_time,
          duration_minutes, status, daily_room_name, daily_room_url, started_at, ended_at, recording_url)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
-      [classData.title, classData.description ?? null, classData.teacherId, classData.class,
-       classData.scheduledTime, classData.durationMinutes ?? 60, classData.status ?? "scheduled",
-       classData.dailyRoomName ?? null, classData.dailyRoomUrl ?? null,
-       classData.startedAt ?? null, classData.endedAt ?? null, classData.recordingUrl ?? null]
+      [
+        classData.title,
+        classData.description ?? null,
+        classData.teacherId,
+        classData.class,
+        classData.scheduledTime,
+        classData.durationMinutes ?? 60,
+        classData.status ?? "scheduled",
+        classData.dailyRoomName ?? null,
+        classData.dailyRoomUrl ?? null,
+        classData.startedAt ?? null,
+        classData.endedAt ?? null,
+        classData.recordingUrl ?? null,
+      ]
     );
     return mapLiveClass(rows[0]);
   }
@@ -1015,61 +1278,94 @@ export class PgStorage implements IStorage {
     return rows[0] ? mapLiveClass(rows[0]) : undefined;
   }
 
-  async getLiveClassesBySchoolAndClass(_schoolCode: string, className: string): Promise<LiveClass[]> {
+  async getLiveClassesBySchoolAndClass(
+    _schoolCode: string,
+    className: string
+  ): Promise<LiveClass[]> {
     const { rows } = await this.pool.query(
-      "SELECT * FROM live_classes WHERE class_name = $1 ORDER BY scheduled_time DESC", [className]
+      "SELECT * FROM live_classes WHERE class_name = $1 ORDER BY scheduled_time DESC",
+      [className]
     );
     return rows.map(mapLiveClass);
   }
 
-  async updateLiveClass(id: number, update: Partial<InsertLiveClass>): Promise<LiveClass | undefined> {
+  async updateLiveClass(
+    id: number,
+    update: Partial<InsertLiveClass>
+  ): Promise<LiveClass | undefined> {
     const colMap: Record<string, string> = {
-      status: "status", dailyRoomName: "daily_room_name", dailyRoomUrl: "daily_room_url",
-      startedAt: "started_at", endedAt: "ended_at", recordingUrl: "recording_url",
+      status: "status",
+      dailyRoomName: "daily_room_name",
+      dailyRoomUrl: "daily_room_url",
+      startedAt: "started_at",
+      endedAt: "ended_at",
+      recordingUrl: "recording_url",
     };
     const sets: string[] = [];
     const params: any[] = [];
     let i = 1;
     for (const [k, col] of Object.entries(colMap)) {
-      if (k in update) { sets.push(`${col} = $${i++}`); params.push((update as any)[k]); }
+      if (k in update) {
+        sets.push(`${col} = $${i++}`);
+        params.push((update as any)[k]);
+      }
     }
     if (!sets.length) return this.getLiveClass(id);
     params.push(id);
     const { rows } = await this.pool.query(
-      `UPDATE live_classes SET ${sets.join(", ")} WHERE id = $${i} RETURNING *`, params
+      `UPDATE live_classes SET ${sets.join(", ")} WHERE id = $${i} RETURNING *`,
+      params
     );
     return rows[0] ? mapLiveClass(rows[0]) : undefined;
   }
 
   // ── Live Session Attendance ────────────────────────────────────────────────
 
-  async createLiveSessionAttendance(attendanceData: InsertLiveSessionAttendance): Promise<LiveSessionAttendance> {
+  async createLiveSessionAttendance(
+    attendanceData: InsertLiveSessionAttendance
+  ): Promise<LiveSessionAttendance> {
     const { rows } = await this.pool.query(
       `INSERT INTO live_session_attendance (session_id, student_id, joined_at, left_at, duration_minutes)
        VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-      [attendanceData.sessionId, attendanceData.studentId, attendanceData.joinedAt ?? new Date(),
-       attendanceData.leftAt ?? null, attendanceData.durationMinutes ?? 0]
+      [
+        attendanceData.sessionId,
+        attendanceData.studentId,
+        attendanceData.joinedAt ?? new Date(),
+        attendanceData.leftAt ?? null,
+        attendanceData.durationMinutes ?? 0,
+      ]
     );
     return mapAttendance(rows[0]);
   }
 
   async getAttendanceBySession(sessionId: number): Promise<LiveSessionAttendance[]> {
     const { rows } = await this.pool.query(
-      "SELECT * FROM live_session_attendance WHERE session_id = $1", [sessionId]
+      "SELECT * FROM live_session_attendance WHERE session_id = $1",
+      [sessionId]
     );
     return rows.map(mapAttendance);
   }
 
-  async updateLiveSessionAttendance(id: number, update: Partial<InsertLiveSessionAttendance>): Promise<LiveSessionAttendance | undefined> {
+  async updateLiveSessionAttendance(
+    id: number,
+    update: Partial<InsertLiveSessionAttendance>
+  ): Promise<LiveSessionAttendance | undefined> {
     const sets: string[] = [];
     const params: any[] = [];
     let i = 1;
-    if ("leftAt" in update) { sets.push(`left_at = $${i++}`); params.push(update.leftAt); }
-    if ("durationMinutes" in update) { sets.push(`duration_minutes = $${i++}`); params.push(update.durationMinutes); }
+    if ("leftAt" in update) {
+      sets.push(`left_at = $${i++}`);
+      params.push(update.leftAt);
+    }
+    if ("durationMinutes" in update) {
+      sets.push(`duration_minutes = $${i++}`);
+      params.push(update.durationMinutes);
+    }
     if (!sets.length) return undefined;
     params.push(id);
     const { rows } = await this.pool.query(
-      `UPDATE live_session_attendance SET ${sets.join(", ")} WHERE id = $${i} RETURNING *`, params
+      `UPDATE live_session_attendance SET ${sets.join(", ")} WHERE id = $${i} RETURNING *`,
+      params
     );
     return rows[0] ? mapAttendance(rows[0]) : undefined;
   }
@@ -1093,7 +1389,9 @@ export class PgStorage implements IStorage {
   }
 
   async removeFcmToken(tokenStr: string): Promise<boolean> {
-    const { rowCount } = await this.pool.query("DELETE FROM fcm_tokens WHERE token = $1", [tokenStr]);
+    const { rowCount } = await this.pool.query("DELETE FROM fcm_tokens WHERE token = $1", [
+      tokenStr,
+    ]);
     return (rowCount ?? 0) > 0;
   }
 
@@ -1103,7 +1401,8 @@ export class PgStorage implements IStorage {
 
   async deletePushToken(userId: number, token: string): Promise<boolean> {
     const { rowCount } = await this.pool.query(
-      "DELETE FROM fcm_tokens WHERE user_id=$1 AND token=$2", [userId, token]
+      "DELETE FROM fcm_tokens WHERE user_id=$1 AND token=$2",
+      [userId, token]
     );
     return (rowCount ?? 0) > 0;
   }
@@ -1114,46 +1413,69 @@ export class PgStorage implements IStorage {
     const { rows } = await this.pool.query(
       `INSERT INTO tasks (user_id, title, status, priority, tags, due_date, comments, attachments)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-      [task.userId, task.title, task.status ?? "todo", task.priority ?? "medium",
-       task.tags ?? [], task.dueDate ?? null, task.comments ?? 0, task.attachments ?? 0]
+      [
+        task.userId,
+        task.title,
+        task.status ?? "todo",
+        task.priority ?? "medium",
+        task.tags ?? [],
+        task.dueDate ?? null,
+        task.comments ?? 0,
+        task.attachments ?? 0,
+      ]
     );
     return mapTask(rows[0]);
   }
 
   async getTasksByUser(userId: number): Promise<Task[]> {
     const { rows } = await this.pool.query(
-      "SELECT * FROM tasks WHERE user_id = $1 ORDER BY created_at DESC", [userId]
+      "SELECT * FROM tasks WHERE user_id = $1 ORDER BY created_at DESC",
+      [userId]
     );
     return rows.map(mapTask);
   }
 
-  async updateTask(id: number, update: Partial<InsertTask>, userId: number): Promise<Task | undefined> {
-    const { rows: existing } = await this.pool.query(
-      "SELECT user_id FROM tasks WHERE id = $1", [id]
-    );
+  async updateTask(
+    id: number,
+    update: Partial<InsertTask>,
+    userId: number
+  ): Promise<Task | undefined> {
+    const { rows: existing } = await this.pool.query("SELECT user_id FROM tasks WHERE id = $1", [
+      id,
+    ]);
     if (!existing[0] || n(existing[0].user_id) !== userId) return undefined;
     const colMap: Record<string, string> = {
-      title: "title", status: "status", priority: "priority", tags: "tags",
-      dueDate: "due_date", comments: "comments", attachments: "attachments",
+      title: "title",
+      status: "status",
+      priority: "priority",
+      tags: "tags",
+      dueDate: "due_date",
+      comments: "comments",
+      attachments: "attachments",
     };
     const sets: string[] = [];
     const params: any[] = [];
     let i = 1;
     for (const [k, col] of Object.entries(colMap)) {
-      if (k in update) { sets.push(`${col} = $${i++}`); params.push((update as any)[k]); }
+      if (k in update) {
+        sets.push(`${col} = $${i++}`);
+        params.push((update as any)[k]);
+      }
     }
     if (!sets.length) return undefined;
     params.push(id);
     const { rows } = await this.pool.query(
-      `UPDATE tasks SET ${sets.join(", ")} WHERE id = $${i} RETURNING *`, params
+      `UPDATE tasks SET ${sets.join(", ")} WHERE id = $${i} RETURNING *`,
+      params
     );
     return rows[0] ? mapTask(rows[0]) : undefined;
   }
 
   async deleteTask(id: number, userId: number): Promise<boolean> {
-    const { rowCount } = await this.pool.query(
-      "DELETE FROM tasks WHERE id=$1 AND user_id=$2", [id, userId]
-    );
+    const { rowCount } = await this.pool.query("DELETE FROM tasks WHERE id=$1 AND user_id=$2", [
+      id,
+      userId,
+    ]);
     return (rowCount ?? 0) > 0;
   }
 
@@ -1170,7 +1492,8 @@ export class PgStorage implements IStorage {
 
   async getNotificationsByUser(userId: number): Promise<AppNotification[]> {
     const { rows } = await this.pool.query(
-      "SELECT * FROM notifications WHERE user_id=$1 ORDER BY created_at DESC", [userId]
+      "SELECT * FROM notifications WHERE user_id=$1 ORDER BY created_at DESC",
+      [userId]
     );
     return rows.map(mapNotification);
   }
@@ -1185,13 +1508,17 @@ export class PgStorage implements IStorage {
 
   async dismissNotification(id: number, userId: number): Promise<boolean> {
     const { rowCount } = await this.pool.query(
-      "DELETE FROM notifications WHERE id=$1 AND user_id=$2", [id, userId]
+      "DELETE FROM notifications WHERE id=$1 AND user_id=$2",
+      [id, userId]
     );
     return (rowCount ?? 0) > 0;
   }
 
   async markAllNotificationsRead(userId: number): Promise<boolean> {
-    await this.pool.query("UPDATE notifications SET is_read=true WHERE user_id=$1 AND is_read=false", [userId]);
+    await this.pool.query(
+      "UPDATE notifications SET is_read=true WHERE user_id=$1 AND is_read=false",
+      [userId]
+    );
     return true;
   }
 
@@ -1201,15 +1528,21 @@ export class PgStorage implements IStorage {
     const { rows } = await this.pool.query(
       `INSERT INTO focus_sessions (user_id, subject, mode, duration_seconds, completed_at)
        VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-      [sessionData.userId, sessionData.subject, sessionData.mode, sessionData.durationSeconds,
-       sessionData.completedAt ?? new Date()]
+      [
+        sessionData.userId,
+        sessionData.subject,
+        sessionData.mode,
+        sessionData.durationSeconds,
+        sessionData.completedAt ?? new Date(),
+      ]
     );
     return mapFocusSession(rows[0]);
   }
 
   async getFocusSessionsByUser(userId: number): Promise<FocusSession[]> {
     const { rows } = await this.pool.query(
-      "SELECT * FROM focus_sessions WHERE user_id=$1 ORDER BY completed_at DESC", [userId]
+      "SELECT * FROM focus_sessions WHERE user_id=$1 ORDER BY completed_at DESC",
+      [userId]
     );
     return rows.map(mapFocusSession);
   }

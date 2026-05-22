@@ -20,7 +20,7 @@ These changes are made to your Android project's Gradle files.
 
 ### Project-level `build.gradle.kts` (`<project>/build.gradle.kts`)
 
-Add the latest version of the Crashlytics Gradle plugin to the `plugins` block. Fetch the [latest version from the Google Maven repository](https://maven.google.com/web/index.html?q=firebase-crashlytics-gradle#com.google.firebase:firebase-crashlytics-gradle) before adding this. 
+Add the latest version of the Crashlytics Gradle plugin to the `plugins` block. Fetch the [latest version from the Google Maven repository](https://maven.google.com/web/index.html?q=firebase-crashlytics-gradle#com.google.firebase:firebase-crashlytics-gradle) before adding this.
 
 ```kotlin
 plugins {
@@ -53,7 +53,6 @@ plugins {
         implementation("com.google.firebase:firebase-crashlytics-ktx")
     }
     ```
-
 
 ## Follow up Steps
 
@@ -111,12 +110,12 @@ To verify that Crashlytics is correctly installed, you need to force a test cras
 3.  Restart the app. The Crashlytics SDK will send the crash report to Firebase on the next app launch.
 
 4.  After a few minutes, the crash should be available in the Firebase console. Go to **DevOps & Engagement** > **Crashlytics** to view your dashboard and crash reports.
-  -  If the Firebase MCP server is installed, use the `get_report` tool to check that a crash was received.
-  -  As a fallback, visit the Crashlytics dashboard in the Firebase console to see the new crash report.
 
-5. After verifying that Firebase has received the crash report - either using the `get_report` tool or manually viewing it in the Firebase console - remove the code from step 1 that triggers the crash.  This prevents the application from always crashing on start up after a delay.
+- If the Firebase MCP server is installed, use the `get_report` tool to check that a crash was received.
+- As a fallback, visit the Crashlytics dashboard in the Firebase console to see the new crash report.
+
+5. After verifying that Firebase has received the crash report - either using the `get_report` tool or manually viewing it in the Firebase console - remove the code from step 1 that triggers the crash. This prevents the application from always crashing on start up after a delay.
 
 ### Optional: Add custom debugging information
 
 Customize reports to help you better understand what's happening in your app and the circumstances around events reported to Crashlytics. See [Customize Crash Reports for Android](https://firebase.google.com/docs/crashlytics/android/customize-crash-reports.md).
-

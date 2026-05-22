@@ -27,11 +27,13 @@ npm install
 ## 3. Database Initialization
 
 ### PostgreSQL (Transactional Store)
+
 1. Create a database named `eduai_pg`.
 2. Provide the connection string in your `.env` as `DATABASE_URL`.
 3. Run the schema script: `psql -d eduai_pg -f scripts/pg-schema.sql`.
 
 ### MongoDB (Assessment Store)
+
 1. Install locally or use MongoDB Atlas.
 2. Provide the connection string as `MONGODB_URL`.
 
@@ -77,21 +79,24 @@ The application will be available at: **[http://localhost:5001](http://localhost
 
 ## Project Structure
 
-| Directory                | Description                                       |
-| ------------------------ | ------------------------------------------------- |
-| `client/src/`            | React frontend (Vite)                             |
-| `server/routes/auth.ts`  | Local and Workspace Auth logic                    |
-| `server/lib/pg-queries.ts`| PostgreSQL data access layer                      |
-| `server/storage.ts`      | Legacy/MongoDB storage abstraction                |
-| `scripts/pg-schema.sql`  | PostgreSQL database schema                        |
+| Directory                  | Description                        |
+| -------------------------- | ---------------------------------- |
+| `client/src/`              | React frontend (Vite)              |
+| `server/routes/auth.ts`    | Local and Workspace Auth logic     |
+| `server/lib/pg-queries.ts` | PostgreSQL data access layer       |
+| `server/storage.ts`        | Legacy/MongoDB storage abstraction |
+| `scripts/pg-schema.sql`    | PostgreSQL database schema         |
 
 ## Troubleshooting
 
 ### PostgreSQL Connection Errors
+
 Verify that your `DATABASE_URL` is correct and the PostgreSQL service is running. Use `psql -l` to check if your database exists.
 
 ### Invitation Emails Not Sending
+
 Ensure your SMTP settings in `.env` are valid. If using Gmail, you must use an **App Password**.
 
 ### Cookies Not Setting
+
 If you are testing on `127.0.0.1` instead of `localhost`, some browsers may block HttpOnly cookies. Use `localhost:5001` consistently.

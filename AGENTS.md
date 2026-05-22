@@ -26,6 +26,7 @@ CI order (`.github/workflows/ci.yml`): `check → lint → build → test`.
 ## Monorepo layout
 
 Single `package.json` (no monorepo tool). Key directories:
+
 - `client/` — Vite + React 18 (`root: client/`, entry: `client/src/main.tsx`)
 - `server/` — Express (entry: `server/index.ts`, routes: `server/routes.ts`)
 - `shared/` — Zod schemas + Mongoose models, imported via `@shared/*`
@@ -35,11 +36,11 @@ Single `package.json` (no monorepo tool). Key directories:
 
 ## Path aliases
 
-| Alias | Resolves to | Configured in |
-|-------|-------------|---------------|
-| `@/*` | `client/src/*` | tsconfig, vite, vitest |
-| `@shared/*` | `shared/*` | tsconfig, vite, vitest |
-| `@assets/*` | `attached_assets/*` | vite only |
+| Alias       | Resolves to         | Configured in          |
+| ----------- | ------------------- | ---------------------- |
+| `@/*`       | `client/src/*`      | tsconfig, vite, vitest |
+| `@shared/*` | `shared/*`          | tsconfig, vite, vitest |
+| `@assets/*` | `attached_assets/*` | vite only              |
 
 ## Architecture
 

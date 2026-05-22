@@ -27,18 +27,21 @@ EduAI has evolved into a robust multi-tenant platform. Whether you're a school, 
 ## 🚀 Features at a Glance
 
 ### 🔐 Local & Workspace Auth
+
 - **Self-Hosted Identity**: No external dependency on Firebase for the hot path.
 - **Secure Sessions**: Dual-token JWT + PostgreSQL session management with rotation.
 - **Invitation System**: Onboard members and students via secure email invites.
 - **RBAC**: Granular permissions (Owner, Admin, Member) per workspace.
 
 ### 🤖 AI-Powered Learning
+
 - **AI Tutor**: Subject-aware chat tutor with markdown & LaTeX rendering.
 - **Test Generation**: Auto-generate assessments from any topic or document.
 - **Answer Evaluation**: AI-driven grading with detailed qualitative feedback.
 - **Study Plan Generator**: Personalized weekly schedules based on performance.
 
 ### 💬 Real-Time Messaging — MessagePal
+
 - ⚡ WebSocket-based live chat with typing indicators and read receipts.
 - 🗄️ Scalable history persisted in **Apache Cassandra**.
 - 🔐 Secure, session-verified communication.
@@ -47,16 +50,16 @@ EduAI has evolved into a robust multi-tenant platform. Whether you're a school, 
 
 ## 🛠️ Tech Stack
 
-| Layer | Technology |
-| ----- | ---------- |
-| **Frontend** | React 18, Vite, TypeScript, Tailwind CSS, shadcn/ui |
-| **Backend** | Node.js, Express, TypeScript |
-| **Primary DB (Transactional)** | **PostgreSQL** (Users, Workspaces, Sessions) |
-| **Specialized DB (Content)** | **MongoDB Atlas** (Tests, Questions, Analytics) |
-| **Message Store** | **Apache Cassandra** (Astra DB) |
-| **AI Engine** | **Google Gemini 2.0 Flash** · OpenAI GPT-4o |
-| **Real-time** | WebSockets (ws) |
-| **Infrastructure** | Docker, GCP Cloud Run, Cloud Build, Terraform |
+| Layer                          | Technology                                          |
+| ------------------------------ | --------------------------------------------------- |
+| **Frontend**                   | React 18, Vite, TypeScript, Tailwind CSS, shadcn/ui |
+| **Backend**                    | Node.js, Express, TypeScript                        |
+| **Primary DB (Transactional)** | **PostgreSQL** (Users, Workspaces, Sessions)        |
+| **Specialized DB (Content)**   | **MongoDB Atlas** (Tests, Questions, Analytics)     |
+| **Message Store**              | **Apache Cassandra** (Astra DB)                     |
+| **AI Engine**                  | **Google Gemini 2.0 Flash** · OpenAI GPT-4o         |
+| **Real-time**                  | WebSockets (ws)                                     |
+| **Infrastructure**             | Docker, GCP Cloud Run, Cloud Build, Terraform       |
 
 ---
 
@@ -97,11 +100,11 @@ GOOGLE_API_KEY=your-gemini-key
 
 ## 👥 Workspace Roles
 
-| Role | Dashboard | Capabilities |
-| ---- | --------- | ------------ |
-| 👑 **Owner** | `/dashboard` | Billing, Workspace Settings, Global Management |
-| 🧑‍🏫 **Admin** | `/dashboard` | Invites, Member Management, Analytics |
-| 🎓 **Member** | `/student-dashboard` | AI Tutor, Tests, Chat, Personalized Plans |
+| Role          | Dashboard            | Capabilities                                   |
+| ------------- | -------------------- | ---------------------------------------------- |
+| 👑 **Owner**  | `/dashboard`         | Billing, Workspace Settings, Global Management |
+| 🧑‍🏫 **Admin**  | `/dashboard`         | Invites, Member Management, Analytics          |
+| 🎓 **Member** | `/student-dashboard` | AI Tutor, Tests, Chat, Personalized Plans      |
 
 ---
 

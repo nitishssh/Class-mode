@@ -1,6 +1,7 @@
 # Firebase AI Logic iOS Setup Guide
 
 ## 1. Import and Initialize
+
 Ensure you have installed the `FirebaseAILogic` SDK via Swift Package Manager.
 
 ```swift
@@ -14,9 +15,10 @@ let model = ai.generativeModel(modelName: "gemini-flash-latest")
 ```
 
 ## 2. SwiftUI Integration (Best Practices)
+
 Use the `@Observable` pattern to manage AI state and provide a smooth UX with loading indicators and error handling.
 
-> **⛔️ CRITICAL WARNING:** Do NOT initialize the model inline as a class property if there's any chance the view model is instantiated before `FirebaseApp.configure()` executes in the app root. 
+> **⛔️ CRITICAL WARNING:** Do NOT initialize the model inline as a class property if there's any chance the view model is instantiated before `FirebaseApp.configure()` executes in the app root.
 > To be safe, initialize the model lazily or pass it in from a point in the hierarchy where Firebase is guaranteed to be configured.
 
 ```swift
@@ -28,16 +30,16 @@ import FirebaseAILogic
 final class AIViewModel {
     // Initialize lazily to ensure FirebaseApp is configured first
     private lazy var model = FirebaseAI.firebaseAI().generativeModel(modelName: "gemini-flash-latest")
-    
+
     var responseText: String = ""
     var isFetching: Bool = false
     var errorMessage: String?
-    
+
     func generate(prompt: String) async {
         isFetching = true
         errorMessage = nil
         defer { isFetching = false }
-        
+
         do {
             let response = try await model.generateContent(prompt)
             self.responseText = response.text ?? "No response"
@@ -50,16 +52,16 @@ final class AIViewModel {
 struct AIView: View {
     @State private var viewModel = AIViewModel()
     @State private var prompt = "Write a story about a magic backpack."
-    
+
     var body: some View {
         VStack {
             TextField("Enter prompt", text: $prompt)
-            
+
             Button("Generate") {
                 Task { await viewModel.generate(prompt: prompt) }
             }
             .disabled(viewModel.isFetching)
-            
+
             if viewModel.isFetching {
                 ProgressView()
             } else if let error = viewModel.errorMessage {
@@ -76,6 +78,7 @@ struct AIView: View {
 ```
 
 ## 3. Safety Settings
+
 You can configure safety thresholds to prevent the model from generating harmful content.
 
 ```swift
@@ -93,6 +96,7 @@ let model = FirebaseAI.firebaseAI().generativeModel(
 # Advanced Features
 
 ### Chat Session (Multi-turn)
+
 Chat sessions persist state across multiple interactions, which is essential for ongoing conversations or when using tools like function calling.
 
 ```swift
@@ -112,7 +116,8 @@ Task {
 ```
 
 ### Function Calling (Tools)
-Define functions that the model can request to execute to interact with external systems. *Note: Advanced workflows like function calling generally require a multi-turn Chat Session to handle the back-and-forth execution.*
+
+Define functions that the model can request to execute to interact with external systems. _Note: Advanced workflows like function calling generally require a multi-turn Chat Session to handle the back-and-forth execution._
 
 ```swift
 let getStockPriceTool = Tool(functionDeclarations: [

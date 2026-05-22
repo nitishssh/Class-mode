@@ -265,10 +265,9 @@ function App() {
 
   // FIX BUG-05: use pre-defined role dashboard map instead of getDashboard() inline
   const role = profile.role;
-   
+
   const RootDashboard = (dashboardByRole[role] ||
     FallbackDashboardRoute) as React.ComponentType<any>;
-
 
   return (
     <Switch>

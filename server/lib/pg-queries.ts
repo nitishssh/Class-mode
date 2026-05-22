@@ -352,7 +352,9 @@ export async function pgFindUserById(id: number): Promise<PgUser | null> {
 export async function pgFindUserByEmail(email: string): Promise<PgUser | null> {
   if (!isPgReady()) return null;
   try {
-    const { rows } = await getPgPool().query("SELECT * FROM users WHERE email = $1", [email.toLowerCase().trim()]);
+    const { rows } = await getPgPool().query("SELECT * FROM users WHERE email = $1", [
+      email.toLowerCase().trim(),
+    ]);
     return rows[0] ? mapUser(rows[0]) : null;
   } catch (err) {
     logger.error("[pg] pgFindUserByEmail failed", { err: String(err) });
@@ -360,7 +362,10 @@ export async function pgFindUserByEmail(email: string): Promise<PgUser | null> {
   }
 }
 
-export async function pgFindUserByAuthSubject(provider: string, subject: string): Promise<PgUser | null> {
+export async function pgFindUserByAuthSubject(
+  provider: string,
+  subject: string
+): Promise<PgUser | null> {
   if (!isPgReady()) return null;
   try {
     const { rows } = await getPgPool().query(
@@ -397,11 +402,26 @@ export async function pgFindUsers(filters: {
     const conditions: string[] = [];
     const params: any[] = [];
     let i = 1;
-    if (filters.role) { conditions.push(`role = $${i++}`); params.push(filters.role); }
-    if (filters.status) { conditions.push(`status = $${i++}`); params.push(filters.status); }
-    if (filters.schoolCode) { conditions.push(`school_code = $${i++}`); params.push(filters.schoolCode); }
-    if (filters.parentId != null) { conditions.push(`parent_id = $${i++}`); params.push(filters.parentId); }
-    if (filters.classname) { conditions.push(`class_name = $${i++}`); params.push(filters.classname); }
+    if (filters.role) {
+      conditions.push(`role = $${i++}`);
+      params.push(filters.role);
+    }
+    if (filters.status) {
+      conditions.push(`status = $${i++}`);
+      params.push(filters.status);
+    }
+    if (filters.schoolCode) {
+      conditions.push(`school_code = $${i++}`);
+      params.push(filters.schoolCode);
+    }
+    if (filters.parentId != null) {
+      conditions.push(`parent_id = $${i++}`);
+      params.push(filters.parentId);
+    }
+    if (filters.classname) {
+      conditions.push(`class_name = $${i++}`);
+      params.push(filters.classname);
+    }
     const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
     const { rows } = await getPgPool().query(`SELECT * FROM users ${where}`, params);
     return rows.map(mapUser);
@@ -411,14 +431,23 @@ export async function pgFindUsers(filters: {
   }
 }
 
-export async function pgCountUsers(filters: { role?: string; schoolCode?: string }): Promise<number> {
+export async function pgCountUsers(filters: {
+  role?: string;
+  schoolCode?: string;
+}): Promise<number> {
   if (!isPgReady()) return 0;
   try {
     const conditions: string[] = [];
     const params: any[] = [];
     let i = 1;
-    if (filters.role) { conditions.push(`role = $${i++}`); params.push(filters.role); }
-    if (filters.schoolCode) { conditions.push(`school_code = $${i++}`); params.push(filters.schoolCode); }
+    if (filters.role) {
+      conditions.push(`role = $${i++}`);
+      params.push(filters.role);
+    }
+    if (filters.schoolCode) {
+      conditions.push(`school_code = $${i++}`);
+      params.push(filters.schoolCode);
+    }
     const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
     const { rows } = await getPgPool().query(`SELECT COUNT(*) FROM users ${where}`, params);
     return parseInt(rows[0].count, 10);
@@ -456,11 +485,24 @@ export async function pgCreateUser(data: {
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
      RETURNING *`,
     [
-      data.authProvider, data.authSubject, data.email.toLowerCase().trim(),
-      data.username, data.passwordHash, data.name, data.displayName ?? null,
-      data.avatar ?? null, data.emailVerified ?? false, data.role, data.status, data.schoolCode ?? null,
-      data.grade ?? null, data.board ?? null, data.subjects ?? [],
-      data.district ?? null, data.className ?? null, data.subject ?? null,
+      data.authProvider,
+      data.authSubject,
+      data.email.toLowerCase().trim(),
+      data.username,
+      data.passwordHash,
+      data.name,
+      data.displayName ?? null,
+      data.avatar ?? null,
+      data.emailVerified ?? false,
+      data.role,
+      data.status,
+      data.schoolCode ?? null,
+      data.grade ?? null,
+      data.board ?? null,
+      data.subjects ?? [],
+      data.district ?? null,
+      data.className ?? null,
+      data.subject ?? null,
     ]
   );
   return mapUser(rows[0]);
@@ -470,18 +512,35 @@ export async function pgUpdateUser(id: number, data: Record<string, any>): Promi
   if (!isPgReady()) return null;
   try {
     const columnMap: Record<string, string> = {
-      role: "role", status: "status", schoolCode: "school_code", schoolId: "school_id",
-      parentId: "parent_id", grade: "grade", board: "board", subjects: "subjects",
-      district: "district", className: "class_name", subject: "subject",
-      onboardingComplete: "onboarding_complete", studyPlan: "study_plan",
-      displayName: "display_name", avatar: "avatar", emailVerified: "email_verified", lastLoginAt: "last_login_at",
-      passwordHash: "password_hash", name: "name", username: "username",
+      role: "role",
+      status: "status",
+      schoolCode: "school_code",
+      schoolId: "school_id",
+      parentId: "parent_id",
+      grade: "grade",
+      board: "board",
+      subjects: "subjects",
+      district: "district",
+      className: "class_name",
+      subject: "subject",
+      onboardingComplete: "onboarding_complete",
+      studyPlan: "study_plan",
+      displayName: "display_name",
+      avatar: "avatar",
+      emailVerified: "email_verified",
+      lastLoginAt: "last_login_at",
+      passwordHash: "password_hash",
+      name: "name",
+      username: "username",
     };
     const sets: string[] = [];
     const params: any[] = [];
     let i = 1;
     for (const [k, col] of Object.entries(columnMap)) {
-      if (k in data) { sets.push(`${col} = $${i++}`); params.push(data[k]); }
+      if (k in data) {
+        sets.push(`${col} = $${i++}`);
+        params.push(data[k]);
+      }
     }
     if (!sets.length) return pgFindUserById(id);
     params.push(id);
@@ -527,7 +586,9 @@ export async function pgUpsertMembership(params: {
     const pool = getPgPool();
     let schoolId: number | null = null;
     if (params.schoolCode) {
-      const res = await pool.query<{ id: string }>("SELECT id FROM schools WHERE code = $1", [params.schoolCode]);
+      const res = await pool.query<{ id: string }>("SELECT id FROM schools WHERE code = $1", [
+        params.schoolCode,
+      ]);
       schoolId = res.rows[0] ? parseInt(res.rows[0].id, 10) : null;
     }
     const mr = await pool.query<{ id: string }>(
@@ -539,7 +600,9 @@ export async function pgUpsertMembership(params: {
     );
     const membershipId = mr.rows[0] ? parseInt(mr.rows[0].id, 10) : null;
     if (!membershipId) return;
-    const rr = await pool.query<{ id: string }>("SELECT id FROM roles WHERE key = $1", [params.roleKey]);
+    const rr = await pool.query<{ id: string }>("SELECT id FROM roles WHERE key = $1", [
+      params.roleKey,
+    ]);
     const roleId = rr.rows[0] ? parseInt(rr.rows[0].id, 10) : null;
     if (!roleId) return;
     await pool.query(
@@ -556,7 +619,10 @@ export async function pgUpsertMembership(params: {
 export async function pgFindSchoolByCreatedByUid(uid: string): Promise<PgSchool | null> {
   if (!isPgReady()) return null;
   try {
-    const { rows } = await getPgPool().query("SELECT * FROM schools WHERE created_by_uid = $1 LIMIT 1", [uid]);
+    const { rows } = await getPgPool().query(
+      "SELECT * FROM schools WHERE created_by_uid = $1 LIMIT 1",
+      [uid]
+    );
     return rows[0] ? mapSchool(rows[0]) : null;
   } catch (err) {
     logger.error("[pg] pgFindSchoolByCreatedByUid failed", { err: String(err) });
@@ -596,14 +662,25 @@ export async function pgUpsertSchool(data: {
   onboardingComplete?: boolean;
 }): Promise<PgSchool> {
   const pool = getPgPool();
-  const code = data.uid.slice(0, 20).replace(/[^a-z0-9]/gi, "").toUpperCase() || "SCH";
+  const code =
+    data.uid
+      .slice(0, 20)
+      .replace(/[^a-z0-9]/gi, "")
+      .toUpperCase() || "SCH";
   const existing = await pgFindSchoolByCreatedByUid(data.uid);
   if (existing) {
     const { rows } = await pool.query(
       `UPDATE schools SET name=$1, city=$2, board=$3, grades_offered=$4, logo=$5, onboarding_complete=$6
        WHERE id=$7 RETURNING *`,
-      [data.name, data.city ?? null, data.board ?? null, data.gradesOffered ?? [],
-       data.logo ?? null, data.onboardingComplete ?? false, existing.id]
+      [
+        data.name,
+        data.city ?? null,
+        data.board ?? null,
+        data.gradesOffered ?? [],
+        data.logo ?? null,
+        data.onboardingComplete ?? false,
+        existing.id,
+      ]
     );
     return mapSchool(rows[0]);
   }
@@ -612,8 +689,16 @@ export async function pgUpsertSchool(data: {
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
      ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name
      RETURNING *`,
-    [code, data.name, data.city ?? null, data.board ?? null, data.gradesOffered ?? [],
-     data.logo ?? null, data.uid, data.onboardingComplete ?? false]
+    [
+      code,
+      data.name,
+      data.city ?? null,
+      data.board ?? null,
+      data.gradesOffered ?? [],
+      data.logo ?? null,
+      data.uid,
+      data.onboardingComplete ?? false,
+    ]
   );
   return mapSchool(rows[0]);
 }
@@ -636,8 +721,17 @@ export async function pgCreateInvite(data: {
     `INSERT INTO invites (email, name, role, school_id, class_id, grades, token, invited_by, expires_at)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
      RETURNING *`,
-    [data.email.toLowerCase(), data.name ?? null, data.role, data.schoolId ?? null,
-     data.classId ?? null, data.grades ?? [], data.token, data.invitedBy ?? null, data.expiresAt]
+    [
+      data.email.toLowerCase(),
+      data.name ?? null,
+      data.role,
+      data.schoolId ?? null,
+      data.classId ?? null,
+      data.grades ?? [],
+      data.token,
+      data.invitedBy ?? null,
+      data.expiresAt,
+    ]
   );
   return mapInvite(rows[0]);
 }
@@ -667,7 +761,11 @@ export async function pgAcceptInvite(token: string): Promise<boolean> {
   }
 }
 
-export async function pgResendInvite(inviteId: number, newToken: string, newExpiry: Date): Promise<boolean> {
+export async function pgResendInvite(
+  inviteId: number,
+  newToken: string,
+  newExpiry: Date
+): Promise<boolean> {
   if (!isPgReady()) return false;
   try {
     const { rowCount } = await getPgPool().query(
@@ -733,14 +831,23 @@ export async function pgFindInvitesBySchool(schoolId: number, role?: string): Pr
   }
 }
 
-export async function pgFindInvitesByInvitedBy(invitedBy: string, filters?: { role?: string; classId?: string }): Promise<PgInvite[]> {
+export async function pgFindInvitesByInvitedBy(
+  invitedBy: string,
+  filters?: { role?: string; classId?: string }
+): Promise<PgInvite[]> {
   if (!isPgReady()) return [];
   try {
     const conditions = ["invited_by = $1"];
     const params: any[] = [invitedBy];
     let i = 2;
-    if (filters?.role) { conditions.push(`role = $${i++}`); params.push(filters.role); }
-    if (filters?.classId) { conditions.push(`class_id = $${i++}`); params.push(filters.classId); }
+    if (filters?.role) {
+      conditions.push(`role = $${i++}`);
+      params.push(filters.role);
+    }
+    if (filters?.classId) {
+      conditions.push(`class_id = $${i++}`);
+      params.push(filters.classId);
+    }
     const { rows } = await getPgPool().query(
       `SELECT * FROM invites WHERE ${conditions.join(" AND ")}`,
       params
@@ -816,7 +923,14 @@ export async function pgCreateWorkspace(data: {
     `INSERT INTO workspaces (name, slug, type, description, owner_id, members)
      VALUES ($1,$2,$3,$4,$5,$6)
      RETURNING *`,
-    [data.name, data.slug ?? null, data.type ?? "business", data.description ?? null, data.ownerId, members]
+    [
+      data.name,
+      data.slug ?? null,
+      data.type ?? "business",
+      data.description ?? null,
+      data.ownerId,
+      members,
+    ]
   );
   return mapWorkspace(rows[0]);
 }
@@ -948,10 +1062,15 @@ export async function pgCreateWorkspaceInvite(data: {
   return mapWorkspaceInvite(rows[0]);
 }
 
-export async function pgFindWorkspaceInviteByTokenHash(tokenHash: string): Promise<PgWorkspaceInvite | null> {
+export async function pgFindWorkspaceInviteByTokenHash(
+  tokenHash: string
+): Promise<PgWorkspaceInvite | null> {
   if (!isPgReady()) return null;
   try {
-    const { rows } = await getPgPool().query("SELECT * FROM workspace_invites WHERE token_hash = $1", [tokenHash]);
+    const { rows } = await getPgPool().query(
+      "SELECT * FROM workspace_invites WHERE token_hash = $1",
+      [tokenHash]
+    );
     return rows[0] ? mapWorkspaceInvite(rows[0]) : null;
   } catch (err) {
     logger.error("[pg] pgFindWorkspaceInviteByTokenHash failed", { err: String(err) });
@@ -993,17 +1112,28 @@ export async function pgCreateGradingResult(data: {
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
      RETURNING *`,
     [
-      data.submissionId, data.studentId, data.teacherId, JSON.stringify(data.rubric),
-      data.status ?? "pending", data.modelUsed ?? null, data.processingTimeMs ?? null,
+      data.submissionId,
+      data.studentId,
+      data.teacherId,
+      JSON.stringify(data.rubric),
+      data.status ?? "pending",
+      data.modelUsed ?? null,
+      data.processingTimeMs ?? null,
       data.scoreBreakdown ? JSON.stringify(data.scoreBreakdown) : null,
-      data.overallFeedback ?? null, data.strengths ?? [], data.areasForImprovement ?? [],
-      data.attachments ?? [], data.contentType ?? "text", data.completedAt ?? null,
+      data.overallFeedback ?? null,
+      data.strengths ?? [],
+      data.areasForImprovement ?? [],
+      data.attachments ?? [],
+      data.contentType ?? "text",
+      data.completedAt ?? null,
     ]
   );
   return mapGradingResult(rows[0]);
 }
 
-export async function pgFindGradingResultBySubmissionId(submissionId: string): Promise<PgGradingResult | null> {
+export async function pgFindGradingResultBySubmissionId(
+  submissionId: string
+): Promise<PgGradingResult | null> {
   if (!isPgReady()) return null;
   try {
     const { rows } = await getPgPool().query(
@@ -1029,9 +1159,18 @@ export async function pgFindGradingResults(filters: {
     const conditions: string[] = [];
     const params: any[] = [];
     let i = 1;
-    if (filters.teacherId != null) { conditions.push(`teacher_id = $${i++}`); params.push(filters.teacherId); }
-    if (filters.studentId != null) { conditions.push(`student_id = $${i++}`); params.push(filters.studentId); }
-    if (filters.status) { conditions.push(`status = $${i++}`); params.push(filters.status); }
+    if (filters.teacherId != null) {
+      conditions.push(`teacher_id = $${i++}`);
+      params.push(filters.teacherId);
+    }
+    if (filters.studentId != null) {
+      conditions.push(`student_id = $${i++}`);
+      params.push(filters.studentId);
+    }
+    if (filters.status) {
+      conditions.push(`status = $${i++}`);
+      params.push(filters.status);
+    }
     const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
     const limit = filters.limit ?? 50;
     const skip = filters.skip ?? 0;
@@ -1047,17 +1186,33 @@ export async function pgFindGradingResults(filters: {
   }
 }
 
-export async function pgCountGradingResults(filters: { teacherId?: number; studentId?: number; status?: string }): Promise<number> {
+export async function pgCountGradingResults(filters: {
+  teacherId?: number;
+  studentId?: number;
+  status?: string;
+}): Promise<number> {
   if (!isPgReady()) return 0;
   try {
     const conditions: string[] = [];
     const params: any[] = [];
     let i = 1;
-    if (filters.teacherId != null) { conditions.push(`teacher_id = $${i++}`); params.push(filters.teacherId); }
-    if (filters.studentId != null) { conditions.push(`student_id = $${i++}`); params.push(filters.studentId); }
-    if (filters.status) { conditions.push(`status = $${i++}`); params.push(filters.status); }
+    if (filters.teacherId != null) {
+      conditions.push(`teacher_id = $${i++}`);
+      params.push(filters.teacherId);
+    }
+    if (filters.studentId != null) {
+      conditions.push(`student_id = $${i++}`);
+      params.push(filters.studentId);
+    }
+    if (filters.status) {
+      conditions.push(`status = $${i++}`);
+      params.push(filters.status);
+    }
     const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
-    const { rows } = await getPgPool().query(`SELECT COUNT(*) FROM grading_results ${where}`, params);
+    const { rows } = await getPgPool().query(
+      `SELECT COUNT(*) FROM grading_results ${where}`,
+      params
+    );
     return parseInt(rows[0].count, 10);
   } catch (err) {
     logger.error("[pg] pgCountGradingResults failed", { err: String(err) });
@@ -1065,29 +1220,56 @@ export async function pgCountGradingResults(filters: { teacherId?: number; stude
   }
 }
 
-export async function pgUpdateGradingResult(submissionId: string, data: {
-  status?: string;
-  scoreBreakdown?: any;
-  overallFeedback?: string | null;
-  strengths?: string[];
-  areasForImprovement?: string[];
-  processingTimeMs?: number | null;
-  modelUsed?: string | null;
-  completedAt?: Date | null;
-}): Promise<PgGradingResult | null> {
+export async function pgUpdateGradingResult(
+  submissionId: string,
+  data: {
+    status?: string;
+    scoreBreakdown?: any;
+    overallFeedback?: string | null;
+    strengths?: string[];
+    areasForImprovement?: string[];
+    processingTimeMs?: number | null;
+    modelUsed?: string | null;
+    completedAt?: Date | null;
+  }
+): Promise<PgGradingResult | null> {
   if (!isPgReady()) return null;
   try {
     const sets: string[] = [];
     const params: any[] = [];
     let i = 1;
-    if (data.status !== undefined) { sets.push(`status = $${i++}`); params.push(data.status); }
-    if (data.scoreBreakdown !== undefined) { sets.push(`score_breakdown = $${i++}`); params.push(JSON.stringify(data.scoreBreakdown)); }
-    if (data.overallFeedback !== undefined) { sets.push(`overall_feedback = $${i++}`); params.push(data.overallFeedback); }
-    if (data.strengths !== undefined) { sets.push(`strengths = $${i++}`); params.push(data.strengths); }
-    if (data.areasForImprovement !== undefined) { sets.push(`areas_for_improvement = $${i++}`); params.push(data.areasForImprovement); }
-    if (data.processingTimeMs !== undefined) { sets.push(`processing_time_ms = $${i++}`); params.push(data.processingTimeMs); }
-    if (data.modelUsed !== undefined) { sets.push(`model_used = $${i++}`); params.push(data.modelUsed); }
-    if (data.completedAt !== undefined) { sets.push(`completed_at = $${i++}`); params.push(data.completedAt); }
+    if (data.status !== undefined) {
+      sets.push(`status = $${i++}`);
+      params.push(data.status);
+    }
+    if (data.scoreBreakdown !== undefined) {
+      sets.push(`score_breakdown = $${i++}`);
+      params.push(JSON.stringify(data.scoreBreakdown));
+    }
+    if (data.overallFeedback !== undefined) {
+      sets.push(`overall_feedback = $${i++}`);
+      params.push(data.overallFeedback);
+    }
+    if (data.strengths !== undefined) {
+      sets.push(`strengths = $${i++}`);
+      params.push(data.strengths);
+    }
+    if (data.areasForImprovement !== undefined) {
+      sets.push(`areas_for_improvement = $${i++}`);
+      params.push(data.areasForImprovement);
+    }
+    if (data.processingTimeMs !== undefined) {
+      sets.push(`processing_time_ms = $${i++}`);
+      params.push(data.processingTimeMs);
+    }
+    if (data.modelUsed !== undefined) {
+      sets.push(`model_used = $${i++}`);
+      params.push(data.modelUsed);
+    }
+    if (data.completedAt !== undefined) {
+      sets.push(`completed_at = $${i++}`);
+      params.push(data.completedAt);
+    }
     if (!sets.length) return pgFindGradingResultBySubmissionId(submissionId);
     params.push(submissionId);
     const { rows } = await getPgPool().query(
@@ -1115,19 +1297,31 @@ export async function pgDeleteGradingResult(submissionId: string): Promise<boole
   }
 }
 
-export async function pgUpdateGradingResultById(id: number, data: {
-  score?: number;
-  feedback?: string;
-  status?: string;
-}): Promise<PgGradingResult | null> {
+export async function pgUpdateGradingResultById(
+  id: number,
+  data: {
+    score?: number;
+    feedback?: string;
+    status?: string;
+  }
+): Promise<PgGradingResult | null> {
   if (!isPgReady()) return null;
   try {
     const sets: string[] = [];
     const params: any[] = [];
     let i = 1;
-    if (data.score !== undefined) { sets.push(`score_breakdown = score_breakdown || $${i++}::jsonb`); params.push(JSON.stringify({ overriddenScore: data.score })); }
-    if (data.feedback !== undefined) { sets.push(`overall_feedback = $${i++}`); params.push(data.feedback); }
-    if (data.status !== undefined) { sets.push(`status = $${i++}`); params.push(data.status); }
+    if (data.score !== undefined) {
+      sets.push(`score_breakdown = score_breakdown || $${i++}::jsonb`);
+      params.push(JSON.stringify({ overriddenScore: data.score }));
+    }
+    if (data.feedback !== undefined) {
+      sets.push(`overall_feedback = $${i++}`);
+      params.push(data.feedback);
+    }
+    if (data.status !== undefined) {
+      sets.push(`status = $${i++}`);
+      params.push(data.status);
+    }
     if (!sets.length) return null;
     params.push(id);
     const { rows } = await getPgPool().query(
@@ -1157,7 +1351,9 @@ export async function pgFindSubscriptionByUser(userId: number): Promise<PgSubscr
   }
 }
 
-export async function pgFindSubscriptionByStripeCustomer(stripeCustomerId: string): Promise<PgSubscription | null> {
+export async function pgFindSubscriptionByStripeCustomer(
+  stripeCustomerId: string
+): Promise<PgSubscription | null> {
   if (!isPgReady()) return null;
   try {
     const { rows } = await getPgPool().query(
@@ -1171,15 +1367,18 @@ export async function pgFindSubscriptionByStripeCustomer(stripeCustomerId: strin
   }
 }
 
-export async function pgUpsertSubscription(userId: number, data: {
-  tier?: string;
-  stripeCustomerId?: string | null;
-  stripeSubscriptionId?: string | null;
-  status?: string;
-  currentPeriodStart?: Date | null;
-  currentPeriodEnd?: Date | null;
-  cancelAtPeriodEnd?: boolean;
-}): Promise<PgSubscription> {
+export async function pgUpsertSubscription(
+  userId: number,
+  data: {
+    tier?: string;
+    stripeCustomerId?: string | null;
+    stripeSubscriptionId?: string | null;
+    status?: string;
+    currentPeriodStart?: Date | null;
+    currentPeriodEnd?: Date | null;
+    cancelAtPeriodEnd?: boolean;
+  }
+): Promise<PgSubscription> {
   const pool = getPgPool();
   const { rows } = await pool.query(
     `INSERT INTO subscriptions (user_id, tier, stripe_customer_id, stripe_subscription_id,
@@ -1196,34 +1395,59 @@ export async function pgUpsertSubscription(userId: number, data: {
          updated_at = now()
      RETURNING *`,
     [
-      userId, data.tier ?? "free", data.stripeCustomerId ?? null,
-      data.stripeSubscriptionId ?? null, data.status ?? "active",
-      data.currentPeriodStart ?? null, data.currentPeriodEnd ?? null,
+      userId,
+      data.tier ?? "free",
+      data.stripeCustomerId ?? null,
+      data.stripeSubscriptionId ?? null,
+      data.status ?? "active",
+      data.currentPeriodStart ?? null,
+      data.currentPeriodEnd ?? null,
       data.cancelAtPeriodEnd ?? false,
     ]
   );
   return mapSubscription(rows[0]);
 }
 
-export async function pgUpdateSubscriptionByStripeCustomer(stripeCustomerId: string, data: {
-  status?: string;
-  tier?: string;
-  currentPeriodStart?: Date | null;
-  currentPeriodEnd?: Date | null;
-  cancelAtPeriodEnd?: boolean;
-  stripeSubscriptionId?: string | null;
-}): Promise<void> {
+export async function pgUpdateSubscriptionByStripeCustomer(
+  stripeCustomerId: string,
+  data: {
+    status?: string;
+    tier?: string;
+    currentPeriodStart?: Date | null;
+    currentPeriodEnd?: Date | null;
+    cancelAtPeriodEnd?: boolean;
+    stripeSubscriptionId?: string | null;
+  }
+): Promise<void> {
   if (!isPgReady()) return;
   try {
     const sets: string[] = ["updated_at = now()"];
     const params: any[] = [];
     let i = 1;
-    if (data.status !== undefined) { sets.push(`status = $${i++}`); params.push(data.status); }
-    if (data.tier !== undefined) { sets.push(`tier = $${i++}`); params.push(data.tier); }
-    if (data.currentPeriodStart !== undefined) { sets.push(`current_period_start = $${i++}`); params.push(data.currentPeriodStart); }
-    if (data.currentPeriodEnd !== undefined) { sets.push(`current_period_end = $${i++}`); params.push(data.currentPeriodEnd); }
-    if (data.cancelAtPeriodEnd !== undefined) { sets.push(`cancel_at_period_end = $${i++}`); params.push(data.cancelAtPeriodEnd); }
-    if (data.stripeSubscriptionId !== undefined) { sets.push(`stripe_subscription_id = $${i++}`); params.push(data.stripeSubscriptionId); }
+    if (data.status !== undefined) {
+      sets.push(`status = $${i++}`);
+      params.push(data.status);
+    }
+    if (data.tier !== undefined) {
+      sets.push(`tier = $${i++}`);
+      params.push(data.tier);
+    }
+    if (data.currentPeriodStart !== undefined) {
+      sets.push(`current_period_start = $${i++}`);
+      params.push(data.currentPeriodStart);
+    }
+    if (data.currentPeriodEnd !== undefined) {
+      sets.push(`current_period_end = $${i++}`);
+      params.push(data.currentPeriodEnd);
+    }
+    if (data.cancelAtPeriodEnd !== undefined) {
+      sets.push(`cancel_at_period_end = $${i++}`);
+      params.push(data.cancelAtPeriodEnd);
+    }
+    if (data.stripeSubscriptionId !== undefined) {
+      sets.push(`stripe_subscription_id = $${i++}`);
+      params.push(data.stripeSubscriptionId);
+    }
     params.push(stripeCustomerId);
     await getPgPool().query(
       `UPDATE subscriptions SET ${sets.join(", ")} WHERE stripe_customer_id = $${i}`,
@@ -1276,17 +1500,26 @@ export async function pgFindAIClassroomByJobId(jobId: string): Promise<PgAIClass
   }
 }
 
-export async function pgUpdateAIClassroom(id: number, data: {
-  status?: string;
-  data?: any;
-}): Promise<PgAIClassroom | null> {
+export async function pgUpdateAIClassroom(
+  id: number,
+  data: {
+    status?: string;
+    data?: any;
+  }
+): Promise<PgAIClassroom | null> {
   if (!isPgReady()) return null;
   try {
     const sets: string[] = [];
     const params: any[] = [];
     let i = 1;
-    if (data.status !== undefined) { sets.push(`status = $${i++}`); params.push(data.status); }
-    if (data.data !== undefined) { sets.push(`data = $${i++}`); params.push(JSON.stringify(data.data)); }
+    if (data.status !== undefined) {
+      sets.push(`status = $${i++}`);
+      params.push(data.status);
+    }
+    if (data.data !== undefined) {
+      sets.push(`data = $${i++}`);
+      params.push(JSON.stringify(data.data));
+    }
     if (!sets.length) return pgFindAIClassroomById(id);
     params.push(id);
     const { rows } = await getPgPool().query(
@@ -1311,7 +1544,11 @@ export async function pgDeleteAIClassroom(id: number): Promise<boolean> {
   }
 }
 
-export async function pgFindAIClassroomsByTeacher(teacherId: number, skip = 0, limit = 20): Promise<PgAIClassroom[]> {
+export async function pgFindAIClassroomsByTeacher(
+  teacherId: number,
+  skip = 0,
+  limit = 20
+): Promise<PgAIClassroom[]> {
   if (!isPgReady()) return [];
   try {
     const { rows } = await getPgPool().query(
@@ -1359,13 +1596,22 @@ export async function pgCreateLmsConnection(data: {
        token_expiry = EXCLUDED.token_expiry,
        updated_at = now()
      RETURNING *`,
-    [data.userId, data.provider, data.accessToken, data.refreshToken ?? null,
-     data.instanceUrl ?? null, data.tokenExpiry ?? null]
+    [
+      data.userId,
+      data.provider,
+      data.accessToken,
+      data.refreshToken ?? null,
+      data.instanceUrl ?? null,
+      data.tokenExpiry ?? null,
+    ]
   );
   return mapLmsConnection(rows[0]);
 }
 
-export async function pgFindLmsConnection(userId: number, provider: string): Promise<PgLmsConnection | null> {
+export async function pgFindLmsConnection(
+  userId: number,
+  provider: string
+): Promise<PgLmsConnection | null> {
   if (!isPgReady()) return null;
   try {
     const { rows } = await getPgPool().query(
@@ -1384,10 +1630,9 @@ export async function pgFindLmsConnection(userId: number, provider: string): Pro
 export async function pgCountTests(teacherId: number): Promise<number> {
   if (!isPgReady()) return 0;
   try {
-    const { rows } = await getPgPool().query(
-      "SELECT COUNT(*) FROM tests WHERE teacher_id = $1",
-      [teacherId]
-    );
+    const { rows } = await getPgPool().query("SELECT COUNT(*) FROM tests WHERE teacher_id = $1", [
+      teacherId,
+    ]);
     return parseInt(rows[0].count, 10);
   } catch (err) {
     logger.error("[pg] pgCountTests failed", { err: String(err) });

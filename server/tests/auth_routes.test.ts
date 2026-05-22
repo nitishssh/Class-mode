@@ -98,7 +98,12 @@ describe("custom auth routes", () => {
     (pgFindUserByEmail as any).mockResolvedValue(null);
     (pgFindWorkspaceBySlug as any).mockResolvedValue(null);
     (pgCreateUser as any).mockResolvedValue(user);
-    (pgCreateWorkspace as any).mockResolvedValue({ id: 10, name: "Acme", slug: "acme", type: "business" });
+    (pgCreateWorkspace as any).mockResolvedValue({
+      id: 10,
+      name: "Acme",
+      slug: "acme",
+      type: "business",
+    });
     (pgUpsertWorkspaceMembership as any).mockResolvedValue({ id: 5 });
     (pgFindUserById as any).mockResolvedValue(user);
 
@@ -110,9 +115,17 @@ describe("custom auth routes", () => {
     });
 
     expect(res.status).toBe(201);
-    expect(pgCreateUser).toHaveBeenCalledWith(expect.objectContaining({ authProvider: "local", role: "admin" }));
-    expect(pgCreateWorkspace).toHaveBeenCalledWith(expect.objectContaining({ name: "Acme", ownerId: 1 }));
-    expect(pgUpsertWorkspaceMembership).toHaveBeenCalledWith({ workspaceId: 10, userId: 1, role: "owner" });
+    expect(pgCreateUser).toHaveBeenCalledWith(
+      expect.objectContaining({ authProvider: "local", role: "admin" })
+    );
+    expect(pgCreateWorkspace).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Acme", ownerId: 1 })
+    );
+    expect(pgUpsertWorkspaceMembership).toHaveBeenCalledWith({
+      workspaceId: 10,
+      userId: 1,
+      role: "owner",
+    });
     expect(res.body.workspaceRole).toBe("owner");
   });
 

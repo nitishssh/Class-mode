@@ -6,12 +6,12 @@
 
 ## 👥 User Roles
 
-| Role            | Access Level                                    | Permission Key           |
-| --------------- | ----------------------------------------------- | ------------------------ |
-| Workspace Owner | Full workspace control, billing, member management | `workspaceRole: "owner"` |
-| Workspace Admin | Member management, content moderation, analytics | `workspaceRole: "admin"` |
-| Workspace Member| Access to workspace channels, tests, AI tutor    | `workspaceRole: "member"`|
-| System Admin    | Global platform management, infrastructure      | `role: "admin"`          |
+| Role             | Access Level                                       | Permission Key            |
+| ---------------- | -------------------------------------------------- | ------------------------- |
+| Workspace Owner  | Full workspace control, billing, member management | `workspaceRole: "owner"`  |
+| Workspace Admin  | Member management, content moderation, analytics   | `workspaceRole: "admin"`  |
+| Workspace Member | Access to workspace channels, tests, AI tutor      | `workspaceRole: "member"` |
+| System Admin     | Global platform management, infrastructure         | `role: "admin"`           |
 
 > Roles and permissions are now managed locally in PostgreSQL and enforced via JWT session claims.
 
@@ -174,35 +174,35 @@ The system uses a hybrid Cookie + JWT approach for maximum security.
 
 ## 6️⃣ Security Summary
 
-| Feature               | Implementation                                     |
-| --------------------- | -------------------------------------------------- |
-| Password Hashing      | Bcrypt (12 rounds)                                 |
-| Session Storage       | PostgreSQL `sessions` table (Server-side)          |
-| Authentication        | Dual-token JWT + HttpOnly Cookies                  |
-| RBAC                  | PostgreSQL `workspace_memberships` + Middleware    |
-| Invite Security       | HMAC-SHA256 hashed tokens with 7-day expiry        |
-| Email Verification    | Required for critical actions (Coming soon)        |
-| Cross-Site Scripting  | Mitigation via HttpOnly Cookies (No JS access)     |
-| CSRF                  | Mitigation via SameSite=Lax + Custom Auth headers  |
+| Feature              | Implementation                                    |
+| -------------------- | ------------------------------------------------- |
+| Password Hashing     | Bcrypt (12 rounds)                                |
+| Session Storage      | PostgreSQL `sessions` table (Server-side)         |
+| Authentication       | Dual-token JWT + HttpOnly Cookies                 |
+| RBAC                 | PostgreSQL `workspace_memberships` + Middleware   |
+| Invite Security      | HMAC-SHA256 hashed tokens with 7-day expiry       |
+| Email Verification   | Required for critical actions (Coming soon)       |
+| Cross-Site Scripting | Mitigation via HttpOnly Cookies (No JS access)    |
+| CSRF                 | Mitigation via SameSite=Lax + Custom Auth headers |
 
 ---
 
 ## 🔄 API Methods Reference
 
-| Action                 | Endpoint                           | Method |
-| ---------------------- | ---------------------------------- | ------ |
-| Signup                 | `/api/auth/signup`                 | POST   |
-| Login                  | `/api/auth/login`                  | POST   |
-| Logout                 | `/api/auth/logout`                 | POST   |
-| Refresh Token          | `/api/auth/refresh`                | POST   |
-| Current User           | `/api/auth/me`                     | GET    |
-| Forgot Password        | `/api/auth/password/forgot`        | POST   |
-| Reset Password         | `/api/auth/password/reset`         | POST   |
-| Verify Email Request   | `/api/auth/email/verify/request`   | POST   |
-| Verify Email Confirm   | `/api/auth/email/verify`           | POST   |
-| Invite Member          | `/api/workspaces/:id/invites`       | POST   |
-| Validate Invite        | `/api/invite/validate/:token`      | GET    |
-| Accept Invite          | `/api/invite/accept`               | POST   |
+| Action               | Endpoint                         | Method |
+| -------------------- | -------------------------------- | ------ |
+| Signup               | `/api/auth/signup`               | POST   |
+| Login                | `/api/auth/login`                | POST   |
+| Logout               | `/api/auth/logout`               | POST   |
+| Refresh Token        | `/api/auth/refresh`              | POST   |
+| Current User         | `/api/auth/me`                   | GET    |
+| Forgot Password      | `/api/auth/password/forgot`      | POST   |
+| Reset Password       | `/api/auth/password/reset`       | POST   |
+| Verify Email Request | `/api/auth/email/verify/request` | POST   |
+| Verify Email Confirm | `/api/auth/email/verify`         | POST   |
+| Invite Member        | `/api/workspaces/:id/invites`    | POST   |
+| Validate Invite      | `/api/invite/validate/:token`    | GET    |
+| Accept Invite        | `/api/invite/accept`             | POST   |
 
 ---
 

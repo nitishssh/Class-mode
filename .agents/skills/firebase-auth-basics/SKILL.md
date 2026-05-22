@@ -17,6 +17,7 @@ Firebase Authentication provides backend services, easy-to-use SDKs, and ready-m
 
 A user is an entity that can sign in to your app. Each user is identified by a unique ID (`uid`) which is guaranteed to be unique across all providers.
 User properties include:
+
 - `uid`: Unique identifier.
 - `email`: User's email address (if available).
 - `displayName`: User's display name (if available).
@@ -26,6 +27,7 @@ User properties include:
 ### Identity Providers
 
 Firebase Auth supports multiple ways to sign in:
+
 - **Email/Password**: Basic email and password authentication.
 - **Federated Identity Providers**: Google, Facebook, Twitter, GitHub, Microsoft, Apple, etc.
 - **Phone Number**: SMS-based authentication.
@@ -37,6 +39,7 @@ Google Sign In is recommended as a good and secure default provider.
 ### Tokens
 
 When a user signs in, they receive an ID Token (JWT). This token is used to identify the user when making requests to Firebase services (Realtime Database, Cloud Storage, Firestore) or your own backend.
+
 - **ID Token**: Short-lived (1 hour), verifies identity.
 - **Refresh Token**: Long-lived, used to get new ID tokens.
 
@@ -67,6 +70,7 @@ Configure Firebase Authentication in `firebase.json` by adding an 'auth' block:
 ```
 
 **CRITICAL**: After configuring `firebase.json`, you MUST deploy the auth configuration to the Firebase backend for the changes to take effect. This is essential for auth providers like Google Sign-In, email/password, etc. to auto-generate the necessary OAuth clients for your app platforms. Run:
+
 ```bash
 npx -y firebase-tools@latest deploy --only auth
 ```

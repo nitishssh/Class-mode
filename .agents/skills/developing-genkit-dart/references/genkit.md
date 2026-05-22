@@ -26,6 +26,7 @@ print(response.text);
 ```
 
 ## Stream Responses
+
 ```dart
 final stream = ai.generateStream(
   model: googleAI.gemini('gemini-2.5-flash'),
@@ -38,6 +39,7 @@ await for (final chunk in stream) {
 ```
 
 ## Embed Text
+
 ```dart
 final embeddings = await ai.embedMany(
   documents: [
@@ -50,6 +52,7 @@ print(embeddings.first.embedding);
 ```
 
 ## Define Tools
+
 Models can use define actions and access external data via custom defined tools.
 Requires the `schemantic` library for schema definitions.
 
@@ -102,6 +105,7 @@ print('Name: ${person.name}, Age: ${person.age}');
 ```
 
 ## Define Flows
+
 Wrap your AI logic in flows for better observability, testing, and deployment:
 
 ```dart
@@ -123,6 +127,7 @@ print(joke);
 ```
 
 ### Streaming Flows
+
 Stream data from your flows using `context.sendChunk(...)` and returning the final value:
 
 ```dart
@@ -146,9 +151,11 @@ final streamStory = ai.defineFlow(
 ```
 
 ## Calling remote Flows from a dart client
+
 The `genkit` package provides `package:genkit/client.dart` representing remote Genkit actions that can be invoked or streamed using type-safe definitions.
 
 1. Defines a remote action
+
 ```dart
 import 'package:genkit/client.dart';
 
@@ -160,13 +167,15 @@ final stringAction = defineRemoteAction(
 ```
 
 2. Call the Remote Action (Non-streaming)
+
 ```dart
 final response = await stringAction(input: 'Hello from Dart!');
 print('Flow Response: $response');
 ```
 
 3. Call the Remote Action (Streaming)
-Use the `.stream()` method on the action flow, and access `stream.onResult` to wait on the async return value.
+   Use the `.stream()` method on the action flow, and access `stream.onResult` to wait on the async return value.
+
 ```dart
 final streamAction = defineRemoteAction(
   url: 'http://localhost:3400/stream-story',
@@ -180,7 +189,7 @@ final stream = streamAction.stream(
 );
 
 await for (final chunk in stream) {
-  print('Chunk: $chunk'); 
+  print('Chunk: $chunk');
 }
 
 final finalResult = await stream.onResult;
@@ -198,17 +207,17 @@ npm install genkit
 1. Call a remote flow (non-streaming)
 
 ```ts
-import { runFlow } from 'genkit/beta/client';
+import { runFlow } from "genkit/beta/client";
 
 async function callHelloFlow() {
   try {
     const result = await runFlow({
-      url: 'http://127.0.0.1:3400/helloFlow', // Replace with your deployed flow's URL
-      input: { name: 'Genkit User' },
+      url: "http://127.0.0.1:3400/helloFlow", // Replace with your deployed flow's URL
+      input: { name: "Genkit User" },
     });
-    console.log('Non-streaming result:', result.greeting);
+    console.log("Non-streaming result:", result.greeting);
   } catch (error) {
-    console.error('Error calling helloFlow:', error);
+    console.error("Error calling helloFlow:", error);
   }
 }
 
@@ -218,25 +227,25 @@ callHelloFlow();
 2. Call a remote flow (streaming)
 
 ```ts
-import { streamFlow } from 'genkit/beta/client';
+import { streamFlow } from "genkit/beta/client";
 
 async function streamHelloFlow() {
   try {
     const result = streamFlow({
-      url: 'http://127.0.0.1:3400/helloFlow', // Replace with your deployed flow's URL
-      input: { name: 'Streaming User' },
+      url: "http://127.0.0.1:3400/helloFlow", // Replace with your deployed flow's URL
+      input: { name: "Streaming User" },
     });
 
     // Process the stream chunks as they arrive
     for await (const chunk of result.stream) {
-      console.log('Stream chunk:', chunk);
+      console.log("Stream chunk:", chunk);
     }
 
     // Get the final complete response
     const finalOutput = await result.output;
-    console.log('Final streaming output:', finalOutput.greeting);
+    console.log("Final streaming output:", finalOutput.greeting);
   } catch (error) {
-    console.error('Error streaming helloFlow:', error);
+    console.error("Error streaming helloFlow:", error);
   }
 }
 
@@ -324,8 +333,8 @@ void example() {
   // without needing to cast them manually.
 
   // Get concatenated text from all TextParts in a Message
-  print(modelMessage.text); 
-  
+  print(modelMessage.text);
+
   // Get the first Media object from a Message
   print(modelMessage.media?.url);
 
@@ -349,7 +358,7 @@ void example() {
   final generateResponseChunk = ModelResponseChunk(
     content: [textPart],
     index: 0, // Index of the message this chunk belongs to
-    aggregated: false, 
+    aggregated: false,
   );
 
   // Chunks also have text and media accessors
@@ -359,7 +368,7 @@ void example() {
   // Use Genkit type schemas directly in Schemantic validations
   final messageSchema = Message.$schema;
   final partSchema = Part.$schema;
-  
+
   final mySchema = SchemanticType.map(
     .string(),
     .list(Message.$schema), // Requires a list of Messages
@@ -369,7 +378,7 @@ void example() {
   // ai.generate() returns a GenerateResponseHelper which provides ergonomic getters
   // over the underlying ModelResponse:
   final response = await ai.generate(...);
-  
+
   print(response.text); // Concatenated text
   print(response.media?.url); // First media part
   print(response.toolRequests); // All tool requests

@@ -2,6 +2,7 @@
 
 First, ensure you have initialized the Firebase App (see `firebase-basics` skill). Then, initialize
 the AI Logic service as below
+
 ### 0. Enable Firebase AI Logic via CLI
 
 Before adding dependencies in your app, make sure you enable the AI Logic service in your Firebase Project using the Firebase CLI:
@@ -11,7 +12,7 @@ npx -y firebase-tools@latest init
 # When prompted, select 'AI logic' to enable the Gemini API in your project.
 ```
 
- ---
+---
 
 ### 1. Add Dependencies
 
@@ -83,7 +84,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val ai = Firebase.ai
         val model = ai.generativeModel("gemini-2.5-flash-lite")
-        
+
         lifecycleScope.launch {
             val response = model.generateContent("Hello Gemini!")
             setContent {

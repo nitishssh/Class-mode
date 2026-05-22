@@ -48,20 +48,25 @@ Logic --> Cass
 ## Core Components
 
 ### 1. Identity & Tenancy (PostgreSQL)
+
 All core transactional data—users, workspaces, memberships, and sessions—resides in PostgreSQL. This ensures relational integrity for multi-tenant workflows.
 
 ### 2. Content & Assessments (MongoDB)
+
 Flexible document storage is used for tests, question banks, and AI-generated analytics, allowing for rapid schema evolution.
 
 ### 3. Real-time Messaging (Cassandra)
+
 High-throughput chat and activity streams are partitioned by channel in Cassandra (Astra DB) for horizontal scalability.
 
 ### 4. Workspace-based Auth
+
 Authentication is now local. Sessions use **HttpOnly Cookies** containing JWT access tokens and database-backed refresh tokens.
 
 ## Architecture Overview
 
 The system follows a layered approach:
+
 1. **Presentation**: React frontend with a role-aware router.
 2. **Application**: Express API with workspace-scoped middleware.
 3. **Domain**: Unified Zod schemas for all databases.
