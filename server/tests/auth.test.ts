@@ -2,12 +2,17 @@ import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import { Request, Response } from "express";
 import { authenticateToken } from "../routes";
 import jwt from "jsonwebtoken";
-import { pgFindUserById } from "../lib/pg-queries";
+import { pgFindFirstWorkspaceMembership, pgFindUserById } from "../lib/pg-queries";
 
 vi.mock("jsonwebtoken", () => ({
   default: {
     verify: vi.fn(),
   },
+}));
+
+vi.mock("../lib/pg-queries", () => ({
+  pgFindUserById: vi.fn(),
+  pgFindFirstWorkspaceMembership: vi.fn().mockResolvedValue(null),
 }));
 
 describe("Authentication Middleware", () => {
@@ -39,13 +44,21 @@ describe("Authentication Middleware", () => {
     req.headers!.authorization = "Bearer valid-token";
     const payload = { userId: 123, role: "student", email: "test@example.com" };
     (jwt.verify as Mock).mockReturnValue(payload);
+    (pgFindUserById as Mock).mockResolvedValue({
+      id: 123,
+      role: "student",
+      email: "test@example.com",
+      status: "active",
+      emailVerified: true,
+    });
+    (pgFindFirstWorkspaceMembership as Mock).mockResolvedValue(null);
 
     await authenticateToken(req as Request, res as Response, next);
 
     expect(jwt.verify).toHaveBeenCalledWith("valid-token", expect.any(String));
     expect(req.session!.userId).toBe(123);
     expect(req.session!.role).toBe("student");
-    expect((req as any).user).toEqual({ id: 123, role: "student", email: "test@example.com" });
+    expect((req as any).user).toMatchObject({ id: 123, role: "student", email: "test@example.com" });
     expect(next).toHaveBeenCalled();
   });
 
@@ -53,6 +66,13 @@ describe("Authentication Middleware", () => {
     req.cookies!.access_token = "valid-cookie-token";
     const payload = { userId: 456, role: "teacher", email: "teacher@example.com" };
     (jwt.verify as Mock).mockReturnValue(payload);
+    (pgFindUserById as Mock).mockResolvedValue({
+      id: 456,
+      role: "teacher",
+      email: "teacher@example.com",
+      status: "active",
+      emailVerified: true,
+    });
 
     await authenticateToken(req as Request, res as Response, next);
 
@@ -69,13 +89,13 @@ describe("Authentication Middleware", () => {
     });
     req.session!.userId = 789;
 
-    const mockUser = { id: 789, role: "admin", email: "admin@example.com" };
+    const mockUser = { id: 789, role: "admin", email: "admin@example.com", status: "active", emailVerified: true };
     (pgFindUserById as Mock).mockResolvedValue(mockUser);
 
     await authenticateToken(req as Request, res as Response, next);
 
     expect(pgFindUserById).toHaveBeenCalledWith(789);
-    expect((req as any).user).toEqual({ id: 789, role: "admin", email: "admin@example.com" });
+    expect((req as any).user).toMatchObject({ id: 789, role: "admin", email: "admin@example.com" });
     expect(next).toHaveBeenCalled();
   });
 
