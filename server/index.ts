@@ -122,10 +122,6 @@ app.use(
 // Serve uploaded files
 app.use("/uploads", express.static(path.resolve("public", "uploads")));
 
-// Initialize Database
-connectPostgres();
-initCassandra();
-
 // Check Firebase Admin readiness at startup
 checkFirebaseAdminReadiness();
 
@@ -172,6 +168,10 @@ import { requireDb } from "./middleware";
 app.use("/api", requireDb);
 
 (async () => {
+  // Initialize Database
+  await connectPostgres();
+  initCassandra();
+
   const server = await registerRoutes(app);
 
   // Attach WebSocket servers

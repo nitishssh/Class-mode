@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-05-22
+
+### Added
+
+- **Workspace-based Local Authentication** — Migrated core identity from Firebase to a self-hosted, PostgreSQL-backed authentication system. Supports multi-tenant "Workspaces" where users can be owners, admins, or members.
+- **Secure Session Management** — Implemented a dual-token system (JWT Access Tokens + PostgreSQL-backed Refresh Tokens) delivered via `HttpOnly`, `Secure`, `SameSite=Lax` cookies. Access tokens expire in 15 minutes, with seamless background rotation using refresh tokens.
+- **Multi-Tenant Workspace Architecture** — New PostgreSQL tables: `workspaces` (containers), `workspace_memberships` (RBAC join table), and `workspace_invites` (secure enrollment).
+- **Invitation System** — Secure, tokenized email invitations for onboarding workspace members and students. Includes SHA-256 token hashing and 7-day expiration logic.
+- **Email Verification & Password Reset** — Native implementations for email verification and secure password resets using transactional emails via Nodemailer.
+- **Workspace Auth Middleware** — New server-side guards: `requireWorkspaceRole`, `requireActiveWorkspace`, and `requireVerifiedEmail`.
+
+### Changed
+
+- **`authenticateToken` middleware** — Significant overhaul to support cookie-based JWT verification, automatic session refreshing, and active workspace context injection into `req.user` and `req.workspace`.
+- **Firebase Auth Bridge** — Firebase is no longer in the critical path for authentication. Legacy `/api/auth/firebase` endpoint remains for backward compatibility but is disabled by default via `ENABLE_FIREBASE_AUTH_COMPAT`.
+- **Frontend Auth Context** — `FirebaseAuthContext` refactored to `AuthProvider`, providing a seamless transition from Firebase to local workspace auth without breaking existing UI components.
+- **Signup Flow** — New users now create a personal/business workspace upon registration, defaulting to the "Workspace Owner" role.
+
+### Fixed
+
+- **Session Persistence** — Fixed issues where users were frequently logged out due to Firebase token expiration; the new local refresh system maintains sessions for up to 30 days.
+- **Database Tenancy** — Resolved data leakage risks by enforcing `workspaceId` checks at the middleware and query levels.
+
 ## [1.3.0] - 2026-05-09
 
 ### Changed
