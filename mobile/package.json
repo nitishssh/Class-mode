@@ -21,7 +21,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
-    "expo": "~54.0.33",
+    "expo": "~56.0.3",
     "expo-camera": "^55.0.15",
     "expo-constants": "~18.0.13",
     "expo-device": "~8.0.10",
