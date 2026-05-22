@@ -1,51 +1,70 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import express from "express";
 import request from "supertest";
-import { registerRoutes } from "../routes";
-import { verifyFirebaseToken } from "../lib/firebase-admin";
-import { MongoUser } from "../../shared/mongo-schema";
 import session from "express-session";
+import bcrypt from "bcryptjs";
+import authRouter from "../routes/auth";
 import {
-  pgFindUserByAuthSubject,
-  pgFindUserByEmail,
   pgCreateUser,
+  pgCreateWorkspace,
+  pgFindFirstWorkspaceMembership,
+  pgFindUserByEmail,
+  pgFindUserById,
+  pgFindWorkspaceBySlug,
+  pgSetUserLastLogin,
+  pgUpsertWorkspaceMembership,
 } from "../lib/pg-queries";
+import { storage } from "../storage";
 
-// Mock dependencies
+vi.mock("../lib/mailer", () => ({
+  sendEmailVerification: vi.fn().mockResolvedValue(undefined),
+  sendPasswordReset: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("../lib/audit", () => ({
+  AUDIT_EVENTS: {
+    USER_REGISTERED: "user_registered",
+    USER_LOGIN: "user_login",
+    INVITE_ACCEPTED: "invite_accepted",
+  },
+  recordAuditEvent: vi.fn(),
+}));
+
 vi.mock("../lib/firebase-admin", () => ({
   verifyFirebaseToken: vi.fn(),
   setCustomUserClaims: vi.fn().mockResolvedValue(true),
-  checkFirebaseAdminReadiness: vi.fn(),
 }));
-
-// Mock MongoDB
-vi.mock("../../shared/mongo-schema");
 
 vi.mock("../storage", () => ({
   storage: {
-    getUser: vi.fn(),
-    getWorkspaces: vi.fn().mockResolvedValue([]),
-    getChannelsByWorkspace: vi.fn().mockResolvedValue([]),
+    createSession: vi.fn(),
+    getSessionByRefreshToken: vi.fn(),
+    deleteSession: vi.fn(),
+    deleteAllUserSessions: vi.fn(),
+    createOtp: vi.fn(),
+    markOtpUsed: vi.fn(),
   },
 }));
 
-vi.mock("../message", () => ({
-  setupMessagePalWebSocket: vi.fn(),
+vi.mock("../lib/pg-queries", () => ({
+  pgAcceptWorkspaceInvite: vi.fn(),
+  pgCreateUser: vi.fn(),
+  pgCreateWorkspace: vi.fn(),
+  pgFindFirstWorkspaceMembership: vi.fn(),
+  pgFindUserByAuthSubject: vi.fn(),
+  pgFindUserByEmail: vi.fn(),
+  pgFindUserById: vi.fn(),
+  pgFindWorkspaceBySlug: vi.fn(),
+  pgFindWorkspaceInviteByTokenHash: vi.fn(),
+  pgSetUserLastLogin: vi.fn(),
+  pgUpdateUser: vi.fn(),
+  pgUpsertWorkspaceMembership: vi.fn(),
 }));
 
-vi.mock("../chat-ws", () => ({
-  setupChatWebSocket: vi.fn(),
-}));
-
-vi.mock("../lib/cassandra", () => ({
-  initCassandra: vi.fn(),
-  getCassandraClient: vi.fn().mockReturnValue(null),
-}));
-
-describe("Auth Routes", () => {
+describe("custom auth routes", () => {
   let app: express.Express;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
     app = express();
     app.use(express.json());
@@ -56,89 +75,94 @@ describe("Auth Routes", () => {
         saveUninitialized: false,
       })
     );
-    await registerRoutes(app);
+    app.use("/api/auth", authRouter);
+    (storage.createSession as any).mockResolvedValue({ id: 99 });
+    (storage.createOtp as any).mockResolvedValue({ id: 101 });
+    (pgFindFirstWorkspaceMembership as any).mockResolvedValue({
+      workspace: { id: 10, name: "Acme", slug: "acme", type: "business" },
+      membership: { id: 5, workspaceId: 10, userId: 1, role: "owner", status: "active" },
+    });
   });
 
-  describe("POST /api/auth/firebase", () => {
-    it("should return 400 if idToken is missing", async () => {
-      const res = await request(app).post("/api/auth/firebase").send({});
-      expect(res.status).toBe(400);
-      expect(res.body.message).toBe("idToken is required");
+  it("creates a business owner and workspace on signup", async () => {
+    const user = {
+      id: 1,
+      email: "owner@example.com",
+      name: "Owner",
+      displayName: "Owner",
+      role: "admin",
+      status: "active",
+      emailVerified: false,
+      subjects: [],
+    };
+    (pgFindUserByEmail as any).mockResolvedValue(null);
+    (pgFindWorkspaceBySlug as any).mockResolvedValue(null);
+    (pgCreateUser as any).mockResolvedValue(user);
+    (pgCreateWorkspace as any).mockResolvedValue({ id: 10, name: "Acme", slug: "acme", type: "business" });
+    (pgUpsertWorkspaceMembership as any).mockResolvedValue({ id: 5 });
+    (pgFindUserById as any).mockResolvedValue(user);
+
+    const res = await request(app).post("/api/auth/signup").send({
+      name: "Owner",
+      email: "owner@example.com",
+      password: "secret123",
+      workspaceName: "Acme",
     });
 
-    it("should return 401 if token is invalid", async () => {
-      (verifyFirebaseToken as vi.Mock).mockResolvedValue(null);
+    expect(res.status).toBe(201);
+    expect(pgCreateUser).toHaveBeenCalledWith(expect.objectContaining({ authProvider: "local", role: "admin" }));
+    expect(pgCreateWorkspace).toHaveBeenCalledWith(expect.objectContaining({ name: "Acme", ownerId: 1 }));
+    expect(pgUpsertWorkspaceMembership).toHaveBeenCalledWith({ workspaceId: 10, userId: 1, role: "owner" });
+    expect(res.body.workspaceRole).toBe("owner");
+  });
 
-      const res = await request(app).post("/api/auth/firebase").send({ idToken: "invalid-token" });
+  it("rejects public student registration", async () => {
+    const res = await request(app).post("/api/auth/register").send({
+      name: "Student",
+      email: "student@example.com",
+      password: "secret123",
+      role: "student",
+    });
+    expect(res.status).toBe(403);
+  });
 
-      expect(res.status).toBe(401);
-      expect(res.body.message).toBe("Invalid or expired Firebase ID token");
+  it("logs in with local credentials", async () => {
+    const hash = await bcrypt.hash("secret123", 4);
+    const user = {
+      id: 2,
+      email: "member@example.com",
+      password: hash,
+      name: "Member",
+      displayName: "Member",
+      role: "teacher",
+      status: "active",
+      emailVerified: true,
+      subjects: [],
+    };
+    (pgFindUserByEmail as any).mockResolvedValue(user);
+    (pgFindUserById as any).mockResolvedValue(user);
+
+    const res = await request(app).post("/api/auth/login").send({
+      email: "member@example.com",
+      password: "secret123",
     });
 
-    it("should return 200 and user data for existing user by UID", async () => {
-      const decoded = { uid: "uid123", email: "test@test.com", name: "Test User" };
-      (verifyFirebaseToken as vi.Mock).mockResolvedValue(decoded);
+    expect(res.status).toBe(200);
+    expect(pgSetUserLastLogin).toHaveBeenCalledWith(2);
+    expect(res.body.user.email).toBe("member@example.com");
+  });
 
-      const mockDbUser = {
-        id: 1,
-        firebaseUid: "uid123",
-        email: "test@test.com",
-        role: "student",
-        displayName: "Test User",
-      };
-
-      (pgFindUserByAuthSubject as vi.Mock).mockImplementation((provider, uid) => {
-        if (provider === "firebase" && uid === "uid123") return Promise.resolve(mockDbUser);
-        return Promise.resolve(null);
-      });
-      (pgFindUserByEmail as vi.Mock).mockImplementation((email) => {
-        if (email === "test@test.com") return Promise.resolve(mockDbUser);
-        return Promise.resolve(null);
-      });
-
-      const res = await request(app).post("/api/auth/firebase").send({ idToken: "valid-token" });
-
-      expect(res.status).toBe(200);
-      expect(res.body).toMatchObject({
-        token: expect.any(String),
-        userId: 1,
-        email: "test@test.com",
-        role: "student",
-        avatar: null,
-      });
+  it("rejects bad local credentials", async () => {
+    (pgFindUserByEmail as any).mockResolvedValue(null);
+    const res = await request(app).post("/api/auth/login").send({
+      email: "missing@example.com",
+      password: "secret123",
     });
+    expect(res.status).toBe(401);
+  });
 
-    it("should create a new user if one does not exist", async () => {
-      const decoded = {
-        uid: "new_uid",
-        email: "new@test.com",
-        name: "New User",
-        picture: "pic_url",
-      };
-      (verifyFirebaseToken as vi.Mock).mockResolvedValue(decoded);
-
-      (pgFindUserByAuthSubject as vi.Mock).mockResolvedValue(null);
-      (pgFindUserByEmail as vi.Mock).mockResolvedValue(null);
-      const mockCreatedUser = {
-        id: 123,
-        firebaseUid: "new_uid",
-        email: "new@test.com",
-        role: "student",
-        displayName: "New User",
-        avatar: "pic_url",
-      };
-      (pgCreateUser as vi.Mock).mockResolvedValue(mockCreatedUser);
-
-      const res = await request(app).post("/api/auth/firebase").send({ idToken: "valid-token" });
-
-      expect(res.status).toBe(200);
-      expect(res.body).toMatchObject({
-        token: expect.any(String),
-        userId: 123,
-        email: "new@test.com",
-        role: "student",
-        avatar: "pic_url",
-      });
-    });
+  it("disables Firebase exchange unless compatibility is enabled", async () => {
+    const res = await request(app).post("/api/auth/firebase").send({ idToken: "token" });
+    expect(res.status).toBe(410);
   });
 });
