@@ -39,4 +39,3 @@ export function normalizeSelfRegisterableRole(role: unknown): SelfRegisterableRo
 export function isTenantAdminRole(role: unknown): role is (typeof TENANT_ADMIN_ROLES)[number] {
   return typeof role === "string" && TENANT_ADMIN_ROLES.includes(role as any);
 }
-

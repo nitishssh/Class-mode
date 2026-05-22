@@ -137,4 +137,3 @@ create table audit_events (
 - Auth registration now normalizes self-registerable roles.
 - Profile sync ignores browser-supplied `role` and `status`.
 - Shared Zod and Mongoose schemas now read role/status enums from the same policy module.
-

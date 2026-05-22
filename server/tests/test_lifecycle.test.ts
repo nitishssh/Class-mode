@@ -1,35 +1,15 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import express from "express";
 import request from "supertest";
 import session from "express-session";
 import { registerRoutes } from "../routes";
+import { pgFindUserById, pgFindFirstWorkspaceMembership } from "../lib/pg-queries";
 
 // ── Dependency mocks ───────────────────────────────────────────────────────
 
 vi.mock("../lib/firebase-admin", () => ({
   verifyFirebaseToken: vi.fn().mockResolvedValue(null),
 }));
-
-vi.mock("../../shared/mongo-schema", () => {
-  const saveMock = vi.fn().mockResolvedValue(true);
-  function MockUser(this: any, data: any) {
-    Object.assign(this, data);
-    this.save = saveMock;
-  }
-  MockUser.findOne = vi.fn();
-  return {
-    MongoUser: MockUser,
-    getNextSequenceValue: vi.fn().mockResolvedValue(1),
-    MongoWorkspace: { findOne: vi.fn() },
-    MongoChannel: { findOne: vi.fn() },
-    MongoMessage: {
-      findOne: vi.fn(),
-      find: vi.fn().mockReturnValue({
-        sort: vi.fn().mockReturnValue({ limit: vi.fn().mockResolvedValue([]) }),
-      }),
-    },
-  };
-});
 
 vi.mock("../message", () => ({
   setupMessagePalWebSocket: vi.fn(),
@@ -124,12 +104,12 @@ describe("Test Lifecycle — Teacher creates, Student attempts and answers", () 
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    const { MongoUser } = await import("../../shared/mongo-schema");
-    (MongoUser.findOne as any).mockImplementation((q: any) => {
-      if (q.id === TEACHER_ID) return Promise.resolve(teacherUser);
-      if (q.id === STUDENT_ID) return Promise.resolve(studentUser);
+    (pgFindUserById as Mock).mockImplementation((id: number) => {
+      if (id === TEACHER_ID) return Promise.resolve(teacherUser);
+      if (id === STUDENT_ID) return Promise.resolve(studentUser);
       return Promise.resolve(null);
     });
+    (pgFindFirstWorkspaceMembership as Mock).mockResolvedValue(null);
 
     app = express();
     app.use(express.json());

@@ -1,7 +1,7 @@
 import "dotenv/config";
-import { orchestrateChat } from "./server/services/study-arena/orchestrator";
-import { StatelessChatRequest } from "./shared/study-arena";
-import { logger } from "./server/lib/logger";
+import { orchestrateChat } from "../server/services/study-arena/orchestrator";
+import { StatelessChatRequest } from "../shared/study-arena";
+import { logger } from "../server/lib/logger";
 
 async function testStream() {
   const mockRequest: StatelessChatRequest = {

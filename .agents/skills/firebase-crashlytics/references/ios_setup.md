@@ -28,7 +28,7 @@ Modify the application's entry point to initialize Firebase. Refer to the iOS se
 
 ## Add dSYM Upload Script
 
-Add a Run Script phase to the main app target in Xcode. This step is required to upload dSYM files for crash symbolication. 
+Add a Run Script phase to the main app target in Xcode. This step is required to upload dSYM files for crash symbolication.
 
 1.  **Debug Information Format**: The `Debug Information Format` in Build Settings must be set to `DWARF with dSYM File`.
 2.  **Run Script Content**: A new "Run Script Phase" should be added to the target's "Build Phases" with the following content:
@@ -71,10 +71,11 @@ When using the `xcode-project-setup` skills, the above two steps will be done as
 3.  Restart the app. The Crashlytics SDK will send the crash report to Firebase on the next app launch.
 
 4.  After a few minutes, the crash should be available in the Firebase console. Go to **DevOps & Engagement** > **Crashlytics** to view your dashboard and crash reports.
-  -  If the Firebase MCP server is installed, use the `get_report` tool to check that a crash was received.
-  -  As a fallback, visit the Crashlytics dashboard in the Firebase console to see the new crash report.
 
-5. After verifying that Firebase has received the crash report - either using the `get_report` tool or manually viewing it in the Firebase console - remove the code from step 1 that triggers the crash.  This prevents the application from always crashing on start up after a delay.
+- If the Firebase MCP server is installed, use the `get_report` tool to check that a crash was received.
+- As a fallback, visit the Crashlytics dashboard in the Firebase console to see the new crash report.
+
+5. After verifying that Firebase has received the crash report - either using the `get_report` tool or manually viewing it in the Firebase console - remove the code from step 1 that triggers the crash. This prevents the application from always crashing on start up after a delay.
 
 ### Optional: Add custom debugging information
 

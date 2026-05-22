@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS users (
   name                 text,
   display_name         text,
   avatar               text,
+  email_verified       boolean      NOT NULL DEFAULT false,
   role                 text         NOT NULL DEFAULT 'student'
                          CHECK (role IN ('student','teacher','parent','principal','school_admin','admin')),
   status               text         NOT NULL DEFAULT 'active'
@@ -231,10 +232,45 @@ CREATE TABLE IF NOT EXISTS test_assignments (
 CREATE TABLE IF NOT EXISTS workspaces (
   id           bigserial    PRIMARY KEY,
   name         text         NOT NULL,
+  slug         text         UNIQUE,
+  type         text         NOT NULL DEFAULT 'business'
+                 CHECK (type IN ('business','school','personal')),
   description  text,
   owner_id     bigint       NOT NULL REFERENCES users(id),
   members      bigint[]     NOT NULL DEFAULT '{}',
   created_at   timestamptz  NOT NULL DEFAULT now()
+);
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified boolean NOT NULL DEFAULT false;
+ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS slug text UNIQUE;
+ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS type text NOT NULL DEFAULT 'business';
+
+CREATE TABLE IF NOT EXISTS workspace_memberships (
+  id            bigserial    PRIMARY KEY,
+  workspace_id  bigint       NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  user_id       bigint       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  role          text         NOT NULL CHECK (role IN ('owner','admin','member')),
+  status        text         NOT NULL DEFAULT 'active'
+                  CHECK (status IN ('active','pending','suspended','rejected')),
+  created_at    timestamptz  NOT NULL DEFAULT now(),
+  UNIQUE (workspace_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS workspace_invites (
+  id              bigserial    PRIMARY KEY,
+  workspace_id    bigint       NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  email           citext       NOT NULL,
+  name            text,
+  role            text         NOT NULL CHECK (role IN ('admin','member')),
+  kind            text         NOT NULL CHECK (kind IN ('business_member','student')),
+  token_hash      text         NOT NULL UNIQUE,
+  status          text         NOT NULL DEFAULT 'pending'
+                    CHECK (status IN ('pending','accepted','expired','revoked')),
+  invited_by      bigint       REFERENCES users(id),
+  student_meta    jsonb        NOT NULL DEFAULT '{}',
+  expires_at      timestamptz  NOT NULL,
+  accepted_at     timestamptz,
+  created_at      timestamptz  NOT NULL DEFAULT now()
 );
 
 -- ─── Channels ────────────────────────────────────────────────────────────────
@@ -409,6 +445,7 @@ CREATE TABLE IF NOT EXISTS lms_connections (
 CREATE TABLE IF NOT EXISTS subscriptions (
   id                      bigserial    PRIMARY KEY,
   user_id                 bigint       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  workspace_id            bigint       REFERENCES workspaces(id) ON DELETE CASCADE,
   tier                    text         NOT NULL DEFAULT 'free'
                             CHECK (tier IN ('free','pro','educator','institution')),
   stripe_customer_id      text,
@@ -421,6 +458,8 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   created_at              timestamptz  NOT NULL DEFAULT now(),
   updated_at              timestamptz  NOT NULL DEFAULT now()
 );
+
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS workspace_id bigint REFERENCES workspaces(id) ON DELETE CASCADE;
 
 -- ─── Seed roles ──────────────────────────────────────────────────────────────
 INSERT INTO roles (key) VALUES
@@ -472,6 +511,10 @@ CREATE INDEX IF NOT EXISTS idx_assignments_due     ON test_assignments(due_date,
 
 CREATE INDEX IF NOT EXISTS idx_workspaces_members  ON workspaces USING GIN(members);
 CREATE INDEX IF NOT EXISTS idx_workspaces_owner    ON workspaces(owner_id);
+CREATE INDEX IF NOT EXISTS idx_workspace_memberships_user ON workspace_memberships(user_id);
+CREATE INDEX IF NOT EXISTS idx_workspace_memberships_workspace ON workspace_memberships(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_workspace_invites_token ON workspace_invites(token_hash);
+CREATE INDEX IF NOT EXISTS idx_workspace_invites_workspace ON workspace_invites(workspace_id, status);
 
 CREATE INDEX IF NOT EXISTS idx_channels_workspace  ON channels(workspace_id, type);
 CREATE INDEX IF NOT EXISTS idx_channels_type_name  ON channels(type, name);

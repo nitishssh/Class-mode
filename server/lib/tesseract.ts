@@ -21,6 +21,6 @@ export async function processOCRImage(imageData: string): Promise<OCRResult> {
     };
   } catch (error) {
     console.error("OCR processing error:", error);
-    throw new Error("Failed to process image with OCR");
+    throw new Error("Failed to process image with OCR", { cause: error });
   }
 }

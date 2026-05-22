@@ -14,15 +14,15 @@ Follow these instructions to set up Genkit in the current codebase. These instru
 5. Create `{sourceDir}/ai/genkit.ts` and populate it using the example below. DO NOT add a `next` plugin to the file, ONLY add a model provider plugin to the plugins array:
 
 ```ts
-import { genkit, z } from 'genkit';
+import { genkit, z } from "genkit";
 // Import your chosen provider plugin here. Example:
-import { googleAI } from '@genkit-ai/google-genai';
+import { googleAI } from "@genkit-ai/google-genai";
 
 export const ai = genkit({
   plugins: [
     googleAI(), // Add your provider plugin here
   ],
-  model: googleAI.model('gemini-2.5-flash'), // Set your provider's model here
+  model: googleAI.model("gemini-2.5-flash"), // Set your provider's model here
 });
 
 export { z };
@@ -32,7 +32,7 @@ export { z };
 7. Create `{sourceDir}/ai/index.ts` and populate it with the following (change the import to match import aliases in `tsconfig.json` as needed):
 
 ```ts
-import './genkit.js';
+import "./genkit.js";
 // import each created flow, tool, etc. here for use in the Genkit Dev UI
 ```
 

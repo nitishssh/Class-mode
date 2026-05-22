@@ -57,7 +57,7 @@ export const createRoom = async (options: CreateRoomOptions = {}) => {
     return response.data;
   } catch (error: any) {
     console.error("Error creating Daily room:", error.response?.data || error.message);
-    throw new Error("Failed to create live class room");
+    throw new Error("Failed to create live class room", { cause: error });
   }
 };
 
@@ -67,7 +67,7 @@ export const deleteRoom = async (roomName: string) => {
     return response.data;
   } catch (error: any) {
     console.error(`Error deleting Daily room ${roomName}:`, error.response?.data || error.message);
-    throw new Error("Failed to delete live class room");
+    throw new Error("Failed to delete live class room", { cause: error });
   }
 };
 
@@ -93,7 +93,7 @@ export const createMeetingToken = async (options: CreateTokenOptions) => {
     return response.data.token;
   } catch (error: any) {
     console.error("Error creating Daily meeting token:", error.response?.data || error.message);
-    throw new Error("Failed to generate connection token");
+    throw new Error("Failed to generate connection token", { cause: error });
   }
 };
 
@@ -106,7 +106,7 @@ export const getRecordings = async (roomName: string) => {
       `Error fetching recordings for room ${roomName}:`,
       error.response?.data || error.message
     );
-    throw new Error("Failed to fetch class recordings");
+    throw new Error("Failed to fetch class recordings", { cause: error });
   }
 };
 
@@ -119,6 +119,6 @@ export const getRecordingAccessLink = async (recordingId: string) => {
       `Error fetching access link for recording ${recordingId}:`,
       error.response?.data || error.message
     );
-    throw new Error("Failed to get recording link");
+    throw new Error("Failed to get recording link", { cause: error });
   }
 };

@@ -1,7 +1,9 @@
 # Firebase AI Logic Basics
 
 ## Initialization Pattern
+
 You must initialize the ai-logic service after the main Firebase App.
+
 ```JavaScript
 import { initializeApp } from "firebase/app";
 import { getAI, getGenerativeModel, GoogleAIBackend } from "firebase/ai";
@@ -34,7 +36,9 @@ const model = getGenerativeModel(ai, { model: "gemini-2.5-flash-lite",  generati
 ```
 
 ## Core Capabilities
+
 Text-Only Generation
+
 ```JavaScript
 async function generateText(prompt) {
   const result = await model.generateContent(prompt);
@@ -44,7 +48,9 @@ async function generateText(prompt) {
 ```
 
 ## Multimodal (Text + Images/Audio/Video/PDF input)
+
 Firebase AI Logic accepts Base64 encoded data or specific file references.
+
 ```JavaScript
 // Helper to convert file to base64 generic object
 async function fileToGenerativePart(file) {
@@ -53,7 +59,7 @@ async function fileToGenerativePart(file) {
     reader.onloadend = () => resolve(reader.result.split(',')[1]);
     reader.readAsDataURL(file);
   });
-  
+
   return {
     inlineData: {
       data: await base64EncodedDataPromise,
@@ -70,7 +76,9 @@ async function analyzeImage(prompt, imageFile) {
 ```
 
 ## Chat Session (Multi-turn)
+
 Maintain history automatically using startChat.
+
 ```JavaScript
 const chat = model.startChat({
   history: [
@@ -92,7 +100,9 @@ async function sendMessage(msg) {
 ```
 
 ## Streaming Responses
+
 For real-time UI updates (like a typing effect).
+
 ```JavaScript
 async function streamResponse(prompt) {
   const result = await model.generateContentStream(prompt);
@@ -145,8 +155,10 @@ try {
 ```
 
 ## Advanced Features
+
 Structured Output (JSON)
 Enforce a specific JSON schema for the response.
+
 ```JavaScript
 import { getGenerativeModel, Schema } from "firebase/ai";
 const jsonModel = getGenerativeModel(ai, {
@@ -166,9 +178,9 @@ async function getJsonData(prompt) {
 
 On-Device AI (Hybrid)
 Automatically switch between local Gemini Nano and cloud models based on device capability.
+
 ```JavaScript
 import {getGenerativeModel, InferenceMode } from "firebase/ai";
 
 const hybridModel = getGenerativeModel(ai, { mode: InferenceMode.PREFER_ON_DEVICE });
 ```
-

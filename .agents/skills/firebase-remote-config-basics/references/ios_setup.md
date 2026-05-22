@@ -31,6 +31,7 @@ Modify the application's entry point to initialize Firebase. Refer to the iOS se
 The following steps cover the essential patterns for using Remote Config effectively in your iOS app.
 
 ### Set In-App Defaults
+
 Define default values so your app behaves as intended before it connects to the backend. Create a property list file (e.g., RemoteConfigDefaults.plist):
 
     ```xml
@@ -54,7 +55,9 @@ Then, initialize the SDK and set the defaults:
     let remoteConfig = RemoteConfig.remoteConfig()
     remoteConfig.setDefaults(fromPlist: "RemoteConfigDefaults")
     ```
+
 ### Fetch and Activate Values
+
 To retrieve values from the cloud and apply them to your app:
 
     ```swift
@@ -64,7 +67,7 @@ To retrieve values from the cloud and apply them to your app:
         } else {
             print("Config not fetched")
         }
-        
+
         // Access a value
         let message = remoteConfig.configValue(forKey: "welcome_message").stringValue
     }

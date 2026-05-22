@@ -10,8 +10,8 @@ Before adding dependencies in your app, make sure you enable the Firestore servi
 npx -y firebase-tools@latest init firestore
 ```
 
- ---
- 
+---
+
 ### 1. Add Dependencies
 
 In your module-level `build.gradle.kts` (usually `app/build.gradle.kts`), add the dependency for Cloud Firestore:
@@ -44,7 +44,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val db = Firebase.firestore
-        
+
         setContent {
             MaterialTheme {
                 Text("Firestore initialized!")
@@ -71,7 +71,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val db = Firebase.firestore
-        
+
         setContent {
             MaterialTheme {
                 Text("Firestore initialized!")

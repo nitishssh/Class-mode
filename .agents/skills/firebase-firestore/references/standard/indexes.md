@@ -8,25 +8,25 @@ the result set, not the size of the database.
 ### Single-Field Indexes
 
 In Standard Edition, Firestore **automatically creates** a single-field index
-for every field in a document (and subfields in maps). * **Support**: Simple
+for every field in a document (and subfields in maps). _ **Support**: Simple
 equality queries (`==`) and single-field range/sort queries (`<`, `<=`,
-`orderBy`). * **Behavior**: You generally don't need to manage these unless you
-want to *exempt* a field.
+`orderBy`). _ **Behavior**: You generally don't need to manage these unless you
+want to _exempt_ a field.
 
 ### Composite Indexes
 
 A composite index stores a sorted mapping of all documents based on an ordered
-list of fields. * **Support**: Complex queries that filter or sort by **multiple
-fields**. * **Creation**: These are **NOT** automatically created. You must
+list of fields. _ **Support**: Complex queries that filter or sort by **multiple
+fields**. _ **Creation**: These are **NOT** automatically created. You must
 define them manually or via the console/CLI.
 
 ## Automatic vs. Manual Management
 
 ### What is Automatic?
 
-*   Indexes for simple queries.
-*   Merging of single-field indexes for multiple equality filters (e.g.,
-    `where("state", "==", "CA").where("country", "==", "USA")`).
+- Indexes for simple queries.
+- Merging of single-field indexes for multiple equality filters (e.g.,
+  `where("state", "==", "CA").where("country", "==", "USA")`).
 
 ### When Do I Need to Act?
 
@@ -41,23 +41,24 @@ specific index.
 
 ## Query Support Examples
 
-| Query Type                           | Index Required                       |
-| :----------------------------------- | :----------------------------------- |
-| **Simple Equality**<br>`where("a",   | Automatic (Single-Field)             |
+| Query Type                         | Index Required           |
+| :--------------------------------- | :----------------------- |
+| **Simple Equality**<br>`where("a", | Automatic (Single-Field) |
+
 : "==", 1)`                            :                                      :
-| **Simple Range/Sort**<br>`where("a", | Automatic (Single-Field)             |
+| **Simple Range/Sort**<br>`where("a", | Automatic (Single-Field) |
 : ">", 1).orderBy("a")`                :                                      :
-| **Multiple Equality**<br>`where("a", | Automatic (Merged Single-Field)      |
+| **Multiple Equality**<br>`where("a", | Automatic (Merged Single-Field) |
 : "==", 1).where("b", "==", 2)`        :                                      :
 | **Equality +                         | **Composite Index**                  |
-: Range/Sort**<br>`where("a", "==",    :                                      :
+: Range/Sort**<br>`where("a", "==", : :
 : 1).where("b", ">", 2)`               :                                      :
-| **Multiple Ranges**<br>`where("a",   | **Composite Index** (and technically |
+| **Multiple Ranges**<br>`where("a", | **Composite Index** (and technically |
 : ">", 1).where("b", ">", 2)`          : limited query support)               :
 | **Array Contains +                   | **Composite Index**                  |
-: Equality**<br>`where("tags",         :                                      :
-: "array-contains",                    :                                      :
-: "news").where("active", "==", true)` :                                      :
+: Equality**<br>`where("tags", : :
+: "array-contains", : :
+: "news").where("active", "==", true)` : :
 
 ## Best Practices & Exemptions
 
@@ -66,23 +67,23 @@ enforce write limits.
 
 ### 1. High Write Rates (Sequential Values)
 
-*   **Problem**: Indexing fields that increase sequentially (like `timestamp`)
-    limits the write rate to ~500 writes/second per collection.
-*   **Solution**: If you don't query on this field, **exempt** it from simple
-    indexing.
+- **Problem**: Indexing fields that increase sequentially (like `timestamp`)
+  limits the write rate to ~500 writes/second per collection.
+- **Solution**: If you don't query on this field, **exempt** it from simple
+  indexing.
 
 ### 2. Large String/Map/Array Fields
 
-*   **Problem**: Indexing limits (40k entries per doc). Indexing large blobs
-    wastes storage.
-*   **Solution**: Exempt large text blobs or huge arrays if they aren't used for
-    filtering.
+- **Problem**: Indexing limits (40k entries per doc). Indexing large blobs
+  wastes storage.
+- **Solution**: Exempt large text blobs or huge arrays if they aren't used for
+  filtering.
 
 ### 3. TTL Fields
 
-*   **Problem**: TTL (Time-To-Live) deletion can cause index churn.
-*   **Solution**: Exempt the TTL timestamp field from indexing if you don't
-    query it.
+- **Problem**: TTL (Time-To-Live) deletion can cause index churn.
+- **Solution**: Exempt the TTL timestamp field from indexing if you don't
+  query it.
 
 ## Management
 

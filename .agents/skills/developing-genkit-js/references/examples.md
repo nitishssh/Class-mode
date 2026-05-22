@@ -3,6 +3,7 @@
 This reference contains minimal, reproducible examples (MREs) for common Genkit patterns.
 
 > **Disclaimer**: These examples use **Google AI** models (`googleAI`, `gemini-*`) for demonstration. The patterns apply to **any provider**. To use a different provider:
+>
 > 1. Search the docs for the correct plugin: `genkit docs:search "plugins"`.
 > 2. Install and configure the plugin.
 > 3. Swap the model reference in the code.
@@ -18,29 +19,29 @@ const ai = genkit({
 });
 
 const { text } = await ai.generate({
-  model: googleAI.model('gemini-2.5-flash'),
-  prompt: 'Tell me a story in a pirate accent',
+  model: googleAI.model("gemini-2.5-flash"),
+  prompt: "Tell me a story in a pirate accent",
 });
 ```
 
 ## Structured Output
 
 ```ts
-import { z } from 'genkit';
+import { z } from "genkit";
 
 const JokeSchema = z.object({
-  setup: z.string().describe('The setup of the joke'),
-  punchline: z.string().describe('The punchline'),
+  setup: z.string().describe("The setup of the joke"),
+  punchline: z.string().describe("The punchline"),
 });
 
 const response = await ai.generate({
-  model: googleAI.model('gemini-2.5-flash'),
-  prompt: 'Tell me a joke about developers.',
+  model: googleAI.model("gemini-2.5-flash"),
+  prompt: "Tell me a joke about developers.",
   output: { schema: JokeSchema },
 });
 
 // response.output is strongly typed
-const joke = response.output; 
+const joke = response.output;
 if (joke) {
   console.log(`${joke.setup} ... ${joke.punchline}`);
 }
@@ -50,8 +51,8 @@ if (joke) {
 
 ```ts
 const { stream, response } = ai.generateStream({
-  model: googleAI.model('gemini-2.5-flash'),
-  prompt: 'Tell a long story about a developer using Genkit.',
+  model: googleAI.model("gemini-2.5-flash"),
+  prompt: "Tell a long story about a developer using Genkit.",
 });
 
 for await (const chunk of stream) {
@@ -60,7 +61,7 @@ for await (const chunk of stream) {
 
 // Await the final response
 const finalResponse = await response;
-console.log('Complete:', finalResponse.text);
+console.log("Complete:", finalResponse.text);
 ```
 
 ## Advanced Configuration
@@ -71,11 +72,11 @@ Enable "thinking" process for complex reasoning tasks.
 
 ```ts
 const response = await ai.generate({
-  model: googleAI.model('gemini-3.1-pro-preview'),
-  prompt: 'what is heavier, one kilo of steel or one kilo of feathers',
+  model: googleAI.model("gemini-3.1-pro-preview"),
+  prompt: "what is heavier, one kilo of steel or one kilo of feathers",
   config: {
     thinkingConfig: {
-      thinkingLevel: 'HIGH', // or 'LOW'
+      thinkingLevel: "HIGH", // or 'LOW'
       includeThoughts: true, // Returns thought process in response
     },
   },
@@ -88,8 +89,8 @@ Enable models to access current information via Google Search.
 
 ```ts
 const response = await ai.generate({
-  model: googleAI.model('gemini-2.5-flash'),
-  prompt: 'What are the top tech news stories this week?',
+  model: googleAI.model("gemini-2.5-flash"),
+  prompt: "What are the top tech news stories this week?",
   config: {
     googleSearchRetrieval: true,
   },
@@ -98,7 +99,7 @@ const response = await ai.generate({
 // Access grounding metadata (sources)
 const groundingMetadata = (response.custom as any)?.candidates?.[0]?.groundingMetadata;
 if (groundingMetadata) {
-  console.log('Sources:', groundingMetadata.groundingChunks);
+  console.log("Sources:", groundingMetadata.groundingChunks);
 }
 ```
 
@@ -111,8 +112,8 @@ if (groundingMetadata) {
 ```ts
 // Generate an image
 const { media } = await ai.generate({
-  model: googleAI.model('gemini-2.5-flash-image'),
-  config: { responseModalities: ['TEXT', 'IMAGE'] },
+  model: googleAI.model("gemini-2.5-flash-image"),
+  config: { responseModalities: ["TEXT", "IMAGE"] },
   prompt: "generate a picture of a unicorn wearing a space suit on the moon",
 });
 // media.url contains the data URI
@@ -121,8 +122,8 @@ const { media } = await ai.generate({
 ```ts
 // Edit an image
 const { media } = await ai.generate({
-  model: googleAI.model('gemini-2.5-flash-image'),
-  config: { responseModalities: ['TEXT', 'IMAGE'] },
+  model: googleAI.model("gemini-2.5-flash-image"),
+  config: { responseModalities: ["TEXT", "IMAGE"] },
   prompt: [
     { text: "change the person's outfit to a banana costume" },
     { media: { url: "https://example.com/photo.jpg" } },
@@ -135,19 +136,19 @@ const { media } = await ai.generate({
 Generate audio from text.
 
 ```ts
-import { writeFile } from 'node:fs/promises';
+import { writeFile } from "node:fs/promises";
 
 const { media } = await ai.generate({
-  model: googleAI.model('gemini-2.5-flash-preview-tts'),
+  model: googleAI.model("gemini-2.5-flash-preview-tts"),
   config: {
-    responseModalities: ['AUDIO'],
+    responseModalities: ["AUDIO"],
     speechConfig: {
       voiceConfig: {
-        prebuiltVoiceConfig: { voiceName: 'Algenib' }, // Options: 'Puck', 'Charon', 'Fenrir', etc.
+        prebuiltVoiceConfig: { voiceName: "Algenib" }, // Options: 'Puck', 'Charon', 'Fenrir', etc.
       },
     },
   },
-  prompt: 'Genkit is an amazing library',
+  prompt: "Genkit is an amazing library",
 });
 
 // The response contains raw PCM data in media.url (base64 encoded).

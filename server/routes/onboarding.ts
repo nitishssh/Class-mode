@@ -5,18 +5,34 @@ import admin from "firebase-admin";
 import { setCustomUserClaims } from "../lib/firebase-admin";
 import { authenticateToken } from "../routes";
 import { upload, diskPathToUrl } from "../lib/upload";
-import { sendTeacherInvite, sendStudentInvite, sendPrincipalInvite, sendSchoolAdminInvite } from "../lib/mailer";
+import {
+  sendTeacherInvite,
+  sendStudentInvite,
+  sendPrincipalInvite,
+  sendSchoolAdminInvite,
+} from "../lib/mailer";
 import { requireRole } from "../middleware";
 import { recordAuditEvent, AUDIT_EVENTS } from "../lib/audit";
 import {
-  pgFindSchoolByCreatedByUid, pgUpsertSchool, pgFindSchoolById,
-  pgCreateInvite, pgFindInviteByToken, pgAcceptInvite, pgResendInvite,
-  pgFindInviteById, pgFindInvitesBySchool, pgFindInvitesByInvitedBy,
-  pgCreateSchoolClass, pgFindSchoolClassesByTeacher, pgFindSchoolClassById,
-  pgFindUserByAuthSubject, pgCreateUser, pgUpdateUser, pgUpsertMembership,
+  pgFindSchoolByCreatedByUid,
+  pgUpsertSchool,
+  pgFindSchoolById,
+  pgCreateInvite,
+  pgFindInviteByToken,
+  pgAcceptInvite,
+  pgResendInvite,
+  pgFindInviteById,
+  pgFindInvitesBySchool,
+  pgFindInvitesByInvitedBy,
+  pgCreateSchoolClass,
+  pgFindSchoolClassesByTeacher,
+  pgFindSchoolClassById,
+  pgFindUserByAuthSubject,
+  pgCreateUser,
+  pgUpdateUser,
+  pgUpsertMembership,
   pgUpdateUserOnboardingComplete,
 } from "../lib/pg-queries";
-import { logger } from "../lib/logger";
 
 const router = Router();
 
@@ -154,7 +170,9 @@ router.post("/invite/accept", async (req: Request, res: Response) => {
   if (!invite) return res.status(404).json({ message: "Invalid invite link" });
   if (invite.status !== "pending") return res.status(409).json({ message: "Invite already used" });
   if (invite.expiresAt < new Date())
-    return res.status(410).json({ message: "This invite has expired. Ask your admin to resend it." });
+    return res
+      .status(410)
+      .json({ message: "This invite has expired. Ask your admin to resend it." });
 
   if (parsed.data.email.toLowerCase().trim() !== invite.email.toLowerCase().trim()) {
     return res.status(403).json({ message: "This invite was sent to a different email address." });
@@ -187,7 +205,12 @@ router.post("/invite/accept", async (req: Request, res: Response) => {
   if (invite.schoolId) {
     const school = await pgFindSchoolById(invite.schoolId);
     if (school) {
-      await pgUpsertMembership({ userId: pgUser.id, schoolCode: school.code, status: "active", roleKey: invite.role });
+      await pgUpsertMembership({
+        userId: pgUser.id,
+        schoolCode: school.code,
+        status: "active",
+        roleKey: invite.role,
+      });
     }
   }
 
@@ -323,7 +346,13 @@ router.post("/invite/resend/:inviteId", authenticateToken, async (req: Request, 
     await sendTeacherInvite(invite.email, invite.name ?? "", school?.name ?? "", newToken);
   } else {
     const cls = invite.classId ? await pgFindSchoolClassById(parseInt(invite.classId, 10)) : null;
-    await sendStudentInvite(invite.email, invite.name ?? "", school?.name ?? "", cls?.name ?? "", newToken);
+    await sendStudentInvite(
+      invite.email,
+      invite.name ?? "",
+      school?.name ?? "",
+      cls?.name ?? "",
+      newToken
+    );
   }
 
   recordAuditEvent({
@@ -339,7 +368,9 @@ router.get("/invite/validate/:token", async (req: Request, res: Response) => {
   if (!invite) return res.status(404).json({ message: "Invalid invite link" });
   if (invite.status !== "pending") return res.status(409).json({ message: "Invite already used" });
   if (invite.expiresAt < new Date())
-    return res.status(410).json({ message: "This invite has expired. Ask your admin to resend it." });
+    return res
+      .status(410)
+      .json({ message: "This invite has expired. Ask your admin to resend it." });
   return res.json({
     name: invite.name,
     email: invite.email,

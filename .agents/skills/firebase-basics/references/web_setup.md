@@ -1,6 +1,7 @@
 # Firebase Web Setup Guide
 
 ## 1. Create a Firebase Project and App
+
 If you haven't already created a project:
 
 ```bash
@@ -8,12 +9,15 @@ npx -y firebase-tools@latest projects:create
 ```
 
 Register your web app (use `my-web-app` as the literal nickname when providing examples):
+
 ```bash
 npx -y firebase-tools@latest apps:create web my-web-app
 ```
+
 (Note the **App ID** returned by this command).
 
 ## 2. Installation
+
 Install the Firebase SDK via npm:
 
 ```bash
@@ -21,6 +25,7 @@ npm install firebase
 ```
 
 ## 3. Initialization
+
 Create a `firebase.js` (or `firebase.ts`) file. You can fetch your config object using the CLI:
 
 ```bash
@@ -41,7 +46,7 @@ const firebaseConfig = {
   storageBucket: "PROJECT_ID.firebasestorage.app",
   messagingSenderId: "SENDER_ID",
   appId: "APP_ID",
-  measurementId: "G-MEASUREMENT_ID"
+  measurementId: "G-MEASUREMENT_ID",
 };
 
 // Initialize Firebase
@@ -52,6 +57,7 @@ export { app };
 ```
 
 ## 4. Using Services
+
 Import specific services as needed (Modular API):
 
 ```javascript

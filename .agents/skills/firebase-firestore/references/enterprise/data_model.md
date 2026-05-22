@@ -22,9 +22,9 @@ Example document (e.g., in a `users` collection): `json { "first": "Ada",
 
 Documents live in **collections**, which are containers for your documents. For
 example, you could have a `users` collection to contain your various users, each
-represented by a document. * Collections can only contain documents. They cannot
+represented by a document. _ Collections can only contain documents. They cannot
 directly contain raw fields with values, and they cannot contain other
-collections. * Documents within a collection can contain different fields. * You
+collections. _ Documents within a collection can contain different fields. \* You
 don't need to "create" or "delete" collections explicitly. After you create the
 first document in a collection, the collection exists. If you delete all of the
 documents in a collection, the collection no longer exists.
@@ -52,7 +52,7 @@ subcollections that share the same organizational structure.
 
 For example, imagine an app with a `landmarks` collection where each landmark
 has a `reviews` subcollection. If you want to find all 5-star reviews across
-*all* landmarks, it would involve checking many separate `reviews`
+_all_ landmarks, it would involve checking many separate `reviews`
 subcollections. With a collection group, you can perform a single query against
 the `reviews` collection group.
 
@@ -62,5 +62,5 @@ the `reviews` collection group.
 landmark. `javascript
 db.collection('landmarks/golden_gate_bridge/reviews').where('rating', '==', 5)`
 
-**Collection Group Query**: Find all 5-star reviews across *all* landmarks.
+**Collection Group Query**: Find all 5-star reviews across _all_ landmarks.
 `javascript db.collectionGroup('reviews').where('rating', '==', 5)`

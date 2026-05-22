@@ -1,8 +1,10 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import {
-  pgFindSubscriptionByUser, pgFindSubscriptionByStripeCustomer,
-  pgUpsertSubscription, pgUpdateSubscriptionByStripeCustomer, pgFindUserById,
+  pgFindSubscriptionByUser,
+  pgUpsertSubscription,
+  pgUpdateSubscriptionByStripeCustomer,
+  pgFindUserById,
 } from "../lib/pg-queries";
 import { authenticateToken } from "../routes";
 import { logger } from "../lib/logger";
@@ -75,6 +77,9 @@ router.get("/subscription", authenticateToken, async (req: Request, res: Respons
   try {
     const user = (req as any).user;
     if (!user?.id) return res.status(401).json({ error: "Authentication required" });
+    if ((req as any).workspace && (req as any).workspaceRole !== "owner") {
+      return res.status(403).json({ error: "Only workspace owners can manage billing" });
+    }
 
     const sub = await pgFindSubscriptionByUser(user.id);
 
@@ -111,6 +116,9 @@ router.post("/checkout", authenticateToken, async (req: Request, res: Response) 
   try {
     const user = (req as any).user;
     if (!user?.id) return res.status(401).json({ error: "Authentication required" });
+    if ((req as any).workspace && (req as any).workspaceRole !== "owner") {
+      return res.status(403).json({ error: "Only workspace owners can manage billing" });
+    }
 
     const { tier, successUrl, cancelUrl } = CheckoutSchema.parse(req.body);
     const config = TIER_CONFIG[tier];
@@ -130,7 +138,11 @@ router.post("/checkout", authenticateToken, async (req: Request, res: Response) 
         metadata: { userId: String(user.id) },
       });
       customerId = customer.id;
-      sub = await pgUpsertSubscription(user.id, { tier: "free", stripeCustomerId: customerId, status: "active" });
+      sub = await pgUpsertSubscription(user.id, {
+        tier: "free",
+        stripeCustomerId: customerId,
+        status: "active",
+      });
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -212,7 +224,8 @@ router.post("/webhook", async (req: Request, res: Response) => {
       case "customer.subscription.deleted": {
         const subscription = event.data.object as any;
         await pgUpdateSubscriptionByStripeCustomer(subscription.customer, {
-          status: "canceled", tier: "free",
+          status: "canceled",
+          tier: "free",
         });
         break;
       }

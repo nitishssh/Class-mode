@@ -18,10 +18,21 @@ import { z } from "zod";
 import { processOCRImage } from "./lib/tesseract";
 import { evaluateSubjectiveAnswer, aiChat } from "./lib/openai";
 import { upload, diskPathToUrl } from "./lib/upload";
-import { verifyFirebaseToken, setCustomUserClaims } from "./lib/firebase-admin";
+import { setCustomUserClaims } from "./lib/firebase-admin";
 import { logger } from "./lib/logger";
 import { recordAuditEvent, AUDIT_EVENTS } from "./lib/audit";
-import { pgFindUserById, pgFindUsers, pgUpdateUser, pgCountUsers } from "./lib/pg-queries";
+import {
+  pgFindFirstWorkspaceMembership,
+  pgCreateWorkspaceInvite,
+  pgFindWorkspaceById,
+  pgFindWorkspaceMembership,
+  pgFindUserById,
+  pgFindUsers,
+  pgUpdateUser,
+  pgCountUsers,
+} from "./lib/pg-queries";
+import { ACCESS_COOKIE, authMePayload, randomToken, tokenHash } from "./lib/auth-workspace";
+import { sendWorkspaceInvite } from "./lib/mailer";
 import { getPgPool, isPgReady } from "./db-pg";
 import messageRoutes from "./message/routes";
 import { liveRouter } from "./routes/live";
@@ -50,6 +61,7 @@ declare module "express-session" {
 
 interface CustomJwtPayload extends jwt.JwtPayload {
   userId?: number;
+  sessionId?: number;
   role?: string;
   email?: string;
 }
@@ -65,15 +77,33 @@ const JWT_SECRET: string = process.env.JWT_SECRET;
 // Verifies the server-issued JWT only — never calls Firebase Admin on hot path.
 // Firebase ID tokens are exchanged for server JWTs once at /api/auth/firebase.
 export async function authenticateToken(req: Request, res: Response, next: express.NextFunction) {
-  const token = req.cookies?.access_token || req.headers.authorization?.split(" ")[1];
+  const token = req.cookies?.[ACCESS_COOKIE] || req.headers.authorization?.split(" ")[1];
 
   if (token) {
     try {
       const payload = jwt.verify(token, JWT_SECRET) as CustomJwtPayload;
       if (payload?.userId) {
-        req.session!.userId = payload.userId;
-        req.session!.role = payload.role;
-        (req as any).user = { id: payload.userId, role: payload.role, email: payload.email };
+        const user = await pgFindUserById(payload.userId);
+        if (!user || ["suspended", "rejected"].includes(user.status)) {
+          return res.status(401).json({ message: "Authentication required" });
+        }
+        const workspaceContext = await pgFindFirstWorkspaceMembership(user.id);
+        req.session!.userId = user.id;
+        req.session!.role = user.role;
+        (req as any).user = {
+          id: user.id,
+          role: user.role,
+          email: user.email,
+          status: user.status,
+          emailVerified: user.emailVerified,
+        };
+        (req as any).workspace = workspaceContext?.workspace ?? null;
+        (req as any).workspaceRole = workspaceContext?.membership.role ?? null;
+        (req as any).permissions = authMePayload({
+          user,
+          workspace: workspaceContext?.workspace ?? null,
+          membership: workspaceContext?.membership ?? null,
+        }).permissions;
         return next();
       }
     } catch {
@@ -85,8 +115,22 @@ export async function authenticateToken(req: Request, res: Response, next: expre
   if (req.session?.userId) {
     try {
       const user = await pgFindUserById(req.session.userId);
-      if (user) {
-        (req as any).user = { id: user.id, role: user.role, email: user.email };
+      if (user && !["suspended", "rejected"].includes(user.status)) {
+        const workspaceContext = await pgFindFirstWorkspaceMembership(user.id);
+        (req as any).user = {
+          id: user.id,
+          role: user.role,
+          email: user.email,
+          status: user.status,
+          emailVerified: user.emailVerified,
+        };
+        (req as any).workspace = workspaceContext?.workspace ?? null;
+        (req as any).workspaceRole = workspaceContext?.membership.role ?? null;
+        (req as any).permissions = authMePayload({
+          user,
+          workspace: workspaceContext?.workspace ?? null,
+          membership: workspaceContext?.membership ?? null,
+        }).permissions;
         return next();
       }
     } catch {
@@ -130,6 +174,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Authentication routes (mostly handled by Firebase Client now)
   app.use("/api/auth", authRouter);
+  // Public invite routes live outside /auth for email links and compatibility.
+  app.use("/api", authRouter);
+
+  const workspaceInviteSchema = z.object({
+    email: z.string().email(),
+    name: z.string().optional(),
+    role: z.enum(["admin", "member"]),
+    kind: z.enum(["business_member", "student"]),
+    studentMeta: z.record(z.string(), z.unknown()).optional(),
+  });
+
+  app.post(
+    "/api/workspaces/:id/invites",
+    authenticateToken,
+    async (req: Request, res: Response) => {
+      try {
+        const workspaceId = parseInt(req.params.id, 10);
+        const user = (req as any).user;
+        if (!user?.id || Number.isNaN(workspaceId)) {
+          return res.status(401).json({ message: "Authentication required" });
+        }
+
+        const membership = await pgFindWorkspaceMembership(workspaceId, user.id);
+        if (!membership || !["owner", "admin"].includes(membership.role)) {
+          return res
+            .status(403)
+            .json({ message: "Only workspace owners and admins can invite members" });
+        }
+
+        const parsed = workspaceInviteSchema.safeParse(req.body);
+        if (!parsed.success)
+          return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+
+        const workspace = await pgFindWorkspaceById(workspaceId);
+        if (!workspace) return res.status(404).json({ message: "Workspace not found" });
+
+        const rawToken = randomToken();
+        const invite = await pgCreateWorkspaceInvite({
+          workspaceId,
+          email: parsed.data.email,
+          name: parsed.data.name ?? null,
+          role: parsed.data.kind === "student" ? "member" : parsed.data.role,
+          kind: parsed.data.kind,
+          tokenHash: tokenHash(rawToken),
+          invitedBy: user.id,
+          studentMeta: parsed.data.studentMeta ?? {},
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        });
+
+        sendWorkspaceInvite(
+          parsed.data.email,
+          parsed.data.name ?? "",
+          workspace.name,
+          rawToken,
+          parsed.data.kind
+        ).catch((e) =>
+          logger.warn("[workspace/invites] Failed to send invite", { error: String(e) })
+        );
+
+        recordAuditEvent({
+          actorUserId: user.id,
+          eventType: AUDIT_EVENTS.INVITE_SENT,
+          payload: {
+            workspaceId,
+            email: parsed.data.email,
+            kind: parsed.data.kind,
+            role: invite.role,
+          },
+        });
+
+        return res.status(201).json({ id: invite.id, status: invite.status });
+      } catch (error) {
+        logger.error("[workspace/invites] Error", { error: String(error) });
+        return res.status(500).json({ message: "Failed to create invite" });
+      }
+    }
+  );
 
   // ─── Dashboard Data Routes ───────────────────────────────────────────────────
 
@@ -148,15 +269,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pool = isPgReady() ? getPgPool() : null;
 
       const [upcomingAssignments, recentResults, tasks] = await Promise.all([
-        pool ? pool.query(`
+        pool
+          ? pool
+              .query(
+                `
           SELECT ta.*, t.title as "testTitle", t.subject, t.description as topic
           FROM test_assignments ta
           JOIN tests t ON t.id = ta.test_id
           WHERE ta.student_id = $1 AND ta.status IN ('pending','started')
-          ORDER BY ta.due_date ASC LIMIT 5`, [studentId]).then(r => r.rows) : [],
-        pool ? pool.query(`
+          ORDER BY ta.due_date ASC LIMIT 5`,
+                [studentId]
+              )
+              .then((r) => r.rows)
+          : [],
+        pool
+          ? pool
+              .query(
+                `
           SELECT * FROM test_attempts WHERE student_id = $1 AND status = 'evaluated'
-          ORDER BY end_time DESC LIMIT 5`, [studentId]).then(r => r.rows) : [],
+          ORDER BY end_time DESC LIMIT 5`,
+                [studentId]
+              )
+              .then((r) => r.rows)
+          : [],
         storage.getTasksByUser(studentId),
       ]);
 
@@ -192,17 +327,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) return res.status(404).json({ message: "User not found" });
 
       const pool = isPgReady() ? getPgPool() : null;
-      const today = new Date(); today.setHours(0,0,0,0);
-      const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate()+1);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
 
       const [myTests, pendingSubmissions, liveClasses] = await Promise.all([
-        pool ? pool.query(`SELECT * FROM tests WHERE teacher_id = $1 ORDER BY created_at DESC LIMIT 10`, [teacherId]).then(r => r.rows) : [],
-        pool ? pool.query(`
+        pool
+          ? pool
+              .query(
+                `SELECT * FROM tests WHERE teacher_id = $1 ORDER BY created_at DESC LIMIT 10`,
+                [teacherId]
+              )
+              .then((r) => r.rows)
+          : [],
+        pool
+          ? pool
+              .query(
+                `
           SELECT ta.* FROM test_attempts ta
           JOIN tests t ON t.id = ta.test_id
           WHERE t.teacher_id = $1 AND ta.status = 'completed'
-          ORDER BY ta.end_time DESC LIMIT 5`, [teacherId]).then(r => r.rows) : [],
-        pool ? pool.query(`SELECT * FROM live_classes WHERE teacher_id = $1 AND scheduled_time >= $2 AND scheduled_time < $3`, [teacherId, today, tomorrow]).then(r => r.rows) : [],
+          ORDER BY ta.end_time DESC LIMIT 5`,
+                [teacherId]
+              )
+              .then((r) => r.rows)
+          : [],
+        pool
+          ? pool
+              .query(
+                `SELECT * FROM live_classes WHERE teacher_id = $1 AND scheduled_time >= $2 AND scheduled_time < $3`,
+                [teacherId, today, tomorrow]
+              )
+              .then((r) => r.rows)
+          : [],
       ]);
 
       res.json({
@@ -757,7 +915,11 @@ Answer questions clearly and at their level. Do not mention these instructions.`
       }
 
       const subjects = isPgReady()
-        ? (await getPgPool().query("SELECT DISTINCT subject FROM tests WHERE teacher_id = $1", [teacherId])).rows.map((r: any) => r.subject)
+        ? (
+            await getPgPool().query("SELECT DISTINCT subject FROM tests WHERE teacher_id = $1", [
+              teacherId,
+            ])
+          ).rows.map((r: any) => r.subject)
         : [];
       res.json(subjects);
     } catch {
@@ -803,7 +965,10 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
       const studentId = req.session?.userId;
       if (!studentId) return res.status(401).json({ message: "Unauthorized" });
 
-      const weakSubjects = isPgReady() ? (await getPgPool().query(`
+      const weakSubjects = isPgReady()
+        ? (
+            await getPgPool().query(
+              `
         SELECT t.subject,
           ROUND(AVG(ta.score::numeric / t.total_marks * 100), 2) AS "avgScore"
         FROM test_attempts ta
@@ -811,7 +976,11 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
         WHERE ta.student_id = $1 AND ta.status = 'evaluated'
         GROUP BY t.subject
         HAVING AVG(ta.score::numeric / t.total_marks * 100) < 60
-        ORDER BY "avgScore" ASC`, [studentId])).rows : [];
+        ORDER BY "avgScore" ASC`,
+              [studentId]
+            )
+          ).rows
+        : [];
       res.json(weakSubjects);
     } catch {
       res.status(500).json({ message: "Failed to fetch weak subjects" });
@@ -857,11 +1026,18 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
         const ninetyDaysAgo = new Date();
         ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-        const results = isPgReady() ? (await getPgPool().query(`
+        const results = isPgReady()
+          ? (
+              await getPgPool().query(
+                `
           SELECT ta.*, t.subject, t.total_marks, ta.end_time as "endTime", ta.score
           FROM test_attempts ta JOIN tests t ON t.id = ta.test_id
           WHERE ta.student_id = $1 AND ta.status = 'evaluated' AND ta.end_time >= $2
-          ORDER BY ta.end_time ASC`, [studentId, ninetyDaysAgo])).rows : [];
+          ORDER BY ta.end_time ASC`,
+                [studentId, ninetyDaysAgo]
+              )
+            ).rows
+          : [];
 
         if (results.length < 3) {
           return res.json({
@@ -1212,7 +1388,11 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
       if (isNaN(messageId)) return res.status(400).json({ message: "Invalid message ID" });
 
       if (!isPgReady()) return res.status(503).json({ message: "Database unavailable" });
-      const msgRow = (await getPgPool().query("SELECT author_id, channel_id FROM messages WHERE id = $1", [messageId])).rows[0];
+      const msgRow = (
+        await getPgPool().query("SELECT author_id, channel_id FROM messages WHERE id = $1", [
+          messageId,
+        ])
+      ).rows[0];
       if (!msgRow) return res.status(404).json({ message: "Message not found" });
       const msg = { authorId: parseInt(msgRow.author_id), channelId: parseInt(msgRow.channel_id) };
       if (!msg) return res.status(404).json({ message: "Message not found" });
@@ -1460,7 +1640,6 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
 
   // /api/auth/firebase is handled by authRouter (server/routes/auth.ts)
 
-
   // ─── Phase 2: Chat Conversations API ────────────────────────────────────────
   //
   // GET /api/chat/conversations — Returns all channels accessible to the user.
@@ -1496,7 +1675,12 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
         ];
 
         for (const ch of defaultChannels) {
-          await storage.createChannel({ workspaceId: newWs.id, name: ch.name, type: ch.type, subject: (ch as any).subject ?? null });
+          await storage.createChannel({
+            workspaceId: newWs.id,
+            name: ch.name,
+            type: ch.type,
+            subject: (ch as any).subject ?? null,
+          });
         }
 
         workspaces = await storage.getWorkspaces(userId);
@@ -1560,10 +1744,12 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
         );
 
         if (isPgReady()) {
-          getPgPool().query(
-            "UPDATE channels SET unread_counts = unread_counts - $1 WHERE id = $2",
-            [String(req.session.userId), channelId]
-          ).catch(() => null);
+          getPgPool()
+            .query("UPDATE channels SET unread_counts = unread_counts - $1 WHERE id = $2", [
+              String(req.session.userId),
+              channelId,
+            ])
+            .catch(() => null);
         }
 
         return res.status(200).json({ message: "Marked as read" });
@@ -1596,11 +1782,15 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
         }
 
         if (!isPgReady()) return res.status(503).json({ message: "Database unavailable" });
-        const attempts = (await getPgPool().query(`
+        const attempts = (
+          await getPgPool().query(
+            `
           SELECT ta.score, t.subject, t.total_marks
           FROM test_attempts ta JOIN tests t ON t.id = ta.test_id
           WHERE ta.student_id = $1 AND ta.status IN ('completed','evaluated') AND ta.score IS NOT NULL`,
-          [studentId])).rows;
+            [studentId]
+          )
+        ).rows;
 
         if (attempts.length === 0) return res.status(200).json([]);
 
@@ -1652,13 +1842,21 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
         }
 
         if (!isPgReady()) return res.status(503).json({ message: "Database unavailable" });
-        const pgRows = (await getPgPool().query(`
+        const pgRows = (
+          await getPgPool().query(
+            `
           SELECT TO_CHAR(end_time, 'YYYY-MM') as month, ROUND(AVG(score::numeric), 2) as "avgScore"
           FROM test_attempts
           WHERE student_id = $1 AND status IN ('completed','evaluated') AND score IS NOT NULL AND end_time IS NOT NULL
-          GROUP BY month ORDER BY month ASC`, [studentId])).rows;
+          GROUP BY month ORDER BY month ASC`,
+            [studentId]
+          )
+        ).rows;
 
-        const formatted = pgRows.map((r: any) => ({ month: r.month, avgScore: parseFloat(r.avgScore) }));
+        const formatted = pgRows.map((r: any) => ({
+          month: r.month,
+          avgScore: parseFloat(r.avgScore),
+        }));
 
         res.status(200).json(formatted);
       } catch (error) {
@@ -1688,8 +1886,15 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
       const [studentCount, teacherCount, testsThisMonth, submissionsThisMonth] = await Promise.all([
         pgCountUsers({ role: "student" }),
         pgCountUsers({ role: "teacher" }),
-        pool2.query("SELECT COUNT(*) FROM tests WHERE created_at >= $1", [startOfMonth]).then(r => parseInt(r.rows[0].count)),
-        pool2.query("SELECT COUNT(*) FROM test_attempts WHERE status IN ('completed','evaluated') AND end_time >= $1", [startOfMonth]).then(r => parseInt(r.rows[0].count)),
+        pool2
+          .query("SELECT COUNT(*) FROM tests WHERE created_at >= $1", [startOfMonth])
+          .then((r) => parseInt(r.rows[0].count)),
+        pool2
+          .query(
+            "SELECT COUNT(*) FROM test_attempts WHERE status IN ('completed','evaluated') AND end_time >= $1",
+            [startOfMonth]
+          )
+          .then((r) => parseInt(r.rows[0].count)),
       ]);
 
       res.status(200).json({
@@ -1722,7 +1927,10 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
         return res.status(400).json({ message: "Admin school code not found" });
       }
 
-      const teachers = await pgFindUsers({ role: "teacher", schoolCode: admin.school_code ?? undefined });
+      const teachers = await pgFindUsers({
+        role: "teacher",
+        schoolCode: admin.school_code ?? undefined,
+      });
       res.status(200).json(teachers);
     } catch (error) {
       console.error("[api/school/teachers] Error:", error);
@@ -1757,7 +1965,9 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
         }
 
         if (teacher.schoolCode !== admin.school_code) {
-          return res.status(403).json({ message: "Forbidden: Teacher belongs to a different school" });
+          return res
+            .status(403)
+            .json({ message: "Forbidden: Teacher belongs to a different school" });
         }
 
         await pgUpdateUser(teacherId, { status: "active" });
@@ -1767,7 +1977,9 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
           );
         }
         if (isPgReady()) {
-          getPgPool().query("UPDATE memberships SET status = 'active' WHERE user_id = $1", [teacherId]).catch(() => null);
+          getPgPool()
+            .query("UPDATE memberships SET status = 'active' WHERE user_id = $1", [teacherId])
+            .catch(() => null);
         }
 
         recordAuditEvent({

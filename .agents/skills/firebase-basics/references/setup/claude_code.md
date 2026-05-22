@@ -27,4 +27,5 @@ Check if the plugins are already installed before proceeding:
 6. **Verify Installation**: Re-run the checks in steps 1 and 2 to confirm the skills and the MCP server are now available.
 
 ### 2. Restart and Verify Connection
+
 1. **Restart Claude Code**: Instruct the user to restart Claude Code. **Stop and wait** for their confirmation before proceeding.

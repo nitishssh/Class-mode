@@ -10,8 +10,14 @@ async function main() {
   const mongoUrl = process.env.MONGODB_URL;
   const pgUrl = process.env.POSTGRESQL_URL;
 
-  if (!mongoUrl) { console.error("[backfill] MONGODB_URL not set"); process.exit(1); }
-  if (!pgUrl) { console.error("[backfill] POSTGRESQL_URL not set"); process.exit(1); }
+  if (!mongoUrl) {
+    console.error("[backfill] MONGODB_URL not set");
+    process.exit(1);
+  }
+  if (!pgUrl) {
+    console.error("[backfill] POSTGRESQL_URL not set");
+    process.exit(1);
+  }
 
   await mongoose.connect(mongoUrl);
   console.log("[backfill] MongoDB connected");
@@ -44,7 +50,14 @@ async function main() {
                avatar_url   = COALESCE(EXCLUDED.avatar_url, users.avatar_url),
                mongo_id     = COALESCE(EXCLUDED.mongo_id, users.mongo_id)
            RETURNING id`,
-          [authProvider, authSubject, user.email, user.displayName || user.name || null, user.avatar || null, user.id]
+          [
+            authProvider,
+            authSubject,
+            user.email,
+            user.displayName || user.name || null,
+            user.avatar || null,
+            user.id,
+          ]
         );
         const pgUserId = rows[0] ? parseInt(rows[0].id, 10) : null;
 
@@ -90,7 +103,9 @@ async function main() {
       }
       processed++;
       if (processed % LOG_EVERY === 0) {
-        console.log(`[backfill] Processed ${processed} users (inserted/updated: ${inserted}, failed: ${failed})`);
+        console.log(
+          `[backfill] Processed ${processed} users (inserted/updated: ${inserted}, failed: ${failed})`
+        );
       }
     }
   };

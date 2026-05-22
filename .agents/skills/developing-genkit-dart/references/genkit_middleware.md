@@ -18,6 +18,7 @@ void main() {
 ```
 
 ## Filesystem Middleware
+
 Allows the agent to list, read, write, and search/replace files within a restricted root directory.
 
 ```dart
@@ -30,9 +31,11 @@ final response = await ai.generate(
 ```
 
 **Tools Provided:**
+
 - `list_files`, `read_file`, `write_file`, `search_and_replace`
 
 ## Skills Middleware
+
 Injects specialized instructions (skills) into the system prompt from `SKILL.md` files located in specified directories.
 
 ```dart
@@ -45,9 +48,11 @@ final response = await ai.generate(
 ```
 
 **Tools Provided:**
+
 - `use_skill`: Retrieve the full content of a skill by name.
 
 ## Tool Approval Middleware
+
 Intercepts tool execution for specified tools and requires explicit approval. Returns `FinishReason.interrupted`.
 
 ```dart
@@ -61,7 +66,7 @@ final response = await ai.generate(
 
 if (response.finishReason == FinishReason.interrupted) {
   final interrupt = response.interrupts.first;
-  
+
   // Ask user for approval
   final isApproved = await askUser();
 
@@ -73,9 +78,9 @@ if (response.finishReason == FinishReason.interrupted) {
         ToolRequestPart(
           toolRequest: interrupt.toolRequest,
           metadata: {
-            ...?interrupt.metadata, 
-            'tool-approved': true 
-          }, 
+            ...?interrupt.metadata,
+            'tool-approved': true
+          },
         ),
       ],
     );

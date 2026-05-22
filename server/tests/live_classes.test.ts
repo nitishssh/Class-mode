@@ -1,9 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import express from "express";
 import request from "supertest";
 import session from "express-session";
 import cookieParser from "cookie-parser";
 import jwt from "jsonwebtoken";
+import { pgFindUserById, pgFindFirstWorkspaceMembership } from "../lib/pg-queries";
 
 // ─── Mocks (factories must not reference outer variables) ─────────────────────
 
@@ -27,18 +28,6 @@ vi.mock("../chat-ws", () => ({
 vi.mock("../lib/cassandra", () => ({
   initCassandra: vi.fn(),
   getCassandraClient: vi.fn().mockReturnValue(null),
-}));
-
-vi.mock("@shared/mongo-schema", () => ({
-  MongoUser: {
-    findOne: vi.fn().mockImplementation((query) => {
-      if (query?.id === 1) return Promise.resolve({ id: 1, role: "teacher" });
-      if (query?.id === 2) return Promise.resolve({ id: 2, role: "student" });
-      if (query?.id === 99) return Promise.resolve({ id: 99, role: "teacher" });
-      return Promise.resolve(null);
-    }),
-  },
-  getNextSequenceValue: vi.fn(),
 }));
 
 vi.mock("../message", () => ({
@@ -142,14 +131,15 @@ async function buildApp() {
   app.use(session({ secret: "test-secret", resave: false, saveUninitialized: false }));
 
   // Shim req.isAuthenticated() so the live router middleware doesn't throw
-  app.use((req: any, _res: any, next: any) => {
-    req.isAuthenticated = () => Boolean(req.session?.userId);
+  app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
+    (req as unknown as { isAuthenticated: () => boolean }).isAuthenticated = () =>
+      Boolean(req.session?.userId);
     next();
   });
 
   // Pre-auth helper — sets session without credentials
-  app.post("/test/set-user", (req: any, res) => {
-    req.session.userId = req.body.userId;
+  app.post("/test/set-user", (req: express.Request, res: express.Response) => {
+    (req.session as unknown as { userId: number }).userId = req.body.userId;
     const JWT_SECRET = process.env.JWT_SECRET || "super_secret_jwt_key_learning_pro_123";
     const token = jwt.sign({ userId: req.body.userId }, JWT_SECRET);
     res.cookie("access_token", token);
@@ -166,6 +156,14 @@ describe("Live Classes API — /api/live", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
+    (pgFindUserById as Mock).mockImplementation((id: number) => {
+      if (id === mockTeacher.id) return Promise.resolve({ ...mockTeacher, emailVerified: true });
+      if (id === mockStudent.id) return Promise.resolve({ ...mockStudent, emailVerified: true });
+      if (id === 99) return Promise.resolve({ ...mockTeacher, id: 99, emailVerified: true });
+      return Promise.resolve(null);
+    });
+    (pgFindFirstWorkspaceMembership as Mock).mockResolvedValue(null);
+
     (storage.getUser as ReturnType<typeof vi.fn>).mockImplementation((id: number) => {
       if (id === mockTeacher.id) return Promise.resolve(mockTeacher);
       if (id === mockStudent.id) return Promise.resolve(mockStudent);
@@ -174,20 +172,22 @@ describe("Live Classes API — /api/live", () => {
 
     (storage.getLiveClass as ReturnType<typeof vi.fn>).mockResolvedValue({ ...scheduledClass });
 
-    (storage.createLiveClass as ReturnType<typeof vi.fn>).mockImplementation((data: any) =>
+    (storage.createLiveClass as Mock).mockImplementation((data: Record<string, unknown>) =>
       Promise.resolve({ id: 10, ...data, createdAt: new Date() })
     );
 
-    (storage.updateLiveClass as ReturnType<typeof vi.fn>).mockImplementation(
-      (id: number, update: any) => Promise.resolve({ ...scheduledClass, ...update })
+    (storage.updateLiveClass as Mock).mockImplementation(
+      (id: number, update: Record<string, unknown>) =>
+        Promise.resolve({ ...scheduledClass, ...update })
     );
 
     (storage.createLiveSessionAttendance as ReturnType<typeof vi.fn>).mockResolvedValue({
       ...mockAttendance,
     });
 
-    (storage.updateLiveSessionAttendance as ReturnType<typeof vi.fn>).mockImplementation(
-      (_id: number, update: any) => Promise.resolve({ ...mockAttendance, ...update })
+    (storage.updateLiveSessionAttendance as Mock).mockImplementation(
+      (_id: number, update: Record<string, unknown>) =>
+        Promise.resolve({ ...mockAttendance, ...update })
     );
 
     (storage.getLiveClassesBySchoolAndClass as ReturnType<typeof vi.fn>).mockResolvedValue([
@@ -395,7 +395,7 @@ describe("Live Classes API — /api/live", () => {
 
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
-      const statuses: string[] = res.body.map((c: any) => c.status);
+      const statuses: string[] = res.body.map((c: { status: string }) => c.status);
       expect(statuses).not.toContain("completed");
     });
 

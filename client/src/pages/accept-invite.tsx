@@ -16,6 +16,7 @@ export default function AcceptInvite() {
     name: string;
     email: string;
     role: string;
+    kind?: string;
     grades: string[];
   } | null>(null);
   const [error, setError] = useState("");
@@ -67,8 +68,8 @@ export default function AcceptInvite() {
 
       toast({ title: "Account created!", description: "You can now sign in." });
 
-      // Redirect based on role
-      if (data.role === "teacher") {
+      const role = data.user?.legacyRole || data.user?.role || invite?.role;
+      if (role === "teacher") {
         setLocation("/onboarding/teacher");
       } else {
         setLocation("/");
@@ -107,7 +108,11 @@ export default function AcceptInvite() {
       <div className="w-full max-w-md space-y-6 rounded-2xl border border-border bg-card p-8">
         <div>
           <p className="mb-1 text-xs font-bold uppercase tracking-widest text-primary">
-            {invite.role === "teacher" ? "Teacher Invite" : "Student Invite"}
+            {invite.kind === "business_member"
+              ? "Workspace Invite"
+              : invite.role === "teacher"
+                ? "Teacher Invite"
+                : "Student Invite"}
           </p>
           <h1 className="text-2xl font-bold">Welcome, {invite.name}!</h1>
           <p className="mt-1 text-sm text-muted-foreground">Set up your account to get started.</p>

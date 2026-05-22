@@ -13,12 +13,13 @@ if (process.env.DNS_IPV4_FIRST === "true") {
 import { logger } from "./lib/logger";
 
 // Prevent unhandled promise rejections from crashing the server
-process.on("unhandledRejection", (reason: any) => {
+process.on("unhandledRejection", (reason: unknown) => {
   logger.error("[unhandledRejection] non-fatal:", reason);
 });
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
 import helmet from "helmet";
+import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import session from "express-session";
 import path from "path";
@@ -34,6 +35,7 @@ import { checkFirebaseAdminReadiness } from "./lib/firebase-admin";
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
 
 // ── Security headers ──────────────────────────────────────────────────────────
 app.use(
@@ -96,7 +98,7 @@ app.use(
             process.env.ALLOWED_PROD_DOMAINS?.split(",").includes(url.hostname);
 
           if (isAllowedDomain) return cb(null, true);
-        } catch (e) {
+        } catch {
           // Fall through to error
         }
       }
@@ -119,10 +121,6 @@ app.use(
 
 // Serve uploaded files
 app.use("/uploads", express.static(path.resolve("public", "uploads")));
-
-// Initialize Database
-connectPostgres();
-initCassandra();
 
 // Check Firebase Admin readiness at startup
 checkFirebaseAdminReadiness();
@@ -170,6 +168,10 @@ import { requireDb } from "./middleware";
 app.use("/api", requireDb);
 
 (async () => {
+  // Initialize Database
+  await connectPostgres();
+  initCassandra();
+
   const server = await registerRoutes(app);
 
   // Attach WebSocket servers
@@ -181,7 +183,7 @@ app.use("/api", requireDb);
     try {
       await setupVite(app, server);
     } catch (error) {
-      if (error && (error as any).code === "ERR_MODULE_NOT_FOUND") {
+      if (error && (error as { code?: string }).code === "ERR_MODULE_NOT_FOUND") {
         logger.info("Vite not found. Assuming production mode and falling back to static serving.");
         serveStatic(app);
       } else {
@@ -193,15 +195,22 @@ app.use("/api", requireDb);
   }
 
   // Error handler must be LAST
-  app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message =
-      process.env.NODE_ENV === "production" && status === 500
-        ? "Something went wrong"
-        : err.message || "Internal Server Error";
-    logger.error(`[${status}] ${req.method} ${req.path} — ${err.message}`);
-    res.status(status).json({ error: message, code: err.code || null });
-  });
+  app.use(
+    (
+      err: { status?: number; statusCode?: number; message?: string; code?: string },
+      req: Request,
+      res: Response,
+      _next: NextFunction
+    ) => {
+      const status = err.status || err.statusCode || 500;
+      const message =
+        process.env.NODE_ENV === "production" && status === 500
+          ? "Something went wrong"
+          : err.message || "Internal Server Error";
+      logger.error(`[${status}] ${req.method} ${req.path} — ${err.message}`);
+      res.status(status).json({ error: message, code: err.code || null });
+    }
+  );
 
   // Use port strictly if provided by Render/environment, otherwise default to 5001
   // this serves both the API and the client.

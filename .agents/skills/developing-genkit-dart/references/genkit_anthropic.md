@@ -20,7 +20,7 @@ void main() async {
     model: anthropic.model('claude-sonnet-4-5'),
     prompt: 'Tell me a joke about a developer.',
   );
-  
+
   print(response.text);
 }
 ```

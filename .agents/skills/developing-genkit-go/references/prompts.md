@@ -93,6 +93,7 @@ Define prompts in separate files with YAML frontmatter and Handlebars templates.
 ### Basic .prompt File
 
 `prompts/joke.prompt`:
+
 ```
 ---
 model: googleai/gemini-flash-latest
@@ -116,6 +117,7 @@ resp, err := jokePrompt.Execute(ctx,
 ### Typed .prompt File
 
 `prompts/structured-joke.prompt`:
+
 ```
 ---
 model: googleai/gemini-flash-latest
@@ -132,6 +134,7 @@ Tell me a joke about {{topic}}.
 ```
 
 Register Go types so the .prompt file can reference them by name:
+
 ```go
 genkit.DefineSchemaFor[JokeRequest](g)
 genkit.DefineSchemaFor[Joke](g)
@@ -150,6 +153,7 @@ resp, err := prompt.Execute(ctx)
 ### .prompt File Features
 
 **Multi-message prompts with roles:**
+
 ```
 ---
 model: googleai/gemini-flash-latest
@@ -165,6 +169,7 @@ You are a helpful assistant.
 ```
 
 **Media in prompts:**
+
 ```
 ---
 model: googleai/gemini-flash-latest
@@ -179,6 +184,7 @@ Summarize this video:
 ```
 
 **Conditionals and loops:**
+
 ```
 ---
 input:
@@ -193,6 +199,7 @@ Dietary restrictions: {{#each dietaryRestrictions}}{{this}}{{#unless @last}}, {{
 ```
 
 **Inline schema in .prompt file:**
+
 ```
 ---
 model: googleai/gemini-flash-latest

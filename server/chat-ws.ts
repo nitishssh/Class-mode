@@ -404,14 +404,16 @@ export function setupChatWebSocket(httpServer: Server, sessionStore: Store) {
                 if (subMeta.channels.has(channelId) && subMeta.firebaseUid !== firebaseUid) {
                   // Increment in DB
                   if (isPgReady()) {
-                    await getPgPool().query(
-                      `UPDATE channels SET unread_counts = jsonb_set(
+                    await getPgPool()
+                      .query(
+                        `UPDATE channels SET unread_counts = jsonb_set(
                          unread_counts,
                          $1::text[],
                          (COALESCE(unread_counts->$2, '0')::int + 1)::text::jsonb
                        ) WHERE id = $3`,
-                      [[subMeta.firebaseUid], subMeta.firebaseUid, channelId]
-                    ).catch(() => null);
+                        [[subMeta.firebaseUid], subMeta.firebaseUid, channelId]
+                      )
+                      .catch(() => null);
                   }
                   // Real-time push to that client
                   if (subs.has(subWs)) {
@@ -490,11 +492,13 @@ export function setupChatWebSocket(httpServer: Server, sessionStore: Store) {
 
           // Auto-update typingUsers in DB
           if (isPgReady()) {
-            getPgPool().query(
-              `UPDATE channels SET typing_users = array_append(typing_users, $1)
+            getPgPool()
+              .query(
+                `UPDATE channels SET typing_users = array_append(typing_users, $1)
                WHERE id = $2 AND NOT ($1 = ANY(typing_users))`,
-              [firebaseUid, channelId]
-            ).catch(() => null);
+                [firebaseUid, channelId]
+              )
+              .catch(() => null);
           }
           break;
         }
@@ -517,10 +521,12 @@ export function setupChatWebSocket(httpServer: Server, sessionStore: Store) {
           );
 
           if (isPgReady()) {
-            getPgPool().query(
-              "UPDATE channels SET typing_users = array_remove(typing_users, $1) WHERE id = $2",
-              [firebaseUid, channelId]
-            ).catch(() => null);
+            getPgPool()
+              .query(
+                "UPDATE channels SET typing_users = array_remove(typing_users, $1) WHERE id = $2",
+                [firebaseUid, channelId]
+              )
+              .catch(() => null);
           }
           break;
         }
@@ -534,10 +540,12 @@ export function setupChatWebSocket(httpServer: Server, sessionStore: Store) {
 
           // Reset unread count in channel for this user
           if (isPgReady()) {
-            getPgPool().query(
-              "UPDATE channels SET unread_counts = unread_counts - $1 WHERE id = $2",
-              [firebaseUid, channelId]
-            ).catch(() => null);
+            getPgPool()
+              .query("UPDATE channels SET unread_counts = unread_counts - $1 WHERE id = $2", [
+                firebaseUid,
+                channelId,
+              ])
+              .catch(() => null);
           }
 
           broadcastToChannel(

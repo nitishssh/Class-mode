@@ -1,59 +1,16 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import express from "express";
 import request from "supertest";
 import { registerRoutes } from "../routes";
 import { verifyFirebaseToken } from "../lib/firebase-admin";
 import session from "express-session";
+import { pgFindUserById } from "../lib/pg-queries";
 
 // Mock dependencies
 vi.mock("../lib/firebase-admin", () => ({
   verifyFirebaseToken: vi.fn(),
   setCustomUserClaims: vi.fn().mockResolvedValue(true),
 }));
-
-// Mock MongoDB AIClassroom model
-vi.mock("../../shared/mongo-schema", () => {
-  function MockAIClassroom(this: { [key: string]: unknown }, data: Record<string, unknown>) {
-    Object.assign(this, data);
-    this.save = vi.fn().mockResolvedValue(true);
-  }
-  MockAIClassroom.find = vi.fn().mockReturnValue({
-    sort: vi.fn().mockResolvedValue([
-      {
-        studyArenaJobId: "job_abc123",
-        classroomId: "class_1",
-        userId: "uid123",
-        topic: "React Testing",
-        status: "ready",
-        url: "http://localhost:3000/classroom/class_1",
-        createdAt: new Date(),
-      },
-    ]),
-  });
-  MockAIClassroom.findOneAndUpdate = vi.fn().mockResolvedValue(true);
-
-  return {
-    MongoAIClassroom: MockAIClassroom,
-    MongoUser: {
-      findOne: vi.fn().mockResolvedValue({
-        id: 1,
-        firebaseUid: "uid123",
-        email: "test@test.com",
-        role: "student",
-        save: vi.fn().mockResolvedValue(true),
-      }),
-    },
-    MongoWorkspace: { findOne: vi.fn() },
-    MongoChannel: { findOne: vi.fn() },
-    MongoMessage: {
-      findOne: vi.fn(),
-      find: vi.fn().mockReturnValue({
-        sort: vi.fn().mockReturnValue({ limit: vi.fn().mockResolvedValue([]) }),
-      }),
-    },
-    getNextSequenceValue: vi.fn().mockResolvedValue(1),
-  };
-});
 
 vi.mock("../storage", () => ({
   storage: {
@@ -106,6 +63,11 @@ describe("AI Classroom Routes", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    (pgFindUserById as Mock).mockResolvedValue({
+      id: 1,
+      role: "student",
+      email: "test@test.com",
+    });
     app = express();
     app.use(express.json());
     app.use(

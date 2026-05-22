@@ -4,21 +4,22 @@ This guide walks you through using the Cloud Firestore SDK in your iOS app using
 
 # ⛔️ CRITICAL RULE: NO FirebaseFirestoreSwift ⛔️
 
-UNDER NO CIRCUMSTANCES should you import, link against, or configure a project to use `FirebaseFirestoreSwift`. 
+UNDER NO CIRCUMSTANCES should you import, link against, or configure a project to use `FirebaseFirestoreSwift`.
 
 As of Firebase SDK v11+, all Swift-specific features (including `@DocumentID`, `@ServerTimestamp`, and `Codable` support) have been fully merged into the main `FirebaseFirestore` module.
 
 - NEVER add `.external(name: "FirebaseFirestoreSwift")` or similar to SPM or Xcode configurations.
-- NEVER write `import FirebaseFirestoreSwift` in any Swift file. 
+- NEVER write `import FirebaseFirestoreSwift` in any Swift file.
 - ONLY use `import FirebaseFirestore`.
 
 This is a zero-tolerance constraint. Using `FirebaseFirestoreSwift` is fundamentally incorrect and unacceptable.
 
-
 # ⛔️ CRITICAL RULE: NO INLINE INITIALIZATION ⛔️
+
 NEVER write `let db = Firestore.firestore()` or `Firestore.firestore(database:)` as an inline class or struct property if there is ANY chance the object is instantiated before `FirebaseApp.configure()` executes in the app root.
+
 - **FATAL CRASH:** `@Observable class DataManager { let db = Firestore.firestore() }` initialized as a `@State` in the App root.
-- **SAFE PATTERN:** Initialize `Firestore.firestore()` lazily (`lazy var db = Firestore.firestore()`) OR explicitly initialize the manager *after* `FirebaseApp.configure()` finishes.
+- **SAFE PATTERN:** Initialize `Firestore.firestore()` lazily (`lazy var db = Firestore.firestore()`) OR explicitly initialize the manager _after_ `FirebaseApp.configure()` finishes.
 
 ## 1. Import and Initialize
 
@@ -71,12 +72,12 @@ do {
 ```swift
 do {
     let querySnapshot = try await db.collection("users").getDocuments()
-    
+
     // Map documents to the User struct automatically
     let users = querySnapshot.documents.compactMap { document in
         try? document.data(as: User.self)
     }
-    
+
     for user in users {
         print("Found user: \(user.firstName) \(user.lastName)")
     }
@@ -119,11 +120,12 @@ let results = try await db.pipeline()
 When implementing Firestore realtime listeners (`addSnapshotListener`) within a SwiftUI application, you **MUST** tie the listener lifecycle to the view's identity using `.task(id:)`, NOT `.onDisappear`.
 
 ### ⛔️ UNSAFE PATTERN (.onDisappear)
+
 Presenting a `.sheet` or `.fullScreenCover` can trigger the underlying view's `onDisappear` method. If you stop your listener here, the feed will stop updating while the sheet is open, and won't resume when it's dismissed.
 
 ### ✅ SAFE PATTERN (.task with deinit)
 
-Because `addSnapshotListener` is a synchronous call, placing it inside a `.task` means the task completes immediately. This breaks SwiftUI's automatic cancellation mechanism. 
+Because `addSnapshotListener` is a synchronous call, placing it inside a `.task` means the task completes immediately. This breaks SwiftUI's automatic cancellation mechanism.
 
 To safely manage traditional Firebase listeners in SwiftUI, you must use **`deinit`** to handle memory cleanup when the view is destroyed, and **`.task(id:)`** to handle data identity changes while the view is active.
 
@@ -132,15 +134,15 @@ import SwiftUI
 import FirebaseFirestore
 
 @MainActor
-@Observable 
+@Observable
 final class DataManager {
     private var listenerHandle: ListenerRegistration?
     var data: [String] = []
-    
+
     func startListening(for userId: String) {
         // 1. Clean up any existing listener to prevent duplicates if the ID changes
         stopListening()
-        
+
         // 2. Start the regular listener and capture the handle
         // Note: Using the global default instance here, make sure to use your enterprise instance if applicable
         // For enterprise, you might need to pass the db instance or use a shared manager.
@@ -148,12 +150,12 @@ final class DataManager {
             // Handle updates
         }
     }
-    
+
     func stopListening() {
         listenerHandle?.remove()
         listenerHandle = nil
     }
-    
+
     // 3. Guarantee cleanup when the View is destroyed and this object is deallocated
     isolated deinit {
         stopListening()

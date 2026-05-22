@@ -13,6 +13,29 @@ export function isPgReady(): boolean {
   return isPgConnected;
 }
 
+// ── Reconnect probe ───────────────────────────────────────────────────────────
+// Fires a SELECT 1 every 30 s after an error to recover isPgConnected state
+// without requiring a full server restart.
+let probeTimer: ReturnType<typeof setTimeout> | null = null;
+
+function scheduleReconnectProbe(): void {
+  if (probeTimer) return; // already scheduled
+  probeTimer = setTimeout(async () => {
+    probeTimer = null;
+    if (isPgConnected || !pool) return; // recovered or pool gone
+    try {
+      const client = await pool.connect();
+      await client.query("SELECT 1");
+      client.release();
+      isPgConnected = true;
+      logger.info("[pg] Reconnected to PostgreSQL");
+    } catch {
+      // still down — schedule the next probe
+      scheduleReconnectProbe();
+    }
+  }, 30_000);
+}
+
 export async function connectPostgres(): Promise<void> {
   const url = process.env.POSTGRESQL_URL;
   if (!url) {
@@ -31,6 +54,9 @@ export async function connectPostgres(): Promise<void> {
     pool.on("error", (err) => {
       logger.error("[pg] Unexpected pool error", { err: String(err) });
       isPgConnected = false;
+      // Schedule a reconnect probe so isPgConnected can recover after a
+      // transient outage (network blip, DB restart) without a server restart.
+      scheduleReconnectProbe();
     });
 
     // Verify connectivity

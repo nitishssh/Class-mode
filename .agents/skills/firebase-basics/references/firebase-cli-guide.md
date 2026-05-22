@@ -3,6 +3,7 @@
 The Firebase CLI documents itself. Use help commands to discover functionality.
 
 - **Global Help**: List all available commands and categories.
+
   ```bash
   npx -y firebase-tools@latest --help
   ```

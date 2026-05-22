@@ -88,6 +88,7 @@ response = await ai.generate(model='googleai/gemini-flash-latest', messages=rend
 ## Helpers
 
 Register Python functions callable inside Handlebars templates:
+
 ```python
 def list_helper(data: object, *args, **kwargs) -> str:
     if not isinstance(data, list):

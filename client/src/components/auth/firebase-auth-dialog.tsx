@@ -2,7 +2,6 @@ import { useState, useCallback, useMemo } from "react";
 import { useLocation } from "wouter";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { UserRole } from "@/lib/firebase";
-import { User } from "firebase/auth";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -228,9 +227,8 @@ export function FirebaseAuthDialog() {
   } = useFirebaseAuth();
   const [, setLocation] = useLocation();
 
-
   const [isNewGoogleUser, setIsNewGoogleUser] = useState(false);
-  const [tempGoogleUser, setTempGoogleUser] = useState<User | null>(null);
+  const [tempGoogleUser, setTempGoogleUser] = useState<unknown | null>(null);
   const [authTab, setAuthTab] = useState<"login" | "register" | "forgotPassword">("login");
   const [resetEmailSent, setResetEmailSent] = useState(false);
 
@@ -260,7 +258,8 @@ export function FirebaseAuthDialog() {
           email: z.string().email({ message: "Please enter a valid email address" }),
           password: z.string().min(6, { message: "Password must be at least 6 characters" }),
           confirmPassword: z.string().min(1, { message: "Please confirm your password" }),
-          role: z.enum(["student", "teacher", "principal", "school_admin", "admin", "parent"], {
+          workspaceName: z.string().min(2, { message: "Workspace name is required" }),
+          role: z.enum(["admin", "teacher", "principal", "school_admin", "parent"], {
             required_error: "Please select a role",
           }),
           grade: z.string().optional(),
@@ -271,10 +270,6 @@ export function FirebaseAuthDialog() {
         .refine((data) => data.password === data.confirmPassword, {
           message: "Passwords don't match",
           path: ["confirmPassword"],
-        })
-        .refine((data) => data.role !== "student" || (!!data.grade && !!data.board), {
-          message: "Please select both grade and board",
-          path: ["grade"],
         })
         .refine(
           (data) =>
@@ -326,7 +321,8 @@ export function FirebaseAuthDialog() {
       email: "",
       password: "",
       confirmPassword: "",
-      role: "student",
+      role: "admin",
+      workspaceName: "",
       grade: "12",
       board: "CBSE",
     },
@@ -413,6 +409,8 @@ export function FirebaseAuthDialog() {
     switch (role) {
       case "student":
         return { grade: data?.grade, board: data?.board, subjects: subjectsArray };
+      case "admin":
+        return { workspaceName: data?.workspaceName };
       case "teacher":
         return { school_code: data?.school_code, subjects: subjectsArray };
       case "principal":
@@ -905,6 +903,24 @@ export function FirebaseAuthDialog() {
                     )}
                   />
                 </div>
+                <FormField
+                  control={registerForm.control}
+                  name="workspaceName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <input
+                          type="text"
+                          placeholder="Workspace / company name"
+                          disabled={isRegSubmitting}
+                          className={inputClasses + " py-2.5"}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className="px-2 text-xs text-red-500" />
+                    </FormItem>
+                  )}
+                />
                 <div className="grid grid-cols-2 gap-3">
                   <FormField
                     control={registerForm.control}
@@ -917,7 +933,7 @@ export function FirebaseAuthDialog() {
                             className={inputClasses + " appearance-none py-2.5"}
                             {...field}
                           >
-                            <option value="student">Student</option>
+                            <option value="admin">Workspace Owner</option>
                             <option value="teacher">Teacher</option>
                             <option value="principal">Principal</option>
                             <option value="school_admin">School Admin</option>
@@ -928,7 +944,7 @@ export function FirebaseAuthDialog() {
                       </FormItem>
                     )}
                   />
-                  {registerForm.watch("role") === "student" && (
+                  {(registerForm.watch("role") as string) === "student" && (
                     <>
                       <FormField
                         control={registerForm.control}
@@ -976,25 +992,25 @@ export function FirebaseAuthDialog() {
                   {["teacher", "principal", "school_admin"].includes(
                     registerForm.watch("role")
                   ) && (
-                      <FormField
-                        control={registerForm.control}
-                        name="school_code"
-                        render={({ field }) => (
-                          <FormItem className="col-span-2">
-                            <FormControl>
-                              <input
-                                type="text"
-                                placeholder="School Code"
-                                disabled={isRegSubmitting}
-                                className={inputClasses + " py-2.5"}
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage className="px-2 text-[10px] text-red-500" />
-                          </FormItem>
-                        )}
-                      />
-                    )}
+                    <FormField
+                      control={registerForm.control}
+                      name="school_code"
+                      render={({ field }) => (
+                        <FormItem className="col-span-2">
+                          <FormControl>
+                            <input
+                              type="text"
+                              placeholder="School Code"
+                              disabled={isRegSubmitting}
+                              className={inputClasses + " py-2.5"}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage className="px-2 text-[10px] text-red-500" />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </div>
 
                 <button

@@ -6,9 +6,9 @@ The Firebase CLI provides a comprehensive suite of commands to manage App Hostin
 
 ### `npx -y firebase-tools@latest init apphosting`
 
-- **Purpose**: Interactive command that sets up App Hosting in your local project. 
-Use this command only if you are able to handle interactive CLI inputs well. 
-Alternatively, you can manually edit `firebase.json` and `apphosting.yml`.
+- **Purpose**: Interactive command that sets up App Hosting in your local project.
+  Use this command only if you are able to handle interactive CLI inputs well.
+  Alternatively, you can manually edit `firebase.json` and `apphosting.yml`.
 
 - **Effect**:
   - Detects your web framework.
@@ -68,4 +68,3 @@ App Hosting uses Cloud Secret Manager to securely handle sensitive environment v
   - `--primary-region <location>`: The primary region for the backend.
   - `--root-dir <rootDir>`: The root directory for the backend. If omitted, defaults to the root directory of the project.
   - `--service-account <service-account>`: The service account used to run the server. If omitted, defaults to the default service account.
-  

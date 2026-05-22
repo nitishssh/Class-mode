@@ -1,4 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
+
+import { pgFindUserById, pgFindFirstWorkspaceMembership } from "../lib/pg-queries";
 
 const { mockProcessOCR } = vi.hoisted(() => ({ mockProcessOCR: vi.fn() }));
 
@@ -12,27 +14,6 @@ import { registerRoutes } from "../routes";
 vi.mock("../lib/firebase-admin", () => ({
   verifyFirebaseToken: vi.fn().mockResolvedValue(null),
 }));
-
-vi.mock("../../shared/mongo-schema", () => {
-  const saveMock = vi.fn().mockResolvedValue(true);
-  function MockUser(this: any, data: any) {
-    Object.assign(this, data);
-    this.save = saveMock;
-  }
-  MockUser.findOne = vi.fn();
-  return {
-    MongoUser: MockUser,
-    getNextSequenceValue: vi.fn().mockResolvedValue(1),
-    MongoWorkspace: { findOne: vi.fn() },
-    MongoChannel: { findOne: vi.fn() },
-    MongoMessage: {
-      findOne: vi.fn(),
-      find: vi.fn().mockReturnValue({
-        sort: vi.fn().mockReturnValue({ limit: vi.fn().mockResolvedValue([]) }),
-      }),
-    },
-  };
-});
 
 vi.mock("../storage", () => ({
   storage: {
@@ -85,14 +66,26 @@ describe("POST /api/ocr — Handwritten Image OCR", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    const { MongoUser } = await import("../../shared/mongo-schema");
-    (MongoUser.findOne as any).mockImplementation((q: any) => {
-      if (q.id === 10)
-        return Promise.resolve({ id: 10, role: "student", email: "student@test.com" });
-      if (q.id === 20)
-        return Promise.resolve({ id: 20, role: "teacher", email: "teacher@test.com" });
+    (pgFindUserById as Mock).mockImplementation((id: number) => {
+      if (id === 10)
+        return Promise.resolve({
+          id: 10,
+          role: "student",
+          email: "student@test.com",
+          status: "active",
+          emailVerified: true,
+        });
+      if (id === 20)
+        return Promise.resolve({
+          id: 20,
+          role: "teacher",
+          email: "teacher@test.com",
+          status: "active",
+          emailVerified: true,
+        });
       return Promise.resolve(null);
     });
+    (pgFindFirstWorkspaceMembership as Mock).mockResolvedValue(null);
 
     app = express();
     app.use(express.json());

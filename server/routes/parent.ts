@@ -17,7 +17,9 @@ router.get(
     const [allTasks, grades] = await Promise.all([
       Promise.all(childIds.map((id) => storage.getTasksByUser(id))).then((all) => all.flat()),
       childIds.length
-        ? Promise.all(childIds.map((id) => pgFindGradingResults({ studentId: id, status: "completed" }))).then((all) => all.flat())
+        ? Promise.all(
+            childIds.map((id) => pgFindGradingResults({ studentId: id, status: "completed" }))
+          ).then((all) => all.flat())
         : [],
     ]);
     res.json({ children, tasks: allTasks.length, grades });

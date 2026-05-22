@@ -10,7 +10,7 @@ Before adding dependencies in your app, make sure you enable the Firestore servi
 npx -y firebase-tools@latest init firestore
 ```
 
- ---
+---
 
 ### 1. Add Dependencies
 
@@ -45,7 +45,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val db = Firebase.firestore
-        
+
         setContent {
             MaterialTheme {
                 Text("Firestore initialized!")
@@ -72,7 +72,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val db = Firebase.firestore
-        
+
         setContent {
             MaterialTheme {
                 Text("Firestore initialized!")
