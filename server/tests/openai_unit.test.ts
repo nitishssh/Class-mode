@@ -24,6 +24,11 @@ vi.mock("openai", () => {
   };
 });
 
+vi.mock("../lib/gemini", () => ({
+  geminiChat: vi.fn().mockRejectedValue(new Error("Gemini disabled for unit tests")),
+  streamGeminiChat: vi.fn(),
+}));
+
 // Import AFTER setting up the mock (so the module gets the mocked constructor)
 import {
   aiChat,

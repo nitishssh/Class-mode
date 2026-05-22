@@ -2,7 +2,14 @@
  * Shared Types for Study Arena (AI Classroom)
  */
 
-export type SceneType = "slides" | "quiz" | "simulation" | "pbl";
+export type SceneType = "slides" | "quiz" | "simulation" | "pbl" | "interactive";
+
+export type WidgetType = "simulation" | "diagram" | "code" | "game" | "visualization3d";
+
+export interface WidgetConfig {
+  type: WidgetType;
+  [key: string]: any;
+}
 
 export interface AgentInfo {
   id: string;
@@ -82,5 +89,68 @@ export type StatelessEvent =
       };
     }
   | { type: "agent_end"; data: { messageId: string; agentId: string } }
-  | { type: "cue_user"; data: { fromAgentId?: string } }
+  | { type: "cue_user"; data: { fromAgentId?: string; prompt?: string } }
+  | {
+      type: "done";
+      data: {
+        totalActions: number;
+        totalAgents: number;
+        agentHadContent?: boolean;
+        directorState?: DirectorState;
+      };
+    }
   | { type: "error"; data: { message: string } };
+
+// ── Action types for playback engine ──────────────────────────────────────────
+
+export type ActionName =
+  | "speech"
+  | "spotlight"
+  | "laser"
+  | "wb_open"
+  | "wb_close"
+  | "wb_clear"
+  | "wb_delete"
+  | "wb_draw_text"
+  | "wb_draw_shape"
+  | "wb_draw_chart"
+  | "wb_draw_latex"
+  | "wb_draw_table"
+  | "wb_draw_line"
+  | "wb_draw_code"
+  | "wb_edit_code"
+  | "widget_highlight"
+  | "widget_setState"
+  | "widget_annotation"
+  | "widget_reveal"
+  | "discussion"
+  | "play_video";
+
+export interface PlaybackAction {
+  actionId?: string;
+  type: "action" | "text";
+  name?: ActionName;
+  content?: string;
+  params?: Record<string, any>;
+}
+
+export const FIRE_AND_FORGET_ACTIONS: ActionName[] = ["spotlight", "laser"];
+export const SYNC_ACTIONS: ActionName[] = [
+  "wb_open",
+  "wb_close",
+  "wb_clear",
+  "wb_delete",
+  "wb_draw_text",
+  "wb_draw_shape",
+  "wb_draw_chart",
+  "wb_draw_latex",
+  "wb_draw_table",
+  "wb_draw_line",
+  "wb_draw_code",
+  "wb_edit_code",
+  "widget_highlight",
+  "widget_setState",
+  "widget_annotation",
+  "widget_reveal",
+  "play_video",
+];
