@@ -17,6 +17,7 @@ export interface PgUser {
   name: string;
   displayName: string | null;
   avatar: string | null;
+  emailVerified: boolean;
   role: string;
   status: string;
   schoolCode: string | null;
@@ -87,6 +88,7 @@ export interface PgGradingResult {
 export interface PgSubscription {
   id: number;
   userId: number;
+  workspaceId: number | null;
   tier: string;
   stripeCustomerId: string | null;
   stripeSubscriptionId: string | null;
@@ -96,6 +98,42 @@ export interface PgSubscription {
   cancelAtPeriodEnd: boolean;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface PgWorkspace {
+  id: number;
+  name: string;
+  slug: string | null;
+  type: string;
+  description: string | null;
+  ownerId: number;
+  members: number[];
+  createdAt: Date;
+}
+
+export interface PgWorkspaceMembership {
+  id: number;
+  workspaceId: number;
+  userId: number;
+  role: "owner" | "admin" | "member";
+  status: string;
+  createdAt: Date;
+}
+
+export interface PgWorkspaceInvite {
+  id: number;
+  workspaceId: number;
+  email: string;
+  name: string | null;
+  role: "admin" | "member";
+  kind: "business_member" | "student";
+  tokenHash: string;
+  status: string;
+  invitedBy: number | null;
+  studentMeta: Record<string, any>;
+  expiresAt: Date;
+  acceptedAt: Date | null;
+  createdAt: Date;
 }
 
 export interface PgAIClassroom {
@@ -139,6 +177,7 @@ function mapUser(r: any): PgUser {
     name: r.name ?? "",
     displayName: r.display_name ?? null,
     avatar: r.avatar ?? null,
+    emailVerified: r.email_verified ?? false,
     role: r.role,
     status: r.status,
     schoolCode: r.school_code ?? null,
@@ -216,6 +255,7 @@ function mapSubscription(r: any): PgSubscription {
   return {
     id: n(r.id)!,
     userId: n(r.user_id)!,
+    workspaceId: n(r.workspace_id),
     tier: r.tier,
     stripeCustomerId: r.stripe_customer_id ?? null,
     stripeSubscriptionId: r.stripe_subscription_id ?? null,
@@ -225,6 +265,48 @@ function mapSubscription(r: any): PgSubscription {
     cancelAtPeriodEnd: r.cancel_at_period_end ?? false,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
+  };
+}
+
+function mapWorkspace(r: any): PgWorkspace {
+  return {
+    id: n(r.id)!,
+    name: r.name,
+    slug: r.slug ?? null,
+    type: r.type ?? "business",
+    description: r.description ?? null,
+    ownerId: n(r.owner_id)!,
+    members: (r.members ?? []).map(Number),
+    createdAt: r.created_at,
+  };
+}
+
+function mapWorkspaceMembership(r: any): PgWorkspaceMembership {
+  return {
+    id: n(r.id)!,
+    workspaceId: n(r.workspace_id)!,
+    userId: n(r.user_id)!,
+    role: r.role,
+    status: r.status,
+    createdAt: r.created_at,
+  };
+}
+
+function mapWorkspaceInvite(r: any): PgWorkspaceInvite {
+  return {
+    id: n(r.id)!,
+    workspaceId: n(r.workspace_id)!,
+    email: r.email,
+    name: r.name ?? null,
+    role: r.role,
+    kind: r.kind,
+    tokenHash: r.token_hash,
+    status: r.status,
+    invitedBy: n(r.invited_by),
+    studentMeta: r.student_meta ?? {},
+    expiresAt: r.expires_at,
+    acceptedAt: r.accepted_at ?? null,
+    createdAt: r.created_at,
   };
 }
 
@@ -355,6 +437,7 @@ export async function pgCreateUser(data: {
   name: string;
   displayName?: string | null;
   avatar?: string | null;
+  emailVerified?: boolean;
   role: string;
   status: string;
   schoolCode?: string | null;
@@ -369,13 +452,13 @@ export async function pgCreateUser(data: {
   const { rows } = await pool.query(
     `INSERT INTO users
        (auth_provider, auth_subject, email, username, password_hash, name, display_name,
-        avatar, role, status, school_code, grade, board, subjects, district, class_name, subject)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+        avatar, email_verified, role, status, school_code, grade, board, subjects, district, class_name, subject)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
      RETURNING *`,
     [
       data.authProvider, data.authSubject, data.email.toLowerCase().trim(),
       data.username, data.passwordHash, data.name, data.displayName ?? null,
-      data.avatar ?? null, data.role, data.status, data.schoolCode ?? null,
+      data.avatar ?? null, data.emailVerified ?? false, data.role, data.status, data.schoolCode ?? null,
       data.grade ?? null, data.board ?? null, data.subjects ?? [],
       data.district ?? null, data.className ?? null, data.subject ?? null,
     ]
@@ -391,7 +474,7 @@ export async function pgUpdateUser(id: number, data: Record<string, any>): Promi
       parentId: "parent_id", grade: "grade", board: "board", subjects: "subjects",
       district: "district", className: "class_name", subject: "subject",
       onboardingComplete: "onboarding_complete", studyPlan: "study_plan",
-      displayName: "display_name", avatar: "avatar", lastLoginAt: "last_login_at",
+      displayName: "display_name", avatar: "avatar", emailVerified: "email_verified", lastLoginAt: "last_login_at",
       passwordHash: "password_hash", name: "name", username: "username",
     };
     const sets: string[] = [];
@@ -716,6 +799,171 @@ export async function pgUpdateUserOnboardingComplete(userId: number): Promise<vo
   } catch (err) {
     logger.error("[pg] pgUpdateUserOnboardingComplete failed", { err: String(err) });
   }
+}
+
+// ─── Workspace tenancy queries ───────────────────────────────────────────────
+
+export async function pgCreateWorkspace(data: {
+  name: string;
+  slug?: string | null;
+  type?: "business" | "school" | "personal";
+  description?: string | null;
+  ownerId: number;
+  members?: number[];
+}): Promise<PgWorkspace> {
+  const members = Array.from(new Set([data.ownerId, ...(data.members ?? [])]));
+  const { rows } = await getPgPool().query(
+    `INSERT INTO workspaces (name, slug, type, description, owner_id, members)
+     VALUES ($1,$2,$3,$4,$5,$6)
+     RETURNING *`,
+    [data.name, data.slug ?? null, data.type ?? "business", data.description ?? null, data.ownerId, members]
+  );
+  return mapWorkspace(rows[0]);
+}
+
+export async function pgFindWorkspaceById(id: number): Promise<PgWorkspace | null> {
+  if (!isPgReady()) return null;
+  try {
+    const { rows } = await getPgPool().query("SELECT * FROM workspaces WHERE id = $1", [id]);
+    return rows[0] ? mapWorkspace(rows[0]) : null;
+  } catch (err) {
+    logger.error("[pg] pgFindWorkspaceById failed", { err: String(err) });
+    return null;
+  }
+}
+
+export async function pgFindWorkspaceBySlug(slug: string): Promise<PgWorkspace | null> {
+  if (!isPgReady()) return null;
+  try {
+    const { rows } = await getPgPool().query("SELECT * FROM workspaces WHERE slug = $1", [slug]);
+    return rows[0] ? mapWorkspace(rows[0]) : null;
+  } catch (err) {
+    logger.error("[pg] pgFindWorkspaceBySlug failed", { err: String(err) });
+    return null;
+  }
+}
+
+export async function pgUpsertWorkspaceMembership(data: {
+  workspaceId: number;
+  userId: number;
+  role: "owner" | "admin" | "member";
+  status?: string;
+}): Promise<PgWorkspaceMembership> {
+  const { rows } = await getPgPool().query(
+    `INSERT INTO workspace_memberships (workspace_id, user_id, role, status)
+     VALUES ($1,$2,$3,$4)
+     ON CONFLICT (workspace_id, user_id)
+       DO UPDATE SET role = EXCLUDED.role, status = EXCLUDED.status
+     RETURNING *`,
+    [data.workspaceId, data.userId, data.role, data.status ?? "active"]
+  );
+  await getPgPool().query(
+    `UPDATE workspaces SET members = (
+       SELECT ARRAY(SELECT DISTINCT unnest(array_append(members, $1::bigint)))
+     ) WHERE id = $2`,
+    [data.userId, data.workspaceId]
+  );
+  return mapWorkspaceMembership(rows[0]);
+}
+
+export async function pgFindWorkspaceMembership(
+  workspaceId: number,
+  userId: number
+): Promise<PgWorkspaceMembership | null> {
+  if (!isPgReady()) return null;
+  try {
+    const { rows } = await getPgPool().query(
+      "SELECT * FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2",
+      [workspaceId, userId]
+    );
+    return rows[0] ? mapWorkspaceMembership(rows[0]) : null;
+  } catch (err) {
+    logger.error("[pg] pgFindWorkspaceMembership failed", { err: String(err) });
+    return null;
+  }
+}
+
+export async function pgFindFirstWorkspaceMembership(userId: number): Promise<{
+  workspace: PgWorkspace;
+  membership: PgWorkspaceMembership;
+} | null> {
+  if (!isPgReady()) return null;
+  try {
+    const { rows } = await getPgPool().query(
+      `SELECT w.*, wm.id AS membership_id, wm.role AS membership_role,
+              wm.status AS membership_status, wm.created_at AS membership_created_at
+       FROM workspace_memberships wm
+       JOIN workspaces w ON w.id = wm.workspace_id
+       WHERE wm.user_id = $1 AND wm.status = 'active'
+       ORDER BY CASE wm.role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 ELSE 2 END, wm.created_at
+       LIMIT 1`,
+      [userId]
+    );
+    if (!rows[0]) return null;
+    return {
+      workspace: mapWorkspace(rows[0]),
+      membership: mapWorkspaceMembership({
+        id: rows[0].membership_id,
+        workspace_id: rows[0].id,
+        user_id: userId,
+        role: rows[0].membership_role,
+        status: rows[0].membership_status,
+        created_at: rows[0].membership_created_at,
+      }),
+    };
+  } catch (err) {
+    logger.error("[pg] pgFindFirstWorkspaceMembership failed", { err: String(err) });
+    return null;
+  }
+}
+
+export async function pgCreateWorkspaceInvite(data: {
+  workspaceId: number;
+  email: string;
+  name?: string | null;
+  role: "admin" | "member";
+  kind: "business_member" | "student";
+  tokenHash: string;
+  invitedBy?: number | null;
+  studentMeta?: Record<string, any>;
+  expiresAt: Date;
+}): Promise<PgWorkspaceInvite> {
+  const { rows } = await getPgPool().query(
+    `INSERT INTO workspace_invites
+       (workspace_id, email, name, role, kind, token_hash, invited_by, student_meta, expires_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+     RETURNING *`,
+    [
+      data.workspaceId,
+      data.email.toLowerCase().trim(),
+      data.name ?? null,
+      data.role,
+      data.kind,
+      data.tokenHash,
+      data.invitedBy ?? null,
+      JSON.stringify(data.studentMeta ?? {}),
+      data.expiresAt,
+    ]
+  );
+  return mapWorkspaceInvite(rows[0]);
+}
+
+export async function pgFindWorkspaceInviteByTokenHash(tokenHash: string): Promise<PgWorkspaceInvite | null> {
+  if (!isPgReady()) return null;
+  try {
+    const { rows } = await getPgPool().query("SELECT * FROM workspace_invites WHERE token_hash = $1", [tokenHash]);
+    return rows[0] ? mapWorkspaceInvite(rows[0]) : null;
+  } catch (err) {
+    logger.error("[pg] pgFindWorkspaceInviteByTokenHash failed", { err: String(err) });
+    return null;
+  }
+}
+
+export async function pgAcceptWorkspaceInvite(id: number): Promise<void> {
+  await getPgPool().query(
+    "UPDATE workspace_invites SET status = 'accepted', accepted_at = now() WHERE id = $1",
+    [id]
+  );
 }
 
 // ─── GradingResult queries ────────────────────────────────────────────────────
