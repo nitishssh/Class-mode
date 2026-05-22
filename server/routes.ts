@@ -21,7 +21,18 @@ import { upload, diskPathToUrl } from "./lib/upload";
 import { setCustomUserClaims } from "./lib/firebase-admin";
 import { logger } from "./lib/logger";
 import { recordAuditEvent, AUDIT_EVENTS } from "./lib/audit";
-import { pgFindUserById, pgFindUsers, pgUpdateUser, pgCountUsers } from "./lib/pg-queries";
+import {
+  pgFindFirstWorkspaceMembership,
+  pgCreateWorkspaceInvite,
+  pgFindWorkspaceById,
+  pgFindWorkspaceMembership,
+  pgFindUserById,
+  pgFindUsers,
+  pgUpdateUser,
+  pgCountUsers,
+} from "./lib/pg-queries";
+import { ACCESS_COOKIE, authMePayload, randomToken, tokenHash } from "./lib/auth-workspace";
+import { sendWorkspaceInvite } from "./lib/mailer";
 import { getPgPool, isPgReady } from "./db-pg";
 import messageRoutes from "./message/routes";
 import { liveRouter } from "./routes/live";
@@ -50,6 +61,7 @@ declare module "express-session" {
 
 interface CustomJwtPayload extends jwt.JwtPayload {
   userId?: number;
+  sessionId?: number;
   role?: string;
   email?: string;
 }
@@ -65,15 +77,33 @@ const JWT_SECRET: string = process.env.JWT_SECRET;
 // Verifies the server-issued JWT only — never calls Firebase Admin on hot path.
 // Firebase ID tokens are exchanged for server JWTs once at /api/auth/firebase.
 export async function authenticateToken(req: Request, res: Response, next: express.NextFunction) {
-  const token = req.cookies?.access_token || req.headers.authorization?.split(" ")[1];
+  const token = req.cookies?.[ACCESS_COOKIE] || req.headers.authorization?.split(" ")[1];
 
   if (token) {
     try {
       const payload = jwt.verify(token, JWT_SECRET) as CustomJwtPayload;
       if (payload?.userId) {
-        req.session!.userId = payload.userId;
-        req.session!.role = payload.role;
-        (req as any).user = { id: payload.userId, role: payload.role, email: payload.email };
+        const user = await pgFindUserById(payload.userId);
+        if (!user || ["suspended", "rejected"].includes(user.status)) {
+          return res.status(401).json({ message: "Authentication required" });
+        }
+        const workspaceContext = await pgFindFirstWorkspaceMembership(user.id);
+        req.session!.userId = user.id;
+        req.session!.role = user.role;
+        (req as any).user = {
+          id: user.id,
+          role: user.role,
+          email: user.email,
+          status: user.status,
+          emailVerified: user.emailVerified,
+        };
+        (req as any).workspace = workspaceContext?.workspace ?? null;
+        (req as any).workspaceRole = workspaceContext?.membership.role ?? null;
+        (req as any).permissions = authMePayload({
+          user,
+          workspace: workspaceContext?.workspace ?? null,
+          membership: workspaceContext?.membership ?? null,
+        }).permissions;
         return next();
       }
     } catch {
@@ -85,8 +115,22 @@ export async function authenticateToken(req: Request, res: Response, next: expre
   if (req.session?.userId) {
     try {
       const user = await pgFindUserById(req.session.userId);
-      if (user) {
-        (req as any).user = { id: user.id, role: user.role, email: user.email };
+      if (user && !["suspended", "rejected"].includes(user.status)) {
+        const workspaceContext = await pgFindFirstWorkspaceMembership(user.id);
+        (req as any).user = {
+          id: user.id,
+          role: user.role,
+          email: user.email,
+          status: user.status,
+          emailVerified: user.emailVerified,
+        };
+        (req as any).workspace = workspaceContext?.workspace ?? null;
+        (req as any).workspaceRole = workspaceContext?.membership.role ?? null;
+        (req as any).permissions = authMePayload({
+          user,
+          workspace: workspaceContext?.workspace ?? null,
+          membership: workspaceContext?.membership ?? null,
+        }).permissions;
         return next();
       }
     } catch {
@@ -130,6 +174,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Authentication routes (mostly handled by Firebase Client now)
   app.use("/api/auth", authRouter);
+  // Public invite routes live outside /auth for email links and compatibility.
+  app.use("/api", authRouter);
+
+  const workspaceInviteSchema = z.object({
+    email: z.string().email(),
+    name: z.string().optional(),
+    role: z.enum(["admin", "member"]),
+    kind: z.enum(["business_member", "student"]),
+    studentMeta: z.record(z.string(), z.unknown()).optional(),
+  });
+
+  app.post("/api/workspaces/:id/invites", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      const workspaceId = parseInt(req.params.id, 10);
+      const user = (req as any).user;
+      if (!user?.id || Number.isNaN(workspaceId)) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const membership = await pgFindWorkspaceMembership(workspaceId, user.id);
+      if (!membership || !["owner", "admin"].includes(membership.role)) {
+        return res.status(403).json({ message: "Only workspace owners and admins can invite members" });
+      }
+
+      const parsed = workspaceInviteSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+
+      const workspace = await pgFindWorkspaceById(workspaceId);
+      if (!workspace) return res.status(404).json({ message: "Workspace not found" });
+
+      const rawToken = randomToken();
+      const invite = await pgCreateWorkspaceInvite({
+        workspaceId,
+        email: parsed.data.email,
+        name: parsed.data.name ?? null,
+        role: parsed.data.kind === "student" ? "member" : parsed.data.role,
+        kind: parsed.data.kind,
+        tokenHash: tokenHash(rawToken),
+        invitedBy: user.id,
+        studentMeta: parsed.data.studentMeta ?? {},
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      });
+
+      sendWorkspaceInvite(
+        parsed.data.email,
+        parsed.data.name ?? "",
+        workspace.name,
+        rawToken,
+        parsed.data.kind
+      ).catch((e) => logger.warn("[workspace/invites] Failed to send invite", { error: String(e) }));
+
+      recordAuditEvent({
+        actorUserId: user.id,
+        eventType: AUDIT_EVENTS.INVITE_SENT,
+        payload: { workspaceId, email: parsed.data.email, kind: parsed.data.kind, role: invite.role },
+      });
+
+      return res.status(201).json({ id: invite.id, status: invite.status });
+    } catch (error) {
+      logger.error("[workspace/invites] Error", { error: String(error) });
+      return res.status(500).json({ message: "Failed to create invite" });
+    }
+  });
 
   // ─── Dashboard Data Routes ───────────────────────────────────────────────────
 
