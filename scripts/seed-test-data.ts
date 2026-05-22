@@ -13,11 +13,11 @@ import "dotenv/config";
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import {
-  MongoUser,
-  MongoTest,
-  MongoQuestion,
-  MongoWorkspace,
-  MongoChannel,
+
+
+
+
+
   getNextSequenceValue,
 } from "../shared/mongo-schema.js";
 
@@ -175,7 +175,7 @@ const users = [
 
 async function initCounters() {
   // Get max existing IDs and ensure counters are above them
-  const maxUser = await (MongoUser as any).findOne().sort({ id: -1 }).limit(1);
+  const maxUser = await (mongoose.model("User") as any).findOne().sort({ id: -1 }).limit(1);
   const maxUserId = maxUser?.id || 0;
 
   const maxTest = await (mongoose.model("Test") as any)
@@ -185,10 +185,10 @@ async function initCounters() {
     .catch(() => null);
   const maxTestId = maxTest?.id || 0;
 
-  const maxWs = await (MongoWorkspace as any).findOne().sort({ id: -1 }).limit(1);
+  const maxWs = await (mongoose.model("Workspace") as any).findOne().sort({ id: -1 }).limit(1);
   const maxWsId = maxWs?.id || 0;
 
-  const maxCh = await (MongoChannel as any).findOne().sort({ id: -1 }).limit(1);
+  const maxCh = await (mongoose.model("Channel") as any).findOne().sort({ id: -1 }).limit(1);
   const maxChId = maxCh?.id || 0;
 
   // Use findOneAndUpdate with $max to set sequence only if it's lower
@@ -233,7 +233,7 @@ async function seedUsers() {
   const createdIds: number[] = [];
 
   for (const u of users) {
-    const existing = await (MongoUser as any).findOne({ email: u.email });
+    const existing = await (mongoose.model("User") as any).findOne({ email: u.email });
     if (existing) {
       console.log(`  ⏭️  Skipped (exists): ${u.email}`);
       createdIds.push(existing.id);
@@ -241,7 +241,7 @@ async function seedUsers() {
     }
 
     const id = await getNextSequenceValue("userId");
-    const newUser = new (MongoUser as any)({
+    const newUser = new (mongoose.model("User") as any)({
       id,
       username: u.username,
       password: passwordHash,
@@ -265,7 +265,7 @@ async function seedUsers() {
 async function seedWorkspaceAndChannels(allUserIds: number[]) {
   console.log("\n🌱 Seeding workspace & channels...");
 
-  const existingWs = await (MongoWorkspace as any).findOne({ name: "School Workspace" });
+  const existingWs = await (mongoose.model("Workspace") as any).findOne({ name: "School Workspace" });
   if (existingWs) {
     console.log("  ⏭️  Workspace already exists, updating members...");
     existingWs.members = [...new Set([...existingWs.members, ...allUserIds])];
@@ -274,7 +274,7 @@ async function seedWorkspaceAndChannels(allUserIds: number[]) {
   }
 
   const wsId = await getNextSequenceValue("workspace_id");
-  const workspace = new (MongoWorkspace as any)({
+  const workspace = new (mongoose.model("Workspace") as any)({
     id: wsId,
     name: "School Workspace",
     description: "Main school collaboration workspace",
@@ -297,7 +297,7 @@ async function seedWorkspaceAndChannels(allUserIds: number[]) {
 
   for (const ch of channels) {
     const chId = await getNextSequenceValue("channel_id");
-    const channel = new (MongoChannel as any)({
+    const channel = new (mongoose.model("Channel") as any)({
       id: chId,
       workspaceId: wsId,
       name: ch.name,
@@ -381,7 +381,7 @@ async function main() {
   await seedWorkspaceAndChannels(userIds);
 
   // Find the first teacher's ID for test seeding
-  const mathTeacher = await (MongoUser as any).findOne({ email: "teacher.math@school.test" });
+  const mathTeacher = await (mongoose.model("User") as any).findOne({ email: "teacher.math@school.test" });
   if (mathTeacher) await seedTests(mathTeacher.id);
 
   console.log("\n✨ Seeding complete!");
