@@ -40,6 +40,31 @@ export function requireRole(...roles: string[]) {
   };
 }
 
+export function requireWorkspaceRole(...roles: Array<"owner" | "admin" | "member">) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const role = (req as any).workspaceRole as string | null;
+    if (!role || !roles.includes(role as any)) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    next();
+  };
+}
+
+export function requireVerifiedEmail(req: Request, res: Response, next: NextFunction) {
+  const user = (req as any).user;
+  if (!user?.emailVerified) {
+    return res.status(403).json({ error: "Email verification required" });
+  }
+  next();
+}
+
+export function requireActiveWorkspace(req: Request, res: Response, next: NextFunction) {
+  if (!(req as any).workspace || !(req as any).workspaceRole) {
+    return res.status(403).json({ error: "Active workspace required" });
+  }
+  next();
+}
+
 // ── PostgreSQL health guard (for Phase 8+ migrated routes) ───────────────────
 export function requirePg(req: Request, res: Response, next: NextFunction) {
   if (!isPgReady()) {
