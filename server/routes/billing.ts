@@ -75,6 +75,9 @@ router.get("/subscription", authenticateToken, async (req: Request, res: Respons
   try {
     const user = (req as any).user;
     if (!user?.id) return res.status(401).json({ error: "Authentication required" });
+    if ((req as any).workspace && (req as any).workspaceRole !== "owner") {
+      return res.status(403).json({ error: "Only workspace owners can manage billing" });
+    }
 
     const sub = await pgFindSubscriptionByUser(user.id);
 
@@ -111,6 +114,9 @@ router.post("/checkout", authenticateToken, async (req: Request, res: Response) 
   try {
     const user = (req as any).user;
     if (!user?.id) return res.status(401).json({ error: "Authentication required" });
+    if ((req as any).workspace && (req as any).workspaceRole !== "owner") {
+      return res.status(403).json({ error: "Only workspace owners can manage billing" });
+    }
 
     const { tier, successUrl, cancelUrl } = CheckoutSchema.parse(req.body);
     const config = TIER_CONFIG[tier];
