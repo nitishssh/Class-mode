@@ -12,6 +12,7 @@ export const insertUserSchema = z.object({
     .default("student"),
   status: z.enum(USER_STATUSES).default("active"),
   avatar: z.string().optional().nullable(),
+  emailVerified: z.boolean().optional(),
   class: z.string().optional().nullable(),
   subject: z.string().optional().nullable(),
   school_code: z.string().optional().nullable(),
@@ -141,6 +142,8 @@ export type InsertTestAssignment = z.infer<typeof insertTestAssignmentSchema>;
 
 export const insertWorkspaceSchema = z.object({
   name: z.string().min(1),
+  slug: z.string().optional().nullable(),
+  type: z.enum(["business", "school", "personal"]).optional(),
   description: z.string().optional().nullable(),
   ownerId: z.number(),
   members: z.array(z.number()).default([]),
