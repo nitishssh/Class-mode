@@ -11,8 +11,9 @@ if (!process.env.OPENAI_API_KEY) {
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
   if (!_openai) {
-    if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not set");
-    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const key = process.env.OPENAI_API_KEY || (process.env.NODE_ENV === "test" ? "dummy-key" : undefined);
+    if (!key) throw new Error("OPENAI_API_KEY is not set");
+    _openai = new OpenAI({ apiKey: key });
   }
   return _openai;
 }
@@ -75,8 +76,8 @@ export async function aiChat(
   messages: ChatMessage[],
   systemPrompt?: string
 ): Promise<ChatResponse> {
-  const hasGemini = !!process.env.GOOGLE_API_KEY;
-  const hasOpenAI = !!process.env.OPENAI_API_KEY;
+  const hasGemini = !!process.env.GOOGLE_API_KEY && process.env.NODE_ENV !== "test";
+  const hasOpenAI = !!process.env.OPENAI_API_KEY || process.env.NODE_ENV === "test";
 
   try {
     // Process system prompt
@@ -300,8 +301,8 @@ export async function* streamAIChat(
   messages: ChatMessage[],
   systemPrompt?: string
 ): AsyncGenerator<string> {
-  const hasGemini = !!process.env.GOOGLE_API_KEY;
-  const hasOpenAI = !!process.env.OPENAI_API_KEY;
+  const hasGemini = !!process.env.GOOGLE_API_KEY && process.env.NODE_ENV !== "test";
+  const hasOpenAI = !!process.env.OPENAI_API_KEY || process.env.NODE_ENV === "test";
 
   try {
     // Process system prompt

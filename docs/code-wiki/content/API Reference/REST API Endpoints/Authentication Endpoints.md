@@ -2,287 +2,138 @@
 
 <cite>
 **Referenced Files in This Document**
+- [auth.ts](file://server/routes/auth.ts)
 - [routes.ts](file://server/routes.ts)
+- [auth-workspace.ts](file://server/lib/auth-workspace.ts)
 - [schema.ts](file://shared/schema.ts)
-- [storage.ts](file://server/storage.ts)
-- [index.ts](file://server/index.ts)
-- [chat-api.ts](file://client/src/lib/chat-api.ts)
-- [.env.example](file://.env.example)
+- [pg-queries.ts](file://server/lib/pg-queries.ts)
 </cite>
 
 ## Table of Contents
 
 1. [Introduction](#introduction)
-2. [Project Structure](#project-structure)
-3. [Core Components](#core-components)
-4. [Architecture Overview](#architecture-overview)
-5. [Detailed Component Analysis](#detailed-component-analysis)
-6. [Dependency Analysis](#dependency-analysis)
-7. [Performance Considerations](#performance-considerations)
-8. [Troubleshooting Guide](#troubleshooting-guide)
-9. [Conclusion](#conclusion)
+2. [Core Endpoints](#core-endpoints)
+3. [Password Management](#password-management)
+4. [Email Verification](#email-verification)
+5. [Workspace Invitations](#workspace-invitations)
+6. [Security & Session Management](#security-session-management)
+7. [Conclusion](#conclusion)
 
 ## Introduction
 
-This document provides comprehensive API documentation for the authentication endpoints used by the backend service. It covers the registration, login, and logout endpoints, including HTTP methods, request/response schemas, validation rules, and session management. It also outlines security considerations such as password handling, session creation, and role-based access control.
+This document provides comprehensive API documentation for the workspace-based local authentication system. All authentication is handled via `HttpOnly` cookies and JWT tokens.
 
-## Project Structure
+## Core Endpoints
 
-The authentication endpoints are implemented in the server routes and backed by a storage layer. Client-side session handling is performed via HTTP cookies with the Express session store.
+### 1. Workspace Signup
 
-```mermaid
-graph TB
-Client["Client"]
-API["Express Server<br/>Routes"]
-Session["Express Session Store"]
-Storage["MongoStorage"]
-DB["MongoDB"]
-Client -- "HTTP requests with cookies" --> API
-API -- "Set session cookies" --> Session
-API -- "Persist user data" --> Storage
-Storage -- "Read/write users" --> DB
-```
+- **Path**: `POST /api/auth/signup`
+- **Purpose**: Creates a new user and an associated workspace.
+- **Request Body**:
+  - `name`: string (Full name)
+  - `email`: string (Unique email)
+  - `password`: string (min 6 chars)
+  - `workspaceName`: string (The name of the initial workspace)
+- **Response**: `201 Created` with User + Active Workspace payload.
 
-**Diagram sources**
+### 2. Login
 
-- [routes.ts](file://server/routes.ts#L11-L85)
-- [index.ts](file://server/index.ts#L35-L44)
-- [storage.ts](file://server/storage.ts#L110-L118)
+- **Path**: `POST /api/auth/login`
+- **Purpose**: Authenticates a user and issues session cookies.
+- **Request Body**:
+  - `email`: string
+  - `password`: string
+- **Response**: `200 OK` with User + Active Workspace payload.
 
-**Section sources**
+### 3. Refresh Session
 
-- [routes.ts](file://server/routes.ts#L11-L85)
-- [index.ts](file://server/index.ts#L35-L44)
+- **Path**: `POST /api/auth/refresh`
+- **Purpose**: Regenerates a short-lived access token using a long-lived refresh token.
+- **Security**: Requires a valid `refresh_token` cookie. Issues a rotated refresh token to prevent replay attacks.
 
-## Core Components
+### 4. Logout
 
-- Registration endpoint: Validates input, checks for duplicate username/email, creates a user, and initializes a session.
-- Login endpoint: Validates credentials, sets session, and returns user info excluding sensitive fields.
-- Logout endpoint: Destroys the session and returns a success message.
-- Session middleware: Configures cookie security, lifetime, and store.
-- Validation schemas: Define allowed fields and constraints for user registration.
+- **Path**: `POST /api/auth/logout`
+- **Purpose**: Invalidates the current session and clears cookies.
 
-**Section sources**
+### 5. Current User (Me)
 
-- [routes.ts](file://server/routes.ts#L13-L85)
-- [schema.ts](file://shared/schema.ts#L4-L13)
-- [index.ts](file://server/index.ts#L35-L44)
+- **Path**: `GET /api/auth/me`
+- **Purpose**: Returns the currently authenticated user's profile and workspace context.
 
-## Architecture Overview
+---
 
-The authentication flow integrates HTTP sessions with a persistent store. On successful registration or login, the server sets session cookies. Subsequent requests carry these cookies, enabling role-based access control on protected routes.
+## Password Management
 
-```mermaid
-sequenceDiagram
-participant C as "Client"
-participant R as "Routes"
-participant S as "Storage"
-participant MS as "MemoryStore"
-Note over C,R : Registration flow
-C->>R : POST /api/auth/register {username,password,name,email,role,class,subject}
-R->>S : getUserByUsername(username)
-R->>S : getUserByEmail(email)
-alt Duplicate detected
-R-->>C : 400 {message}
-else Unique
-R->>S : createUser(userData)
-R->>MS : req.session.userId, role
-R-->>C : 201 {user without password}
-end
-Note over C,R : Login flow
-C->>R : POST /api/auth/login {username,password}
-R->>S : getUserByUsername(username)
-alt Invalid credentials
-R-->>C : 401 {message}
-else Valid
-R->>MS : req.session.userId, role
-R-->>C : 200 {user without password}
-end
-Note over C,R : Logout flow
-C->>R : POST /api/auth/logout
-R->>MS : destroy()
-R-->>C : 200 {message}
-```
+### 1. Forgot Password
 
-**Diagram sources**
+- **Path**: `POST /api/auth/password/forgot`
+- **Body**: `{ "email": "user@example.com" }`
+- **Action**: Sends a password reset link to the user's email.
 
-- [routes.ts](file://server/routes.ts#L13-L85)
-- [storage.ts](file://server/storage.ts#L132-L147)
-- [index.ts](file://server/index.ts#L35-L44)
+### 2. Reset Password
 
-## Detailed Component Analysis
+- **Path**: `POST /api/auth/password/reset`
+- **Body**: `{ "token": "...", "password": "..." }`
+- **Action**: Updates the password and invalidates all active sessions.
 
-### Registration Endpoint
+---
 
-- Path: POST /api/auth/register
-- Purpose: Create a new user account after validating input and ensuring uniqueness of username and email.
-- Request body schema (validation enforced):
-  - username: string, required
-  - password: string, required
-  - name: string, required
-  - email: string, required (valid email format)
-  - role: enum ["student","teacher"], defaults to "student"
-  - avatar: string, optional
-  - class: string, optional
-  - subject: string, optional
-- Response:
-  - 201 Created: Returns user object without password and with auto-generated numeric id.
-  - 400 Bad Request: If input fails validation or username/email already exists.
-  - 500 Internal Server Error: On unexpected failure.
-- Validation rules:
-  - Username and password must be non-empty.
-  - Email must match a valid email format.
-  - Role must be one of the allowed values.
-- Session management:
-  - On success, the server sets session fields: userId and role.
-- Security considerations:
-  - Password is stored in the database; the API response excludes it.
-  - Session cookie is configured with security flags based on environment.
+## Email Verification
 
-**Section sources**
+### 1. Request Verification
 
-- [routes.ts](file://server/routes.ts#L13-L47)
-- [schema.ts](file://shared/schema.ts#L4-L13)
-- [storage.ts](file://server/storage.ts#L132-L147)
-- [index.ts](file://server/index.ts#L35-L44)
+- **Path**: `POST /api/auth/email/verify/request`
+- **Action**: Sends a verification link to the logged-in user's email.
 
-### Login Endpoint
+### 2. Confirm Verification
 
-- Path: POST /api/auth/login
-- Purpose: Authenticate a user by verifying credentials and initializing a session.
-- Request body schema:
-  - username: string, required
-  - password: string, required
-- Response:
-  - 200 OK: Returns user object without password and with auto-generated numeric id.
-  - 400 Bad Request: If username or password are missing.
-  - 401 Unauthorized: If credentials are invalid.
-  - 500 Internal Server Error: On unexpected failure.
-- Validation rules:
-  - Both username and password must be provided.
-  - Credentials are validated against stored user data.
-- Session management:
-  - On success, the server sets session fields: userId and role.
-- Security considerations:
-  - Password comparison is performed in plain text in the current implementation. This is a significant risk and should be addressed by hashing passwords and comparing hashes.
+- **Path**: `POST /api/auth/email/verify`
+- **Body**: `{ "token": "..." }`
+- **Action**: Marks the user's email as verified in the database.
 
-**Section sources**
+---
 
-- [routes.ts](file://server/routes.ts#L49-L76)
-- [storage.ts](file://server/storage.ts#H132-L139)
-- [index.ts](file://server/index.ts#L35-L44)
+## Workspace Invitations
 
-### Logout Endpoint
+### 1. Send Invite
 
-- Path: POST /api/auth/logout
-- Purpose: Destroy the current session and invalidate the user’s authenticated state.
-- Request body: None required.
-- Response:
-  - 200 OK: { message: "Logged out successfully" }
-  - 500 Internal Server Error: On failure to destroy the session.
-- Session management:
-  - Uses the session store to destroy the session.
-- Security considerations:
-  - Ensure the session cookie is cleared by the client if necessary.
+- **Path**: `POST /api/workspaces/:id/invites`
+- **Body**: `{ "email": "...", "role": "admin|member", "kind": "business_member|student" }`
+- **Auth**: Requires "owner" or "admin" role in the target workspace.
 
-**Section sources**
+### 2. Validate Invite
 
-- [routes.ts](file://server/routes.ts#L78-L85)
-- [index.ts](file://server/index.ts#L35-L44)
+- **Path**: `GET /api/invite/validate/:token`
+- **Action**: Checks if an invite token is valid and returns workspace metadata.
 
-### Session Management
+### 3. Accept Invite
 
-- Middleware configuration:
-  - Secret: SESSION_SECRET environment variable (required in production).
-  - Cookie security: secure flag enabled in production; max age 24 hours.
-  - Store: MemoryStore for sessions.
-- Client behavior:
-  - The client sends cookies with credentials included for authenticated requests.
+- **Path**: `POST /api/invite/accept`
+- **Body**: `{ "token": "...", "password": "...", "name": "..." }`
+- **Action**: Creates a user (if needed) and joins them to the workspace.
 
-**Section sources**
+---
 
-- [index.ts](file://server/index.ts#L31-L44)
-- [chat-api.ts](file://client/src/lib/chat-api.ts#L44-L55)
-- [.env.example](file://.env.example#L25-L28)
+## Security & Session Management
 
-### Role-Based Access Control
+### Session Cookies
 
-- Sessions store role alongside userId.
-- Many routes enforce role checks using req.session.role.
-- Example enforcement points:
-  - Tests creation restricted to "teacher".
-  - Workspace member management restricted to owners or "teacher".
-  - Channel creation restricted to "teacher".
+All session data is delivered via secure, HttpOnly cookies:
 
-**Section sources**
+- `access_token`: JWT containing `userId` and `sessionId`. Expires in 15m.
+- `refresh_token`: Opaque string mapped to a database session. Expires in 30d.
 
-- [routes.ts](file://server/routes.ts#L112-L113)
-- [routes.ts](file://server/routes.ts#L64-L67)
+### Password Hashing
 
-## Dependency Analysis
+Passwords are never stored in plain text. The system uses **BcryptJS** with 12 salt rounds.
 
-The authentication endpoints depend on:
+### Rate Limiting
 
-- Route handlers for registration, login, and logout.
-- Validation schemas for input sanitization.
-- Storage layer for user lookup and persistence.
-- Session middleware for cookie-based authentication.
+Authentication endpoints are protected by rate limiters to prevent brute-force attacks.
 
-```mermaid
-graph LR
-Routes["server/routes.ts"]
-Schema["shared/schema.ts"]
-Storage["server/storage.ts"]
-Index["server/index.ts"]
-Routes --> Schema
-Routes --> Storage
-Index --> Routes
-Index --> Storage
-```
-
-**Diagram sources**
-
-- [routes.ts](file://server/routes.ts#L1-L11)
-- [schema.ts](file://shared/schema.ts#L1-L13)
-- [storage.ts](file://server/storage.ts#L1-L12)
-- [index.ts](file://server/index.ts#L10-L12)
-
-**Section sources**
-
-- [routes.ts](file://server/routes.ts#L1-L11)
-- [schema.ts](file://shared/schema.ts#L1-L13)
-- [storage.ts](file://server/storage.ts#L1-L12)
-- [index.ts](file://server/index.ts#L10-L12)
-
-## Performance Considerations
-
-- Session store: MemoryStore is suitable for development; consider a scalable store (e.g., Redis) for production to avoid memory pressure and enable horizontal scaling.
-- Validation: Zod schemas are efficient; keep validation logic minimal and centralized.
-- Database queries: Ensure indexes exist on username and email for fast lookups during registration and login.
-
-## Troubleshooting Guide
-
-Common issues and resolutions:
-
-- 400 Bad Request on registration:
-  - Ensure username, password, name, and email are provided and valid per schema.
-  - Verify username and email are unique.
-- 401 Unauthorized on login:
-  - Confirm username and password match stored records.
-  - Check that the session middleware is initialized and cookies are being sent.
-- 500 Internal Server Error:
-  - Review server logs for stack traces.
-  - Verify database connectivity and session store availability.
-- Session not persisting:
-  - Ensure cookies are sent with credentials and domain/path match.
-  - Confirm SESSION_SECRET is set in production.
-
-**Section sources**
-
-- [routes.ts](file://server/routes.ts#L13-L47)
-- [routes.ts](file://server/routes.ts#L49-L76)
-- [index.ts](file://server/index.ts#L31-L44)
+---
 
 ## Conclusion
 
-The authentication endpoints provide a straightforward registration, login, and logout mechanism backed by HTTP sessions and input validation. While functional, the current implementation stores passwords in plain text and relies on MemoryStore for sessions, which should be improved for production readiness. Implementing hashed passwords, a robust session store, and secure cookie policies will significantly enhance security and scalability.
+The API has transitioned from a Firebase-managed model to a self-hosted, secure, and multi-tenant transactional system. Developers should ensure that all requests include the `credentials: 'include'` flag (for Fetch/XHR) to correctly transmit session cookies.
