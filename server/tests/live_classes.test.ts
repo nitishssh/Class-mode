@@ -132,7 +132,8 @@ async function buildApp() {
 
   // Shim req.isAuthenticated() so the live router middleware doesn't throw
   app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
-    (req as unknown as { isAuthenticated: () => boolean }).isAuthenticated = () => Boolean(req.session?.userId);
+    (req as unknown as { isAuthenticated: () => boolean }).isAuthenticated = () =>
+      Boolean(req.session?.userId);
     next();
   });
 
@@ -176,7 +177,8 @@ describe("Live Classes API — /api/live", () => {
     );
 
     (storage.updateLiveClass as Mock).mockImplementation(
-      (id: number, update: Record<string, unknown>) => Promise.resolve({ ...scheduledClass, ...update })
+      (id: number, update: Record<string, unknown>) =>
+        Promise.resolve({ ...scheduledClass, ...update })
     );
 
     (storage.createLiveSessionAttendance as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -184,7 +186,8 @@ describe("Live Classes API — /api/live", () => {
     });
 
     (storage.updateLiveSessionAttendance as Mock).mockImplementation(
-      (_id: number, update: Record<string, unknown>) => Promise.resolve({ ...mockAttendance, ...update })
+      (_id: number, update: Record<string, unknown>) =>
+        Promise.resolve({ ...mockAttendance, ...update })
     );
 
     (storage.getLiveClassesBySchoolAndClass as ReturnType<typeof vi.fn>).mockResolvedValue([

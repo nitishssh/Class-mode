@@ -207,7 +207,7 @@ router.post("/login", async (req: Request, res: Response) => {
 
 router.post("/refresh", async (req: Request, res: Response) => {
   try {
-    const refreshToken = req.cookies?.[REFRESH_COOKIE];
+    const refreshToken = req.cookies?.refresh_token;
     if (!refreshToken) return res.status(401).json({ message: "Refresh token required" });
 
     const session = await storage.getSessionByRefreshToken(tokenHash(refreshToken));
@@ -234,7 +234,7 @@ router.post("/refresh", async (req: Request, res: Response) => {
 
 router.get("/me", async (req: Request, res: Response) => {
   try {
-    const token = req.cookies?.[ACCESS_COOKIE] || req.headers.authorization?.split(" ")[1];
+    const token = req.cookies?.access_token || req.headers.authorization?.split(" ")[1];
     if (!token) return res.status(401).json({ message: "Not authenticated" });
     const payload = jwt.verify(token, JWT_SECRET) as AccessPayload;
     const me = await currentAuthPayload(payload.userId);
@@ -248,7 +248,7 @@ router.get("/me", async (req: Request, res: Response) => {
 });
 
 router.post("/logout", async (req: Request, res: Response) => {
-  const refreshToken = req.cookies?.[REFRESH_COOKIE];
+  const refreshToken = req.cookies?.refresh_token;
   if (refreshToken) {
     const session = await storage.getSessionByRefreshToken(tokenHash(refreshToken));
     if (session) await storage.deleteSession(session.id);
@@ -259,7 +259,7 @@ router.post("/logout", async (req: Request, res: Response) => {
 
 router.post("/logout-all", async (req: Request, res: Response) => {
   try {
-    const token = req.cookies?.[ACCESS_COOKIE] || req.headers.authorization?.split(" ")[1];
+    const token = req.cookies?.access_token || req.headers.authorization?.split(" ")[1];
     if (token) {
       const payload = jwt.verify(token, JWT_SECRET) as AccessPayload;
       await storage.deleteAllUserSessions(payload.userId);
@@ -273,7 +273,7 @@ router.post("/logout-all", async (req: Request, res: Response) => {
 
 router.post("/email/verify/request", async (req: Request, res: Response) => {
   try {
-    const token = req.cookies?.[ACCESS_COOKIE] || req.headers.authorization?.split(" ")[1];
+    const token = req.cookies?.access_token || req.headers.authorization?.split(" ")[1];
     if (!token) return res.status(401).json({ message: "Not authenticated" });
     const payload = jwt.verify(token, JWT_SECRET) as AccessPayload;
     const user = await pgFindUserById(payload.userId);
@@ -415,11 +415,9 @@ router.post("/invites/:token/accept", (req, res) => {
 router.post("/invite/accept", acceptWorkspaceInvite);
 
 router.post("/register", (_req: Request, res: Response) => {
-  return res
-    .status(403)
-    .json({
-      message: "Public student registration is disabled. Use workspace signup or an invite link.",
-    });
+  return res.status(403).json({
+    message: "Public student registration is disabled. Use workspace signup or an invite link.",
+  });
 });
 
 router.post("/firebase", async (req: Request, res: Response) => {
@@ -455,7 +453,7 @@ router.post("/firebase", async (req: Request, res: Response) => {
 });
 
 router.post("/sync-profile", async (req: Request, res: Response) => {
-  const token = req.cookies?.[ACCESS_COOKIE] || req.headers.authorization?.split(" ")[1];
+  const token = req.cookies?.access_token || req.headers.authorization?.split(" ")[1];
   if (!token) return res.status(401).json({ message: "Unauthorized" });
   try {
     const payload = jwt.verify(token, JWT_SECRET) as AccessPayload;

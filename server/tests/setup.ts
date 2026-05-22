@@ -20,7 +20,8 @@ vi.mock("../db-pg", () => {
     getPgPool: () => mockPool,
     isPgReady: () => true,
     connectPostgres: vi.fn().mockResolvedValue(undefined),
-    withPgClient: async <T>(fn: (client: unknown) => Promise<T>): Promise<T> => fn(await mockPool.connect()),
+    withPgClient: async <T>(fn: (client: unknown) => Promise<T>): Promise<T> =>
+      fn(await mockPool.connect()),
   };
 });
 
@@ -29,10 +30,13 @@ vi.mock("../lib/pg-queries", () => {
   const mocks: Record<string | symbol, Mock> = {};
   return new Proxy(mocks, {
     get: (target, prop) => {
-      if (!(prop in target)) {
-        target[prop] = vi.fn();
+      if (typeof prop === "string" && prop !== "__proto__" && prop !== "constructor") {
+        if (!(prop in target)) {
+          target[prop] = vi.fn();
+        }
+        return target[prop];
       }
-      return target[prop];
+      return undefined;
     },
   });
 });

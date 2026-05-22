@@ -137,8 +137,9 @@ describe("POST /api/evaluate — AI-Powered Subjective Grading", () => {
     mockStorage.getQuestion.mockResolvedValue(mockQuestion);
     mockStorage.getTestAttempt.mockResolvedValue(mockAttempt);
     mockStorage.getTest.mockResolvedValue(mockTest);
-    (mockStorage.updateAnswer as Mock).mockImplementation((id: number, updates: Record<string, unknown>) =>
-      Promise.resolve({ ...mockAnswer, ...updates })
+    (mockStorage.updateAnswer as Mock).mockImplementation(
+      (id: number, updates: Record<string, unknown>) =>
+        Promise.resolve({ ...mockAnswer, ...updates })
     );
 
     app = express();
