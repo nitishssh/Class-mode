@@ -12,6 +12,11 @@
 - [MESSAGEPAL_IMPLEMENTATION_SUMMARY.md](file://MESSAGEPAL_IMPLEMENTATION_SUMMARY.md)
 - [message_pal.md](file://message_pal.md)
 - [.env.example](file://.env.example)
+- [playback-engine.ts](file://client/src/lib/playback-engine.ts)
+- [WhiteboardCanvas.tsx](file://client/src/components/ai-classroom/WhiteboardCanvas.tsx)
+- [ai-classroom.ts](file://server/routes/ai-classroom.ts)
+- [generator.ts](file://server/services/study-arena/generator.ts)
+- [OPENMAIC_CHEAT_SHEET.md](file://docs/OPENMAIC_CHEAT_SHEET.md)
 </cite>
 
 ## Table of Contents
@@ -21,6 +26,12 @@
 3. [Core Components](#core-components)
 4. [Architecture Overview](#architecture-overview)
 5. [Detailed Component Analysis](#detailed-component-analysis)
+   - [OpenAI Integration Module](#openai-integration-module)
+   - [AI Chat Endpoint and UI](#ai-chat-endpoint-and-ui)
+   - [Automated Answer Evaluation](#automated-answer-evaluation)
+   - [Performance Analytics](#performance-analytics)
+   - [MessagePal AI Framework](#messagepal-ai-framework)
+   - [Study Arena Classroom Engine (OpenMAIC)](#study-arena-classroom-engine-openmaic)
 6. [Dependency Analysis](#dependency-analysis)
 7. [Performance Considerations](#performance-considerations)
 8. [Troubleshooting Guide](#troubleshooting-guide)
@@ -296,6 +307,76 @@ Hook --> WS
 
 - [MESSAGEPAL_IMPLEMENTATION_SUMMARY.md](file://MESSAGEPAL_IMPLEMENTATION_SUMMARY.md#L1-L135)
 - [message_pal.md](file://message_pal.md#L1-L494)
+
+### Study Arena Classroom Engine (OpenMAIC)
+
+The Study Arena feature integrates the OpenMAIC classroom playback and generation engine, providing interactive AI-generated classrooms for structured learning.
+
+#### Core Capabilities & Architecture
+
+- **Stateless Generation**: The generation backend is fully stateless. The user's requirements travel to the backend, which runs a two-stage LangGraph pipeline:
+  - **Stage 1 (Outline Generation)**: Builds a structured sequence of scene outlines (`SceneOutline[]`).
+  - **Stage 2 (Scene Generation)**: Translates outlines into concrete React slides, interactive widgets, quiz questions, and whiteboard actions.
+- **Multi-Provider LLM Engine**: The generator dynamically cascades through a chain of AI providers if configured endpoints fail: Gemini → Anthropic → DeepSeek → Qwen → OpenRouter → Kimi → Grok → Ollama → OpenAI.
+- **Zustand State Management**: The client side keeps all active playback, canvas elements, settings, and chat history in synced Zustand stores (`main-store.ts`, `canvas.ts`, `settings.ts`).
+
+#### Playback State Machine (`PlaybackEngine`)
+
+The `PlaybackEngine` manages a rich state machine governing how lessons play:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Playing : start()
+    Playing --> Paused : pause()
+    Paused --> Playing : resume()
+    Playing --> Live : confirmDiscussion() / handleUserInterrupt()
+    Live --> Paused : pause()
+    Paused --> Live : resume()
+    Live --> Idle : handleEndDiscussion()
+```
+
+- **Playback Controls**: Standard control panel exposing play, pause, resume, skip, and stop callbacks mapped via the `usePlayback` hook.
+- **Audio Pipeline**:
+  - **Text-to-Speech (TTS)**: Features sentence-chunked browser SpeechSynthesis (avoiding Chrome's 15s utterance limit) and a togglable server-based TTS mode (hitting `/api/ai-classroom/tts` backed by OpenAI TTS).
+  - **Automatic Speech Recognition (ASR)**: Enables voice inputs by recording the microphone (MediaRecorder) and posting to `/api/ai-classroom/asr` (backed by Whisper).
+- **Interactive whiteboards**: The SVG-based `WhiteboardCanvas` maps draw actions (`wb_draw_text`, `wb_draw_latex`, `wb_draw_shape`, `wb_draw_chart`, etc.) using a normalized `1000 x 562` coordinate system. Real-time syntax highlighting for code blocks is powered by Shiki (one-dark-pro).
+- **Sandboxed Widgets**: The `WidgetRenderer` utilizes a secure iframe sandbox that interfaces with custom interactive HTML5 simulations or games using postMessages scoped to `window.location.origin`.
+
+#### Export Options and Offline Support
+
+- **Exports**: Supports downloading lesson slides as PowerPoint (.pptx) via a customized `pptxgenjs` script, self-contained HTML pages, or full archive ZIP packages.
+- **Caching**: Employs an IndexedDB offline database (`PLPro_Classrooms` via Dexie) with a 24-hour TTL caching mechanism to prevent redundant API loads.
+
+```mermaid
+graph TB
+  subgraph "Study Arena System"
+    Engine["PlaybackEngine (Zustand)"]
+    Canvas["WhiteboardCanvas (SVG + Shiki)"]
+    TTS["Speech Synthesis Queue"]
+    DB["Dexie (IndexedDB Caching)"]
+  end
+  subgraph "Backend API / Routes"
+    Router["server/routes/ai-classroom.ts"]
+    Gen["generator.ts (Multi-provider LLM)"]
+  end
+  Engine --> Canvas
+  Engine --> TTS
+  Engine --> DB
+  Router --> Gen
+  Engine -.-> Router
+```
+
+**Diagram sources**
+- [playback-engine.ts](file://client/src/lib/playback-engine.ts#L1-L307)
+- [WhiteboardCanvas.tsx](file://client/src/components/ai-classroom/WhiteboardCanvas.tsx#L1-L376)
+- [ai-classroom.ts](file://server/routes/ai-classroom.ts#L1-L157)
+- [generator.ts](file://server/services/study-arena/generator.ts#L1-L395)
+
+**Section sources**
+- [OPENMAIC_CHEAT_SHEET.md](file://docs/OPENMAIC_CHEAT_SHEET.md#L1-L603)
+- [playback-engine.ts](file://client/src/lib/playback-engine.ts#L1-L307)
+- [WhiteboardCanvas.tsx](file://client/src/components/ai-classroom/WhiteboardCanvas.tsx#L1-L376)
 
 ## Dependency Analysis
 

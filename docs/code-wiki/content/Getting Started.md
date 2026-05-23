@@ -40,9 +40,9 @@ PersonalLearningPro is an AI-powered personalized learning platform with integra
 Key highlights:
 
 - Single development port 5001 serving both API and frontend
-- Optional AI features powered by OpenAI
-- Optional Firebase authentication
-- Hybrid data storage using MongoDB and optional Cassandra/Astra DB for messaging
+- Multi-provider AI features (Gemini, Anthropic, DeepSeek, Qwen, OpenRouter, OpenAI, etc.)
+- Mandatory local PostgreSQL-backed multi-tenant workspace authentication system
+- Hybrid data storage using PostgreSQL (auth/tenancy), MongoDB (content/assessments), and optional Cassandra/Astra DB for messaging
 
 ## Project Structure
 
@@ -92,16 +92,16 @@ DC --> DK
 
 ## Core Components
 
-- Backend server: Express app with session middleware, static uploads, WebSocket support, and hybrid storage (MongoDB + optional Cassandra/Astra DB)
+- Backend server: Express app with JWT session middleware, static uploads, WebSocket support, and hybrid storage (PostgreSQL + MongoDB + optional Cassandra/Astra DB)
 - Frontend: React SPA served by Vite in development; built assets served in production
-- Environment configuration: .env and .env.example define optional integrations (Firebase, OpenAI, databases)
+- Environment configuration: .env and .env.example define required and optional integrations
 - Docker: Multi-stage build with development and production targets
 
 What you need installed:
 
 - Docker (recommended) or Node.js v18+ with npm
-- PostgreSQL and MongoDB for data persistence (manual setup)
-- Optional: OpenAI API key for AI features; Firebase project for authentication
+- PostgreSQL (mandatory for identity & tenancy) and MongoDB for data persistence (manual setup)
+- Optional: OpenAI, Gemini, and other LLM API keys for AI capabilities; Cassandra/Astra DB secure connect bundle for real-time messaging
 
 **Section sources**
 
@@ -128,14 +128,16 @@ Browser["Browser (port 5001)"]
 subgraph "Server"
 Express["Express App<br/>server/index.ts"]
 Routes["Routes<br/>server/routes.ts"]
-Storage["Storage (MongoDB + optional Cassandra)<br/>server/storage.ts"]
-DB["MongoDB Connection<br/>server/db.ts"]
+Storage["Storage (PostgreSQL + MongoDB + optional Cassandra)<br/>server/storage.ts"]
+DB_PG["PostgreSQL Connection<br/>server/db-pg.ts"]
+DB_Mongo["MongoDB Connection<br/>server/db.ts"]
 WS["WebSocket Servers<br/>chat-ws.ts, messagepal/index.ts"]
 end
 Browser --> Express
 Express --> Routes
 Express --> Storage
-Storage --> DB
+Storage --> DB_PG
+Storage --> DB_Mongo
 Express --> WS
 ```
 
@@ -169,15 +171,16 @@ Express --> WS
 
 ### Environment Configuration (.env and .env.example)
 
-- Copy the example to .env and set values for optional integrations:
-  - Firebase: VITE*FIREBASE*\* keys
-  - OpenAI: OPENAI_API_KEY
-  - MongoDB: MONGODB_URL
-  - Session: SESSION_SECRET (required in production)
-  - Cassandra/Astra DB: ASTRA*DB*\* for message store fallback
+- Copy the example to .env and configure the required settings:
+  - PostgreSQL: `POSTGRESQL_URL` (mandatory for auth/tenancy)
+  - MongoDB: `MONGODB_URL` (mandatory for content/assessments)
+  - JWT: `JWT_SECRET` (required to sign cookies/tokens)
+  - Session: `SESSION_SECRET` (required in production)
+  - OpenAI/Gemini: `OPENAI_API_KEY`, `GOOGLE_API_KEY`, etc. (optional, enables AI features)
+  - Cassandra/Astra DB: `ASTRA_DB_*` (optional, for scalable message store)
 - Notes:
-  - Without Firebase, the app loads but authentication features are disabled
-  - Without OpenAI, AI features are unavailable
+  - Without PostgreSQL, the application will fail to start.
+  - Without LLM API keys, Study Arena generation and AI tutoring features are disabled.
 
 **Section sources**
 
@@ -204,9 +207,9 @@ After starting the app:
 
 - Visit http://localhost:5001
 - Expected behavior:
-  - Application loads
-  - If Firebase is configured, authentication UI appears
-  - If databases are configured, features like chat and analytics become available
+  - Application loads and displays the local authentication dialog.
+  - Users can register as a new teacher (creating a new workspace) or log in.
+  - If PostgreSQL and MongoDB are running properly, features like dashboards, tests, chat, and analytics become fully functional.
 
 **Section sources**
 
@@ -215,35 +218,25 @@ After starting the app:
 
 ### Authentication and First-Time User Setup
 
-- Firebase-based authentication is optional:
-  - If configured, users can log in with email/password or Google
-  - New Google users are guided to select a role during registration
-- Without Firebase, the app loads but authentication features are disabled
-- First-time user flow:
-  - Email/password registration creates a user record
-  - Google sign-in checks Firestore for existing users; new users are prompted to select a role and additional profile data is stored
+- **Local Self-Hosted Identity**: Authentication is backed by PostgreSQL, using bcrypt for password hashing and JWT cookies for session security.
+- **Tenant Workspace Creation**: First-time users register (e.g., as a Teacher) and automatically initialize a new Workspace of which they become the Owner.
+- **Invite-Only Students**: Students are onboarded via workspace-specific invite links (`/api/workspaces/:id/invites`) which generate unique tokenized signup links.
 
 ```mermaid
 sequenceDiagram
 participant U as "User"
 participant FE as "Frontend (React)"
-participant FC as "Firebase Context"
-participant FB as "Firebase Auth"
 participant API as "Backend Routes"
-U->>FE : "Open app"
-FE->>FC : "Initialize auth state"
-FC->>FB : "Check current user"
-alt "Firebase configured"
-FB-->>FC : "User or null"
-FC-->>FE : "Set current user"
-U->>FE : "Sign in with Google"
-FE->>FB : "Sign in"
-FB-->>FE : "New user? Prompt for role"
-FE->>API : "Complete registration (role + data)"
-API-->>FE : "User profile created"
-else "Firebase not configured"
-FC-->>FE : "Skip auth"
-end
+participant PG as "PostgreSQL Database"
+U->>FE : Open app (not logged in)
+FE->>FE : Redirect/Show local login/signup dialog
+U->>FE : Fill out email, password, and name
+FE->>API : POST /api/auth/signup {email, password, name}
+API->>PG : Create User, Workspace, and WorkspaceMembership (Owner)
+PG-->>API : Success
+API->>API : Sign JWT access_token & generate refresh_token
+API-->>FE : Return profile info & set HTTP cookies
+FE-->>U : Redirect to '/' dashboard
 ```
 
 **Diagram sources**
@@ -262,24 +255,27 @@ end
 
 ### Data Storage and Dependencies
 
-- MongoDB is required for user, test, and analytics data
-- Optional Cassandra/Astra DB can be used for message storage; if absent, messages fall back to MongoDB
-- PostgreSQL is not required by the backend; the project documentation mentions it for manual setup
+- **PostgreSQL**: Mandatory transactional database for identity, workspace tenancy, audits, and invites.
+- **MongoDB**: Used for tests, questions, test attempts, answer submissions, and focus/learning sessions.
+- **Cassandra (Optional)**: Partitioned high-throughput message store for chat. If unconfigured, messages fall back to MongoDB.
 
 ```mermaid
 classDiagram
+class PGStorage {
++connectPostgres()
++pgFindUserById(id)
++pgFindFirstWorkspaceMembership(userId)
++pgCreateWorkspaceInvite(invite)
+}
 class MongoStorage {
-+sessionStore
-+getUser(id)
-+createUser(user)
-+getTests(...)
-+createMessage(msg)
-+getMessagesByChannel(...)
++getTest(id)
++createTestAttempt(attempt)
++createAnswer(answer)
 }
 class Cassandra {
 +client
-+createMessage(...)
-+getMessagesByChannel(...)
++createMessage(msg)
++getMessagesByChannel(channelId)
 }
 MongoStorage --> Cassandra : "optional fallback"
 ```

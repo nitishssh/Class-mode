@@ -17,6 +17,10 @@
 - [button.tsx](file://client/src/components/ui/button.tsx)
 - [utils.ts](file://client/src/lib/utils.ts)
 - [use-toast.ts](file://client/src/hooks/use-toast.ts)
+- [use-playback.ts](file://client/src/hooks/use-playback.ts)
+- [WhiteboardCanvas.tsx](file://client/src/components/ai-classroom/WhiteboardCanvas.tsx)
+- [classroom-db.ts](file://client/src/lib/classroom-db.ts)
+- [ai-classroom.tsx](file://client/src/pages/ai-classroom.tsx)
 </cite>
 
 ## Table of Contents
@@ -78,13 +82,14 @@ App --> Utils["Utilities<br/>cn, getInitials"]
 
 ## Core Components
 
-- App shell and routing: Centralized router with role-aware dashboards and a layout wrapper that controls margins and full-width rendering.
-- Authentication provider: Manages Firebase auth state, user profiles, and exposes login/register/logout/reset flows with toast feedback.
+- App shell and routing: Centralized router with role-aware dashboards and a layout wrapper that controls margins and full-width rendering (including full-width support for interactive classrooms).
+- Authentication provider: Manages local PostgreSQL-backed session state (using JWT cookies), user profiles, and exposes login/signup/logout/reset flows with toast feedback.
 - Theme provider: Persists theme preference and applies system/dark/light classes to the document root.
-- Chat role provider: Derives chat user identity from auth profile for chat UIs.
+- Chat role provider: Derives chat user identity from local auth profile for chat UIs.
 - UI primitives: Radix UI slots with Tailwind-based variants for buttons and other components.
+- Study Arena components: Real-time classroom player (`PlaybackControls`, `WhiteboardCanvas`, `SpotlightOverlay`, `VideoPlayer`, sandboxed `WidgetRenderer`).
 - Utilities: Class merging and initial extraction helpers.
-- Custom hooks: Toast manager and chat WebSocket connector with reconnection logic.
+- Custom hooks: Toast manager, chat WebSocket connector, and classroom `usePlayback` controller.
 
 **Section sources**
 
@@ -111,7 +116,7 @@ graph TB
 subgraph "Providers"
 QC["React Query Client"]
 Theme["Theme Provider"]
-Auth["Firebase Auth Provider"]
+Auth["Local Auth Provider"]
 Role["Chat Role Provider"]
 end
 subgraph "Routing"
@@ -119,13 +124,14 @@ Wouter["Wouter Router"]
 Layout["AppLayout Wrapper"]
 end
 subgraph "Presentation"
-Pages["Pages (Dashboards, Forms)"]
+Pages["Pages (Dashboards, Forms, Study Arena)"]
 UI["UI Components (Radix + Tailwind)"]
 Sidebar["Sidebar"]
 end
 subgraph "Data"
 API["apiRequest + getQueryFn"]
 WS["use-chat-ws"]
+IDB["Dexie Classroom Cache"]
 end
 Auth --> Pages
 Theme --> UI
@@ -137,6 +143,7 @@ Pages --> UI
 Pages --> Sidebar
 Pages --> API
 Pages --> WS
+Pages --> IDB
 ```
 
 **Diagram sources**
@@ -154,32 +161,30 @@ Pages --> WS
 
 ### Authentication Provider and Context
 
-The Firebase Auth provider manages:
+The local `AuthProvider` (implemented in `firebase-auth-context.tsx`) manages:
 
-- Initialization via auth state listener.
-- User profile fetching with a timeout to avoid hanging on offline conditions.
-- Login, register, Google sign-in, and logout flows with toast notifications.
-- Password reset flow.
+- Clean initialization via `/api/auth/me` on startup.
+- User profile fetching with active workspace context, workspace role, and permissions mapping.
+- Login, register (which creates a new workspace), and logout flows with toast notifications.
+- Password reset flow utilizing server-issued tokens.
 - Loading state management during auth transitions.
 
 ```mermaid
 classDiagram
-class FirebaseAuthProvider {
+class AuthProvider {
 +currentUser : AuthUser
 +isLoading : boolean
 +login(email, password) Promise<void>
 +register(email, password, name, role, additionalData?) Promise<void>
-+googleLogin() Promise<AuthUser>
-+completeGoogleRegistration(user, role, additionalData?) Promise<void>
 +logout() Promise<void>
 +resetUserPassword(email) Promise<void>
++refreshSession() Promise<void>
 }
 class AuthUser {
 +user : User|null
 +profile : UserProfile|null
-+isNewUser? : boolean
 }
-FirebaseAuthProvider --> AuthUser : "manages"
+AuthProvider --> AuthUser : "manages"
 ```
 
 **Diagram sources**
@@ -252,9 +257,9 @@ The App composes:
 - A pre-wrapped set of pages to avoid recreating wrappers on each render.
 - A Router that:
   - Shows a loading spinner while auth initializes.
-  - Renders an authentication dialog if no user.
-  - Routes to role-specific dashboards.
-  - Provides common routes for features like analytics, OCR, messaging, etc.
+  - Renders local login/signup/reset dialogs if no user is authenticated.
+  - Routes to role-specific dashboards (Student, Teacher, Principal, Parent, Admin).
+  - Provides routes for features like analytics, OCR, messaging, and the interactive Study Arena (`/classroom/:id`).
   - Falls back to a 404 page.
 
 ```mermaid

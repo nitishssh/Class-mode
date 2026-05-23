@@ -64,10 +64,11 @@ D --> H["Session Validation (WS)<br/>server/chat-ws.ts"]
   - Secret, resave/saveUninitialized, secure flag, and maxAge are set during session initialization.
   - Production requires SESSION_SECRET to be defined.
 - Authentication middleware (`authenticateToken`)
-  - Tries Firebase ID token verification first; falls back to local JWT (`JWT_SECRET`).
-  - On success, sets **both** `req.session.userId / req.session.role` **and** `(req as any).user = { id, role, email }`.
-  - Setting `req.user` ensures route handlers in `billing.ts`, `gdpr.ts`, `educator.ts`, `parent.ts`, and `grading.ts` that read `req.user.id` receive the correct value.
-  - Registration validates email format before creating a user (RFC-style regex check).
+  - Verifies the server-issued JWT token (stored in the `ACCESS_COOKIE` cookie or `Authorization` header) against `JWT_SECRET` (never calls Firebase Admin on the hot path).
+  - Falls back to session-based verification if `req.session.userId` is present.
+  - On success, sets `req.session.userId`, `req.session.role`, and `(req as any).user = { id, role, email, status, emailVerified }`.
+  - Dynamically fetches workspace information via `pgFindFirstWorkspaceMembership(userId)` and injects `(req as any).workspace`, `(req as any).workspaceRole`, and `(req as any).permissions` context.
+  - Registration validates email format before creating a user.
 - Route-level session usage
   - Login and registration set `req.session.userId` and `req.session.role`.
   - Logout destroys the session.
@@ -299,8 +300,8 @@ Prune --> End
 
 ### Token Verification Processes
 
-- The server does not implement JWT verification; authentication relies on express-session.
-- If token-based auth is desired, integrate a JWT library and add middleware to validate tokens.
+- The server implements strict JWT verification using `jsonwebtoken` library in `authenticateToken` middleware.
+- JWT tokens contain user identity, role, session ID, and email. Access cookies are signed with `JWT_SECRET` and set as `HttpOnly`, `Secure` (in production), and `SameSite=Lax`.
 
 **Section sources**
 

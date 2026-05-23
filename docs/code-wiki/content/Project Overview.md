@@ -39,8 +39,8 @@ The platform’s mission is to democratize access to personalized education by c
 
 The repository follows a monorepo-style organization with clear separation between client, server, and shared code:
 
-- client: React 18 frontend built with Vite, providing role-aware dashboards, AI tutoring, chat, and analytics.
-- server: Express.js backend serving APIs, managing sessions, integrating OpenAI, and handling WebSocket connections.
+- client: React 18 frontend built with Vite, providing role-aware dashboards, AI tutoring, chat, Study Arena, and analytics.
+- server: Express.js backend serving APIs, managing sessions, integrating multi-provider LLMs, and handling WebSocket connections.
 - shared: Zod schemas and shared types used across client and server for consistent validation.
 - docker-compose: Container orchestration for local development and deployment.
 
@@ -48,28 +48,30 @@ The repository follows a monorepo-style organization with clear separation betwe
 graph TB
 subgraph "Client (React 18)"
 C_App["App.tsx"]
-C_Firebase["Firebase Auth"]
-C_AI["AI Tutor"]
+C_Auth["Local Auth Provider"]
+C_AI["AI Tutor & Study Arena"]
 C_Dash["Dashboard"]
 end
 subgraph "Server (Express.js)"
 S_Index["server/index.ts"]
 S_Routes["server/routes.ts"]
-S_OpenAI["OpenAI Integration"]
-S_Cassandra["Cassandra (Astra DB)"]
+S_AI["AI Services / Study Arena"]
+S_PG["PostgreSQL"]
 S_Mongo["MongoDB"]
+S_Cassandra["Cassandra (Astra DB)"]
 end
 subgraph "Shared"
 Sh_Schema["shared/schema.ts"]
 end
 C_App --> S_Index
-C_Firebase --> S_Index
+C_Auth --> S_Index
 C_AI --> S_Routes
 C_Dash --> S_Routes
 S_Index --> S_Routes
-S_Routes --> S_OpenAI
-S_Routes --> S_Cassandra
+S_Routes --> S_AI
+S_Routes --> S_PG
 S_Routes --> S_Mongo
+S_Routes --> S_Cassandra
 S_Routes --> Sh_Schema
 ```
 
@@ -90,11 +92,12 @@ S_Routes --> Sh_Schema
 
 - AI-Powered Capabilities
   - AI Tutor: Interactive learning assistant with chat-based help and conversation persistence.
+  - Study Arena (AI Classroom): Real-time interactive lesson playback with Whiteboard Canvas, video play, custom widgets, Speech Synthesis (TTS), and Whisper-based Speech-to-Text (ASR) input.
   - Test Creation: AI-assisted question generation and rubric-based evaluation.
   - Answer Evaluation: Automatic evaluation of subjective answers using OpenAI.
   - Performance Analysis: AI insights into student performance patterns and recommendations.
 - Core Functionality
-  - User Management: Role-based access control (Teacher, Student, Principal, Admin, Parent).
+  - User Management: Relational workspace-centric tenancy and role-based access control (Teacher, Student, Principal, Admin, Parent).
   - Test Management: Create, distribute, and evaluate tests with class-based visibility.
   - OCR Test Scanning: Convert physical test papers to digital format.
   - Student Directory: Browse students organized by standards (nursery to 12th grade).
@@ -111,38 +114,39 @@ S_Routes --> Sh_Schema
 
 The platform employs a layered architecture with clear separation of concerns:
 
-- Frontend (React 18/Vite): Provides role-aware UIs, real-time chat, and AI tutoring.
-- Backend (Express.js): Exposes RESTful APIs, manages sessions, and orchestrates integrations.
-- Real-Time Communication: WebSocket servers for chat and MessagePal features.
-- Data Layer: MongoDB for general user and metadata storage, Cassandra (Astra DB) for scalable message storage.
-- AI Integration: OpenAI for chat, evaluation, study plan generation, and performance analysis.
-- Authentication: Firebase for user authentication and profile management.
+- Frontend (React 18/Vite): Provides role-aware UIs, real-time chat, AI tutoring, and the Study Arena classroom interface.
+- Backend (Express.js): Exposes RESTful APIs, manages sessions, and orchestrates LLM / media integrations.
+- Real-Time Communication: WebSocket servers for chat, class interactions, and MessagePal.
+- Data Layer: PostgreSQL for user accounts, workspaces, invites, and tenancy; MongoDB for tests, questions, attempts, and analytics; Cassandra (Astra DB) for scalable chat streams.
+- AI Integration: Multi-provider support (Gemini, Anthropic, DeepSeek, Qwen, OpenRouter, Kimi, Grok, Ollama, OpenAI) for classroom generation and general AI tasks.
+- Authentication: Self-hosted local workspace-centric identity management with fallback Firebase token-exchange support.
 
 ```mermaid
 graph TB
 subgraph "Client Layer"
 UI["React 18 UI"]
-Auth["Firebase Auth"]
+Auth["Local Auth Context"]
 WS["WebSocket Clients"]
 end
 subgraph "Server Layer"
 API["Express API"]
 WS_Server["WebSocket Servers"]
-OpenAI["OpenAI SDK"]
+LLM["Multi-provider LLM chain"]
+PG["PostgreSQL"]
 Mongo["MongoDB"]
 Cassandra["Cassandra (Astra DB)"]
 end
 subgraph "External Services"
-Firebase["Firebase Auth"]
-OpenAIService["OpenAI API"]
+OpenAIService["OpenAI / LLM APIs"]
 end
 UI --> API
-Auth --> Firebase
+Auth --> API
 WS --> WS_Server
-API --> OpenAI
+API --> LLM
+API --> PG
 API --> Mongo
 API --> Cassandra
-OpenAI --> OpenAIService
+LLM --> OpenAIService
 ```
 
 **Diagram sources**
@@ -158,12 +162,12 @@ OpenAI --> OpenAIService
 
 ### Technology Stack Overview
 
-- Frontend: React 18 with Vite, Radix UI, Tailwind CSS, React Query for caching, and WebSocket clients for real-time features.
-- Backend: Express.js with TypeScript, session management, and modular route handlers.
-- Databases: MongoDB for general data and Cassandra (Astra DB) for message storage with partitioned and clustering keys.
-- Real-Time: WebSocket servers for chat and MessagePal.
-- AI: OpenAI integration for chat, evaluation, study plan generation, and performance analysis.
-- Authentication: Firebase for user registration, login, and profile management.
+- Frontend: React 18 with Vite, Radix UI, Tailwind CSS, recharts, shiki, dexie, React Query, and WebSocket clients.
+- Backend: Express.js with TypeScript, JWT + cookie session management, and modular route handlers.
+- Databases: PostgreSQL for core identity and tenancy, MongoDB for tests/assessments, and Cassandra (Astra DB) for message storage.
+- Real-Time: WebSocket servers for chat, presence, and interactive sessions.
+- AI: Multi-provider engine (Gemini, Anthropic, DeepSeek, Qwen, OpenAI, OpenRouter, Kimi, Grok, Ollama) for text generation, speech synthesis (OpenAI TTS), and speech recognition (Whisper ASR).
+- Authentication: Local self-hosted identity and workspace invite system (JWT cookies) with Firebase token exchange endpoint.
 
 **Section sources**
 
@@ -235,23 +239,27 @@ WSServer-->>Client : Broadcast message
 
 ### Authentication and Authorization
 
-Firebase provides authentication and user profiles, while the backend enforces role-based access control:
+The self-hosted identity system manages authentication and workspace-scoped authorization:
 
-- Firebase Auth: Email/password and Google OAuth with Firestore user profiles.
-- Session Management: Express session stores user roles and permissions.
-- Role-Based Routes: Teachers can create tests; students can attempt tests; admins/principals have elevated access.
+- Local Auth: Email/password signup (teachers create new workspace; students join via tokenized invites).
+- Session Management: JWT access tokens (`HttpOnly` cookie) combined with database-backed refresh tokens in PostgreSQL.
+- Workspace Scoping: `authenticateToken` middleware injects `req.user`, `req.workspace`, and `req.permissions` context for multi-tenant isolation.
+- Role-Based Access: Workspace roles (`owner`, `admin`, `member`) gate administrative actions, while system roles (`teacher`, `student`, etc.) govern educational capabilities.
 
 ```mermaid
 sequenceDiagram
 participant User as "User"
-participant Firebase as "Firebase Auth"
 participant API as "Express API"
-participant Session as "Session Store"
-User->>Firebase : Login/Register
-Firebase-->>User : Auth token
-User->>API : Request with auth
-API->>Session : Set role and userId
-API-->>User : Authorized response
+participant PG as "PostgreSQL"
+User->>API : POST /api/auth/login {email, password}
+API->>PG : Verify password (bcrypt) & load workspace
+PG-->>API : User profile + active workspace
+API->>API : Sign JWT & generate refresh token
+API->>PG : Persist refresh token session
+API-->>User : Set access_token & refresh_token cookies
+User->>API : Request with cookies
+API->>API : Verify JWT & inject req.user / req.workspace
+API-->>User : Tenancy-scoped data
 ```
 
 **Diagram sources**
@@ -392,8 +400,8 @@ Pkg --> WS
 
 Common issues and resolutions:
 
-- Missing Environment Variables: Ensure OPENAI_API_KEY and Firebase credentials are configured; otherwise, AI features or auth will be disabled.
-- Database Connectivity: MongoDB connection errors are non-fatal; verify MONGODB_URL; Cassandra requires Astra DB credentials.
+- Missing Environment Variables: Ensure `JWT_SECRET`, `POSTGRESQL_URL`, and relevant AI keys (`OPENAI_API_KEY`, etc.) are configured.
+- Database Connectivity: PostgreSQL connectivity is required for authentication and workspaces; MongoDB connection errors are non-fatal but disrupt test features; Cassandra is used for chat stream persistence.
 - WebSocket Issues: Confirm WebSocket initialization and port exposure; verify client connectivity.
 - CORS and Sessions: Validate session configuration and cookie settings for production deployments.
 
