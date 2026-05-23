@@ -55,7 +55,10 @@
       "Bash(gcloud compute *)",
       "Bash(gcloud secrets *)",
       "Bash(chmod +x scripts/deploy.sh)",
-      "Bash(bash -n scripts/deploy.sh)"
+      "Bash(bash -n scripts/deploy.sh)",
+      "Bash(openssl s_client -servername classmode.inmodel.in -connect classmode.inmodel.in:443)",
+      "Bash(openssl x509 *)",
+      "Bash(gcloud logging *)"
     ]
   }
 }
