@@ -42,6 +42,7 @@ import TestsList from "@/pages/tests-list";
 import Landing from "@/pages/landing";
 import LoginPage from "@/pages/login";
 import AcceptInvite from "@/pages/accept-invite";
+import VerifyEmailPage from "@/pages/verify-email";
 import SchoolSetup from "@/pages/onboarding/school-setup";
 import InviteTeachers from "@/pages/onboarding/invite-teachers";
 import TeacherClassSetup from "@/pages/onboarding/teacher-class-setup";
@@ -254,8 +255,17 @@ function App() {
       {/* ── Public routes — no auth required ─────────────────────── */}
       <Route path="/" component={Landing} />
 
-      {/* /login: show login page; if already authenticated go to dashboard */}
-      <Route path="/login">{profile ? <Redirect to={dashboardPath} /> : <LoginPage />}</Route>
+      {/* /login: show login page; if already authenticated go to dashboard (or verify-email if unverified) */}
+      <Route path="/login">
+        {profile
+          ? profile.emailVerified === false
+            ? <Redirect to="/verify-email" />
+            : <Redirect to={dashboardPath} />
+          : <LoginPage />}
+      </Route>
+
+      {/* Email verification — must be accessible right after signup */}
+      <Route path="/verify-email" component={VerifyEmailPage} />
 
       {/* Invite acceptance must be public — unauthenticated users click invite links */}
       <Route path="/accept-invite" component={AcceptInvite} />

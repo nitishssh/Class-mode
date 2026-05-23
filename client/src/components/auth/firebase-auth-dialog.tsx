@@ -329,7 +329,8 @@ export function FirebaseAuthDialog() {
       try {
         const additionalData = getRoleSpecificData(data.role, data);
         await register(data.email, data.password, data.name, data.role as UserRole, additionalData);
-        setLocation("/dashboard");
+        // Redirect to email verification — user must enter the 4-digit OTP before accessing the platform
+        setLocation("/verify-email");
       } catch (error: any) {
         setRegisterError(error.message || "Registration failed. Please try again.");
       } finally {
