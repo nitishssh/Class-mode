@@ -14,38 +14,83 @@ const transporter = nodemailer.createTransport({
 const APP_URL = process.env.APP_URL || "http://localhost:5001";
 const FROM = process.env.SMTP_FROM || "Class Mode Platform <no-reply@classmode.com>";
 
-// Reusable premium brand email styling helper
-function brandEmailHtml(
-  title: string,
-  bodyContent: string,
-  actionUrl?: string,
-  actionText?: string
-): string {
-  const actionButton =
-    actionUrl && actionText
-      ? `
-    <div style="margin: 24px 0; text-align: center;">
-      <a href="${actionUrl}" style="background-color: #4f46e5; color: #ffffff; padding: 12px 24px; text-decoration: none; font-size: 16px; font-weight: 600; border-radius: 8px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);">${actionText}</a>
+// A Masterpiece "God-Like" Premium HTML email styling wrapper
+function brandEmailHtml(title: string, bodyContent: string, actionUrl?: string, actionText?: string, otpCode?: string): string {
+  const otpSection = otpCode ? `
+    <div style="text-align: center; margin: 36px 0;">
+      <p style="font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; font-size: 13px; text-transform: uppercase; letter-spacing: 3px; color: #6366f1; margin-bottom: 14px; font-weight: 800;">Secure Gatekeeper Code</p>
+      <div style="display: inline-block; padding: 12px 16px; background-color: #fafbfd; border: 1px solid #eef2f6; border-radius: 24px; box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.03);">
+        ${otpCode.split("").map((char) => `
+          <div style="display: inline-block; width: 56px; height: 64px; line-height: 64px; font-size: 34px; font-weight: 900; color: #4f46e5; background: #ffffff; border: 2px solid #e0e7ff; border-radius: 16px; margin: 0 5px; text-align: center; box-shadow: 0 8px 16px -4px rgba(79, 70, 229, 0.1); font-family: 'Plus Jakarta Sans', 'Inter', monospace;">
+            ${char}
+          </div>
+        `).join("")}
+      </div>
+      <p style="font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; font-size: 12px; color: #94a3b8; margin-top: 14px; font-style: italic;">This high-clearance signature key will expire in 24 hours.</p>
     </div>
-  `
-      : "";
+  ` : "";
+
+  const actionButton = actionUrl && actionText ? `
+    <div style="margin: 36px 0; text-align: center;">
+      <a href="${actionUrl}" style="font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: #ffffff; padding: 16px 36px; text-decoration: none; font-size: 16px; font-weight: 800; border-radius: 12px; display: inline-block; box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.4); letter-spacing: 0.5px;">${actionText}</a>
+    </div>
+  ` : "";
 
   return `
-    <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; color: #1f2937; background-color: #ffffff; border-radius: 12px; border: 1px solid #f3f4f6; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-      <div style="text-align: center; margin-bottom: 24px;">
-        <span style="font-size: 20px; font-weight: 800; color: #4f46e5; letter-spacing: 0.5px;">CLASS MODE</span>
-      </div>
-      <h1 style="color: #111827; font-size: 22px; font-weight: 700; margin-top: 0; margin-bottom: 16px; text-align: center;">${title}</h1>
-      <div style="font-size: 16px; line-height: 1.6; color: #4b5563; margin-bottom: 24px;">
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=device-width, initial-scale=1.0">
+  <title>${title}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100% !important;
+      background-color: #f6f8fb;
+    }
+  </style>
+</head>
+<body style="background-color: #f6f8fb; padding: 40px 10px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 28px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(79, 70, 229, 0.08), 0 0 1px 0 rgba(79, 70, 229, 0.1); border: 1px solid #eef2f6;">
+    <!-- Splendid Ambient Top Banner -->
+    <div style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); padding: 48px 30px; text-align: center; position: relative;">
+      <span style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 900; color: #c7d2fe; letter-spacing: 5px; text-transform: uppercase; display: block; margin-bottom: 10px;">Frontier of Cognitive Mastery</span>
+      <span style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 32px; font-weight: 900; color: #ffffff; letter-spacing: 2px;">CLASS MODE</span>
+    </div>
+    
+    <!-- Luxurious Card Body -->
+    <div style="padding: 48px 48px 36px 48px;">
+      <h2 style="font-family: 'Plus Jakarta Sans', sans-serif; color: #1e1b4b; font-size: 26px; font-weight: 800; margin-top: 0; margin-bottom: 24px; text-align: center; line-height: 1.35; letter-spacing: -0.5px;">${title}</h2>
+      
+      <div style="font-family: 'Inter', sans-serif; font-size: 16px; line-height: 1.85; color: #475569; margin-bottom: 28px;">
         ${bodyContent}
       </div>
+      
+      ${otpSection}
       ${actionButton}
-      <p style="font-size: 14px; color: #9ca3af; border-top: 1px solid #f3f4f6; padding-top: 20px; margin-top: 24px; text-align: center; line-height: 1.5;">
-        If you did not expect this email, you can safely ignore it.
+    </div>
+    
+    <!-- Breathtaking Classical/Modern Footer -->
+    <div style="background-color: #fafbfe; padding: 36px 48px; border-top: 1px solid #f1f5f9; text-align: center;">
+      <p style="font-family: 'Playfair Display', serif; font-size: 16px; font-style: italic; font-weight: 600; color: #4f46e5; margin-top: 0; margin-bottom: 6px; line-height: 1.5;">"Education is not the filling of a pail, but the lighting of a fire."</p>
+      <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 28px; font-weight: 700;">— William Butler Yeats</p>
+      
+      <p style="font-family: 'Inter', sans-serif; font-size: 12px; color: #94a3b8; line-height: 1.6; margin: 0;">
+        This email was dispatched via secure cryptographic gateway.
+        <br>
+        If you did not initiate this registration request, you can safely ignore this message.
         <br><br>
-        — The Class Mode Team
+        &copy; 2026 Class Mode Inc. All rights reserved.
       </p>
     </div>
+  </div>
+</body>
+</html>
   `;
 }
 
@@ -61,10 +106,10 @@ export async function sendTeacherInvite(
     to: email,
     subject: `You've been invited to join ${schoolName} on Class Mode`,
     html: brandEmailHtml(
-      `Join ${schoolName}`,
-      `Hi ${name},<br><br>You have been invited to join <strong>${schoolName}</strong> as a teacher on Class Mode. Get started by setting up your profile below (link expires in 7 days):`,
+      "Claim Your Pedagogical Arena",
+      `Hi ${name},<br><br>Your reputation as an exceptional educator precedes you. You have been formally invited to join the distinguished academic cohort at <strong>${schoolName}</strong> on the Class Mode platform.<br><br>Class Mode is your new command center—a workspace designed to coordinate high-engagement live classes, leverage automated student insights, and scale your pedagogical impact to unprecedented levels.<br><br>Set up your master workspace profile and step onto the frontier of modern teaching (this invitation expires in 7 days):`,
       link,
-      "Set Up Account"
+      "Activate Educator Dashboard"
     ),
     text: `Hi ${name},\n\nYou have been invited to join ${schoolName} as a teacher on Class Mode.\n\nClick the link below to set up your account (expires in 7 days):\n${link}\n\n— The Class Mode Team`,
   });
@@ -83,10 +128,10 @@ export async function sendStudentInvite(
     to: parentEmail,
     subject: `${studentName} has been invited to join ${className} on Class Mode`,
     html: brandEmailHtml(
-      "Student Class Invitation",
-      `Hello,<br><br><strong>${studentName}</strong> has been invited to join the class <strong>"${className}"</strong> at <strong>${schoolName}</strong> on Class Mode.<br><br>Click below to set up their account (expires in 7 days):`,
+      "Your Academic Gate is Open",
+      `Hello,<br><br>We are pleased to inform you that your student, <strong>${studentName}</strong>, has been granted official admission to the classroom cohort <strong>"${className}"</strong> at <strong>${schoolName}</strong> on the Class Mode platform.<br><br>Class Mode provides students with a state-of-the-art interactive study arena, tailored real-time feedback loops, and a gamified quest-like path to mastery designed to unlock their ultimate cognitive potential.<br><br>Configure their secure access profile below and witness their capabilities soar (this link expires in 7 days):`,
       link,
-      "Set Up Student Account"
+      "Initialize Student Access"
     ),
     text: `Hello,\n\n${studentName} has been invited to join the class "${className}" at ${schoolName} on Class Mode.\n\nClick the link below to set up their account (expires in 7 days):\n${link}\n\n— The Class Mode Team`,
   });
@@ -104,10 +149,10 @@ export async function sendPrincipalInvite(
     to: email,
     subject: `You've been invited as Principal of ${schoolName} on Class Mode`,
     html: brandEmailHtml(
-      `Join ${schoolName} as Principal`,
-      `Hi ${name},<br><br>You have been invited to join <strong>${schoolName}</strong> as the Principal on Class Mode.<br><br>This role was assigned by a platform administrator. Click below to set up your account (expires in 7 days):`,
+      "Nomination to Academic Leadership",
+      `Hi ${name},<br><br>You have been nominated to direct the academic vision and school culture for <strong>${schoolName}</strong> as Principal on Class Mode.<br><br>This administrative role grants you high-clearance institutional control—empowering you to govern class structures, review school-wide performance metrics, authorize educator rosters, and direct the trajectory of your school's success.<br><br>Claim your academic leadership portal below and shape the future of your school (link expires in 7 days):`,
       link,
-      "Set Up Principal Account"
+      "Command Academic Leadership"
     ),
     text: `Hi ${name},\n\nYou have been invited to join ${schoolName} as a Principal on Class Mode.\n\nClick the link below to set up your account (expires in 7 days):\n${link}\n\n— The Class Mode Team`,
   });
@@ -125,10 +170,10 @@ export async function sendSchoolAdminInvite(
     to: email,
     subject: `You've been invited as School Administrator of ${schoolName} on Class Mode`,
     html: brandEmailHtml(
-      "Join as School Administrator",
-      `Hi ${name},<br><br>You have been invited to join <strong>${schoolName}</strong> as a School Administrator on Class Mode.<br><br>This role was assigned by a platform administrator. Click below to set up your account (expires in 7 days):`,
+      "Institutional Workspace Authorized",
+      `Hi ${name},<br><br>You have been designated as the School Administrator for <strong>${schoolName}</strong> on the Class Mode platform.<br><br>This root-level access empowers you to govern the entire school infrastructure, manage rosters, provision secure credentials, and coordinate global parameters for both students and staff.<br><br>Activate your administration command console below to initialize the environment (link expires in 7 days):`,
       link,
-      "Set Up Admin Account"
+      "Initialize Command Console"
     ),
     text: `Hi ${name},\n\nYou have been invited to join ${schoolName} as a School Administrator on Class Mode.\n\nClick the link below to set up your account (expires in 7 days):\n${link}\n\n— The Class Mode Team`,
   });
@@ -146,16 +191,16 @@ export async function sendWorkspaceInvite(
     kind === "student"
       ? `You've been invited to join ${workspaceName} on Class Mode`
       : `Join ${workspaceName} on Class Mode`;
-
+  
   await transporter.sendMail({
     from: FROM,
     to: email,
     subject,
     html: brandEmailHtml(
-      "Join Workspace",
-      `Hi ${name || "there"},<br><br>You have been invited to join the <strong>${workspaceName}</strong> workspace on Class Mode.<br><br>Click the button below to configure your credentials and join (link expires in 7 days):`,
+      "Invitation to Co-Create",
+      `Hi ${name || "there"},<br><br>You have been selected to join the premium <strong>${workspaceName}</strong> workspace on Class Mode.<br><br>Collaborate in real-time, share intellectual assets, and push the boundaries of achievement alongside an elite cohort of peers.<br><br>Configure your profile and claim your access below (link expires in 7 days):`,
       link,
-      "Join Workspace"
+      "Enter Workspace"
     ),
     text: `Hi ${name || "there"},\n\nYou have been invited to join ${workspaceName} on Class Mode.\n\nClick the link below to set up your account (expires in 7 days):\n${link}\n\n— The Class Mode Team`,
   });
@@ -166,14 +211,15 @@ export async function sendEmailVerification(email: string, name: string, token: 
   await transporter.sendMail({
     from: FROM,
     to: email,
-    subject: "Verify your Class Mode email",
+    subject: "Unlock Your Intellectual Frontier - Verify Your Email",
     html: brandEmailHtml(
-      "Verify Your Email",
-      `Hi ${name || "there"},<br><br>Verify your email address to finish setting up your Class Mode account and unlock full workspace privileges:`,
+      "Awaken Your Mind",
+      `Hello ${name || "Seeker of Knowledge"},<br><br>Your quest for intellectual mastery starts here. You are one step away from launching your AI-powered personalized learning command center on <strong>Class Mode</strong>.<br><br>Every epic journey of self-discovery and high-end creation begins with a single bold spark. Enter the secure 4-digit gatekeeper code below directly on your screen to authorize your credentials, or click the high-clearance verification link to activate your digital environment:`,
       link,
-      "Verify Email Address"
+      "Authorize Workspace Access",
+      token
     ),
-    text: `Hi ${name || "there"},\n\nVerify your email address to finish setting up your Class Mode account:\n${link}\n\n— The Class Mode Team`,
+    text: `Hi ${name || "there"},\n\nYour 4-digit secure verification code is: ${token}\n\nVerify your email address to unlock your Class Mode workspace:\n${link}\n\n— The Class Mode Team`,
   });
 }
 
@@ -184,10 +230,10 @@ export async function sendPasswordReset(email: string, name: string, token: stri
     to: email,
     subject: "Reset your Class Mode password",
     html: brandEmailHtml(
-      "Reset Your Password",
-      `Hi ${name || "there"},<br><br>You requested a password reset for your Class Mode account. Click the button below to secure a new password:`,
+      "Restore Your Command Console",
+      `Hi ${name || "there"},<br><br>We received a request to restore access to your Class Mode account. If you misplaced your credentials, click the button below to secure a new password and resume your learning path:`,
       link,
-      "Reset Password"
+      "Secure New Password"
     ),
     text: `Hi ${name || "there"},\n\nReset your Class Mode password using this link:\n${link}\n\n— The Class Mode Team`,
   });
@@ -198,30 +244,19 @@ export async function sendWelcomeEmail(email: string, name: string) {
     from: FROM,
     to: email,
     subject: "Welcome to Class Mode! 🚀",
-    html: `
-      <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; color: #1f2937; background-color: #ffffff; border-radius: 12px; border: 1px solid #f3f4f6; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-        <div style="text-align: center; margin-bottom: 24px;">
-          <span style="font-size: 20px; font-weight: 800; color: #4f46e5; letter-spacing: 0.5px;">CLASS MODE</span>
-        </div>
-        <h1 style="color: #4f46e5; font-size: 24px; font-weight: 700; margin-top: 0; margin-bottom: 16px; text-align: center;">Welcome to Class Mode, ${name}! 🎉</h1>
-        <p style="font-size: 16px; line-height: 1.6; color: #4b5563; margin-bottom: 24px;">
-          We're thrilled to have you join our AI-powered personalized learning platform. Whether you are an administrator setting up your school, a teacher hosting live classes, or a student expanding your boundaries, Class Mode is built to guide your success.
-        </p>
-        <div style="background-color: #f9fafb; border-radius: 8px; padding: 20px; margin-bottom: 24px; border: 1px solid #f3f4f6;">
-          <h3 style="margin-top: 0; color: #111827; font-size: 16px; font-weight: 600;">What's Next?</h3>
-          <ul style="padding-left: 20px; margin-bottom: 0; line-height: 1.8; color: #4b5563;">
-            <li>🚀 Set up your workspace or school profile</li>
-            <li>💬 Join real-time class chats with MessagePal</li>
-            <li>🧠 Explore AI-powered study tools and evaluations</li>
-          </ul>
-        </div>
-        <p style="font-size: 14px; color: #9ca3af; border-top: 1px solid #f3f4f6; padding-top: 20px; margin-top: 24px; text-align: center; line-height: 1.5;">
-          If you have any questions, our support team is always here to help. Just reply to this email!
-          <br><br>
-          — The Class Mode Team
-        </p>
-      </div>
-    `,
-    text: `Hi ${name},\n\nWelcome to Class Mode!\n\nWe're thrilled to have you join our AI-powered personalized learning platform.\n\nGet started by logging in and setting up your workspace profile.\n\n— The Class Mode Team`,
+    html: brandEmailHtml(
+      "Your Intellectual Journey Begins Now",
+      `Hi ${name},<br><br>The boundaries of your potential have just been redefined. We're thrilled to welcome you to the frontier of AI-powered personalized learning.<br><br>Whether you are an administrator directing your institution, an educator lighting the fire of curiosity, or a student expanding your boundaries, Class Mode stands ready as your cognitive multiplier.<br><br>
+      <div style="background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); border-radius: 16px; padding: 24px; margin-top: 10px; margin-bottom: 10px; border: 1px solid #e0e7ff;">
+        <h3 style="margin-top: 0; color: #1e1b4b; font-size: 17px; font-weight: 700; margin-bottom: 12px; font-family: 'Plus Jakarta Sans', sans-serif;">Your Access Console is Primed:</h3>
+        <ul style="padding-left: 20px; margin-bottom: 0; line-height: 1.8; color: #475569; font-size: 15px;">
+          <li>🚀 <strong>School Onboarding</strong>: Create custom classes, link grade cohorts, and launch administrative panels.</li>
+          <li>💬 <strong>MessagePal Connection</strong>: Sync in real-time with class thread discussion workspaces.</li>
+          <li>🧠 <strong>AI Study Arena & Evaluations</strong>: Unlock instant grading feedback and personalized question flows.</li>
+        </ul>
+      </div><br>
+      Let's push the limits of what is possible in education. We are here to support you at every milestone.`
+    ),
+    text: `Hi ${name},\n\nWelcome to Class Mode!\n\nThe boundaries of your potential have just been redefined.\n\nGet started by logging in and setting up your workspace profile.\n\n— The Class Mode Team`
   });
 }

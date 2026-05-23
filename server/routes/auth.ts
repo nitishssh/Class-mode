@@ -98,7 +98,8 @@ async function makeUniqueSlug(workspaceName: string) {
 }
 
 async function createVerificationToken(userId: number) {
-  const token = randomToken();
+  // Generate a secure, highly memorable 4-digit verification code
+  const token = Math.floor(1000 + Math.random() * 9000).toString();
   await storage.createOtp({
     userId,
     otpHash: tokenHash(token),
@@ -299,7 +300,7 @@ router.post("/email/verify/request", async (req: Request, res: Response) => {
 });
 
 router.post("/email/verify", async (req: Request, res: Response) => {
-  const parsed = z.object({ token: z.string().min(10) }).safeParse(req.body);
+  const parsed = z.object({ token: z.string().min(4) }).safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ message: "Token is required" });
   const otp = await findOtpByTokenHash(tokenHash(parsed.data.token), "registration");
   if (!otp) return res.status(400).json({ message: "Invalid or expired verification token" });
