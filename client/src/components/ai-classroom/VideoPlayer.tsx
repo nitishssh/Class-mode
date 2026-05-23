@@ -27,23 +27,28 @@ export function VideoPlayer({ src, onEnd, onSkip }: VideoPlayerProps) {
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
     >
-      <div className="relative w-full max-w-3xl rounded-xl overflow-hidden shadow-2xl bg-black">
+      <div className="relative w-full max-w-3xl overflow-hidden rounded-xl bg-black shadow-2xl">
         {src ? (
           <video
             ref={videoRef}
             src={src}
             controls
-            className="w-full aspect-video"
+            className="aspect-video w-full"
             onEnded={onEnd}
           />
         ) : (
-          <div className="flex aspect-video items-center justify-center text-slate-400 text-sm gap-2">
+          <div className="flex aspect-video items-center justify-center gap-2 text-sm text-slate-400">
             <Play className="h-8 w-8 opacity-40" />
             <span>Video unavailable</span>
           </div>
         )}
-        <div className="flex justify-end gap-2 p-3 bg-slate-900">
-          <Button size="sm" variant="outline" onClick={onSkip} className="gap-2 border-slate-600 text-slate-300 hover:bg-slate-700">
+        <div className="flex justify-end gap-2 bg-slate-900 p-3">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onSkip}
+            className="gap-2 border-slate-600 text-slate-300 hover:bg-slate-700"
+          >
             <SkipForward className="h-4 w-4" />
             Skip
           </Button>

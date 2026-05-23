@@ -117,7 +117,10 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     let res = await fetch("/api/auth/me", { credentials: "include" });
     if (!res.ok) {
       // Try to refresh access token using the refresh_token cookie
-      const refreshRes = await fetch("/api/auth/refresh", { method: "POST", credentials: "include" }).catch(() => null);
+      const refreshRes = await fetch("/api/auth/refresh", {
+        method: "POST",
+        credentials: "include",
+      }).catch(() => null);
       if (refreshRes && refreshRes.ok) {
         const refreshData = await refreshRes.json().catch(() => ({}));
         if (refreshData.token) {

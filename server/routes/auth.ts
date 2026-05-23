@@ -56,7 +56,7 @@ async function createLoginSession(req: Request, res: Response, userId: number) {
     ipAddress: req.ip,
     expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
   });
-  
+
   // Fetch user to populate detailed session keys
   const user = await pgFindUserById(userId);
   if (user && req.session) {
@@ -64,7 +64,7 @@ async function createLoginSession(req: Request, res: Response, userId: number) {
     req.session.role = user.role;
     req.session.firebaseUid = user.firebaseUid || user.authSubject;
   }
-  
+
   const accessToken = issueAccessToken({ userId, sessionId: session.id });
   res.cookie(ACCESS_COOKIE, accessToken, ACCESS_COOKIE_OPTS);
   res.cookie(REFRESH_COOKIE, refreshToken, REFRESH_COOKIE_OPTS);
@@ -467,7 +467,8 @@ router.post("/firebase", async (req: Request, res: Response) => {
   } else if (user.authProvider !== "firebase") {
     // Prevent password-auth account takeover via Firebase registration/login with same email
     return res.status(409).json({
-      message: "An account with this email already exists using password login. Please log in with your password.",
+      message:
+        "An account with this email already exists using password login. Please log in with your password.",
     });
   }
   setCustomUserClaims(decoded.uid, { role: user.role, status: user.status }).catch(() => undefined);

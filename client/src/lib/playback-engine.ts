@@ -65,9 +65,13 @@ export class PlaybackEngine {
     return () => this.emitter.off(event, handler as any);
   }
 
-  getMode(): EngineMode { return this.mode; }
+  getMode(): EngineMode {
+    return this.mode;
+  }
 
-  getProgress() { return { index: this.currentIndex, total: this.actions.length }; }
+  getProgress() {
+    return { index: this.currentIndex, total: this.actions.length };
+  }
 
   getSnapshot(): EngineSnapshot {
     return {
@@ -227,8 +231,16 @@ export class PlaybackEngine {
         .then((blob) => {
           const url = URL.createObjectURL(blob);
           audio.src = url;
-          audio.onended = () => { URL.revokeObjectURL(url); this.currentAudio = null; resolve(); };
-          audio.onerror = () => { URL.revokeObjectURL(url); this.currentAudio = null; resolve(); };
+          audio.onended = () => {
+            URL.revokeObjectURL(url);
+            this.currentAudio = null;
+            resolve();
+          };
+          audio.onerror = () => {
+            URL.revokeObjectURL(url);
+            this.currentAudio = null;
+            resolve();
+          };
           audio.play().catch(() => resolve());
         })
         .catch(() => resolve()); // fall through on error

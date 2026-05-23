@@ -14,12 +14,20 @@ const APP_URL = process.env.APP_URL || "http://localhost:5001";
 const FROM = process.env.SMTP_FROM || "Class Mode Platform <no-reply@classmode.com>";
 
 // Reusable premium brand email styling helper
-function brandEmailHtml(title: string, bodyContent: string, actionUrl?: string, actionText?: string): string {
-  const actionButton = actionUrl && actionText ? `
+function brandEmailHtml(
+  title: string,
+  bodyContent: string,
+  actionUrl?: string,
+  actionText?: string
+): string {
+  const actionButton =
+    actionUrl && actionText
+      ? `
     <div style="margin: 24px 0; text-align: center;">
       <a href="${actionUrl}" style="background-color: #4f46e5; color: #ffffff; padding: 12px 24px; text-decoration: none; font-size: 16px; font-weight: 600; border-radius: 8px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);">${actionText}</a>
     </div>
-  ` : "";
+  `
+      : "";
 
   return `
     <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; color: #1f2937; background-color: #ffffff; border-radius: 12px; border: 1px solid #f3f4f6; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
@@ -137,7 +145,7 @@ export async function sendWorkspaceInvite(
     kind === "student"
       ? `You've been invited to join ${workspaceName} on Class Mode`
       : `Join ${workspaceName} on Class Mode`;
-  
+
   await transporter.sendMail({
     from: FROM,
     to: email,
@@ -213,6 +221,6 @@ export async function sendWelcomeEmail(email: string, name: string) {
         </p>
       </div>
     `,
-    text: `Hi ${name},\n\nWelcome to Class Mode!\n\nWe're thrilled to have you join our AI-powered personalized learning platform.\n\nGet started by logging in and setting up your workspace profile.\n\n— The Class Mode Team`
+    text: `Hi ${name},\n\nWelcome to Class Mode!\n\nWe're thrilled to have you join our AI-powered personalized learning platform.\n\nGet started by logging in and setting up your workspace profile.\n\n— The Class Mode Team`,
   });
 }

@@ -5,6 +5,7 @@ import admin from "firebase-admin";
 import { setCustomUserClaims } from "../lib/firebase-admin";
 import { authenticateToken } from "../routes";
 import { upload, diskPathToUrl } from "../lib/upload";
+import { logger } from "../lib/logger";
 import {
   sendTeacherInvite,
   sendStudentInvite,

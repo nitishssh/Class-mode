@@ -245,7 +245,9 @@ function App() {
     );
   }
 
-  const dashboardPath = profile ? (dashboardPathByRole[profile.role] ?? "/teacher-dashboard") : "/login";
+  const dashboardPath = profile
+    ? (dashboardPathByRole[profile.role] ?? "/teacher-dashboard")
+    : "/login";
 
   return (
     <Switch>
@@ -253,9 +255,7 @@ function App() {
       <Route path="/" component={Landing} />
 
       {/* /login: show login page; if already authenticated go to dashboard */}
-      <Route path="/login">
-        {profile ? <Redirect to={dashboardPath} /> : <LoginPage />}
-      </Route>
+      <Route path="/login">{profile ? <Redirect to={dashboardPath} /> : <LoginPage />}</Route>
 
       {/* Invite acceptance must be public — unauthenticated users click invite links */}
       <Route path="/accept-invite" component={AcceptInvite} />

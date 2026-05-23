@@ -23,8 +23,8 @@ pnpm eval:outline-language # tsx eval/outline-language/runner.ts
 
 ## Path Alias
 
-| Alias | Resolves to |
-|-------|-------------|
+| Alias | Resolves to          |
+| ----- | -------------------- |
 | `@/*` | `./*` (project root) |
 
 All imports use `@/lib/...`, `@/components/...`, `@/app/...` etc.
@@ -172,7 +172,7 @@ ActionEngine executes each action on canvas/whiteboard
 ### 1. Scene Types (`lib/types/stage.ts`)
 
 ```typescript
-type SceneType = 'slide' | 'quiz' | 'interactive' | 'pbl';
+type SceneType = "slide" | "quiz" | "interactive" | "pbl";
 
 interface Scene {
   id: string;
@@ -181,26 +181,26 @@ interface Scene {
   title: string;
   order: number;
   content: SlideContent | QuizContent | InteractiveContent | PBLContent;
-  actions?: Action[];         // Playback actions
-  whiteboards?: Slide[];      // Whiteboard content
-  multiAgent?: { enabled: boolean; agentIds: string[]; directorPrompt?: string; };
+  actions?: Action[]; // Playback actions
+  whiteboards?: Slide[]; // Whiteboard content
+  multiAgent?: { enabled: boolean; agentIds: string[]; directorPrompt?: string };
 }
 ```
 
 ### 2. Action Types (`lib/types/action.ts`) — 20 total
 
-| Category | Types |
-|---|---|
-| **Fire-and-forget** | `spotlight`, `laser` |
-| **Speech** | `speech` (text, audioId, audioUrl, voice, speed) |
-| **Whiteboard** | `wb_open`, `wb_close`, `wb_clear`, `wb_delete`, `wb_draw_text`, `wb_draw_shape`, `wb_draw_chart`, `wb_draw_latex`, `wb_draw_table`, `wb_draw_line`, `wb_draw_code`, `wb_edit_code` |
-| **Widget** | `widget_highlight`, `widget_setState`, `widget_annotation`, `widget_reveal` |
-| **Other** | `play_video`, `discussion` |
+| Category            | Types                                                                                                                                                                              |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Fire-and-forget** | `spotlight`, `laser`                                                                                                                                                               |
+| **Speech**          | `speech` (text, audioId, audioUrl, voice, speed)                                                                                                                                   |
+| **Whiteboard**      | `wb_open`, `wb_close`, `wb_clear`, `wb_delete`, `wb_draw_text`, `wb_draw_shape`, `wb_draw_chart`, `wb_draw_latex`, `wb_draw_table`, `wb_draw_line`, `wb_draw_code`, `wb_edit_code` |
+| **Widget**          | `widget_highlight`, `widget_setState`, `widget_annotation`, `widget_reveal`                                                                                                        |
+| **Other**           | `play_video`, `discussion`                                                                                                                                                         |
 
 ### 3. Widget Types (`lib/types/widgets.ts`) — 5 types
 
 ```typescript
-type WidgetType = 'simulation' | 'diagram' | 'code' | 'game' | 'visualization3d';
+type WidgetType = "simulation" | "diagram" | "code" | "game" | "visualization3d";
 // Each has its own config: SimulationConfig, DiagramConfig, CodeConfig, GameConfig, Visualization3DConfig
 ```
 
@@ -208,14 +208,14 @@ type WidgetType = 'simulation' | 'diagram' | 'code' | 'game' | 'visualization3d'
 
 ```typescript
 type StatelessEvent =
-  | { type: 'agent_start'; data: { messageId, agentId, agentName, agentAvatar?, agentColor? } }
-  | { type: 'agent_end';   data: { messageId, agentId } }
-  | { type: 'text_delta';  data: { content, messageId? } }
-  | { type: 'action';      data: { actionId, actionName, params, agentId, messageId? } }
-  | { type: 'thinking';    data: { stage: 'director' | 'agent_loading', agentId? } }
-  | { type: 'cue_user';    data: { fromAgentId?, prompt? } }
-  | { type: 'done';        data: { totalActions, totalAgents, agentHadContent?, directorState? } }
-  | { type: 'error';       data: { message } };
+  | { type: "agent_start"; data: { messageId; agentId; agentName; agentAvatar?; agentColor? } }
+  | { type: "agent_end"; data: { messageId; agentId } }
+  | { type: "text_delta"; data: { content; messageId? } }
+  | { type: "action"; data: { actionId; actionName; params; agentId; messageId? } }
+  | { type: "thinking"; data: { stage: "director" | "agent_loading"; agentId? } }
+  | { type: "cue_user"; data: { fromAgentId?; prompt? } }
+  | { type: "done"; data: { totalActions; totalAgents; agentHadContent?; directorState? } }
+  | { type: "error"; data: { message } };
 ```
 
 ---
@@ -260,11 +260,11 @@ The LLM produces a JSON array where text and actions freely interleave:
 
 ```json
 [
-  {"type": "action", "name": "spotlight", "params": {"elementId": "img_1"}},
-  {"type": "text", "content": "Hello students, let's look at this diagram..."},
-  {"type": "action", "name": "wb_open"},
-  {"type": "text", "content": "I'll draw the key formula on the board..."},
-  {"type": "action", "name": "wb_draw_latex", "params": {"latex": "E=mc^2", "x": 100, "y": 100}}
+  { "type": "action", "name": "spotlight", "params": { "elementId": "img_1" } },
+  { "type": "text", "content": "Hello students, let's look at this diagram..." },
+  { "type": "action", "name": "wb_open" },
+  { "type": "text", "content": "I'll draw the key formula on the board..." },
+  { "type": "action", "name": "wb_draw_latex", "params": { "latex": "E=mc^2", "x": 100, "y": 100 } }
 ]
 ```
 
@@ -294,19 +294,19 @@ idle ──────────→ playing ──────────→
 
 ### Public API
 
-| Method | Transition | Purpose |
-|---|---|---|
-| `start()` | idle → playing | Start from beginning |
-| `continuePlayback()` | idle → playing | Resume after discussion |
-| `pause()` | playing/live → paused | Pause (saves TTS state) |
-| `resume()` | paused → playing/live | Resume (reschedules timers) |
-| `stop()` | any → idle | Full reset |
-| `confirmDiscussion()` | playing → live | User joins discussion |
-| `skipDiscussion()` | — | Skip discussion prompt |
-| `handleEndDiscussion()` | live → idle | End discussion, restore lecture |
-| `handleUserInterrupt(text)` | playing/paused → live | User sends message mid-lecture |
-| `getSnapshot()` | — | Serialize position for persistence |
-| `restoreFromSnapshot()` | — | Restore position |
+| Method                      | Transition            | Purpose                            |
+| --------------------------- | --------------------- | ---------------------------------- |
+| `start()`                   | idle → playing        | Start from beginning               |
+| `continuePlayback()`        | idle → playing        | Resume after discussion            |
+| `pause()`                   | playing/live → paused | Pause (saves TTS state)            |
+| `resume()`                  | paused → playing/live | Resume (reschedules timers)        |
+| `stop()`                    | any → idle            | Full reset                         |
+| `confirmDiscussion()`       | playing → live        | User joins discussion              |
+| `skipDiscussion()`          | —                     | Skip discussion prompt             |
+| `handleEndDiscussion()`     | live → idle           | End discussion, restore lecture    |
+| `handleUserInterrupt(text)` | playing/paused → live | User sends message mid-lecture     |
+| `getSnapshot()`             | —                     | Serialize position for persistence |
+| `restoreFromSnapshot()`     | —                     | Restore position                   |
 
 ### Action Processing (`processNext()`)
 
@@ -326,25 +326,25 @@ idle ──────────→ playing ──────────→
 
 ```typescript
 interface UserRequirements {
-  requirement: string;        // Free-form text
+  requirement: string; // Free-form text
   userNickname?: string;
   userBio?: string;
   webSearch?: boolean;
-  interactiveMode?: boolean;  // Enables interactive-first generation
+  interactiveMode?: boolean; // Enables interactive-first generation
 }
 
 interface SceneOutline {
   id: string;
-  type: 'slide' | 'quiz' | 'interactive' | 'pbl';
+  type: "slide" | "quiz" | "interactive" | "pbl";
   title: string;
   description: string;
   keyPoints: string[];
   order: number;
-  quizConfig?: { questionCount, difficulty, questionTypes };
-  interactiveConfig?: { conceptName, conceptOverview, designIdea };
+  quizConfig?: { questionCount; difficulty; questionTypes };
+  interactiveConfig?: { conceptName; conceptOverview; designIdea };
   widgetType?: WidgetType;
   widgetOutline?: WidgetOutline;
-  pblConfig?: { projectTopic, projectDescription, targetSkills };
+  pblConfig?: { projectTopic; projectDescription; targetSkills };
   suggestedImageIds?: string[];
   mediaGenerations?: MediaGenerationRequest[];
 }
@@ -353,6 +353,7 @@ interface SceneOutline {
 ### Stage 2: Scene Generation (`lib/generation/scene-generator.ts`)
 
 Per-outline, generates full `Scene` with:
+
 - **Slide**: PPTist-compatible `Slide` canvas (elements, background)
 - **Quiz**: `QuizQuestion[]` (single/multiple/short_answer)
 - **Interactive**: HTML string + optional `WidgetConfig` + `TeacherAction[]`
@@ -366,23 +367,23 @@ Plus `Action[]` for playback (speech, spotlight, whiteboard, discussion).
 
 ### Supported Providers (15+)
 
-| Provider | SDK Type | Key Env Var |
-|---|---|---|
-| OpenAI | `openai` (native) | `OPENAI_API_KEY` |
-| Anthropic | `anthropic` (native) | `ANTHROPIC_API_KEY` |
-| Google Gemini | `google` (native) | `GOOGLE_API_KEY` |
-| DeepSeek | `openai` (compatible) | `DEEPSEEK_API_KEY` |
-| Qwen | `openai` (compatible) | `QWEN_API_KEY` |
-| Kimi | `openai` (compatible) | `KIMI_API_KEY` |
-| MiniMax | `anthropic` (compatible) | `MINIMAX_API_KEY` |
-| GLM | `openai` (compatible) | `GLM_API_KEY` |
-| SiliconFlow | `openai` (compatible) | `SILICONFLOW_API_KEY` |
-| Doubao | `openai` (compatible) | `DOUBAO_API_KEY` |
-| OpenRouter | `openai` (compatible) | `OPENROUTER_API_KEY` |
-| Grok | `openai` (compatible) | `GROK_API_KEY` |
-| Tencent | `openai` (compatible) | `TENCENT_API_KEY` |
-| Xiaomi | `openai` (compatible) | `XIAOMI_API_KEY` |
-| Ollama | `openai` (compatible) | — (local) |
+| Provider      | SDK Type                 | Key Env Var           |
+| ------------- | ------------------------ | --------------------- |
+| OpenAI        | `openai` (native)        | `OPENAI_API_KEY`      |
+| Anthropic     | `anthropic` (native)     | `ANTHROPIC_API_KEY`   |
+| Google Gemini | `google` (native)        | `GOOGLE_API_KEY`      |
+| DeepSeek      | `openai` (compatible)    | `DEEPSEEK_API_KEY`    |
+| Qwen          | `openai` (compatible)    | `QWEN_API_KEY`        |
+| Kimi          | `openai` (compatible)    | `KIMI_API_KEY`        |
+| MiniMax       | `anthropic` (compatible) | `MINIMAX_API_KEY`     |
+| GLM           | `openai` (compatible)    | `GLM_API_KEY`         |
+| SiliconFlow   | `openai` (compatible)    | `SILICONFLOW_API_KEY` |
+| Doubao        | `openai` (compatible)    | `DOUBAO_API_KEY`      |
+| OpenRouter    | `openai` (compatible)    | `OPENROUTER_API_KEY`  |
+| Grok          | `openai` (compatible)    | `GROK_API_KEY`        |
+| Tencent       | `openai` (compatible)    | `TENCENT_API_KEY`     |
+| Xiaomi        | `openai` (compatible)    | `XIAOMI_API_KEY`      |
+| Ollama        | `openai` (compatible)    | — (local)             |
 
 ### Env Var Pattern
 
@@ -440,6 +441,7 @@ VIDEO_{PROVIDER}_API_KEY=   # Seedance, Kling, Veo, Sora, MiniMax, Grok, HappyHo
 **Response**: SSE stream of `StatelessEvent` objects.
 
 **Flow**:
+
 1. `resolveModel()` → get `LanguageModel` instance
 2. `statelessGenerate()` → creates LangGraph, streams events
 3. SSE with heartbeat (15s interval) to prevent timeout
@@ -464,6 +466,7 @@ Generated agents travel with the request (no server-side persistence).
 ### 2. Streaming JSON Parser
 
 The `parseStructuredChunk()` function incrementally parses a growing JSON array:
+
 1. Skips prefix before `[` (markdown fences, explanatory text)
 2. Uses `jsonrepair` first, falls back to `partial-json`
 3. Emits complete items immediately
@@ -489,7 +492,7 @@ All whiteboard positions use a **0–1000 × 0–562** coordinate system (16:9 a
 ### 6. Prompt Template System
 
 ```typescript
-import { buildPrompt, PROMPT_IDS } from '@/lib/prompts';
+import { buildPrompt, PROMPT_IDS } from "@/lib/prompts";
 const prompts = buildPrompt(PROMPT_IDS.REQUIREMENTS_TO_OUTLINES, { ...variables });
 // Returns { system: string, user: string }
 ```
@@ -497,9 +500,9 @@ const prompts = buildPrompt(PROMPT_IDS.REQUIREMENTS_TO_OUTLINES, { ...variables 
 ### 7. Zustand Store Pattern
 
 ```typescript
-import { useMainStore } from '@/lib/store/main-store';
-import { useCanvasStore } from '@/lib/store/canvas';
-import { useSettingsStore } from '@/lib/store/settings';
+import { useMainStore } from "@/lib/store/main-store";
+import { useCanvasStore } from "@/lib/store/canvas";
+import { useSettingsStore } from "@/lib/store/settings";
 // Direct access without hooks (server-side or callbacks):
 useCanvasStore.getState().setWhiteboardOpen(false);
 ```
@@ -555,27 +558,27 @@ useCanvasStore.getState().setWhiteboardOpen(false);
 
 ## Key Dependencies
 
-| Package | Version | Purpose |
-|---|---|---|
-| `@langchain/langgraph` | ^1.1.1 | Multi-agent state graph |
-| `@langchain/core` | ^1.1.16 | LangChain message types |
-| `ai` (Vercel AI SDK) | ^6.0.168 | LLM provider abstraction |
-| `@ai-sdk/openai` | ^3.0.53 | OpenAI + compatible providers |
-| `@ai-sdk/anthropic` | ^3.0.71 | Claude + compatible providers |
-| `@ai-sdk/google` | ^3.0.64 | Gemini provider |
-| `partial-json` | ^0.1.7 | Streaming JSON parser |
-| `jsonrepair` | ^3.13.2 | Fix malformed JSON |
-| `zustand` | ^5.0.10 | Client state management |
-| `katex` | ^0.16.33 | LaTeX rendering |
-| `echarts` | ^6.0.0 | Chart rendering |
-| `@xyflow/react` | ^12.10.0 | Mind map / diagram rendering |
-| `shiki` | ^3.21.0 | Code syntax highlighting |
-| `dexie` | ^4.2.1 | IndexedDB (client persistence) |
-| `motion` | ^12.27.5 | Animations (Framer Motion) |
-| `pptxgenjs` | workspace | PPTX export |
-| `i18next` | ^26.0.1 | Internationalization |
-| `mitt` | ^3.0.1 | Event emitter |
-| `nanoid` | ^5.1.6 | ID generation |
+| Package                | Version   | Purpose                        |
+| ---------------------- | --------- | ------------------------------ |
+| `@langchain/langgraph` | ^1.1.1    | Multi-agent state graph        |
+| `@langchain/core`      | ^1.1.16   | LangChain message types        |
+| `ai` (Vercel AI SDK)   | ^6.0.168  | LLM provider abstraction       |
+| `@ai-sdk/openai`       | ^3.0.53   | OpenAI + compatible providers  |
+| `@ai-sdk/anthropic`    | ^3.0.71   | Claude + compatible providers  |
+| `@ai-sdk/google`       | ^3.0.64   | Gemini provider                |
+| `partial-json`         | ^0.1.7    | Streaming JSON parser          |
+| `jsonrepair`           | ^3.13.2   | Fix malformed JSON             |
+| `zustand`              | ^5.0.10   | Client state management        |
+| `katex`                | ^0.16.33  | LaTeX rendering                |
+| `echarts`              | ^6.0.0    | Chart rendering                |
+| `@xyflow/react`        | ^12.10.0  | Mind map / diagram rendering   |
+| `shiki`                | ^3.21.0   | Code syntax highlighting       |
+| `dexie`                | ^4.2.1    | IndexedDB (client persistence) |
+| `motion`               | ^12.27.5  | Animations (Framer Motion)     |
+| `pptxgenjs`            | workspace | PPTX export                    |
+| `i18next`              | ^26.0.1   | Internationalization           |
+| `mitt`                 | ^3.0.1    | Event emitter                  |
+| `nanoid`               | ^5.1.6    | ID generation                  |
 
 ---
 

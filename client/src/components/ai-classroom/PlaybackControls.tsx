@@ -51,20 +51,26 @@ export function PlaybackControls({
       </Button>
 
       {onSkip && (
-        <Button size="sm" variant="ghost" onClick={onSkip} title="Skip action" disabled={mode === "idle"}>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={onSkip}
+          title="Skip action"
+          disabled={mode === "idle"}
+        >
           <SkipForward className="h-4 w-4" />
         </Button>
       )}
 
-      <div className="flex items-center gap-1.5 flex-1 min-w-0">
+      <div className="flex min-w-0 flex-1 items-center gap-1.5">
         <Progress value={pct} className="h-1.5 flex-1" />
-        <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
+        <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
           {progress.index}/{progress.total}
         </span>
       </div>
 
       {mode !== "idle" && (
-        <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">
+        <span className="rounded-full bg-muted px-1.5 py-0.5 text-xs font-medium capitalize text-muted-foreground">
           {mode}
         </span>
       )}

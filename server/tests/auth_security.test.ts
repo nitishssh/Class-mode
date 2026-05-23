@@ -65,10 +65,6 @@ import {
   pgAcceptWorkspaceInvite,
   pgUpsertWorkspaceMembership,
   pgFindFirstWorkspaceMembership,
-  pgFindSchoolById,
-  pgFindInviteByToken,
-  pgAcceptInvite,
-  pgUpsertMembership,
   pgFindWorkspaceBySlug,
   pgCreateWorkspace,
 } from "../lib/pg-queries";
@@ -158,9 +154,7 @@ describe("Authentication Security and Hardening", () => {
         email_verified: true,
       });
 
-      const res = await request(app)
-        .post("/api/auth/firebase")
-        .send({ idToken: "legit-token" });
+      const res = await request(app).post("/api/auth/firebase").send({ idToken: "legit-token" });
 
       expect(res.status).toBe(200);
       expect(res.body.token).toBeDefined();
@@ -199,12 +193,10 @@ describe("Authentication Security and Hardening", () => {
       (pgFindUserById as any).mockResolvedValue(existingUser);
       (pgFindFirstWorkspaceMembership as any).mockResolvedValue(null);
 
-      const res = await request(app)
-        .post("/api/invites/some_invite_token/accept")
-        .send({
-          password: "newpassword123",
-          displayName: "New Profile Name",
-        });
+      const res = await request(app).post("/api/invites/some_invite_token/accept").send({
+        password: "newpassword123",
+        displayName: "New Profile Name",
+      });
 
       expect(res.status).toBe(201);
       expect(pgUpdateUser).toHaveBeenCalledWith(
@@ -234,7 +226,7 @@ describe("Authentication Security and Hardening", () => {
 
       (pgFindWorkspaceInviteByTokenHash as any).mockResolvedValue(invite);
       (pgFindUserByEmail as any).mockResolvedValue(null);
-      
+
       const createdUser = {
         id: 43,
         email: "brand_new_user@example.com",
@@ -251,13 +243,11 @@ describe("Authentication Security and Hardening", () => {
       (pgFindUserById as any).mockResolvedValue(createdUser);
       (pgFindFirstWorkspaceMembership as any).mockResolvedValue(null);
 
-      const res = await request(app)
-        .post("/api/invite/accept")
-        .send({
-          token: "valid_invite_token_here",
-          password: "supersecurepassword123",
-          displayName: "Brand New",
-        });
+      const res = await request(app).post("/api/invite/accept").send({
+        token: "valid_invite_token_here",
+        password: "supersecurepassword123",
+        displayName: "Brand New",
+      });
 
       expect(res.status).toBe(201);
       expect(pgCreateUser).toHaveBeenCalledWith(
@@ -365,17 +355,19 @@ describe("Authentication Security and Hardening", () => {
       (pgCreateWorkspace as any).mockResolvedValue({ id: 10, name: "Workspace" });
       (pgUpsertWorkspaceMembership as any).mockResolvedValue({ id: 5 });
 
-      const res = await request(app)
-        .post("/api/auth/signup")
-        .send({
-          name: "Welcome Local",
-          email: "welcome_local@example.com",
-          password: "password123",
-          workspaceName: "My Workspace",
-        });
+      const res = await request(app).post("/api/auth/signup").send({
+        name: "Welcome Local",
+        email: "welcome_local@example.com",
+        password: "password123",
+        workspaceName: "My Workspace",
+      });
 
       expect(res.status).toBe(201);
-      expect(sendEmailVerification).toHaveBeenCalledWith("welcome_local@example.com", "Welcome Local", expect.any(String));
+      expect(sendEmailVerification).toHaveBeenCalledWith(
+        "welcome_local@example.com",
+        "Welcome Local",
+        expect.any(String)
+      );
       expect(sendWelcomeEmail).toHaveBeenCalledWith("welcome_local@example.com", "Welcome Local");
     });
 
@@ -410,7 +402,10 @@ describe("Authentication Security and Hardening", () => {
         .send({ idToken: "legit-welcome-token" });
 
       expect(res.status).toBe(200);
-      expect(sendWelcomeEmail).toHaveBeenCalledWith("welcome_firebase@example.com", "Welcome Firebase");
+      expect(sendWelcomeEmail).toHaveBeenCalledWith(
+        "welcome_firebase@example.com",
+        "Welcome Firebase"
+      );
     });
 
     it("should trigger sendWelcomeEmail on onboarding invitation acceptance", async () => {
@@ -444,17 +439,18 @@ describe("Authentication Security and Hardening", () => {
       (pgAcceptWorkspaceInvite as any).mockResolvedValue(undefined);
       (pgUpsertWorkspaceMembership as any).mockResolvedValue({ id: 5 });
 
-      const res = await request(app)
-        .post("/api/invite/accept")
-        .send({
-          token: "invite-token-uuid-123",
-          email: "onboarded_teacher@example.com",
-          displayName: "Onboarded Teacher",
-          password: "securepassword456",
-        });
+      const res = await request(app).post("/api/invite/accept").send({
+        token: "invite-token-uuid-123",
+        email: "onboarded_teacher@example.com",
+        displayName: "Onboarded Teacher",
+        password: "securepassword456",
+      });
 
       expect(res.status).toBe(201);
-      expect(sendWelcomeEmail).toHaveBeenCalledWith("onboarded_teacher@example.com", "Onboarded Teacher");
+      expect(sendWelcomeEmail).toHaveBeenCalledWith(
+        "onboarded_teacher@example.com",
+        "Onboarded Teacher"
+      );
     });
   });
 });

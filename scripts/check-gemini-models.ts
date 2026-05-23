@@ -6,7 +6,7 @@ async function listModels() {
   try {
     const result = await genAI.getGenerativeModel({
       model: "gemini-pro",
-      systemInstruction: "You are a helpful connectivity check assistant."
+      systemInstruction: "You are a helpful connectivity check assistant.",
     }); // Just to check connectivity
     console.log("Connectivity check with gemini-pro...");
 
