@@ -59,12 +59,15 @@ export function SpotlightOverlay({ containerRef, action }: SpotlightOverlayProps
       w: rect.width,
       h: rect.height,
     };
-    setState(newState);
+    const animFrame = requestAnimationFrame(() => {
+      setState(newState);
+    });
 
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => setState(null), action.name === "laser" ? 1500 : 3000);
 
     return () => {
+      cancelAnimationFrame(animFrame);
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, [action, containerRef]);

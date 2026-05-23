@@ -17,12 +17,12 @@ function getOpenAI(): OpenAI {
   }
   return _openai;
 }
-// Keep `openai` as a proxy so existing call sites don't change
-const openai = new Proxy({} as OpenAI, {
-  get(_target, prop) {
-    return (getOpenAI() as any)[prop];
-  },
-});
+// Keep `openai` as a helper structure so existing call sites don't change
+const openai = {
+  get chat() {
+    return getOpenAI().chat;
+  }
+} as unknown as OpenAI;
 
 interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -123,10 +123,17 @@ export async function aiChat(
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: messages,
+      max_tokens: 4096,
+      user: "default_user",
     });
 
+    const choice = response.choices[0];
+    if (choice?.message?.refusal) {
+      throw new Error(`Model refused request: ${choice.message.refusal}`);
+    }
+
     return {
-      content: response.choices[0].message.content || "I don't have a response for that.",
+      content: choice?.message?.content || "I don't have a response for that.",
     };
   } catch (error) {
     logger.error("AI chat error:", error);
@@ -166,9 +173,15 @@ export async function evaluateSubjectiveAnswer(
         },
       ],
       response_format: { type: "json_object" },
+      max_tokens: 1024,
+      user: "default_user",
     });
 
-    const content = response.choices[0]?.message?.content || "{}";
+    const choice = response.choices[0];
+    if (choice?.message?.refusal) {
+      throw new Error(`Model refused request: ${choice.message.refusal}`);
+    }
+    const content = choice?.message?.content || "{}";
     try {
       const parsed = JSON.parse(content);
       const result = EvaluationSchema.parse(parsed);
@@ -222,9 +235,15 @@ export async function generateStudyPlan(
         },
       ],
       response_format: { type: "json_object" },
+      max_tokens: 2048,
+      user: "default_user",
     });
 
-    const content = response.choices[0]?.message?.content || "{}";
+    const choice = response.choices[0];
+    if (choice?.message?.refusal) {
+      throw new Error(`Model refused request: ${choice.message.refusal}`);
+    }
+    const content = choice?.message?.content || "{}";
     try {
       const parsed = JSON.parse(content);
       return StudyPlanSchema.parse(parsed);
@@ -273,9 +292,15 @@ export async function analyzeTestPerformance(
         },
       ],
       response_format: { type: "json_object" },
+      max_tokens: 2048,
+      user: "default_user",
     });
 
-    const content = response.choices[0]?.message?.content || "{}";
+    const choice = response.choices[0];
+    if (choice?.message?.refusal) {
+      throw new Error(`Model refused request: ${choice.message.refusal}`);
+    }
+    const content = choice?.message?.content || "{}";
     try {
       const parsed = JSON.parse(content);
       return PerformanceAnalysisSchema.parse(parsed);
@@ -341,10 +366,16 @@ export async function* streamAIChat(
       model: "gpt-4o",
       messages: messages,
       stream: true,
+      max_tokens: 4096,
+      user: "default_user",
     });
 
     for await (const chunk of stream) {
-      const content = chunk.choices[0]?.delta?.content || "";
+      const choice = chunk.choices[0];
+      if (choice?.delta?.refusal) {
+        throw new Error(`Model refused request during streaming: ${choice.delta.refusal}`);
+      }
+      const content = choice?.delta?.content || "";
       if (content) {
         yield content;
       }

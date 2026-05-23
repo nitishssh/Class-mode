@@ -156,8 +156,7 @@ export async function generatePPTX(classroom: ClassroomData): Promise<Buffer> {
 
     const questions: any[] = scene.content?.questions || [];
     let yPos = 1.0;
-    for (let i = 0; i < Math.min(questions.length, 4); i++) {
-      const q = questions[i];
+    for (const [i, q] of questions.slice(0, 4).entries()) {
       if (!q) continue;
       slide.addText(`${i + 1}. ${q.question || q.text || ""}`, {
         x: 0.5,

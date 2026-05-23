@@ -10,14 +10,16 @@ import { chromium } from "playwright";
 
   console.log(`Found ${buttons.length} buttons`);
 
-  for (let i = 0; i < buttons.length; i++) {
+  let idx = 1;
+  for (const button of buttons) {
     try {
-      await buttons[i].click();
-      console.log(`Button ${i + 1} clicked`);
+      await button.click();
+      console.log(`Button ${idx} clicked`);
       await page.waitForTimeout(1000);
     } catch (err) {
-      console.log(`Button ${i + 1} failed`);
+      console.log(`Button ${idx} failed`);
     }
+    idx++;
   }
 
   await browser.close();

@@ -525,7 +525,7 @@ export class PgStorage implements IStorage {
     for (const [k, col] of Object.entries(colMap)) {
       if (k in userUpdate) {
         sets.push(`${col} = $${i++}`);
-        params.push((userUpdate as any)[k]);
+        params.push(Reflect.get(userUpdate, k));
       }
     }
     if (!sets.length) return this.getUser(id);
@@ -677,7 +677,7 @@ export class PgStorage implements IStorage {
     for (const [k, col] of Object.entries(colMap)) {
       if (k in testUpdate) {
         sets.push(`${col} = $${i++}`);
-        params.push((testUpdate as any)[k]);
+        params.push(Reflect.get(testUpdate, k));
       }
     }
     if (!sets.length) return this.getTest(id);
@@ -740,7 +740,7 @@ export class PgStorage implements IStorage {
     let i = 1;
     for (const [k, col] of Object.entries(colMap)) {
       if (k in questionUpdate) {
-        let v = (questionUpdate as any)[k];
+        let v = Reflect.get(questionUpdate, k);
         if (k === "options" && v != null) v = JSON.stringify(v);
         sets.push(`${col} = $${i++}`);
         params.push(v);
@@ -807,7 +807,7 @@ export class PgStorage implements IStorage {
     for (const [k, col] of Object.entries(colMap)) {
       if (k in attemptUpdate) {
         sets.push(`${col} = $${i++}`);
-        params.push((attemptUpdate as any)[k]);
+        params.push(Reflect.get(attemptUpdate, k));
       }
     }
     if (!sets.length) return this.getTestAttempt(id);
@@ -871,7 +871,7 @@ export class PgStorage implements IStorage {
     for (const [k, col] of Object.entries(colMap)) {
       if (k in answerUpdate) {
         sets.push(`${col} = $${i++}`);
-        params.push((answerUpdate as any)[k]);
+        params.push(Reflect.get(answerUpdate, k));
       }
     }
     if (!sets.length) return this.getAnswer(id);
@@ -978,7 +978,7 @@ export class PgStorage implements IStorage {
     for (const [k, col] of Object.entries(colMap)) {
       if (k in update) {
         sets.push(`${col} = $${i++}`);
-        params.push((update as any)[k]);
+        params.push(Reflect.get(update, k));
       }
     }
     if (!sets.length) return this.getTestAssignment(id);
@@ -1307,7 +1307,7 @@ export class PgStorage implements IStorage {
     for (const [k, col] of Object.entries(colMap)) {
       if (k in update) {
         sets.push(`${col} = $${i++}`);
-        params.push((update as any)[k]);
+        params.push(Reflect.get(update, k));
       }
     }
     if (!sets.length) return this.getLiveClass(id);
@@ -1459,7 +1459,7 @@ export class PgStorage implements IStorage {
     for (const [k, col] of Object.entries(colMap)) {
       if (k in update) {
         sets.push(`${col} = $${i++}`);
-        params.push((update as any)[k]);
+        params.push(Reflect.get(update, k));
       }
     }
     if (!sets.length) return undefined;

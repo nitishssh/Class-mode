@@ -52,8 +52,10 @@ async function runTest() {
       } else {
         console.log("Primary buttons not visible. Printing all buttons:");
         const buttons = await page.locator("button").all();
-        for (let i = 0; i < buttons.length; i++) {
-          console.log(`Button ${i}: ${await buttons[i].innerText()}`);
+        let idx = 0;
+        for (const button of buttons) {
+          console.log(`Button ${idx}: ${await button.innerText()}`);
+          idx++;
         }
       }
     }

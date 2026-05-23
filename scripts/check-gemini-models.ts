@@ -4,7 +4,10 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 async function listModels() {
   const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || "");
   try {
-    const result = await genAI.getGenerativeModel({ model: "gemini-pro" }); // Just to check connectivity
+    const result = await genAI.getGenerativeModel({
+      model: "gemini-pro",
+      systemInstruction: "You are a helpful connectivity check assistant."
+    }); // Just to check connectivity
     console.log("Connectivity check with gemini-pro...");
 
     // There isn't a direct listModels in the current SDK version easily, but let's try a simple prompt

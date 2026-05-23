@@ -35,9 +35,11 @@ function getOpenAI(): OpenAI {
   }
   return _openai;
 }
-const openai = new Proxy({} as OpenAI, {
-  get(_t, prop) { return (getOpenAI() as any)[prop]; },
-});
+const openai = {
+  get chat() {
+    return getOpenAI().chat;
+  }
+} as unknown as OpenAI;
 
 const LLM_TIMEOUT_MS = 120_000;
 const PARALLEL_SCENE_BATCH_SIZE = 3;
@@ -298,8 +300,13 @@ function createAICallFn(): AICallFn {
           model: "gpt-4o",
           messages: [{ role: "system", content: s }, { role: "user", content: u }],
           max_tokens: 16384,
+          user: "default_user",
         });
-        return response.choices[0].message.content || "";
+        const choice = response.choices[0];
+        if (choice?.message?.refusal) {
+          throw new Error(`Model refused request: ${choice.message.refusal}`);
+        }
+        return choice?.message?.content || "";
       },
     },
   ];

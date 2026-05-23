@@ -539,7 +539,7 @@ export async function pgUpdateUser(id: number, data: Record<string, any>): Promi
     for (const [k, col] of Object.entries(columnMap)) {
       if (k in data) {
         sets.push(`${col} = $${i++}`);
-        params.push(data[k]);
+        params.push(Reflect.get(data, k));
       }
     }
     if (!sets.length) return pgFindUserById(id);

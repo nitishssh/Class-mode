@@ -152,10 +152,24 @@ export function getEffectiveActions(
   return allowedActions.filter((a) => sceneAllowlist.includes(a));
 }
 
+function getSafeRoleGuideline(role: string): string {
+  if (role === "teacher" || role === "assistant" || role === "student") {
+    return ROLE_GUIDELINES[role];
+  }
+  return ROLE_GUIDELINES.student;
+}
+
+function getSafeActionDescription(actionName: string): string {
+  if (Object.prototype.hasOwnProperty.call(ALL_ACTION_DESCRIPTIONS, actionName)) {
+    return ALL_ACTION_DESCRIPTIONS[actionName];
+  }
+  return "No description";
+}
+
 export function getActionDescriptions(allowedActions: string[]): string {
   if (!allowedActions || allowedActions.length === 0) return "No actions available.";
   return allowedActions
-    .map((a) => `- ${a}: ${ALL_ACTION_DESCRIPTIONS[a] || "No description"}`)
+    .map((a) => `- ${a}: ${getSafeActionDescription(a)}`)
     .join("\n");
 }
 
@@ -168,7 +182,7 @@ export function buildStructuredPrompt(
   agentResponses?: AgentTurnSummary[],
   sceneType?: string
 ): string {
-  const roleGuideline = ROLE_GUIDELINES[agent.role] || ROLE_GUIDELINES.student;
+  const roleGuideline = getSafeRoleGuideline(agent.role);
   const effectiveActions = getEffectiveActions(agent.allowedActions, sceneType || "slide");
   const actionDescriptions = getActionDescriptions(effectiveActions);
   const language =

@@ -48,15 +48,20 @@ const TIER_CONFIG = {
 // ─── Middleware: Require Active Subscription ─────────────────────
 
 export async function requireSubscription(minTier: "pro" | "educator" | "institution") {
-  const tierLevel: Record<string, number> = { free: 0, pro: 1, educator: 2, institution: 3 };
+  const tierLevel = new Map<string, number>([
+    ["free", 0],
+    ["pro", 1],
+    ["educator", 2],
+    ["institution", 3],
+  ]);
   return async (req: any, res: Response, next: any) => {
     const user = req.user;
     if (!user?.id) return res.status(401).json({ error: "Authentication required" });
 
     const sub = await pgFindSubscriptionByUser(user.id);
     const userTier = sub?.tier || "free";
-    const requiredLevel = tierLevel[minTier] || 1;
-    const userLevel = tierLevel[userTier] || 0;
+    const requiredLevel = tierLevel.get(minTier) ?? 1;
+    const userLevel = tierLevel.get(userTier) ?? 0;
 
     if (userLevel < requiredLevel) {
       return res.status(403).json({
@@ -84,7 +89,7 @@ router.get("/subscription", authenticateToken, async (req: Request, res: Respons
     const sub = await pgFindSubscriptionByUser(user.id);
 
     const tier = sub?.tier || "free";
-    const config = TIER_CONFIG[tier as keyof typeof TIER_CONFIG] || TIER_CONFIG.free;
+    const config = getTierConfig(tier);
 
     res.json({
       success: true,
@@ -121,7 +126,7 @@ router.post("/checkout", authenticateToken, async (req: Request, res: Response) 
     }
 
     const { tier, successUrl, cancelUrl } = CheckoutSchema.parse(req.body);
-    const config = TIER_CONFIG[tier];
+    const config = getTierConfig(tier);
     if (!config.priceId) {
       return res.status(400).json({ error: `No Stripe price configured for tier: ${tier}` });
     }
@@ -237,6 +242,17 @@ router.post("/webhook", async (req: Request, res: Response) => {
     res.status(400).send(`Webhook Error: ${error.message}`);
   }
 });
+
+function getTierConfig(tier: string) {
+  switch (tier) {
+    case "pro": return TIER_CONFIG.pro;
+    case "educator": return TIER_CONFIG.educator;
+    case "institution": return TIER_CONFIG.institution;
+    case "free":
+    default:
+      return TIER_CONFIG.free;
+  }
+}
 
 function getTierFromPriceId(priceId: string): "free" | "pro" | "educator" | "institution" {
   for (const [tier, config] of Object.entries(TIER_CONFIG)) {

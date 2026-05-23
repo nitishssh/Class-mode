@@ -189,10 +189,15 @@ function CodeElement({ el }: { el: WbElement }) {
   const h = Math.max(80, lines.length * 20 + 28);
   const cacheKey = `${lang}::${code}`;
   const [html, setHtml] = useState<string | null>(() => highlightCache.get(cacheKey) ?? null);
+  const [prevCacheKey, setPrevCacheKey] = useState(cacheKey);
+
+  if (cacheKey !== prevCacheKey) {
+    setPrevCacheKey(cacheKey);
+    setHtml(highlightCache.get(cacheKey) ?? null);
+  }
 
   useEffect(() => {
     if (highlightCache.has(cacheKey)) {
-      setHtml(highlightCache.get(cacheKey)!);
       return;
     }
     getHighlighter().then((hl) => {
@@ -238,7 +243,7 @@ function ChartPlaceholder({ el }: { el: WbElement }) {
     );
   }
 
-  const chartData = d.labels.map((name, i) => ({ name, value: d.values[i] ?? 0 }));
+  const chartData = d.labels.map((name, i) => ({ name, value: d.values.at(i) ?? 0 }));
 
   return (
     <foreignObject x={el.x} y={el.y} width={w} height={h}>
@@ -247,25 +252,25 @@ function ChartPlaceholder({ el }: { el: WbElement }) {
           {el.chartType === "pie" ? (
             <PieChart>
               <Pie data={chartData} dataKey="value" nameKey="name" outerRadius="70%">
-                {chartData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                {chartData.map((_, i) => <Cell key={i} fill={CHART_COLORS.at(i % CHART_COLORS.length)} />)}
               </Pie>
-              <Tooltip {...tooltipStyle} />
+              <Tooltip contentStyle={tooltipStyle.contentStyle} labelStyle={tooltipStyle.labelStyle} itemStyle={tooltipStyle.itemStyle} />
               <Legend iconSize={8} wrapperStyle={{ fontSize: 10, color: "#94a3b8" }} />
             </PieChart>
           ) : el.chartType === "line" ? (
             <LineChart data={chartData} margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
               <XAxis dataKey="name" tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} width={28} />
-              <Tooltip {...tooltipStyle} />
+              <Tooltip contentStyle={tooltipStyle.contentStyle} labelStyle={tooltipStyle.labelStyle} itemStyle={tooltipStyle.itemStyle} />
               <Line type="monotone" dataKey="value" stroke="#818cf8" strokeWidth={2} dot={{ fill: "#818cf8", r: 3 }} />
             </LineChart>
           ) : (
             <BarChart data={chartData} margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
               <XAxis dataKey="name" tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} width={28} />
-              <Tooltip {...tooltipStyle} />
+              <Tooltip contentStyle={tooltipStyle.contentStyle} labelStyle={tooltipStyle.labelStyle} itemStyle={tooltipStyle.itemStyle} />
               <Bar dataKey="value" radius={[3, 3, 0, 0]}>
-                {chartData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                {chartData.map((_, i) => <Cell key={i} fill={CHART_COLORS.at(i % CHART_COLORS.length)} />)}
               </Bar>
             </BarChart>
           )}
