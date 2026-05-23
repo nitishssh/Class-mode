@@ -48,7 +48,7 @@ steps:
       - "--port"
       - "5001"
       - "--memory"
-      - "512Mi"
+      - "1024Mi"
       - "--cpu"
       - "1"
       - "--min-instances"
