@@ -19,6 +19,7 @@ import { storage } from "../storage";
 vi.mock("../lib/mailer", () => ({
   sendEmailVerification: vi.fn().mockResolvedValue(undefined),
   sendPasswordReset: vi.fn().mockResolvedValue(undefined),
+  sendWelcomeEmail: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("../lib/audit", () => ({

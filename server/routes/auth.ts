@@ -32,7 +32,7 @@ import {
   pgUpdateUser,
   pgUpsertWorkspaceMembership,
 } from "../lib/pg-queries";
-import { sendEmailVerification, sendPasswordReset } from "../lib/mailer";
+import { sendEmailVerification, sendPasswordReset, sendWelcomeEmail } from "../lib/mailer";
 
 const router = Router();
 
@@ -56,10 +56,18 @@ async function createLoginSession(req: Request, res: Response, userId: number) {
     ipAddress: req.ip,
     expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
   });
+  
+  // Fetch user to populate detailed session keys
+  const user = await pgFindUserById(userId);
+  if (user && req.session) {
+    req.session.userId = user.id;
+    req.session.role = user.role;
+    req.session.firebaseUid = user.firebaseUid || user.authSubject;
+  }
+  
   const accessToken = issueAccessToken({ userId, sessionId: session.id });
   res.cookie(ACCESS_COOKIE, accessToken, ACCESS_COOKIE_OPTS);
   res.cookie(REFRESH_COOKIE, refreshToken, REFRESH_COOKIE_OPTS);
-  if (req.session) req.session.userId = userId;
   return { accessToken, refreshToken, sessionId: session.id };
 }
 
@@ -157,6 +165,9 @@ router.post("/signup", async (req: Request, res: Response) => {
     const verifyToken = await createVerificationToken(user.id);
     sendEmailVerification(user.email, user.displayName || user.name, verifyToken).catch((e) =>
       logger.warn("[auth/signup] Failed to send verification email", { error: String(e) })
+    );
+    sendWelcomeEmail(user.email, user.displayName || user.name).catch((e) =>
+      logger.warn("[auth/signup] Failed to send welcome email", { error: String(e) })
     );
 
     await createLoginSession(req, res, user.id);
@@ -383,9 +394,12 @@ async function acceptWorkspaceInvite(req: Request, res: Response) {
       grade: invite.studentMeta?.grade ?? null,
       className: invite.studentMeta?.className ?? null,
     });
+    sendWelcomeEmail(user.email, user.displayName || user.name).catch((e) =>
+      logger.warn("[invite/accept] Failed to send welcome email", { error: String(e) })
+    );
   } else {
+    // Keep original password hash to prevent corruption when accepting new workspace invites
     await pgUpdateUser(user.id, {
-      passwordHash: await bcrypt.hash(parsed.data.password, 12),
       displayName,
       emailVerified: true,
     });
@@ -446,6 +460,14 @@ router.post("/firebase", async (req: Request, res: Response) => {
       role: userRole,
       status: userRole === "teacher" ? "pending" : "active",
       emailVerified: !!decoded.email_verified,
+    });
+    sendWelcomeEmail(user.email, user.displayName || user.name).catch((e) =>
+      logger.warn("[auth/firebase] Failed to send welcome email", { error: String(e) })
+    );
+  } else if (user.authProvider !== "firebase") {
+    // Prevent password-auth account takeover via Firebase registration/login with same email
+    return res.status(409).json({
+      message: "An account with this email already exists using password login. Please log in with your password.",
     });
   }
   setCustomUserClaims(decoded.uid, { role: user.role, status: user.status }).catch(() => undefined);

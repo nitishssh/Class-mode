@@ -114,7 +114,19 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const { toast } = useToast();
 
   const refreshSession = async () => {
-    const res = await fetch("/api/auth/me", { credentials: "include" });
+    let res = await fetch("/api/auth/me", { credentials: "include" });
+    if (!res.ok) {
+      // Try to refresh access token using the refresh_token cookie
+      const refreshRes = await fetch("/api/auth/refresh", { method: "POST", credentials: "include" }).catch(() => null);
+      if (refreshRes && refreshRes.ok) {
+        const refreshData = await refreshRes.json().catch(() => ({}));
+        if (refreshData.token) {
+          setServerToken(refreshData.token);
+          // Retry fetching user profile with new token
+          res = await fetch("/api/auth/me", { credentials: "include" });
+        }
+      }
+    }
     if (!res.ok) {
       clearServerToken();
       setCurrentUser({ user: null, profile: null });
