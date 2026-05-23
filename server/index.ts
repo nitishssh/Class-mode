@@ -37,6 +37,16 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
+// ── Redirect to Canonical Domain ──────────────────────────────────────────────
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (process.env.NODE_ENV === "production") {
+    const host = req.headers.host;
+    if (host && host !== "classmode.inmodel.in") {
+      return res.redirect(301, `https://classmode.inmodel.in${req.originalUrl}`);
+    }
+  }
+  next();
+});
 // ── Security headers ──────────────────────────────────────────────────────────
 app.use(
   helmet({
