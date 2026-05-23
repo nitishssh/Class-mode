@@ -93,7 +93,9 @@ app.use(
           const url = new URL(origin);
           const isAllowedDomain =
             url.hostname === "classmode.com" ||
+            url.hostname.endsWith(".classmode.com") ||
             url.hostname === "inmodel.in" ||
+            url.hostname.endsWith(".inmodel.in") ||
             url.hostname.endsWith(".run.app") ||
             process.env.ALLOWED_PROD_DOMAINS?.split(",").includes(url.hostname);
 
