@@ -424,7 +424,7 @@ router.post("/firebase", async (req: Request, res: Response) => {
   if (process.env.ENABLE_FIREBASE_AUTH_COMPAT !== "true") {
     return res.status(410).json({ message: "Firebase auth compatibility is disabled" });
   }
-  const { idToken } = req.body as { idToken?: string };
+  const { idToken, role } = req.body as { idToken?: string; role?: string };
   if (!idToken) return res.status(400).json({ message: "idToken is required" });
   const decoded = await verifyFirebaseToken(idToken);
   if (!decoded?.email)
@@ -433,6 +433,7 @@ router.post("/firebase", async (req: Request, res: Response) => {
     (await pgFindUserByAuthSubject("firebase", decoded.uid)) ||
     (await pgFindUserByEmail(decoded.email.toLowerCase()));
   if (!user) {
+    const userRole = role === "teacher" ? "teacher" : "student";
     user = await pgCreateUser({
       authProvider: "firebase",
       authSubject: decoded.uid,
@@ -442,8 +443,8 @@ router.post("/firebase", async (req: Request, res: Response) => {
       name: decoded.name || decoded.email.split("@")[0],
       displayName: decoded.name || null,
       avatar: decoded.picture || null,
-      role: "student",
-      status: "active",
+      role: userRole,
+      status: userRole === "teacher" ? "pending" : "active",
       emailVerified: !!decoded.email_verified,
     });
   }

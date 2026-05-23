@@ -72,7 +72,7 @@ export default function AcceptInvite() {
       if (role === "teacher") {
         setLocation("/onboarding/teacher");
       } else {
-        setLocation("/");
+        setLocation("/dashboard");
       }
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -88,7 +88,7 @@ export default function AcceptInvite() {
           <h2 className="text-2xl font-bold text-destructive">Invite Error</h2>
           <p className="text-muted-foreground">{error}</p>
           <Button variant="outline" onClick={() => setLocation("/")}>
-            Go Home
+            Go to Landing
           </Button>
         </div>
       </div>

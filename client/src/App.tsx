@@ -85,7 +85,7 @@ const withLayout = <P extends object>(
   return Wrapped;
 };
 
-/** Wraps a component with role-based access control. */
+/** Wraps a component with role-based access control. Redirects to /login if unauthenticated. */
 const withProtection = <P extends object>(
   Component: React.ComponentType<P>,
   allowedRoles?: string[]
@@ -96,7 +96,6 @@ const withProtection = <P extends object>(
       isLoading,
     } = useFirebaseAuth();
 
-    // FIX BUG-13: don't redirect while auth is still initialising
     if (isLoading) {
       return (
         <div className="flex h-screen items-center justify-center">
@@ -127,11 +126,7 @@ const withProtection = <P extends object>(
   return Protected;
 };
 
-// ── Pre-defined route components (FIX BUG-05) ─────────────────────────────────
-// Defined at module scope so React sees stable component references across renders.
-// Previously defined inside App() which created new types on every render, causing
-// full unmount/remount of pages and losing all page-level state.
-
+// ── Pre-defined route components (stable references across renders) ────────────
 const protect = withProtection;
 
 const TeacherDashboardRoute = withLayout(protect(Dashboard, ["teacher"]));
@@ -173,16 +168,15 @@ const OnboardingInvTeachRoute = withLayout(protect(InviteTeachers, ["school_admi
 const OnboardingTeacherRoute = withLayout(protect(TeacherClassSetup, ["teacher"]));
 const OnboardingInvStdRoute = withLayout(protect(InviteStudents, ["teacher"]));
 
-// Role → dashboard map (avoids getDashboard() function recreating components on every render)
-const dashboardByRole: Partial<Record<string, React.ComponentType>> = {
-  principal: withLayout(PrincipalDashboard),
-  school_admin: withLayout(SchoolAdminDashboard),
-  admin: withLayout(AdminDashboard),
-  teacher: withLayout(Dashboard),
-  student: withLayout(StudentDashboard),
-  parent: withLayout(ParentDashboard),
+// Role → dashboard path map used to redirect /dashboard to the role-specific route
+const dashboardPathByRole: Partial<Record<string, string>> = {
+  principal: "/principal-dashboard",
+  school_admin: "/school-admin-dashboard",
+  admin: "/admin-dashboard",
+  teacher: "/teacher-dashboard",
+  student: "/student-dashboard",
+  parent: "/parent-dashboard",
 };
-const FallbackDashboardRoute = withLayout(Dashboard);
 
 function App() {
   const {
@@ -203,19 +197,7 @@ function App() {
     );
   }
 
-  // Unauthenticated — show landing/login
-  if (!profile) {
-    return (
-      <Switch>
-        <Route path="/" component={Landing} />
-        <Route path="/login" component={LoginPage} />
-        <Route component={() => <Redirect to="/" />} />
-      </Switch>
-    );
-  }
-
-  // FIX BUG-04: Block suspended and rejected users with dedicated screens
-  if (profile.status === "pending") {
+  if (profile?.status === "pending") {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4 text-center">
         <div className="max-w-md rounded-xl border border-border bg-card p-8 shadow-sm">
@@ -231,7 +213,7 @@ function App() {
     );
   }
 
-  if (profile.status === "suspended") {
+  if (profile?.status === "suspended") {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4 text-center">
         <div className="max-w-md rounded-xl border border-destructive/30 bg-card p-8 shadow-sm">
@@ -247,7 +229,7 @@ function App() {
     );
   }
 
-  if (profile.status === "rejected") {
+  if (profile?.status === "rejected") {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4 text-center">
         <div className="max-w-md rounded-xl border border-destructive/30 bg-card p-8 shadow-sm">
@@ -263,22 +245,35 @@ function App() {
     );
   }
 
-  // FIX BUG-05: use pre-defined role dashboard map instead of getDashboard() inline
-  const role = profile.role;
-
-  const RootDashboard = (dashboardByRole[role] ||
-    FallbackDashboardRoute) as React.ComponentType<any>;
+  const dashboardPath = profile ? (dashboardPathByRole[profile.role] ?? "/teacher-dashboard") : "/login";
 
   return (
     <Switch>
-      <Route path="/" component={RootDashboard} />
-      <Route path="/dashboard" component={TeacherDashboardRoute} />
+      {/* ── Public routes — no auth required ─────────────────────── */}
+      <Route path="/" component={Landing} />
+
+      {/* /login: show login page; if already authenticated go to dashboard */}
+      <Route path="/login">
+        {profile ? <Redirect to={dashboardPath} /> : <LoginPage />}
+      </Route>
+
+      {/* Invite acceptance must be public — unauthenticated users click invite links */}
+      <Route path="/accept-invite" component={AcceptInvite} />
+
+      {/* ── /dashboard — redirects to the role-specific dashboard ─── */}
+      <Route path="/dashboard">
+        {!profile ? <Redirect to="/login" /> : <Redirect to={dashboardPath} />}
+      </Route>
+
+      {/* ── Role-specific dashboards ──────────────────────────────── */}
+      <Route path="/teacher-dashboard" component={TeacherDashboardRoute} />
       <Route path="/principal-dashboard" component={PrincipalDashboardRoute} />
       <Route path="/school-admin-dashboard" component={SchoolAdminDashboardRoute} />
       <Route path="/admin-dashboard" component={AdminDashboardRoute} />
       <Route path="/student-dashboard" component={StudentDashboardRoute} />
       <Route path="/parent-dashboard" component={ParentDashboardRoute} />
 
+      {/* ── Protected app routes ──────────────────────────────────── */}
       <Route path="/create-test" component={CreateTestRoute} />
       <Route path="/grading" component={GradingRoute} />
       <Route path="/my-students" component={MyStudentsRoute} />
@@ -303,13 +298,7 @@ function App() {
       <Route path="/ai-study-plans" component={AiStudyPlansRoute} />
       <Route path="/ai-classroom" component={AIClassroomRoute} />
 
-      {/* Redirect /login to home if already authenticated */}
-      <Route path="/login" component={() => <Redirect to="/" />} />
-
-      {/* Public invite acceptance — no auth required */}
-      <Route path="/accept-invite" component={AcceptInvite} />
-
-      {/* Onboarding flows */}
+      {/* ── Onboarding flows ──────────────────────────────────────── */}
       <Route path="/onboarding/school" component={OnboardingSchoolRoute} />
       <Route path="/onboarding/invite-teachers" component={OnboardingInvTeachRoute} />
       <Route path="/onboarding/teacher" component={OnboardingTeacherRoute} />

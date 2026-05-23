@@ -30,7 +30,13 @@ vi.mock("../lib/pg-queries", () => {
   const mocks: Record<string | symbol, Mock> = {};
   return new Proxy(mocks, {
     get: (target, prop) => {
-      if (typeof prop === "string" && prop !== "__proto__" && prop !== "constructor") {
+      if (
+        typeof prop === "string" &&
+        prop !== "__proto__" &&
+        prop !== "constructor" &&
+        prop !== "then" &&
+        prop !== "toJSON"
+      ) {
         if (!(prop in target)) {
           target[prop] = vi.fn();
         }

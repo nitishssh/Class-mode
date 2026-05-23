@@ -431,7 +431,9 @@ export class PgStorage implements IStorage {
 
   constructor() {
     const MemStore = MemoryStore(session);
-    this.sessionStore = new MemStore({ checkPeriod: 24 * 60 * 60 * 1000 });
+    this.sessionStore = new MemStore({
+      checkPeriod: process.env.NODE_ENV === "test" ? 0 : 24 * 60 * 60 * 1000,
+    });
   }
 
   private get pool() {

@@ -9,9 +9,9 @@ export default function LoginPage() {
   } = useFirebaseAuth();
   const [, setLocation] = useLocation();
 
-  // Already logged in — go home
+  // Already logged in — go to dashboard
   useEffect(() => {
-    if (profile) setLocation("/");
+    if (profile) setLocation("/dashboard");
   }, [profile, setLocation]);
 
   return (

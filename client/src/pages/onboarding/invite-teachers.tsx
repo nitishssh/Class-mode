@@ -133,7 +133,7 @@ export default function InviteTeachers() {
           </div>
         )}
 
-        <Button variant="outline" className="w-full" onClick={() => setLocation("/")}>
+        <Button variant="outline" className="w-full" onClick={() => setLocation("/dashboard")}>
           Go to Dashboard →
         </Button>
       </div>

@@ -86,7 +86,7 @@ export default function TeacherClassSetup() {
                 </div>
               </div>
             ))}
-            <Button className="w-full" onClick={() => setLocation("/")}>
+            <Button className="w-full" onClick={() => setLocation("/dashboard")}>
               Go to Dashboard →
             </Button>
           </div>

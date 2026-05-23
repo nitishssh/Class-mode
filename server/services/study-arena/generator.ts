@@ -111,7 +111,11 @@ async function callDeepSeekAPI(
     }).then(async (r) => {
       if (!r.ok) throw new Error(`DeepSeek API ${r.status}`);
       const j = await r.json();
-      return j.choices[0].message.content as string;
+      const choice = j.choices[0];
+      if (choice?.message?.refusal) {
+        throw new Error(`Model refused request: ${choice.message.refusal}`);
+      }
+      return choice?.message?.content as string;
     }),
     timeoutMs,
     "deepseek"
@@ -142,7 +146,11 @@ async function callQwenAPI(
     }).then(async (r) => {
       if (!r.ok) throw new Error(`Qwen API ${r.status}`);
       const j = await r.json();
-      return j.choices[0].message.content as string;
+      const choice = j.choices[0];
+      if (choice?.message?.refusal) {
+        throw new Error(`Model refused request: ${choice.message.refusal}`);
+      }
+      return choice?.message?.content as string;
     }),
     timeoutMs,
     "qwen"
@@ -202,7 +210,11 @@ async function callOpenRouterAPI(
     }).then(async (r) => {
       if (!r.ok) throw new Error(`OpenRouter API ${r.status}`);
       const j = await r.json();
-      return j.choices[0].message.content as string;
+      const choice = j.choices[0];
+      if (choice?.message?.refusal) {
+        throw new Error(`Model refused request: ${choice.message.refusal}`);
+      }
+      return choice?.message?.content as string;
     }),
     timeoutMs,
     "openrouter"
@@ -233,7 +245,11 @@ async function callKimiAPI(
     }).then(async (r) => {
       if (!r.ok) throw new Error(`Kimi API ${r.status}`);
       const j = await r.json();
-      return j.choices[0].message.content as string;
+      const choice = j.choices[0];
+      if (choice?.message?.refusal) {
+        throw new Error(`Model refused request: ${choice.message.refusal}`);
+      }
+      return choice?.message?.content as string;
     }),
     timeoutMs,
     "kimi"
@@ -264,7 +280,11 @@ async function callGrokAPI(
     }).then(async (r) => {
       if (!r.ok) throw new Error(`Grok API ${r.status}`);
       const j = await r.json();
-      return j.choices[0].message.content as string;
+      const choice = j.choices[0];
+      if (choice?.message?.refusal) {
+        throw new Error(`Model refused request: ${choice.message.refusal}`);
+      }
+      return choice?.message?.content as string;
     }),
     timeoutMs,
     "grok"

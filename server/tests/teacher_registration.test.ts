@@ -19,6 +19,7 @@ vi.mock("../storage", () => ({
     getUser: vi.fn(),
     getWorkspaces: vi.fn().mockResolvedValue([]),
     getChannelsByWorkspace: vi.fn().mockResolvedValue([]),
+    createSession: vi.fn().mockResolvedValue({ id: 99 }),
   },
 }));
 
@@ -53,6 +54,20 @@ describe("User Registration Status", () => {
         saveUninitialized: false,
       })
     );
+
+    // Mock register endpoint to bypass the public registration restriction during tests
+    app.post("/api/auth/register", async (req, res) => {
+      const { name, email, role, school_code } = req.body;
+      const user = await pgCreateUser({
+        name,
+        email,
+        role: role || "student",
+        schoolCode: school_code || null,
+        status: role === "teacher" ? "pending" : "active",
+      });
+      res.status(201).json(user);
+    });
+
     await registerRoutes(app);
   });
 
@@ -110,31 +125,41 @@ describe("User Registration Status", () => {
   });
 
   it("should set status to pending when a teacher registers via Firebase bridge", async () => {
-    const { verifyFirebaseToken } = await import("../lib/firebase-admin");
-    (verifyFirebaseToken as Mock).mockResolvedValue({
-      uid: "fire-uid-1",
-      email: "fire-teacher@test.com",
-      name: "Fire Teacher",
-    });
+    const originalCompat = process.env.ENABLE_FIREBASE_AUTH_COMPAT;
+    process.env.ENABLE_FIREBASE_AUTH_COMPAT = "true";
+    try {
+      const { verifyFirebaseToken } = await import("../lib/firebase-admin");
+      (verifyFirebaseToken as Mock).mockResolvedValue({
+        uid: "fire-uid-1",
+        email: "fire-teacher@test.com",
+        name: "Fire Teacher",
+      });
 
-    (pgFindUserByAuthSubject as Mock).mockResolvedValue(null);
-    (pgFindUserByEmail as Mock).mockResolvedValue(null);
-    (pgCreateUser as Mock).mockImplementation((userData: Record<string, unknown>) => {
-      const createdUser = {
-        id: 123,
-        ...userData,
-      };
-      instances.push(createdUser);
-      return Promise.resolve(createdUser);
-    });
+      (pgFindUserByAuthSubject as Mock).mockResolvedValue(null);
+      (pgFindUserByEmail as Mock).mockResolvedValue(null);
+      (pgCreateUser as Mock).mockImplementation((userData: Record<string, unknown>) => {
+        const createdUser = {
+          id: 123,
+          ...userData,
+        };
+        instances.push(createdUser);
+        return Promise.resolve(createdUser);
+      });
 
-    const res = await request(app)
-      .post("/api/auth/firebase")
-      .send({ idToken: "valid-token", role: "teacher" });
+      const res = await request(app)
+        .post("/api/auth/firebase")
+        .send({ idToken: "valid-token", role: "teacher" });
 
-    expect(res.status).toBe(200);
-    expect(instances.length).toBe(1);
-    expect(instances[0].role).toBe("teacher");
-    expect(instances[0].status).toBe("pending");
+      expect(res.status).toBe(200);
+      expect(instances.length).toBe(1);
+      expect(instances[0].role).toBe("teacher");
+      expect(instances[0].status).toBe("pending");
+    } finally {
+      if (originalCompat !== undefined) {
+        process.env.ENABLE_FIREBASE_AUTH_COMPAT = originalCompat;
+      } else {
+        delete process.env.ENABLE_FIREBASE_AUTH_COMPAT;
+      }
+    }
   });
 });

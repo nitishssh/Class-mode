@@ -191,7 +191,7 @@ export default function TestPage() {
           It seems this assessment has been archived or is no longer available.
         </p>
         <Button
-          onClick={() => setLocation("/")}
+          onClick={() => setLocation("/dashboard")}
           className="h-12 rounded-full bg-primary px-8 text-primary-foreground hover:bg-primary/90"
         >
           Back to Dashboard
@@ -296,7 +296,7 @@ export default function TestPage() {
 
             <div className="flex flex-col justify-center gap-4 sm:flex-row">
               <Button
-                onClick={() => setLocation("/")}
+                onClick={() => setLocation("/dashboard")}
                 className="h-14 rounded-full bg-primary px-10 font-bold text-primary-foreground shadow-soft transition-all hover:bg-primary/90"
               >
                 <Home className="mr-3 h-5 w-5" />

@@ -157,6 +157,17 @@ describe("School Admin API", () => {
 
       (pgFindUserById as Mock).mockImplementation((id: number) => {
         if (id === 2) return Promise.resolve(mockTeacher);
+        if (id === 100) {
+          return Promise.resolve({
+            id: 100,
+            role: "school_admin",
+            email: "admin@school.com",
+            schoolCode: "SCHOOL123",
+            school_code: "SCHOOL123",
+            status: "active",
+            emailVerified: true,
+          });
+        }
         return Promise.resolve(null);
       });
       (pgUpdateUser as Mock).mockResolvedValue(mockTeacher);
@@ -183,6 +194,17 @@ describe("School Admin API", () => {
 
       (pgFindUserById as Mock).mockImplementation((id: number) => {
         if (id === 2) return Promise.resolve(mockTeacher);
+        if (id === 100) {
+          return Promise.resolve({
+            id: 100,
+            role: "school_admin",
+            email: "admin@school.com",
+            schoolCode: "SCHOOL123",
+            school_code: "SCHOOL123",
+            status: "active",
+            emailVerified: true,
+          });
+        }
         return Promise.resolve(null);
       });
 

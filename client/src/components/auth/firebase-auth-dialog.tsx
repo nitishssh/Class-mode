@@ -9,28 +9,12 @@ import { motion } from "framer-motion";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import {
   Form,
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 import teacherImg from "@/assets/teacher-illustration.png";
 import laptopImg from "@/assets/laptop.png";
@@ -217,29 +201,19 @@ const IllustrationPanel = () => {
 };
 
 export function FirebaseAuthDialog() {
-  const {
-    login,
-    register,
-    googleLogin,
-    completeGoogleRegistration,
-    resetUserPassword,
-    refreshSession,
-  } = useFirebaseAuth();
+  const { login, register, resetUserPassword } = useFirebaseAuth();
   const [, setLocation] = useLocation();
 
-  const [isNewGoogleUser, setIsNewGoogleUser] = useState(false);
-  const [tempGoogleUser, setTempGoogleUser] = useState<unknown | null>(null);
   const [authTab, setAuthTab] = useState<"login" | "register" | "forgotPassword">("login");
   const [resetEmailSent, setResetEmailSent] = useState(false);
 
   const [loginError, setLoginError] = useState<string | null>(null);
   const [registerError, setRegisterError] = useState<string | null>(null);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [isLoginSubmitting, setIsLoginSubmitting] = useState(false);
   const [isRegSubmitting, setIsRegSubmitting] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false); // FIX BUG-11
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const loginSchema = useMemo(
     () =>
@@ -282,33 +256,6 @@ export function FirebaseAuthDialog() {
     []
   );
 
-  const roleSchema = useMemo(
-    () =>
-      z
-        .object({
-          role: z.enum(["student", "teacher", "principal", "school_admin", "admin", "parent"], {
-            required_error: "Please select a role",
-          }),
-          grade: z.string().optional(),
-          board: z.string().optional(),
-          school_code: z.string().optional(),
-          subjects: z.string().optional(),
-        })
-        .refine((data) => data.role !== "student" || (!!data.grade && !!data.board), {
-          message: "Please select both grade and board",
-          path: ["grade"],
-        })
-        .refine(
-          (data) =>
-            !["teacher", "principal", "school_admin"].includes(data.role) || !!data.school_code,
-          {
-            message: "School code is required",
-            path: ["school_code"],
-          }
-        ),
-    []
-  );
-
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" },
@@ -328,58 +275,20 @@ export function FirebaseAuthDialog() {
     },
   });
 
-  const roleForm = useForm<z.infer<typeof roleSchema>>({
-    resolver: zodResolver(roleSchema),
-    defaultValues: { role: "student", grade: "12", board: "CBSE" },
-  });
-
-  const selectedGoogleRole = roleForm.watch("role");
-
   const onLoginSubmit = useCallback(
     async (data: z.infer<typeof loginSchema>) => {
       setLoginError(null);
       setIsLoginSubmitting(true);
       try {
         await login(data.email, data.password);
-        setLocation("/");
-        return;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setLocation("/dashboard");
       } catch (error: any) {
-        const code = error.code || "";
-        const firebaseNotConfigured = error.message === "Firebase is not configured";
-        if (
-          firebaseNotConfigured ||
-          code === "auth/operation-not-allowed" ||
-          code === "auth/invalid-login-credentials" ||
-          code === "auth/too-many-requests"
-        ) {
-          try {
-            const res = await fetch("/api/auth/login", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              credentials: "include",
-              body: JSON.stringify({ email: data.email, password: data.password }),
-            });
-            if (res.ok) {
-              await refreshSession();
-              setLocation("/");
-              return;
-            } else {
-              const errBody = await res.json().catch(() => ({}));
-              setLoginError(errBody.message || "Invalid email or password.");
-              return;
-            }
-          } catch {
-            setLoginError("Login failed. Please check your credentials and try again.");
-            return;
-          }
-        }
         setLoginError(error.message || "Login failed. Please try again.");
       } finally {
         setIsLoginSubmitting(false);
       }
     },
-    [login, refreshSession, setLocation]
+    [login, setLocation]
   );
 
   const onForgotPasswordSubmit = useCallback(async () => {
@@ -393,7 +302,6 @@ export function FirebaseAuthDialog() {
     try {
       await resetUserPassword(email);
       setResetEmailSent(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       setLoginError(error.message || "Failed to send reset email.");
     } finally {
@@ -401,14 +309,11 @@ export function FirebaseAuthDialog() {
     }
   }, [loginForm, resetUserPassword]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const getRoleSpecificData = (role: string, data?: any) => {
     const subjectsArray = data?.subjects
       ? data.subjects.split(",").map((s: string) => s.trim())
       : [];
     switch (role) {
-      case "student":
-        return { grade: data?.grade, board: data?.board, subjects: subjectsArray };
       case "admin":
         return { workspaceName: data?.workspaceName };
       case "teacher":
@@ -417,7 +322,7 @@ export function FirebaseAuthDialog() {
       case "school_admin":
         return { school_code: data?.school_code };
       case "parent":
-        return { studentId: "student-123" }; // Placeholder
+        return {};
       default:
         return {};
     }
@@ -430,203 +335,15 @@ export function FirebaseAuthDialog() {
       try {
         const additionalData = getRoleSpecificData(data.role, data);
         await register(data.email, data.password, data.name, data.role as UserRole, additionalData);
-        setLocation("/");
-        return;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setLocation("/dashboard");
       } catch (error: any) {
-        const code = error.code || "";
-        const firebaseNotConfigured = error.message === "Firebase is not configured";
-        if (firebaseNotConfigured || code === "auth/operation-not-allowed") {
-          try {
-            const res = await fetch("/api/auth/register", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              credentials: "include",
-              body: JSON.stringify({
-                name: data.name,
-                email: data.email,
-                password: data.password,
-                role: data.role,
-                grade: data.grade,
-                board: data.board,
-                school_code: data.school_code,
-                subjects: data.subjects,
-              }),
-            });
-            if (res.ok) {
-              await refreshSession();
-              setLocation("/");
-              return;
-            } else {
-              const errBody = await res.json().catch(() => ({}));
-              setRegisterError(errBody.message || "Registration failed. Please try again.");
-              return;
-            }
-          } catch {
-            setRegisterError("Registration failed. Please try again later.");
-            return;
-          }
-        }
         setRegisterError(error.message || "Registration failed. Please try again.");
       } finally {
         setIsRegSubmitting(false);
       }
     },
-    [register, refreshSession, setLocation]
+    [register, setLocation]
   );
-
-  const onRoleSubmit = useCallback(
-    async (data: z.infer<typeof roleSchema>) => {
-      if (!tempGoogleUser) return;
-      try {
-        const additionalData = getRoleSpecificData(data.role, data);
-        await completeGoogleRegistration(tempGoogleUser, data.role as UserRole, additionalData);
-        setIsNewGoogleUser(false);
-        setTempGoogleUser(null);
-        setLocation("/");
-      } catch (error) {
-        console.error("Google registration completion failed:", error);
-      }
-    },
-    [tempGoogleUser, completeGoogleRegistration, setLocation]
-  );
-
-  const handleGoogleLogin = useCallback(async () => {
-    setGoogleLoading(true);
-    setLoginError(null);
-    setRegisterError(null);
-    try {
-      const result = await googleLogin();
-      if (result.isNewUser) {
-        setIsNewGoogleUser(true);
-        setTempGoogleUser(result.user);
-      } else {
-        setLocation("/");
-      }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      const msg = error.message || "Google login failed.";
-      if (authTab === "login") setLoginError(msg);
-      else setRegisterError(msg);
-    } finally {
-      setGoogleLoading(false);
-    }
-  }, [googleLogin, authTab, setLocation]);
-
-  if (isNewGoogleUser) {
-    return (
-      <Dialog open={isNewGoogleUser} onOpenChange={(open) => !open && setIsNewGoogleUser(false)}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Complete your registration</DialogTitle>
-            <DialogDescription>
-              Please select your role to complete your registration.
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...roleForm}>
-            <form onSubmit={roleForm.handleSubmit(onRoleSubmit)} className="space-y-4 pt-4">
-              <FormField
-                control={roleForm.control}
-                name="role"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Role</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a role" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="student">Student</SelectItem>
-                        <SelectItem value="teacher">Teacher</SelectItem>
-                        <SelectItem value="principal">Principal</SelectItem>
-                        <SelectItem value="school_admin">School Admin</SelectItem>
-                        <SelectItem value="admin">Administrator</SelectItem>
-                        <SelectItem value="parent">Parent</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              {selectedGoogleRole === "student" && (
-                <div className="grid grid-cols-2 gap-3">
-                  <FormField
-                    control={roleForm.control}
-                    name="grade"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Grade</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Grade" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="9">9th</SelectItem>
-                            <SelectItem value="10">10th</SelectItem>
-                            <SelectItem value="11">11th</SelectItem>
-                            <SelectItem value="12">12th</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={roleForm.control}
-                    name="board"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Board</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Board" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="CBSE">CBSE</SelectItem>
-                            <SelectItem value="ICSE">ICSE</SelectItem>
-                            <SelectItem value="State">State Board</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              )}
-              {["teacher", "principal", "school_admin"].includes(selectedGoogleRole) && (
-                <FormField
-                  control={roleForm.control}
-                  name="school_code"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>School Code</FormLabel>
-                      <FormControl>
-                        <input
-                          placeholder="e.g. SCH-1234"
-                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-              <Button type="submit" className="bg-eduai-primary hover:bg-eduai-accent w-full">
-                Complete Registration
-              </Button>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-    );
-  }
 
   const inputClasses =
     "w-full rounded-full border border-input bg-card px-5 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all focus:ring-2 focus:ring-ring/20 focus:border-primary";
@@ -638,7 +355,7 @@ export function FirebaseAuthDialog() {
         <IllustrationPanel />
       </div>
 
-      {/* Left: Login Form */}
+      {/* Left: Form */}
       <div className="relative z-50 flex min-h-[calc(100vh-300px)] w-full lg:min-h-screen lg:w-[45%]">
         <div className="pointer-events-auto relative z-50 mx-auto flex h-full w-full max-w-lg flex-col justify-center px-8 py-12 sm:px-12 lg:px-16 xl:px-20">
           <h1 className="font-display text-4xl font-bold text-foreground">
@@ -695,7 +412,7 @@ export function FirebaseAuthDialog() {
                         strokeLinejoin="round"
                         strokeWidth="2"
                         d="M5 13l4 4L19 7"
-                      ></path>
+                      />
                     </svg>
                   </div>
                   <h3 className="text-lg font-medium">Check your email</h3>
@@ -888,7 +605,6 @@ export function FirebaseAuthDialog() {
                               className={inputClasses + " py-2.5"}
                               {...field}
                             />
-                            {/* FIX BUG-11: show/hide toggle for confirm password */}
                             <button
                               type="button"
                               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -944,51 +660,6 @@ export function FirebaseAuthDialog() {
                       </FormItem>
                     )}
                   />
-                  {(registerForm.watch("role") as string) === "student" && (
-                    <>
-                      <FormField
-                        control={registerForm.control}
-                        name="grade"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <select
-                                disabled={isRegSubmitting}
-                                className={inputClasses + " appearance-none py-2.5"}
-                                {...field}
-                              >
-                                <option value="9">9th Grade</option>
-                                <option value="10">10th Grade</option>
-                                <option value="11">11th Grade</option>
-                                <option value="12">12th Grade</option>
-                              </select>
-                            </FormControl>
-                            <FormMessage className="px-2 text-[10px] text-red-500" />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={registerForm.control}
-                        name="board"
-                        render={({ field }) => (
-                          <FormItem className="col-span-2">
-                            <FormControl>
-                              <select
-                                disabled={isRegSubmitting}
-                                className={inputClasses + " appearance-none py-2.5"}
-                                {...field}
-                              >
-                                <option value="CBSE">CBSE</option>
-                                <option value="ICSE">ICSE</option>
-                                <option value="State">State Board</option>
-                              </select>
-                            </FormControl>
-                            <FormMessage className="px-2 text-[10px] text-red-500" />
-                          </FormItem>
-                        )}
-                      />
-                    </>
-                  )}
                   {["teacher", "principal", "school_admin"].includes(
                     registerForm.watch("role")
                   ) && (
@@ -1024,52 +695,6 @@ export function FirebaseAuthDialog() {
               </form>
             </Form>
           )}
-
-          <div className="mb-2 flex items-center gap-4 pt-4">
-            <div className="h-px flex-1 bg-border" />
-            <span className="whitespace-nowrap text-xs text-muted-foreground">
-              or continue with
-            </span>
-            <div className="h-px flex-1 bg-border" />
-          </div>
-
-          <div className="flex items-center justify-center gap-5 pt-2">
-            <button
-              type="button"
-              onClick={handleGoogleLogin}
-              disabled={googleLoading || isLoginSubmitting || isRegSubmitting}
-              className="flex h-12 w-12 items-center justify-center rounded-full border border-border bg-muted text-foreground transition-all hover:bg-muted/80 active:scale-95"
-            >
-              {googleLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    fill="#4285F4"
-                  />
-                  <path
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    fill="#34A853"
-                  />
-                  <path
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                    fill="#FBBC05"
-                  />
-                  <path
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                    fill="#EA4335"
-                  />
-                </svg>
-              )}
-            </button>
-          </div>
 
           <p className="mt-8 text-center text-sm text-muted-foreground">
             {authTab === "login"

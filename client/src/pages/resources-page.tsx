@@ -181,11 +181,11 @@ export default function ResourcesPage() {
       <PageHeader
         title="Resource Library"
         subtitle="Discover premium study materials, interactive labs, and curated lectures."
-        breadcrumbs={[{ label: "Dashboard", href: "/" }, { label: "Resources" }]}
+        breadcrumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Resources" }]}
       >
         <Button
           variant="outline"
-          onClick={() => setLocation("/")}
+          onClick={() => setLocation("/dashboard")}
           className="bg-background/50 backdrop-blur-sm"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
