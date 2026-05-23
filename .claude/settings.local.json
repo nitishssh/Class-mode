@@ -41,7 +41,21 @@
       "Bash(gcloud builds triggers create *)",
       "Bash(gcloud builds *)",
       "Bash(curl *)",
-      "Bash(gcloud auth *)"
+      "Bash(gcloud auth *)",
+      "Bash(vercel ls *)",
+      "Bash(vercel --prod --yes)",
+      "Bash(gcloud config *)",
+      "Bash(docker --version)",
+      "Bash(gcloud artifacts *)",
+      "Bash(gcloud run *)",
+      "Bash(docker buildx *)",
+      "Bash(docker info *)",
+      "Bash(gcloud beta *)",
+      "Bash(dig +short classmode.inmodel.in)",
+      "Bash(gcloud compute *)",
+      "Bash(gcloud secrets *)",
+      "Bash(chmod +x scripts/deploy.sh)",
+      "Bash(bash -n scripts/deploy.sh)"
     ]
   }
 }

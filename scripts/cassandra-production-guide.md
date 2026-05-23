@@ -4,7 +4,7 @@ This guide outlines the steps to ensure the cloud Astra DB connection works perf
 
 ## 1. Environment Variables
 
-Ensure the production environment (e.g., Render, Vercel, Heroku, or your VPS) has the following variables set:
+Ensure the production environment (GCP Cloud Run) has the following variables set — values should come from Secret Manager via the Cloud Run service config:
 
 - `ASTRA_DB_SECURE_BUNDLE_PATH`: The relative path to the secure bundle zip (e.g., `./secure-connect-bundle.zip`).
 - `ASTRA_DB_APPLICATION_TOKEN`: The client secret / token generated from the Astra DB dashboard.

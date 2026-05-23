@@ -83,10 +83,10 @@ substitutions:
   _SERVICE_NAME: personallearningpro
   _CLOUDSQL_INSTANCE: plp-pg
   _TAG: latest # GitHub triggers override this with $SHORT_SHA
-  # Set these in Cloud Build Trigger configuration in GCP Console
-  _VITE_FIREBASE_API_KEY: ""
-  _VITE_FIREBASE_APP_ID: ""
-  _VITE_FIREBASE_MESSAGING_SENDER_ID: ""
+  # Firebase web config — not secret (client-side identifiers; security enforced by Firebase rules)
+  _VITE_FIREBASE_API_KEY: "AIzaSyDwCDy2u1-iwU--COECVu9YVDvj6PmqebY"
+  _VITE_FIREBASE_APP_ID: "1:114646596478:web:fb850aa52b8a3a1668d12f"
+  _VITE_FIREBASE_MESSAGING_SENDER_ID: "114646596478"
   _VITE_FIREBASE_MEASUREMENT_ID: ""
 
 options:

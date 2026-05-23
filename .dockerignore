@@ -77,8 +77,6 @@ docker-compose*.yml
 
 # ── CI / deployment ───────────────────────────────────────────────
 .github
-vercel.json
-.vercel
 
 # ── Misc ─────────────────────────────────────────────────────────
 scripts

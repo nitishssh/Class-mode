@@ -63,7 +63,7 @@ Single `package.json` (no monorepo tool). Key directories:
 
 - **Production**: GCP Cloud Run via Cloud Build (`cloudbuild.yaml`). Secrets from Secret Manager.
 - **Docker**: Multi-stage (`deps → development → build → production`). See `docker-compose.yml`.
-- **Vercel config** (`vercel.json`) exists but actual deployment is Cloud Run. Firebase Hosting config also present.
+- **CI/CD**: `.github/workflows/cd.yml` builds the image on push to `main`, pushes to Artifact Registry, and deploys to Cloud Run. Firebase (Firestore + Auth) is used for data/auth only — not for hosting.
 
 ## Gotchas
 
