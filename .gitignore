@@ -33,3 +33,8 @@ eslint-output.txt
 eslint_output.txt
 server/.env.env
 GEMINI.md
+# Local dev scripts
+clean_test_users.cjs
+scratch_db_test.cjs
+scratch_db_test.js
+send_test_email.ts
