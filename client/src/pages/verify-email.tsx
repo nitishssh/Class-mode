@@ -198,6 +198,20 @@ export default function VerifyEmailPage() {
     }
   };
 
+  // Auto-verify when user clicks the email link (token is in the URL)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlToken = params.get("token");
+    if (urlToken && /^\d{4}$/.test(urlToken) && !isLoading) {
+      setOtp(urlToken.split(""));
+      // Brief delay so inputs render filled before the spinner appears
+      const timer = setTimeout(() => submitOtp(urlToken), 350);
+      return () => clearTimeout(timer);
+    }
+  // submitOtp is stable within the render; only re-run when loading finishes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading]);
+
   const userEmail = currentUser.profile?.email || "your email";
 
   return (

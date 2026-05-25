@@ -207,55 +207,23 @@ const registerPasswordSchema = z
   .min(8, { message: "Password must be at least 8 characters" })
   .regex(/[A-Za-z]/, { message: "Password must contain at least one letter" })
   .regex(/\d/, { message: "Password must contain at least one number" });
+
+// Signup is workspace-owner only. Teachers and students join via invite links.
 const registerSchema = z
   .object({
     name: z.string().min(2, { message: "Name must be at least 2 characters" }),
     email: z.string().email({ message: "Please enter a valid email address" }),
     password: registerPasswordSchema,
     confirmPassword: z.string().min(1, { message: "Please confirm your password" }),
-    workspaceName: z.string().min(2, { message: "Workspace name is required" }),
-    role: z.enum(["admin", "teacher", "principal", "school_admin", "parent"], {
-      required_error: "Please select a role",
-    }),
-    grade: z.string().optional(),
-    board: z.string().optional(),
-    school_code: z.string().optional(),
-    subjects: z.string().optional(),
+    workspaceName: z.string().min(2, { message: "Workspace / school name is required" }),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
     path: ["confirmPassword"],
-  })
-  .refine(
-    (data) =>
-      !["teacher", "principal", "school_admin"].includes(data.role) || !!data.school_code,
-    {
-      message: "School code is required",
-      path: ["school_code"],
-    }
-  );
+  });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
-
-const getRoleSpecificData = (role: string, data?: Partial<RegisterFormValues>) => {
-  const subjectsArray = data?.subjects
-    ? data.subjects.split(",").map((s: string) => s.trim())
-    : [];
-  switch (role) {
-    case "admin":
-      return { workspaceName: data?.workspaceName };
-    case "teacher":
-      return { school_code: data?.school_code, subjects: subjectsArray };
-    case "principal":
-    case "school_admin":
-      return { school_code: data?.school_code };
-    case "parent":
-      return {};
-    default:
-      return {};
-  }
-};
 export function FirebaseAuthDialog() {
   const { t } = useTranslation();
   const { login, register, resetUserPassword } = useFirebaseAuth();
@@ -284,10 +252,7 @@ export function FirebaseAuthDialog() {
       email: "",
       password: "",
       confirmPassword: "",
-      role: "admin",
       workspaceName: "",
-      grade: "12",
-      board: "CBSE",
     },
   });
 
@@ -333,12 +298,14 @@ export function FirebaseAuthDialog() {
       setRegisterError(null);
       setIsRegSubmitting(true);
       try {
-        const additionalData = getRoleSpecificData(data.role, data);
-        await register(data.email, data.password, data.name, data.role as UserRole, additionalData);
+        await register(data.email, data.password, data.name, "admin", {
+          workspaceName: data.workspaceName,
+        });
         // Redirect to email verification — user must enter the 4-digit OTP before accessing the platform
         setLocation("/verify-email");
       } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : "Registration failed. Please try again.";
+        const errorMessage =
+          error instanceof Error ? error.message : "Registration failed. Please try again.";
         setRegisterError(errorMessage);
       } finally {
         setIsRegSubmitting(false);
@@ -671,60 +638,10 @@ export function FirebaseAuthDialog() {
                     </FormItem>
                   )}
                 />
-                <div className="grid grid-cols-2 gap-3">
-                  <FormField
-                    control={registerForm.control}
-                    name="role"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <select
-                            disabled={isRegSubmitting}
-                            className={inputClasses + " appearance-none py-2.5"}
-                            name={field.name}
-                            value={field.value ?? ""}
-                            onChange={field.onChange}
-                            onBlur={field.onBlur}
-                            ref={field.ref}
-                          >
-                            <option value="admin">{t("auth.role.owner", "Workspace Owner")}</option>
-                            <option value="teacher">{t("auth.role.teacher", "Teacher")}</option>
-                            <option value="principal">{t("auth.role.principal", "Principal")}</option>
-                            <option value="school_admin">{t("auth.role.schoolAdmin", "School Admin")}</option>
-                            <option value="parent">{t("auth.role.parent", "Parent")}</option>
-                          </select>
-                        </FormControl>
-                        <FormMessage className="px-2 text-[10px] text-red-500" />
-                      </FormItem>
-                    )}
-                  />
-                  {["teacher", "principal", "school_admin"].includes(
-                    registerForm.watch("role")
-                  ) && (
-                    <FormField
-                      control={registerForm.control}
-                      name="school_code"
-                      render={({ field }) => (
-                        <FormItem className="col-span-2">
-                          <FormControl>
-                            <input
-                              type="text"
-                              placeholder="School Code"
-                              disabled={isRegSubmitting}
-                              className={inputClasses + " py-2.5"}
-                              name={field.name}
-                              value={field.value ?? ""}
-                              onChange={field.onChange}
-                              onBlur={field.onBlur}
-                              ref={field.ref}
-                            />
-                          </FormControl>
-                          <FormMessage className="px-2 text-[10px] text-red-500" />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-                </div>
+                {/* Invite callout — teachers & students join via links, not public signup */}
+                <p className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-center text-xs leading-relaxed text-muted-foreground">
+                  🎓 Teachers and students join via <span className="font-semibold text-foreground">invite links</span> from the workspace settings — no separate signup needed.
+                </p>
 
                 <button
                   type="submit"

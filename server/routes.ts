@@ -54,7 +54,7 @@ declare module "express-session" {
     userId: number;
     role: string;
     firebaseUid?: string;
-    email: string;
+    email?: string; // optional — not always set by createLoginSession
     oauthState?: string;
     lmsOauthUserId?: number;
   }

@@ -44,6 +44,7 @@ import Landing from "@/pages/landing";
 import LoginPage from "@/pages/login";
 import AcceptInvite from "@/pages/accept-invite";
 import VerifyEmailPage from "@/pages/verify-email";
+import ResetPasswordPage from "@/pages/reset-password";
 import SchoolSetup from "@/pages/onboarding/school-setup";
 import InviteTeachers from "@/pages/onboarding/invite-teachers";
 import TeacherClassSetup from "@/pages/onboarding/teacher-class-setup";
@@ -281,6 +282,9 @@ function App() {
 
       {/* Invite acceptance must be public — unauthenticated users click invite links */}
       <Route path="/accept-invite" component={AcceptInvite} />
+
+      {/* Password reset — linked from forgot-password email */}
+      <Route path="/reset-password" component={ResetPasswordPage} />
 
       {/* ── /dashboard — redirects to the role-specific dashboard ─── */}
       <Route path="/dashboard">

@@ -3,9 +3,10 @@ import "express-session";
 declare module "express-session" {
   interface SessionData {
     userId: number;
-    username: string;
+    username?: string; // optional — not always populated by createLoginSession
     role: string;
-    email: string;
+    email?: string; // optional — not always populated by createLoginSession
+    firebaseUid?: string;
   }
 }
 

@@ -131,6 +131,12 @@ async function createLoginSession(req: Request, res: Response, userId: number) {
     expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
   });
 
+  // Fix session fixation: regenerate the session ID before binding user identity.
+  // This ensures a session established before login can't be reused after authentication.
+  await new Promise<void>((resolve, reject) => {
+    req.session.regenerate((err) => (err ? reject(err) : resolve()));
+  });
+
   // Fetch user to populate detailed session keys
   const user = await pgFindUserById(userId);
   if (user && req.session) {
