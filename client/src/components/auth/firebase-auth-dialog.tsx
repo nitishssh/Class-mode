@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { UserRole } from "@/lib/firebase";
@@ -194,6 +194,67 @@ const IllustrationPanel = () => {
   );
 };
 
+const loginSchema = z.object({
+  email: z.string().email({ message: "Please enter a valid email address" }),
+  password: z.string().min(1, { message: "Password is required" }),
+});
+
+const registerPasswordSchema = z
+  .string()
+  .min(8, { message: "Password must be at least 8 characters" })
+  .regex(/[A-Za-z]/, { message: "Password must contain at least one letter" })
+  .regex(/\d/, { message: "Password must contain at least one number" });
+
+const registerSchema = z
+  .object({
+    name: z.string().min(2, { message: "Name must be at least 2 characters" }),
+    email: z.string().email({ message: "Please enter a valid email address" }),
+    password: registerPasswordSchema,
+    confirmPassword: z.string().min(1, { message: "Please confirm your password" }),
+    workspaceName: z.string().min(2, { message: "Workspace name is required" }),
+    role: z.enum(["admin", "teacher", "principal", "school_admin", "parent"], {
+      required_error: "Please select a role",
+    }),
+    grade: z.string().optional(),
+    board: z.string().optional(),
+    school_code: z.string().optional(),
+    subjects: z.string().optional(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  })
+  .refine(
+    (data) =>
+      !["teacher", "principal", "school_admin"].includes(data.role) || !!data.school_code,
+    {
+      message: "School code is required",
+      path: ["school_code"],
+    }
+  );
+
+type LoginFormValues = z.infer<typeof loginSchema>;
+type RegisterFormValues = z.infer<typeof registerSchema>;
+
+const getRoleSpecificData = (role: string, data?: Partial<RegisterFormValues>) => {
+  const subjectsArray = data?.subjects
+    ? data.subjects.split(",").map((s: string) => s.trim())
+    : [];
+  switch (role) {
+    case "admin":
+      return { workspaceName: data?.workspaceName };
+    case "teacher":
+      return { school_code: data?.school_code, subjects: subjectsArray };
+    case "principal":
+    case "school_admin":
+      return { school_code: data?.school_code };
+    case "parent":
+      return {};
+    default:
+      return {};
+  }
+};
+
 export function FirebaseAuthDialog() {
   const { login, register, resetUserPassword } = useFirebaseAuth();
   const [, setLocation] = useLocation();
@@ -209,53 +270,12 @@ export function FirebaseAuthDialog() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const loginSchema = useMemo(
-    () =>
-      z.object({
-        email: z.string().email({ message: "Please enter a valid email address" }),
-        password: z.string().min(6, { message: "Password must be at least 6 characters" }),
-      }),
-    []
-  );
-
-  const registerSchema = useMemo(
-    () =>
-      z
-        .object({
-          name: z.string().min(2, { message: "Name must be at least 2 characters" }),
-          email: z.string().email({ message: "Please enter a valid email address" }),
-          password: z.string().min(6, { message: "Password must be at least 6 characters" }),
-          confirmPassword: z.string().min(1, { message: "Please confirm your password" }),
-          workspaceName: z.string().min(2, { message: "Workspace name is required" }),
-          role: z.enum(["admin", "teacher", "principal", "school_admin", "parent"], {
-            required_error: "Please select a role",
-          }),
-          grade: z.string().optional(),
-          board: z.string().optional(),
-          school_code: z.string().optional(),
-          subjects: z.string().optional(),
-        })
-        .refine((data) => data.password === data.confirmPassword, {
-          message: "Passwords don't match",
-          path: ["confirmPassword"],
-        })
-        .refine(
-          (data) =>
-            !["teacher", "principal", "school_admin"].includes(data.role) || !!data.school_code,
-          {
-            message: "School code is required",
-            path: ["school_code"],
-          }
-        ),
-    []
-  );
-
-  const loginForm = useForm<z.infer<typeof loginSchema>>({
+  const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" },
   });
 
-  const registerForm = useForm<z.infer<typeof registerSchema>>({
+  const registerForm = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       name: "",
@@ -270,14 +290,15 @@ export function FirebaseAuthDialog() {
   });
 
   const onLoginSubmit = useCallback(
-    async (data: z.infer<typeof loginSchema>) => {
+    async (data: LoginFormValues) => {
       setLoginError(null);
       setIsLoginSubmitting(true);
       try {
         await login(data.email, data.password);
         setLocation("/dashboard");
-      } catch (error: any) {
-        setLoginError(error.message || "Login failed. Please try again.");
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : "Login failed. Please try again.";
+        setLoginError(msg);
       } finally {
         setIsLoginSubmitting(false);
       }
@@ -296,34 +317,16 @@ export function FirebaseAuthDialog() {
     try {
       await resetUserPassword(email);
       setResetEmailSent(true);
-    } catch (error: any) {
-      setLoginError(error.message || "Failed to send reset email.");
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "Failed to send reset email.";
+      setLoginError(msg);
     } finally {
       setIsLoginSubmitting(false);
     }
   }, [loginForm, resetUserPassword]);
 
-  const getRoleSpecificData = (role: string, data?: any) => {
-    const subjectsArray = data?.subjects
-      ? data.subjects.split(",").map((s: string) => s.trim())
-      : [];
-    switch (role) {
-      case "admin":
-        return { workspaceName: data?.workspaceName };
-      case "teacher":
-        return { school_code: data?.school_code, subjects: subjectsArray };
-      case "principal":
-      case "school_admin":
-        return { school_code: data?.school_code };
-      case "parent":
-        return {};
-      default:
-        return {};
-    }
-  };
-
   const onRegisterSubmit = useCallback(
-    async (data: z.infer<typeof registerSchema>) => {
+    async (data: RegisterFormValues) => {
       setRegisterError(null);
       setIsRegSubmitting(true);
       try {
@@ -331,8 +334,9 @@ export function FirebaseAuthDialog() {
         await register(data.email, data.password, data.name, data.role as UserRole, additionalData);
         // Redirect to email verification — user must enter the 4-digit OTP before accessing the platform
         setLocation("/verify-email");
-      } catch (error: any) {
-        setRegisterError(error.message || "Registration failed. Please try again.");
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : "Registration failed. Please try again.";
+        setRegisterError(msg);
       } finally {
         setIsRegSubmitting(false);
       }

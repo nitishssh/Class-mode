@@ -43,14 +43,6 @@ interface SidebarProps {
   className?: string;
 }
 
-const ROLE_LABELS: Record<string, string> = {
-  student: "Student",
-  teacher: "Teacher",
-  principal: "Principal",
-  school_admin: "School Admin",
-  admin: "Admin",
-  parent: "Parent",
-};
 
 export function Sidebar({ className }: SidebarProps) {
   const [location] = useLocation();
@@ -226,7 +218,27 @@ export function Sidebar({ className }: SidebarProps) {
   else if (user?.role === "admin") items = adminNavItems;
   else if (user?.role === "parent") items = parentNavItems;
 
-  const roleLabel = user?.role ? (ROLE_LABELS[user.role] ?? user.role) : "User";
+  const getRoleLabel = (role?: string): string => {
+    if (!role) return "User";
+    switch (role) {
+      case "student":
+        return "Student";
+      case "teacher":
+        return "Teacher";
+      case "principal":
+        return "Principal";
+      case "school_admin":
+        return "School Admin";
+      case "admin":
+        return "Admin";
+      case "parent":
+        return "Parent";
+      default:
+        return role;
+    }
+  };
+
+  const roleLabel = getRoleLabel(user?.role);
 
   return (
     <>

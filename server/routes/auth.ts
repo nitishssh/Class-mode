@@ -2,6 +2,8 @@ import { Router, Request, Response } from "express";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
+import crypto from "crypto";
 import {
   ACCESS_COOKIE,
   ACCESS_COOKIE_OPTS,
@@ -22,6 +24,7 @@ import {
   pgAcceptWorkspaceInvite,
   pgCreateUser,
   pgCreateWorkspace,
+  pgDeleteUser,
   pgFindFirstWorkspaceMembership,
   pgFindUserByAuthSubject,
   pgFindUserByEmail,
@@ -35,6 +38,77 @@ import {
 import { sendEmailVerification, sendPasswordReset, sendWelcomeEmail } from "../lib/mailer";
 
 const router = Router();
+
+// ── Password policy ──────────────────────────────────────────────────────────
+// Minimum 8 chars, at least one letter and one digit. Applied to signup, reset,
+// and invite-accept; login is intentionally unconstrained so existing accounts
+// with shorter (legacy) passwords can still sign in.
+const passwordSchema = z
+  .string()
+  .min(8, "Password must be at least 8 characters")
+  .regex(/[A-Za-z]/, "Password must contain at least one letter")
+  .regex(/\d/, "Password must contain at least one number");
+
+// ── Per-endpoint rate limiters ───────────────────────────────────────────────
+// The global `/api/auth` limiter in server/index.ts (10/min/IP) is too loose for
+// brute-forceable surfaces like 4-digit OTP verification. Keyed on email+IP so
+// a single attacker can't fan out across user accounts from one IP.
+const emailIpKey = (req: Request) => {
+  const email = String(req.body?.email ?? "").toLowerCase().trim();
+  return `${email}|${ipKeyGenerator(req.ip ?? "")}`;
+};
+
+const tooMany = (msg: string) => ({ message: msg });
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60_000,
+  max: 10,
+  keyGenerator: emailIpKey,
+  message: tooMany("Too many login attempts. Please try again later."),
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const signupLimiter = rateLimit({
+  windowMs: 60 * 60_000,
+  max: 5,
+  message: tooMany("Too many signup attempts. Please try again later."),
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const verifyLimiter = rateLimit({
+  windowMs: 10 * 60_000,
+  max: 5,
+  message: tooMany("Too many verification attempts. Please request a new code."),
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const verifyRequestLimiter = rateLimit({
+  windowMs: 10 * 60_000,
+  max: 3,
+  message: tooMany("Please wait before requesting another verification code."),
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const forgotLimiter = rateLimit({
+  windowMs: 60 * 60_000,
+  max: 3,
+  keyGenerator: emailIpKey,
+  message: tooMany("Too many reset requests. Please try again later."),
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const resetLimiter = rateLimit({
+  windowMs: 60 * 60_000,
+  max: 5,
+  message: tooMany("Too many password reset attempts. Please try again later."),
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 if (!process.env.JWT_SECRET) {
   throw new Error("JWT_SECRET environment variable is required.");
@@ -98,13 +172,14 @@ async function makeUniqueSlug(workspaceName: string) {
 }
 
 async function createVerificationToken(userId: number) {
-  // Generate a secure, highly memorable 4-digit verification code
-  const token = Math.floor(1000 + Math.random() * 9000).toString();
+  // 4-digit code; combined with rate limiting + short expiry to resist brute force.
+  // Uses crypto.randomInt so the value isn't predictable from Math.random state.
+  const token = String(crypto.randomInt(1000, 10000));
   await storage.createOtp({
     userId,
     otpHash: tokenHash(token),
     type: "registration",
-    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    expiresAt: new Date(Date.now() + 15 * 60 * 1000),
     used: false,
   });
   return token;
@@ -123,21 +198,26 @@ async function findOtpByTokenHash(hash: string, type: "registration" | "password
 const signupSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
-  password: z.string().min(6),
+  password: passwordSchema,
   workspaceName: z.string().min(2),
 });
 
-router.post("/signup", async (req: Request, res: Response) => {
+router.post("/signup", signupLimiter, async (req: Request, res: Response) => {
+  const parsed = signupSchema.safeParse(req.body);
+  if (!parsed.success)
+    return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+
+  const email = parsed.data.email.toLowerCase().trim();
+  if (await pgFindUserByEmail(email)) {
+    return res.status(409).json({ message: "An account with this email already exists" });
+  }
+
+  // Compensating cleanup: queries here run outside a transaction (the pg helpers
+  // each use the pool), so if a later step fails we manually unwind anything
+  // already created to avoid orphaned users/workspaces.
+  let userId: number | null = null;
+  let workspaceId: number | null = null;
   try {
-    const parsed = signupSchema.safeParse(req.body);
-    if (!parsed.success)
-      return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
-
-    const email = parsed.data.email.toLowerCase().trim();
-    if (await pgFindUserByEmail(email)) {
-      return res.status(409).json({ message: "An account with this email already exists" });
-    }
-
     const user = await pgCreateUser({
       authProvider: "local",
       authSubject: email,
@@ -150,6 +230,7 @@ router.post("/signup", async (req: Request, res: Response) => {
       status: "active",
       emailVerified: false,
     });
+    userId = user.id;
 
     const workspace = await pgCreateWorkspace({
       name: parsed.data.workspaceName,
@@ -157,6 +238,8 @@ router.post("/signup", async (req: Request, res: Response) => {
       type: "business",
       ownerId: user.id,
     });
+    workspaceId = workspace.id;
+
     await pgUpsertWorkspaceMembership({
       workspaceId: workspace.id,
       userId: user.id,
@@ -164,6 +247,8 @@ router.post("/signup", async (req: Request, res: Response) => {
     });
 
     const verifyToken = await createVerificationToken(user.id);
+    await createLoginSession(req, res, user.id);
+
     sendEmailVerification(user.email, user.displayName || user.name, verifyToken).catch((e) =>
       logger.warn("[auth/signup] Failed to send verification email", { error: String(e) })
     );
@@ -171,7 +256,6 @@ router.post("/signup", async (req: Request, res: Response) => {
       logger.warn("[auth/signup] Failed to send welcome email", { error: String(e) })
     );
 
-    await createLoginSession(req, res, user.id);
     recordAuditEvent({
       actorUserId: user.id,
       targetUserId: user.id,
@@ -182,13 +266,23 @@ router.post("/signup", async (req: Request, res: Response) => {
     return res.status(201).json(await currentAuthPayload(user.id));
   } catch (err) {
     logger.error("[auth/signup] Error", { error: String(err) });
+    if (workspaceId !== null) {
+      await getPgPool()
+        .query("DELETE FROM workspaces WHERE id = $1", [workspaceId])
+        .catch((e) => logger.error("[auth/signup] cleanup workspace failed", { error: String(e) }));
+    }
+    if (userId !== null) {
+      await pgDeleteUser(userId).catch((e) =>
+        logger.error("[auth/signup] cleanup user failed", { error: String(e) })
+      );
+    }
     return res.status(500).json({ message: "Signup failed" });
   }
 });
 
 const loginSchema = z.object({ email: z.string().email(), password: z.string().min(1) });
 
-router.post("/login", async (req: Request, res: Response) => {
+router.post("/login", loginLimiter, async (req: Request, res: Response) => {
   try {
     const parsed = loginSchema.safeParse(req.body);
     if (!parsed.success)
@@ -196,9 +290,31 @@ router.post("/login", async (req: Request, res: Response) => {
 
     const user = await pgFindUserByEmail(parsed.data.email);
     if (!user || !(await bcrypt.compare(parsed.data.password, user.password || ""))) {
+      recordAuditEvent({
+        actorUserId: user?.id ?? null,
+        targetUserId: user?.id ?? null,
+        eventType: AUDIT_EVENTS.USER_LOGIN_FAILED,
+        payload: {
+          email: parsed.data.email,
+          ip: req.ip,
+          ua: req.headers["user-agent"],
+          reason: user ? "bad_password" : "unknown_email",
+        },
+      });
       return res.status(401).json({ message: "Invalid email or password" });
     }
     if (["suspended", "rejected"].includes(user.status)) {
+      recordAuditEvent({
+        actorUserId: user.id,
+        targetUserId: user.id,
+        eventType: AUDIT_EVENTS.USER_LOGIN_FAILED,
+        payload: {
+          email: parsed.data.email,
+          ip: req.ip,
+          ua: req.headers["user-agent"],
+          reason: "account_" + user.status,
+        },
+      });
       return res.status(403).json({ message: "Account is not active" });
     }
 
@@ -222,7 +338,9 @@ router.post("/refresh", async (req: Request, res: Response) => {
     const refreshToken = req.cookies?.refresh_token;
     if (!refreshToken) return res.status(401).json({ message: "Refresh token required" });
 
-    const session = await storage.getSessionByRefreshToken(tokenHash(refreshToken));
+    // Atomic rotation: DELETE ... RETURNING ensures only one of N concurrent
+    // refreshes with the same token wins. The losers get undefined and fail.
+    const session = await storage.consumeSessionByRefreshToken(tokenHash(refreshToken));
     if (!session || session.expiresAt < new Date()) {
       clearAuthCookies(req, res);
       return res.status(401).json({ message: "Invalid refresh token" });
@@ -230,12 +348,10 @@ router.post("/refresh", async (req: Request, res: Response) => {
 
     const user = await pgFindUserById(session.userId);
     if (!user || ["suspended", "rejected"].includes(user.status)) {
-      await storage.deleteSession(session.id);
       clearAuthCookies(req, res);
       return res.status(401).json({ message: "Authentication required" });
     }
 
-    await storage.deleteSession(session.id);
     const tokens = await createLoginSession(req, res, user.id);
     return res.status(200).json({ token: tokens.accessToken });
   } catch (err) {
@@ -283,7 +399,7 @@ router.post("/logout-all", async (req: Request, res: Response) => {
   return res.status(200).json({ message: "Logged out" });
 });
 
-router.post("/email/verify/request", async (req: Request, res: Response) => {
+router.post("/email/verify/request", verifyRequestLimiter, async (req: Request, res: Response) => {
   try {
     const token = req.cookies?.access_token || req.headers.authorization?.split(" ")[1];
     if (!token) return res.status(401).json({ message: "Not authenticated" });
@@ -299,28 +415,67 @@ router.post("/email/verify/request", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/email/verify", async (req: Request, res: Response) => {
+const OTP_MAX_ATTEMPTS = 5;
+
+router.post("/email/verify", verifyLimiter, async (req: Request, res: Response) => {
   const parsed = z.object({ token: z.string().min(4) }).safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ message: "Token is required" });
-  const otp = await findOtpByTokenHash(tokenHash(parsed.data.token), "registration");
-  if (!otp) return res.status(400).json({ message: "Invalid or expired verification token" });
-  await pgUpdateUser(Number(otp.user_id), { emailVerified: true });
+
+  // The user is authenticated by the signup-issued access cookie; we look up
+  // their latest OTP directly rather than searching by hash so we can enforce
+  // a per-OTP attempt limit without leaking codes across accounts.
+  const accessToken = req.cookies?.access_token || req.headers.authorization?.split(" ")[1];
+  if (!accessToken) return res.status(401).json({ message: "Not authenticated" });
+  let userId: number;
+  try {
+    userId = (jwt.verify(accessToken, JWT_SECRET) as AccessPayload).userId;
+  } catch {
+    return res.status(401).json({ message: "Not authenticated" });
+  }
+
+  const pool = getPgPool();
+  // Atomically increment attempts on the latest registration OTP and return its state.
+  const { rows } = await pool.query(
+    `UPDATE otps SET attempts = attempts + 1
+     WHERE id = (
+       SELECT id FROM otps
+       WHERE user_id = $1 AND type = 'registration' AND used = false AND expires_at > now()
+       ORDER BY created_at DESC LIMIT 1
+     )
+     RETURNING id, otp_hash, attempts`,
+    [userId]
+  );
+  const otp = rows[0];
+  if (!otp) return res.status(400).json({ message: "No active verification code. Request a new one." });
+
+  if (otp.attempts > OTP_MAX_ATTEMPTS) {
+    await pool.query("UPDATE otps SET used = true WHERE id = $1", [otp.id]);
+    return res.status(429).json({ message: "Too many attempts. Request a new verification code." });
+  }
+
+  if (otp.otp_hash !== tokenHash(parsed.data.token)) {
+    return res.status(400).json({ message: "Invalid verification code" });
+  }
+
+  await pgUpdateUser(userId, { emailVerified: true });
   await storage.markOtpUsed(Number(otp.id));
   return res.json({ message: "Email verified" });
 });
 
-router.post("/password/forgot", async (req: Request, res: Response) => {
+router.post("/password/forgot", forgotLimiter, async (req: Request, res: Response) => {
   const parsed = z.object({ email: z.string().email() }).safeParse(req.body);
   if (!parsed.success)
     return res.status(200).json({ message: "If the account exists, reset instructions were sent" });
   const user = await pgFindUserByEmail(parsed.data.email);
-  if (user) {
+  // Only issue a reset to verified accounts: an attacker who registers with the
+  // victim's email but never verifies should not be able to trigger this flow.
+  if (user && user.emailVerified) {
     const token = randomToken();
     await storage.createOtp({
       userId: user.id,
       otpHash: tokenHash(token),
       type: "password_reset",
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      expiresAt: new Date(Date.now() + 30 * 60 * 1000),
       used: false,
     });
     sendPasswordReset(user.email, user.displayName || user.name, token).catch((e) =>
@@ -330,9 +485,9 @@ router.post("/password/forgot", async (req: Request, res: Response) => {
   return res.status(200).json({ message: "If the account exists, reset instructions were sent" });
 });
 
-router.post("/password/reset", async (req: Request, res: Response) => {
+router.post("/password/reset", resetLimiter, async (req: Request, res: Response) => {
   const parsed = z
-    .object({ token: z.string().min(10), password: z.string().min(6) })
+    .object({ token: z.string().min(10), password: passwordSchema })
     .safeParse(req.body);
   if (!parsed.success)
     return res.status(400).json({ message: "Valid token and password are required" });
@@ -365,7 +520,7 @@ const acceptInviteSchema = z.object({
   token: z.string().min(10),
   name: z.string().min(1).optional(),
   displayName: z.string().min(1).optional(),
-  password: z.string().min(6),
+  password: passwordSchema,
 });
 
 async function acceptWorkspaceInvite(req: Request, res: Response) {

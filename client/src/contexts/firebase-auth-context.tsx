@@ -41,7 +41,6 @@ interface AuthRuntimeUser {
   email: string;
   displayName: string;
   photoURL?: string;
-  getIdToken: () => Promise<string>;
 }
 
 interface AuthContextType {
@@ -99,7 +98,6 @@ function runtimeUserFromProfile(profile: UserProfile): AuthRuntimeUser {
     email: profile.email,
     displayName: profile.displayName,
     photoURL: profile.photoURL,
-    getIdToken: async () => "",
   };
 }
 

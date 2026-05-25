@@ -58,7 +58,9 @@
       "Bash(bash -n scripts/deploy.sh)",
       "Bash(openssl s_client -servername classmode.inmodel.in -connect classmode.inmodel.in:443)",
       "Bash(openssl x509 *)",
-      "Bash(gcloud logging *)"
+      "Bash(gcloud logging *)",
+      "Bash(node *)",
+      "Bash(gh pr *)"
     ]
   }
 }

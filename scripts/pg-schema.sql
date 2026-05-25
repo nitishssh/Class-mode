@@ -144,8 +144,10 @@ CREATE TABLE IF NOT EXISTS otps (
   type        text         NOT NULL CHECK (type IN ('registration','password_reset','2fa')),
   expires_at  timestamptz  NOT NULL,
   used        boolean      NOT NULL DEFAULT false,
+  attempts    int          NOT NULL DEFAULT 0,
   created_at  timestamptz  NOT NULL DEFAULT now()
 );
+ALTER TABLE otps ADD COLUMN IF NOT EXISTS attempts int NOT NULL DEFAULT 0;
 
 -- ─── Tests ───────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS tests (
