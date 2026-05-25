@@ -107,7 +107,7 @@ export async function initCassandra() {
         inner.includes("401") ||
         inner.includes("Unauthorized")
       ) {
-        console.warn("[Cassandra] Database hibernated (HTTP 401). Falling back to MongoDB.");
+        console.warn("[Cassandra] Astra DB hibernated (HTTP 401). Falling back to in-memory store.");
         console.warn("[Cassandra] Wake your Astra DB at https://astra.datastax.com");
         hibernationDetected = true;
         isConnected = false;
@@ -140,5 +140,5 @@ export async function initCassandra() {
     }
   }
 
-  console.warn("[Cassandra] Max attempts reached. Falling back to MongoDB.");
+  console.warn("[Cassandra] Max attempts reached. Falling back to in-memory store.");
 }

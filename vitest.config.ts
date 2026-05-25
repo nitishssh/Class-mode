@@ -24,7 +24,6 @@ export default defineConfig({
       JWT_SECRET: process.env.JWT_SECRET ?? "super_secret_jwt_key_learning_pro_123",
       REFRESH_SECRET: process.env.REFRESH_SECRET ?? "super_secret_jwt_key_learning_pro_123",
       SESSION_SECRET: process.env.SESSION_SECRET ?? "test_session_secret_for_vitest",
-      MONGODB_URL: process.env.MONGODB_URL ?? "mongodb://localhost:27017/eduai_test",
     },
   },
 });

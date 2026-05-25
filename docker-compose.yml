@@ -2,9 +2,12 @@
 #  docker-compose.yml — PersonalLearningPro
 #
 #  Unified orchestration for:
-#    - EduAI (main web app + backend)
-#    - IniClaw (agent gateway runtime)
-#    - Supporting services (MongoDB, Cassandra, Redis)
+#    - EduAI (main web app + backend)       [default]
+#    - IniClaw (agent gateway runtime)      [default]
+#    - Nginx reverse proxy                  [--profile prod]
+#    - AI Classroom (iniclaw + study-arena) [--profile ai-classroom]
+#    - Messaging: Astra DB cloud (cassandra-driver, no local container)
+#    - All databases are remote: PostgreSQL + Astra DB cloud (no local DB containers)
 #
 #  Usage:
 #    Development:  docker compose up
@@ -53,7 +56,6 @@ services:
       SERVICE_NAME: eduai-app
       INICLAW_GATEWAY_URL: http://iniclaw-gateway:4000
       MESSAGEPAL_PORT: 5002
-      REDIS_URL: redis://:${REDIS_PASSWORD:-redis_dev_pass}@redis:6379
     volumes:
       - ./client:/app/client
       - ./server:/app/server
@@ -66,13 +68,6 @@ services:
       - /app/node_modules
     healthcheck:
       <<: *healthcheck-http
-    depends_on:
-      mongodb:
-        condition: service_healthy
-      cassandra:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -122,91 +117,6 @@ services:
   # SUPPORTING SERVICES
   # ─────────────────────────────────────────────────────────────────
 
-  # ── MongoDB (Structured Data) ────────────────────────────────────
-  mongodb:
-    image: mongo:8-alpine
-    container_name: eduai-mongodb
-    ports:
-      - "127.0.0.1:27017:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-password}
-      MONGO_INITDB_DATABASE: eduai
-    volumes:
-      - mongodb-data:/data/db
-      - mongodb-config:/data/configdb
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-    networks:
-      - app-net
-    security_opt:
-      - no-new-privileges:true
-    profiles:
-      - "" # default profile
-      - dev
-      - prod
-
-  # ── Cassandra (Message Storage) ──────────────────────────────────
-  cassandra:
-    image: cassandra:5-alpine
-    container_name: eduai-cassandra
-    ports:
-      - "127.0.0.1:9042:9042"
-    environment:
-      CASSANDRA_CLUSTER_NAME: EduAI
-      CASSANDRA_DC: datacenter1
-      CASSANDRA_RACK: rack1
-      CASSANDRA_SEEDS: cassandra
-    volumes:
-      - cassandra-data:/var/lib/cassandra
-    healthcheck:
-      test: ["CMD", "cqlsh", "-e", "describe cluster"]
-      interval: 15s
-      timeout: 10s
-      retries: 5
-      start_period: 40s
-    networks:
-      - app-net
-    security_opt:
-      - no-new-privileges:true
-    profiles:
-      - "" # default profile
-      - dev
-      - prod
-
-  # ── Redis (Caching & Sessions) ───────────────────────────────────
-  redis:
-    image: redis:7-alpine
-    container_name: eduai-redis
-    command: >
-      redis-server
-      --requirepass ${REDIS_PASSWORD:-redis_dev_pass}
-      --maxmemory 256mb
-      --maxmemory-policy allkeys-lru
-      --save 60 1
-      --loglevel warning
-    ports:
-      - "127.0.0.1:6379:6379"
-    volumes:
-      - redis-data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_dev_pass}", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - app-net
-    security_opt:
-      - no-new-privileges:true
-    profiles:
-      - "" # default profile
-      - dev
-      - prod
-
   # ── Nginx Reverse Proxy ──────────────────────────────────────────
   nginx:
     image: nginx:1.27-alpine
@@ -225,8 +135,6 @@ services:
     security_opt:
       - no-new-privileges:true
     profiles:
-      - "" # default profile
-      - dev
       - prod
 
   # ─────────────────────────────────────────────────────────────────
@@ -249,14 +157,6 @@ services:
       NODE_ENV: production
       SERVICE_NAME: eduai-app
       INICLAW_GATEWAY_URL: http://iniclaw-gateway:4000
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
-    depends_on:
-      mongodb:
-        condition: service_healthy
-      cassandra:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -298,7 +198,7 @@ services:
     profiles:
       - prod
 
-  # ── AI Classroom Feature ────────────────────────────────────────
+  # ── AI Classroom Feature (opt-in: docker compose --profile ai-classroom up) ──
   iniclaw:
     build:
       context: ./features/ai-classroom/ini_claw
@@ -315,6 +215,8 @@ services:
       - app-net
     security_opt:
       - no-new-privileges:true
+    profiles:
+      - ai-classroom
 
   study-arena:
     build:
@@ -334,6 +236,8 @@ services:
       - app-net
     security_opt:
       - no-new-privileges:true
+    profiles:
+      - ai-classroom
 
 # ── Networks ──────────────────────────────────────────────────────
 networks:
@@ -343,8 +247,4 @@ networks:
       com.docker.network.bridge.enable_icc: "false"
 
 # ── Volumes ───────────────────────────────────────────────────────
-volumes:
-  mongodb-data:
-  mongodb-config:
-  cassandra-data:
-  redis-data:
+volumes: {}
