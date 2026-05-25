@@ -9,9 +9,6 @@ import { gradeSubmission } from "../server/services/gradingService";
 // Override with dummy key since tests might not have real one
 process.env.GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || "dummy";
 
-// Try connecting, mock everything if no database or no AI available
-const MONGO_URL = process.env.MONGODB_URL || "mongodb://localhost:27017/learningpro";
-
 async function main() {
   console.log("🚀 Starting Pilot School AI Predictive Simulation...\n");
   const reportPath = path.join(process.cwd(), "pilot-school-predictive-report.md");
@@ -159,7 +156,6 @@ async function main() {
     console.error("❌ Simulation failed:", error);
     process.exit(1);
   } finally {
-    process.exit(0);
     process.exit(0);
   }
 }

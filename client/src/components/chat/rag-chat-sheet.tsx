@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
+import { useTranslation } from "@/lib/i18n";
 
 interface SourceSnippet {
   id: string;
@@ -26,6 +27,7 @@ interface RagChatSheetProps {
 }
 
 export function RagChatSheet({ isOpen, onClose, subjectName, initialPrompt }: RagChatSheetProps) {
+  const { t } = useTranslation();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -43,12 +45,16 @@ export function RagChatSheet({ isOpen, onClose, subjectName, initialPrompt }: Ra
           {
             id: "welcome",
             role: "assistant",
-            content: `Hi! I'm your **${subjectName}** AI Tutor. How can I help you today? You can ask me to explain concepts, generate quizzes, or help with problem solving.`,
+            content: t("chat.welcomeMessage", "Hi! I'm your **{subjectName}** AI Tutor. How can I help you today? You can ask me to explain concepts, generate quizzes, or help with problem solving.").replace("{subjectName}", subjectName),
           },
         ]);
       }
     }
+<<<<<<< HEAD
   }, [isOpen, initialPrompt, subjectName, messages.length]);
+=======
+  }, [isOpen, initialPrompt, subjectName, messages.length, t]);
+>>>>>>> 81f69d8ec72d95716dfc207c0e1375e02fb11287
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -127,7 +133,7 @@ export function RagChatSheet({ isOpen, onClose, subjectName, initialPrompt }: Ra
             </div>
             <div>
               <h3 className="font-display text-sm text-foreground">
-                Class Mode Tutor • {subjectName}
+                {t("chat.tutorTitle", "Class Mode Tutor • ")}{subjectName}
               </h3>
               <div className="mt-0.5 flex items-center gap-1.5">
                 <span className="relative flex h-1.5 w-1.5">
@@ -135,7 +141,7 @@ export function RagChatSheet({ isOpen, onClose, subjectName, initialPrompt }: Ra
                   <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
                 </span>
                 <span className="px-1 text-[10px] font-bold uppercase tracking-widest text-emerald-600">
-                  Active Learning Mode
+                  {t("chat.activeLearning", "Active Learning Mode")}
                 </span>
               </div>
             </div>
@@ -217,7 +223,7 @@ export function RagChatSheet({ isOpen, onClose, subjectName, initialPrompt }: Ra
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask me anything about your subjects..."
+              placeholder={t("chat.placeholder", "Ask me anything about your subjects...")}
               className="max-h-[160px] min-h-[56px] w-full resize-none border-0 bg-transparent py-4 pl-5 pr-14 font-body text-sm leading-relaxed text-foreground shadow-none placeholder:text-muted-foreground focus-visible:ring-0 md:text-base"
               rows={1}
             />
@@ -240,7 +246,7 @@ export function RagChatSheet({ isOpen, onClose, subjectName, initialPrompt }: Ra
           <div className="mt-3 flex items-center justify-center gap-1.5 opacity-40">
             <Sparkles className="h-3 w-3 text-accent" />
             <span className="text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              AI generated insights for faster learning
+              {t("chat.aiInsights", "AI generated insights for faster learning")}
             </span>
           </div>
         </div>

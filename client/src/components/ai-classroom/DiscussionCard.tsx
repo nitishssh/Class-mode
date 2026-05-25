@@ -3,6 +3,7 @@ import { MessageSquare, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "@/lib/i18n";
 
 interface DiscussionCardProps {
   topic: string;
@@ -12,6 +13,7 @@ interface DiscussionCardProps {
 }
 
 export function DiscussionCard({ topic, prompt, onJoin, onSkip }: DiscussionCardProps) {
+  const { t } = useTranslation();
   return (
     <AnimatePresence>
       <motion.div
@@ -40,10 +42,10 @@ export function DiscussionCard({ topic, prompt, onJoin, onSkip }: DiscussionCard
           )}
           <CardFooter className="gap-2 pb-4">
             <Button size="sm" onClick={onJoin} className="flex-1">
-              Join Discussion
+              {t("discussion.joinDiscussion", "Join Discussion")}
             </Button>
             <Button size="sm" variant="outline" onClick={onSkip}>
-              Skip
+              {t("discussion.skip", "Skip")}
             </Button>
           </CardFooter>
         </Card>

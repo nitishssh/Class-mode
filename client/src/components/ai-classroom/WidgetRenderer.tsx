@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 
 interface WidgetRendererProps {
   scene: {
@@ -11,6 +12,7 @@ interface WidgetRendererProps {
 }
 
 export function WidgetRenderer({ scene, action, className }: WidgetRendererProps) {
+  const { t } = useTranslation();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const content = scene.content;
 
@@ -66,7 +68,7 @@ export function WidgetRenderer({ scene, action, className }: WidgetRendererProps
         className
       )}
     >
-      Widget content unavailable
+      {t("widget.unavailable", "Widget content unavailable")}
     </div>
   );
 }

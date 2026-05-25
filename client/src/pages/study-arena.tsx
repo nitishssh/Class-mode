@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useTranslation } from "@/lib/i18n";
 import {
   Hash,
   Search,
@@ -36,6 +37,10 @@ const DIRECT_MESSAGES: User[] = [
 ];
 
 export default function StudyArenaPage() {
+<<<<<<< HEAD
+=======
+  const { t } = useTranslation();
+>>>>>>> 81f69d8ec72d95716dfc207c0e1375e02fb11287
   const { currentUser } = useAuth();
   const user = currentUser?.user;
 
@@ -50,9 +55,9 @@ export default function StudyArenaPage() {
         <div className="flex h-14 shrink-0 items-center justify-between border-b border-white/5 bg-[#111111] px-4">
           <div className="flex cursor-pointer items-center gap-2 text-[15px] font-semibold tracking-tight text-zinc-100 transition-colors hover:text-white">
             <div className="flex h-5 w-5 items-center justify-center rounded bg-indigo-500/20 text-xs font-bold text-indigo-400">
-              M
+              {t("study.shortLogo", "M")}
             </div>
-            Class Mode <ChevronDown className="h-4 w-4 text-zinc-500" />
+            {t("sidebar.classMode", "Class Mode")} <ChevronDown className="h-4 w-4 text-zinc-500" />
           </div>
         </div>
 
@@ -62,7 +67,7 @@ export default function StudyArenaPage() {
             variant="ghost"
             className="h-8 w-full justify-start px-2 text-sm font-medium text-zinc-400 hover:bg-white/5 hover:text-white"
           >
-            <Search className="mr-2 h-4 w-4" /> Search...
+            <Search className="mr-2 h-4 w-4" /> {t("study.search", "Search...")}
           </Button>
         </div>
 
@@ -80,7 +85,7 @@ export default function StudyArenaPage() {
                 )}
                 onClick={() => setActiveView("board")}
               >
-                <KanbanSquare className="mr-2 h-4 w-4" /> Board
+                <KanbanSquare className="mr-2 h-4 w-4" /> {t("study.board", "Board")}
               </Button>
               <Button
                 variant="ghost"
@@ -92,7 +97,7 @@ export default function StudyArenaPage() {
                 )}
                 onClick={() => setActiveView("files")}
               >
-                <FileText className="mr-2 h-4 w-4" /> Files
+                <FileText className="mr-2 h-4 w-4" /> {t("study.files", "Files")}
               </Button>
             </div>
 
@@ -100,7 +105,7 @@ export default function StudyArenaPage() {
             <div>
               <div className="group mb-1 flex cursor-pointer items-center justify-between px-2">
                 <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 transition-colors hover:text-zinc-300">
-                  Channels
+                  {t("study.channels", "Channels")}
                 </span>
                 <Plus className="h-3.5 w-3.5 text-zinc-500 opacity-0 transition-opacity hover:text-zinc-300 group-hover:opacity-100" />
               </div>
@@ -130,7 +135,7 @@ export default function StudyArenaPage() {
             <div>
               <div className="group mb-1 flex cursor-pointer items-center justify-between px-2">
                 <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 transition-colors hover:text-zinc-300">
-                  Direct Messages
+                  {t("study.directMessages", "Direct Messages")}
                 </span>
                 <Plus className="h-3.5 w-3.5 text-zinc-500 opacity-0 transition-opacity hover:text-zinc-300 group-hover:opacity-100" />
               </div>
@@ -184,7 +189,7 @@ export default function StudyArenaPage() {
                 {user?.displayName || "Student"}
               </span>
               <span className="flex items-center gap-1 text-[10px] text-emerald-400">
-                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Online
+                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> {t("study.online", "Online")}
               </span>
             </div>
           </div>
@@ -211,7 +216,7 @@ export default function StudyArenaPage() {
                 ) : null}
                 {CHANNELS.find((c) => c.id === activeChannel)?.name ||
                   DIRECT_MESSAGES.find((m) => m.id === activeChannel)?.name ||
-                  "General"}
+                  t("study.general", "General")}
               </span>
             </div>
             <div className="flex items-center gap-4 text-zinc-400">
@@ -223,7 +228,7 @@ export default function StudyArenaPage() {
           {activeView === "files" ? (
             <div className="flex flex-1 flex-col items-center justify-center text-zinc-500">
               <FileText className="mb-4 h-12 w-12 opacity-50" />
-              <p>Shared files view coming soon.</p>
+              <p>{t("study.sharedFilesSoon", "Shared files view coming soon.")}</p>
             </div>
           ) : (
             <>
@@ -236,12 +241,11 @@ export default function StudyArenaPage() {
                       <Hash className="h-8 w-8 text-zinc-400" />
                     </div>
                     <h2 className="mb-2 text-xl font-medium text-white">
-                      Welcome to #
+                      {t("study.welcomeTo", "Welcome to #")}
                       {CHANNELS.find((c) => c.id === activeChannel)?.name || "the channel"}
                     </h2>
                     <p className="max-w-md text-center text-sm text-zinc-500">
-                      This is the start of the channel. Collaborate on assignments and share notes
-                      here.
+                      {t("study.welcomeDesc", "This is the start of the channel. Collaborate on assignments and share notes here.")}
                     </p>
                   </div>
 
@@ -253,12 +257,11 @@ export default function StudyArenaPage() {
                     </Avatar>
                     <div className="flex flex-col">
                       <div className="mb-1 flex items-baseline gap-2">
-                        <span className="text-[15px] font-medium text-zinc-100">Alice Smith</span>
+                        <span className="text-[15px] font-medium text-zinc-100">{t("study.aliceSmith", "Alice Smith")}</span>
                         <span className="text-xs text-zinc-500">10:42 AM</span>
                       </div>
                       <p className="text-[15px] leading-relaxed text-zinc-300">
-                        Hey everyone! Just dropped the notes for chapter 4 in the files tab. Let me
-                        know if you have questions.
+                        {t("study.aliceMessage", "Hey everyone! Just dropped the notes for chapter 4 in the files tab. Let me know if you have questions.")}
                       </p>
                     </div>
                   </div>
@@ -270,11 +273,11 @@ export default function StudyArenaPage() {
                     </Avatar>
                     <div className="flex flex-col">
                       <div className="mb-1 flex items-baseline gap-2">
-                        <span className="text-[15px] font-medium text-zinc-100">Bob Jones</span>
+                        <span className="text-[15px] font-medium text-zinc-100">{t("study.bobJones", "Bob Jones")}</span>
                         <span className="text-xs text-zinc-500">10:45 AM</span>
                       </div>
                       <p className="text-[15px] leading-relaxed text-zinc-300">
-                        Awesome, thanks Alice! I'll review them before our study session tomorrow.
+                        {t("study.bobMessage", "Awesome, thanks Alice! I'll review them before our study session tomorrow.")}
                       </p>
 
                       {/* Embedded File Mock */}
@@ -284,9 +287,9 @@ export default function StudyArenaPage() {
                         </div>
                         <div className="flex flex-col overflow-hidden">
                           <span className="truncate text-sm font-medium text-zinc-200">
-                            Chapter4_Notes.pdf
+                            {t("study.chapter4Pdf", "Chapter4_Notes.pdf")}
                           </span>
-                          <span className="text-xs text-zinc-500">2.4 MB PDF</span>
+                          <span className="text-xs text-zinc-500">{t("study.pdfSize", "2.4 MB PDF")}</span>
                         </div>
                       </div>
                     </div>
@@ -298,7 +301,7 @@ export default function StudyArenaPage() {
               <div className="mx-auto w-full max-w-4xl shrink-0 p-4">
                 <div className="relative flex flex-col rounded-xl border border-white/10 bg-[#111111] shadow-sm transition-all focus-within:border-indigo-500/50 focus-within:ring-1 focus-within:ring-indigo-500/50">
                   <textarea
-                    placeholder="Message the group..."
+                    placeholder={t("study.messageGroup", "Message the group...")}
                     className="max-h-32 min-h-[44px] w-full resize-none bg-transparent p-3 text-[15px] leading-relaxed text-zinc-100 outline-none placeholder:text-zinc-500"
                     rows={1}
                   />
@@ -323,7 +326,7 @@ export default function StudyArenaPage() {
                       size="sm"
                       className="h-7 rounded-md bg-indigo-600 px-3 text-xs font-medium text-white hover:bg-indigo-500"
                     >
-                      <Send className="mr-1.5 h-3.5 w-3.5" /> Send
+                      <Send className="mr-1.5 h-3.5 w-3.5" /> {t("study.send", "Send")}
                     </Button>
                   </div>
                 </div>

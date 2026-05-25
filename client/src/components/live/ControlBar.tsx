@@ -1,6 +1,7 @@
 import { useMediaControls } from "@/hooks/live/useMediaControls";
 import { Button } from "@/components/ui/button";
 import { Video, VideoOff, Mic, MicOff, PhoneOff, Users, MessageSquare } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 
 interface ControlBarProps {
   onLeave: () => void;
@@ -19,13 +20,14 @@ export function ControlBar({
   isParticipantsOpen,
   isHost,
 }: ControlBarProps) {
+  const { t } = useTranslation();
   const { isVideoEnabled, isAudioEnabled, toggleVideo, toggleAudio } = useMediaControls();
 
   return (
     <div className="z-10 flex h-20 w-full shrink-0 items-center justify-between border-t border-zinc-800 bg-zinc-950 px-6">
       <div className="flex flex-1 items-center gap-4">
         <span className="hidden text-sm font-medium text-zinc-400 md:inline-block">
-          Class Mode Live
+          {t("live.title", "Class Mode Live")}
         </span>
       </div>
 
@@ -52,7 +54,7 @@ export function ControlBar({
           onClick={onLeave}
         >
           <PhoneOff className="mr-2 h-5 w-5" />
-          {isHost ? "End Class" : "Leave"}
+          {isHost ? t("live.endClass", "End Class") : t("live.leave", "Leave")}
         </Button>
       </div>
 

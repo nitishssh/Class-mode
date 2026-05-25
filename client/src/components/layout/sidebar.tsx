@@ -4,6 +4,7 @@ import { cn, getInitials } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useFirebaseAuth as useAuth } from "@/contexts/firebase-auth-context";
+import { useTranslation } from "@/lib/i18n";
 import {
   LayoutDashboard,
   FileQuestion,
@@ -45,6 +46,7 @@ interface SidebarProps {
 
 
 export function Sidebar({ className }: SidebarProps) {
+  const { t } = useTranslation();
   const [location] = useLocation();
   const {
     currentUser: { profile: user },
@@ -253,7 +255,7 @@ export function Sidebar({ className }: SidebarProps) {
           onClick={() => setIsMobileOpen(!isMobileOpen)}
         >
           <Menu className="h-5 w-5" />
-          <span className="sr-only">Toggle menu</span>
+          <span className="sr-only">{t("sidebar.toggleMenu", "Toggle menu")}</span>
         </Button>
       </div>
 
@@ -276,14 +278,14 @@ export function Sidebar({ className }: SidebarProps) {
         <div className="flex items-center px-6 py-6">
           {!isCollapsed ? (
             <div className="flex flex-col">
-              <h1 className="font-display text-2xl leading-tight text-foreground">Class Mode</h1>
+              <h1 className="font-display text-2xl leading-tight text-foreground">{t("sidebar.classMode", "Class Mode")}</h1>
               <p className="mt-0.5 font-body text-[10px] uppercase tracking-widest text-muted-foreground">
-                Learning Platform
+                {t("sidebar.learningPlatform", "Learning Platform")}
               </p>
             </div>
           ) : (
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent-soft font-display text-xl text-accent">
-              E
+              {t("sidebar.shortLogo", "E")}
             </div>
           )}
         </div>
@@ -311,7 +313,7 @@ export function Sidebar({ className }: SidebarProps) {
         <div className={cn("flex-1 overflow-y-auto", isCollapsed ? "px-2" : "px-3")}>
           {!isCollapsed && (
             <div className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              Main Menu
+              {t("sidebar.mainMenu", "Main Menu")}
             </div>
           )}
           <nav className="space-y-0.5">
@@ -340,7 +342,7 @@ export function Sidebar({ className }: SidebarProps) {
                       <>
                         <span className="flex-1 truncate text-muted-foreground">{item.title}</span>
                         <span className="ml-2 flex-shrink-0 rounded-full border border-accent/10 bg-accent-soft px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-accent">
-                          Soon
+                          {t("sidebar.soon", "Soon")}
                         </span>
                       </>
                     )}

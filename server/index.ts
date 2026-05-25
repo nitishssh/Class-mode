@@ -1,21 +1,6 @@
 import "dotenv/config";
 import dns from "node:dns";
-// Fix SRV resolution errors by forcing Google DNS globally
-try {
-  dns.setServers(["8.8.8.8", "8.8.4.4"]);
-} catch (e) {
-  console.warn("Could not set DNS servers", e);
-}
-
-if (process.env.DNS_IPV4_FIRST === "true") {
-  dns.setDefaultResultOrder("ipv4first");
-}
 import { logger } from "./lib/logger";
-
-// Prevent unhandled promise rejections from crashing the server
-process.on("unhandledRejection", (reason: unknown) => {
-  logger.error("[unhandledRejection] non-fatal:", reason);
-});
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -32,7 +17,24 @@ import { setupMessagePalWebSocket } from "./message";
 import { initCassandra } from "./lib/cassandra";
 import { checkFirebaseAdminReadiness } from "./lib/firebase-admin";
 
+// Fix SRV resolution errors by forcing Google DNS globally
+try {
+  dns.setServers(["8.8.8.8", "8.8.4.4"]);
+} catch (e) {
+  console.warn("Could not set DNS servers", e);
+}
+
+if (process.env.DNS_IPV4_FIRST === "true") {
+  dns.setDefaultResultOrder("ipv4first");
+}
+
+// Prevent unhandled promise rejections from crashing the server
+process.on("unhandledRejection", (reason: unknown) => {
+  logger.error("[unhandledRejection] non-fatal:", reason);
+});
+
 const app = express();
+app.set("trust proxy", 1);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());

@@ -8,6 +8,7 @@ import { FirebaseAuthProvider, useFirebaseAuth } from "@/contexts/firebase-auth-
 import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Loader2 } from "lucide-react";
+import { I18nProvider, useTranslation } from "@/lib/i18n";
 
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
@@ -79,7 +80,7 @@ const withLayout = <P extends object>(
 ) => {
   const Wrapped = (props: P) => (
     <Layout fullWidth={options?.fullWidth}>
-      <Component {...props} />
+      {React.createElement(Component, props)}
     </Layout>
   );
   Wrapped.displayName = `WithLayout(${Component.displayName || Component.name || "Component"})`;
@@ -92,6 +93,7 @@ const withProtection = <P extends object>(
   allowedRoles?: string[]
 ) => {
   const Protected = (props: P) => {
+    const { t } = useTranslation();
     const {
       currentUser: { profile },
       isLoading,
@@ -113,15 +115,15 @@ const withProtection = <P extends object>(
       return (
         <Layout>
           <div className="mt-20 flex flex-col items-center justify-center space-y-4 p-8 text-center">
-            <h2 className="text-2xl font-bold text-destructive">Access Denied</h2>
-            <p className="text-muted-foreground">You do not have permission to view this page.</p>
-            <Button onClick={() => window.history.back()}>Go Back</Button>
+            <h2 className="text-2xl font-bold text-destructive">{t("app.accessDenied", "Access Denied")}</h2>
+            <p className="text-muted-foreground">{t("app.noPermission", "You do not have permission to view this page.")}</p>
+            <Button onClick={() => window.history.back()}>{t("app.goBack", "Go Back")}</Button>
           </div>
         </Layout>
       );
     }
 
-    return <Component {...props} />;
+    return React.createElement(Component, props);
   };
   Protected.displayName = `Protected(${Component.displayName || Component.name || "Component"})`;
   return Protected;
@@ -189,6 +191,7 @@ function getDashboardPath(role: string): string {
 }
 
 function App() {
+  const { t } = useTranslation();
   const {
     currentUser: { profile },
     isLoading,
@@ -201,7 +204,7 @@ function App() {
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Loading...</p>
+          <p className="text-sm text-muted-foreground">{t("app.loading", "Loading...")}</p>
         </div>
       </div>
     );
@@ -211,12 +214,12 @@ function App() {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4 text-center">
         <div className="max-w-md rounded-xl border border-border bg-card p-8 shadow-sm">
-          <h2 className="mb-3 text-2xl font-bold text-foreground">Account Pending Approval</h2>
+          <h2 className="mb-3 text-2xl font-bold text-foreground">{t("app.pendingTitle", "Account Pending Approval")}</h2>
           <p className="mb-6 text-muted-foreground">
-            Your account is awaiting administrator approval. You will receive access once activated.
+            {t("app.pendingDesc", "Your account is awaiting administrator approval. You will receive access once activated.")}
           </p>
           <Button onClick={() => logout()} variant="default" className="w-full">
-            Sign Out
+            {t("app.signOut", "Sign Out")}
           </Button>
         </div>
       </div>
@@ -227,12 +230,12 @@ function App() {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4 text-center">
         <div className="max-w-md rounded-xl border border-destructive/30 bg-card p-8 shadow-sm">
-          <h2 className="mb-3 text-2xl font-bold text-destructive">Account Suspended</h2>
+          <h2 className="mb-3 text-2xl font-bold text-destructive">{t("app.suspendedTitle", "Account Suspended")}</h2>
           <p className="mb-6 text-muted-foreground">
-            Your account has been suspended. Please contact support for assistance.
+            {t("app.suspendedDesc", "Your account has been suspended. Please contact support for assistance.")}
           </p>
           <Button onClick={() => logout()} variant="destructive" className="w-full">
-            Sign Out
+            {t("app.signOut", "Sign Out")}
           </Button>
         </div>
       </div>
@@ -243,12 +246,12 @@ function App() {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4 text-center">
         <div className="max-w-md rounded-xl border border-destructive/30 bg-card p-8 shadow-sm">
-          <h2 className="mb-3 text-2xl font-bold text-destructive">Account Not Approved</h2>
+          <h2 className="mb-3 text-2xl font-bold text-destructive">{t("app.rejectedTitle", "Account Not Approved")}</h2>
           <p className="mb-6 text-muted-foreground">
-            Your registration was not approved. Please contact your school administrator.
+            {t("app.rejectedDesc", "Your registration was not approved. Please contact your school administrator.")}
           </p>
           <Button onClick={() => logout()} variant="destructive" className="w-full">
-            Sign Out
+            {t("app.signOut", "Sign Out")}
           </Button>
         </div>
       </div>
@@ -333,8 +336,10 @@ export default function Root() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="system">
         <FirebaseAuthProvider>
-          <App />
-          <Toaster />
+          <I18nProvider>
+            <App />
+            <Toaster />
+          </I18nProvider>
         </FirebaseAuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

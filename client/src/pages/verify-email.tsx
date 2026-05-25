@@ -4,8 +4,10 @@ import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { Loader2, Mail, ShieldCheck, RefreshCw } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/lib/i18n";
 
 export default function VerifyEmailPage() {
+  const { t } = useTranslation();
   const [otp, setOtp] = useState(["", "", "", ""]);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
@@ -237,10 +239,10 @@ export default function VerifyEmailPage() {
             {/* Header */}
             <div className="mb-2 text-center">
               <h1 className="text-2xl font-black tracking-tight text-white">
-                Verify Your Email
+                {t("verify.title", "Verify Your Email")}
               </h1>
               <p className="mt-3 text-sm leading-relaxed text-white/60">
-                We've dispatched a{" "}
+                {t("verify.dispatched", "We've dispatched a")}{" "}
                 <span className="font-semibold text-indigo-300">4-digit secure code</span> to
               </p>
               <p className="mt-1 truncate text-sm font-semibold text-white/80">
@@ -308,7 +310,7 @@ export default function VerifyEmailPage() {
             {/* Divider */}
             <div className="my-6 flex items-center gap-4">
               <div className="h-px flex-1 bg-white/10" />
-              <span className="text-xs text-white/30">didn't receive it?</span>
+              <span className="text-xs text-white/30">{t("verify.didNotReceive", "didn't receive it?")}</span>
               <div className="h-px flex-1 bg-white/10" />
             </div>
 
