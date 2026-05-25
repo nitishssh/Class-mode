@@ -149,7 +149,11 @@ export function Sidebar({ className }: SidebarProps) {
   ];
 
   const teacherNavItems: NavItem[] = [
-    { title: "Dashboard", href: "/teacher-dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
+    {
+      title: "Dashboard",
+      href: "/teacher-dashboard",
+      icon: <LayoutDashboard className="h-5 w-5" />,
+    },
     { title: "Create Test", href: "/create-test", icon: <FileQuestion className="h-5 w-5" /> },
     { title: "Scan & Grade", href: "/ocr-scan", icon: <ScanBarcode className="h-5 w-5" /> },
     { title: "Grading", href: "/grading", icon: <ClipboardCheck className="h-5 w-5" /> },

@@ -18,7 +18,10 @@ export function usePlayback() {
   const [progress, setProgress] = useState({ index: 0, total: 0 });
   const [discussion, setDiscussion] = useState<DiscussionState | null>(null);
   const [videoPrompt, setVideoPrompt] = useState<VideoState | null>(null);
-  const [lastAction, setLastAction] = useState<{ name: string; params: Record<string, any> } | null>(null);
+  const [lastAction, setLastAction] = useState<{
+    name: string;
+    params: Record<string, any>;
+  } | null>(null);
 
   function getEngine(): PlaybackEngine {
     if (!engineRef.current) {

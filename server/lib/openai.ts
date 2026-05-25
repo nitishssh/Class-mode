@@ -11,7 +11,8 @@ if (!process.env.OPENAI_API_KEY) {
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
   if (!_openai) {
-    const key = process.env.OPENAI_API_KEY || (process.env.NODE_ENV === "test" ? "dummy-key" : undefined);
+    const key =
+      process.env.OPENAI_API_KEY || (process.env.NODE_ENV === "test" ? "dummy-key" : undefined);
     if (!key) throw new Error("OPENAI_API_KEY is not set");
     _openai = new OpenAI({ apiKey: key });
   }
@@ -21,7 +22,7 @@ function getOpenAI(): OpenAI {
 const openai = {
   get chat() {
     return getOpenAI().chat;
-  }
+  },
 } as unknown as OpenAI;
 
 interface ChatMessage {

@@ -9,9 +9,14 @@ export default function LoginPage() {
   } = useFirebaseAuth();
   const [, setLocation] = useLocation();
 
-  // Already logged in — go to dashboard
+  // Already logged in — go to dashboard (or verify-email if not yet verified)
   useEffect(() => {
-    if (profile) setLocation("/dashboard");
+    if (!profile) return;
+    if (profile.emailVerified === false) {
+      setLocation("/verify-email");
+    } else {
+      setLocation("/dashboard");
+    }
   }, [profile, setLocation]);
 
   return (

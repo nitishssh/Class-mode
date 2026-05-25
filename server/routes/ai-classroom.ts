@@ -46,15 +46,15 @@ router.get("/health", async (req, res) => {
  */
 router.get("/providers", (_req, res) => {
   const providers = [
-    { id: "gemini",     name: "Google Gemini",     configured: !!process.env.GOOGLE_API_KEY },
-    { id: "anthropic",  name: "Anthropic Claude",   configured: !!process.env.ANTHROPIC_API_KEY },
-    { id: "deepseek",   name: "DeepSeek",           configured: !!process.env.DEEPSEEK_API_KEY },
-    { id: "qwen",       name: "Qwen (Alibaba)",     configured: !!process.env.QWEN_API_KEY },
-    { id: "openrouter", name: "OpenRouter",         configured: !!process.env.OPENROUTER_API_KEY },
-    { id: "kimi",       name: "Kimi (Moonshot)",    configured: !!process.env.KIMI_API_KEY },
-    { id: "grok",       name: "Grok (xAI)",         configured: !!process.env.GROK_API_KEY },
-    { id: "ollama",     name: "Ollama (local)",     configured: !!process.env.OLLAMA_BASE_URL },
-    { id: "openai",     name: "OpenAI",             configured: !!process.env.OPENAI_API_KEY },
+    { id: "gemini", name: "Google Gemini", configured: !!process.env.GOOGLE_API_KEY },
+    { id: "anthropic", name: "Anthropic Claude", configured: !!process.env.ANTHROPIC_API_KEY },
+    { id: "deepseek", name: "DeepSeek", configured: !!process.env.DEEPSEEK_API_KEY },
+    { id: "qwen", name: "Qwen (Alibaba)", configured: !!process.env.QWEN_API_KEY },
+    { id: "openrouter", name: "OpenRouter", configured: !!process.env.OPENROUTER_API_KEY },
+    { id: "kimi", name: "Kimi (Moonshot)", configured: !!process.env.KIMI_API_KEY },
+    { id: "grok", name: "Grok (xAI)", configured: !!process.env.GROK_API_KEY },
+    { id: "ollama", name: "Ollama (local)", configured: !!process.env.OLLAMA_BASE_URL },
+    { id: "openai", name: "OpenAI", configured: !!process.env.OPENAI_API_KEY },
   ];
   res.json({ providers, active: providers.filter((p) => p.configured).map((p) => p.id) });
 });
@@ -364,7 +364,10 @@ router.post("/export/:classroomId", async (req: Request, res: Response) => {
     const pptxBuffer = await generatePPTX(classroom.data as any);
     const filename = `classroom-${classroom.data.topic?.slice(0, 30).replace(/[^a-z0-9]/gi, "-") || "export"}.pptx`;
 
-    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.presentationml.presentation");
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    );
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.send(pptxBuffer);
   } catch (error: unknown) {
@@ -410,13 +413,16 @@ router.get("/export/:classroomId/zip", async (req: Request, res: Response) => {
 
     const html = generateClassroomHTML(classroom.data as any);
     const dataJson = JSON.stringify(classroom.data, null, 2);
-    const topicSlug = (classroom.data as any).topic?.slice(0, 30).replace(/[^a-z0-9]/gi, "-") || "export";
+    const topicSlug =
+      (classroom.data as any).topic?.slice(0, 30).replace(/[^a-z0-9]/gi, "-") || "export";
 
     res.setHeader("Content-Type", "application/zip");
     res.setHeader("Content-Disposition", `attachment; filename="classroom-${topicSlug}.zip"`);
 
     const archive = archiver("zip", { zlib: { level: 6 } });
-    archive.on("error", (err) => { logger.error("ZIP error:", err); });
+    archive.on("error", (err) => {
+      logger.error("ZIP error:", err);
+    });
     archive.pipe(res);
     archive.append(html, { name: "classroom.html" });
     archive.append(dataJson, { name: "classroom-data.json" });

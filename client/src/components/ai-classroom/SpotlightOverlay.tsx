@@ -28,8 +28,9 @@ export function SpotlightOverlay({ containerRef, action }: SpotlightOverlayProps
     let rect: DOMRect | null = null;
 
     if (elementId) {
-      const target = container.querySelector(`[data-element-id="${elementId}"]`) ||
-                     container.querySelector(`#${CSS.escape(elementId)}`);
+      const target =
+        container.querySelector(`[data-element-id="${elementId}"]`) ||
+        container.querySelector(`#${CSS.escape(elementId)}`);
       if (target) {
         const containerRect = container.getBoundingClientRect();
         const targetRect = target.getBoundingClientRect();
@@ -44,12 +45,7 @@ export function SpotlightOverlay({ containerRef, action }: SpotlightOverlayProps
 
     if (!rect) {
       const containerRect = container.getBoundingClientRect();
-      rect = new DOMRect(
-        containerRect.width / 2 - 40,
-        containerRect.height / 2 - 40,
-        80,
-        80
-      );
+      rect = new DOMRect(containerRect.width / 2 - 40, containerRect.height / 2 - 40, 80, 80);
     }
 
     const newState = {

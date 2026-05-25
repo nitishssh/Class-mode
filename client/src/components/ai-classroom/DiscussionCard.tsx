@@ -19,13 +19,13 @@ export function DiscussionCard({ topic, prompt, onJoin, onSkip }: DiscussionCard
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 24 }}
-        className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4"
+        className="fixed bottom-24 left-1/2 z-50 w-full max-w-md -translate-x-1/2 px-4"
       >
-        <Card className="border-primary/40 shadow-lg bg-background/95 backdrop-blur-sm">
+        <Card className="border-primary/40 bg-background/95 shadow-lg backdrop-blur-sm">
           <CardHeader className="pb-2 pt-4">
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-2">
-                <MessageSquare className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                 <CardTitle className="text-sm font-semibold leading-tight">{topic}</CardTitle>
               </div>
               <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={onSkip}>

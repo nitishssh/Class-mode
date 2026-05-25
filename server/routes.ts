@@ -44,6 +44,7 @@ import parentRoutes from "./routes/parent";
 import billingRoutes from "./routes/billing";
 import gdprRoutes from "./routes/gdpr";
 import lmsRoutes from "./routes/lms";
+import onboardingRouter from "./routes/onboarding";
 
 import jwt from "jsonwebtoken";
 import "express-session";
@@ -90,6 +91,7 @@ export async function authenticateToken(req: Request, res: Response, next: expre
         const workspaceContext = await pgFindFirstWorkspaceMembership(user.id);
         req.session!.userId = user.id;
         req.session!.role = user.role;
+        req.session!.firebaseUid = user.firebaseUid || user.authSubject;
         (req as any).user = {
           id: user.id,
           role: user.role,
@@ -117,6 +119,7 @@ export async function authenticateToken(req: Request, res: Response, next: expre
       const user = await pgFindUserById(req.session.userId);
       if (user && !["suspended", "rejected"].includes(user.status)) {
         const workspaceContext = await pgFindFirstWorkspaceMembership(user.id);
+        req.session!.firebaseUid = user.firebaseUid || user.authSubject;
         (req as any).user = {
           id: user.id,
           role: user.role,
@@ -176,6 +179,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/auth", authRouter);
   // Public invite routes live outside /auth for email links and compatibility.
   app.use("/api", authRouter);
+  // Onboarding stage routes
+  app.use("/api", onboardingRouter);
 
   const workspaceInviteSchema = z.object({
     email: z.string().email(),

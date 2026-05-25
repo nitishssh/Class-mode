@@ -5,11 +5,13 @@ import admin from "firebase-admin";
 import { setCustomUserClaims } from "../lib/firebase-admin";
 import { authenticateToken } from "../routes";
 import { upload, diskPathToUrl } from "../lib/upload";
+import { logger } from "../lib/logger";
 import {
   sendTeacherInvite,
   sendStudentInvite,
   sendPrincipalInvite,
   sendSchoolAdminInvite,
+  sendWelcomeEmail,
 } from "../lib/mailer";
 import { requireRole } from "../middleware";
 import { recordAuditEvent, AUDIT_EVENTS } from "../lib/audit";
@@ -200,6 +202,10 @@ router.post("/invite/accept", async (req: Request, res: Response) => {
     status: "active",
     schoolCode: null,
   });
+
+  sendWelcomeEmail(pgUser.email, pgUser.displayName || pgUser.name).catch((e) =>
+    logger.warn("[invite/accept] Failed to send welcome email", { error: String(e) })
+  );
 
   // Link membership
   if (invite.schoolId) {

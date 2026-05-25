@@ -8,13 +8,7 @@ import { useForm } from "react-hook-form";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 
 import teacherImg from "@/assets/teacher-illustration.png";
 import laptopImg from "@/assets/laptop.png";
@@ -335,7 +329,8 @@ export function FirebaseAuthDialog() {
       try {
         const additionalData = getRoleSpecificData(data.role, data);
         await register(data.email, data.password, data.name, data.role as UserRole, additionalData);
-        setLocation("/dashboard");
+        // Redirect to email verification — user must enter the 4-digit OTP before accessing the platform
+        setLocation("/verify-email");
       } catch (error: any) {
         setRegisterError(error.message || "Registration failed. Please try again.");
       } finally {

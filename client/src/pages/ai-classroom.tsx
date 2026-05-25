@@ -74,7 +74,16 @@ import { cn } from "@/lib/utils";
 
 interface Scene {
   id: string;
-  type: "slides" | "quiz" | "simulation" | "pbl" | "interactive" | "code" | "diagram" | "game" | "visualization3d";
+  type:
+    | "slides"
+    | "quiz"
+    | "simulation"
+    | "pbl"
+    | "interactive"
+    | "code"
+    | "diagram"
+    | "game"
+    | "visualization3d";
   title: string;
   content: any;
   actions?: any[];
@@ -286,7 +295,9 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
       audioChunksRef.current = [];
-      recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
       recorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
         const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
@@ -296,15 +307,21 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
           const res = await fetch("/api/ai-classroom/asr", { method: "POST", body: fd });
           if (res.ok) {
             const { text } = await res.json();
-            if (text) setUserInput((prev) => prev ? `${prev} ${text}` : text);
+            if (text) setUserInput((prev) => (prev ? `${prev} ${text}` : text));
           }
-        } catch { /* ignore ASR errors */ }
+        } catch {
+          /* ignore ASR errors */
+        }
       };
       recorder.start();
       mediaRecorderRef.current = recorder;
       setIsRecording(true);
     } catch {
-      toast({ title: "Mic unavailable", description: "Could not access microphone", variant: "destructive" });
+      toast({
+        title: "Mic unavailable",
+        description: "Could not access microphone",
+        variant: "destructive",
+      });
     }
   };
 
@@ -315,7 +332,10 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
   };
 
   // Chat-driven actions (separate from playback-driven actions)
-  const [lastChatAction, setLastChatAction] = useState<{ name: string; params: Record<string, any> } | null>(null);
+  const [lastChatAction, setLastChatAction] = useState<{
+    name: string;
+    params: Record<string, any>;
+  } | null>(null);
 
   // Combined action: prefer playback, fall back to chat
   const activeAction = lastAction || lastChatAction;
@@ -375,10 +395,20 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
             allowedActions:
               a.role === "teacher"
                 ? [
-                    "spotlight", "laser",
-                    "wb_open", "wb_close", "wb_clear", "wb_delete",
-                    "wb_draw_text", "wb_draw_shape", "wb_draw_chart", "wb_draw_latex",
-                    "wb_draw_table", "wb_draw_line", "wb_draw_code", "wb_edit_code",
+                    "spotlight",
+                    "laser",
+                    "wb_open",
+                    "wb_close",
+                    "wb_clear",
+                    "wb_delete",
+                    "wb_draw_text",
+                    "wb_draw_shape",
+                    "wb_draw_chart",
+                    "wb_draw_latex",
+                    "wb_draw_table",
+                    "wb_draw_line",
+                    "wb_draw_code",
+                    "wb_edit_code",
                     "discussion",
                   ]
                 : a.role === "assistant"
@@ -394,10 +424,20 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
               persona: "Encouraging expert",
               color: "#7c3aed",
               allowedActions: [
-                "spotlight", "laser",
-                "wb_open", "wb_close", "wb_clear", "wb_delete",
-                "wb_draw_text", "wb_draw_shape", "wb_draw_chart", "wb_draw_latex",
-                "wb_draw_table", "wb_draw_line", "wb_draw_code", "wb_edit_code",
+                "spotlight",
+                "laser",
+                "wb_open",
+                "wb_close",
+                "wb_clear",
+                "wb_delete",
+                "wb_draw_text",
+                "wb_draw_shape",
+                "wb_draw_chart",
+                "wb_draw_latex",
+                "wb_draw_table",
+                "wb_draw_line",
+                "wb_draw_code",
+                "wb_edit_code",
                 "discussion",
               ],
             },
@@ -511,7 +551,11 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
             size="sm"
             className={cn("gap-1", serverTTS ? "border-indigo-400 text-indigo-600" : "")}
             onClick={toggleTTS}
-            title={serverTTS ? "Using server TTS — click to switch to browser TTS" : "Using browser TTS — click to switch to server TTS"}
+            title={
+              serverTTS
+                ? "Using server TTS — click to switch to browser TTS"
+                : "Using browser TTS — click to switch to server TTS"
+            }
           >
             {serverTTS ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
           </Button>
@@ -524,30 +568,58 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={async () => {
-                try {
-                  const cid = (data as any).classroomId || (data as any).id;
-                  const res = await fetch(`/api/ai-classroom/export/${cid}`, { method: "POST" });
-                  if (!res.ok) throw new Error("Export failed");
-                  const blob = await res.blob();
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a"); a.href = url; a.download = `${data.topic.slice(0, 30)}.pptx`; a.click(); URL.revokeObjectURL(url);
-                } catch { toast({ title: "Export failed", description: "Could not generate PPTX", variant: "destructive" }); }
-              }}>
+              <DropdownMenuItem
+                onClick={async () => {
+                  try {
+                    const cid = (data as any).classroomId || (data as any).id;
+                    const res = await fetch(`/api/ai-classroom/export/${cid}`, { method: "POST" });
+                    if (!res.ok) throw new Error("Export failed");
+                    const blob = await res.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `${data.topic.slice(0, 30)}.pptx`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  } catch {
+                    toast({
+                      title: "Export failed",
+                      description: "Could not generate PPTX",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+              >
                 <Download className="mr-2 h-4 w-4" /> Export as PPTX
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={async () => {
-                try {
-                  const cid = (data as any).classroomId || (data as any).id;
-                  const a = document.createElement("a"); a.href = `/api/ai-classroom/export/${cid}/html`; a.download = `${data.topic.slice(0, 30)}.html`; a.click();
-                } catch { toast({ title: "Export failed", description: "Could not generate HTML", variant: "destructive" }); }
-              }}>
+              <DropdownMenuItem
+                onClick={async () => {
+                  try {
+                    const cid = (data as any).classroomId || (data as any).id;
+                    const a = document.createElement("a");
+                    a.href = `/api/ai-classroom/export/${cid}/html`;
+                    a.download = `${data.topic.slice(0, 30)}.html`;
+                    a.click();
+                  } catch {
+                    toast({
+                      title: "Export failed",
+                      description: "Could not generate HTML",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+              >
                 <FileCode className="mr-2 h-4 w-4" /> Export as HTML
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => {
-                const cid = (data as any).classroomId || (data as any).id;
-                const a = document.createElement("a"); a.href = `/api/ai-classroom/export/${cid}/zip`; a.download = `classroom-${cid}.zip`; a.click();
-              }}>
+              <DropdownMenuItem
+                onClick={() => {
+                  const cid = (data as any).classroomId || (data as any).id;
+                  const a = document.createElement("a");
+                  a.href = `/api/ai-classroom/export/${cid}/zip`;
+                  a.download = `classroom-${cid}.zip`;
+                  a.click();
+                }}
+              >
                 <Archive className="mr-2 h-4 w-4" /> Export as ZIP
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -582,9 +654,14 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                     >
                       {scene.type === "slides" && <Layout className="h-4 w-4" />}
                       {scene.type === "quiz" && <HelpCircle className="h-4 w-4" />}
-                      {(scene.type === "simulation" || scene.type === "interactive") && <Dna className="h-4 w-4" />}
+                      {(scene.type === "simulation" || scene.type === "interactive") && (
+                        <Dna className="h-4 w-4" />
+                      )}
                       {scene.type === "pbl" && <FileText className="h-4 w-4" />}
-                      {(scene.type === "code" || scene.type === "diagram" || scene.type === "game" || scene.type === "visualization3d") && <Code2 className="h-4 w-4" />}
+                      {(scene.type === "code" ||
+                        scene.type === "diagram" ||
+                        scene.type === "game" ||
+                        scene.type === "visualization3d") && <Code2 className="h-4 w-4" />}
                     </div>
                     <div className="flex-1 overflow-hidden">
                       <p
@@ -743,9 +820,12 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                   </div>
                 )}
 
-                {(currentScene.type === "simulation" || currentScene.type === "interactive" ||
-                  currentScene.type === "code" || currentScene.type === "diagram" ||
-                  currentScene.type === "game" || currentScene.type === "visualization3d") && (
+                {(currentScene.type === "simulation" ||
+                  currentScene.type === "interactive" ||
+                  currentScene.type === "code" ||
+                  currentScene.type === "diagram" ||
+                  currentScene.type === "game" ||
+                  currentScene.type === "visualization3d") && (
                   <div className="h-full space-y-4">
                     <div className="flex items-center justify-between">
                       <h2 className="text-2xl font-bold">
@@ -974,7 +1054,10 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                     onMouseUp={stopRecording}
                     onTouchStart={startRecording}
                     onTouchEnd={stopRecording}
-                    className={cn("absolute right-10 top-1 h-8 w-8 rounded-lg", isRecording ? "text-red-500 bg-red-50" : "text-slate-400 hover:text-slate-600")}
+                    className={cn(
+                      "absolute right-10 top-1 h-8 w-8 rounded-lg",
+                      isRecording ? "bg-red-50 text-red-500" : "text-slate-400 hover:text-slate-600"
+                    )}
                     title="Hold to speak"
                   >
                     {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}

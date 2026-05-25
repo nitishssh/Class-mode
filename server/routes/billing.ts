@@ -245,9 +245,12 @@ router.post("/webhook", async (req: Request, res: Response) => {
 
 function getTierConfig(tier: string) {
   switch (tier) {
-    case "pro": return TIER_CONFIG.pro;
-    case "educator": return TIER_CONFIG.educator;
-    case "institution": return TIER_CONFIG.institution;
+    case "pro":
+      return TIER_CONFIG.pro;
+    case "educator":
+      return TIER_CONFIG.educator;
+    case "institution":
+      return TIER_CONFIG.institution;
     case "free":
     default:
       return TIER_CONFIG.free;

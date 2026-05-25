@@ -45,9 +45,14 @@ export function WidgetRenderer({ scene, action, className }: WidgetRendererProps
   const config = content?.config;
   if (config) {
     return (
-      <div className={cn("rounded-lg border border-slate-700 bg-slate-900 p-4 text-slate-300", className)}>
-        <p className="text-sm font-medium mb-2">{scene.type} widget</p>
-        <pre className="text-xs overflow-auto max-h-64 text-slate-400">
+      <div
+        className={cn(
+          "rounded-lg border border-slate-700 bg-slate-900 p-4 text-slate-300",
+          className
+        )}
+      >
+        <p className="mb-2 text-sm font-medium">{scene.type} widget</p>
+        <pre className="max-h-64 overflow-auto text-xs text-slate-400">
           {JSON.stringify(config, null, 2)}
         </pre>
       </div>
@@ -55,7 +60,12 @@ export function WidgetRenderer({ scene, action, className }: WidgetRendererProps
   }
 
   return (
-    <div className={cn("rounded-lg border border-slate-700 bg-slate-900 p-8 text-center text-slate-500 text-sm", className)}>
+    <div
+      className={cn(
+        "rounded-lg border border-slate-700 bg-slate-900 p-8 text-center text-sm text-slate-500",
+        className
+      )}
+    >
       Widget content unavailable
     </div>
   );
