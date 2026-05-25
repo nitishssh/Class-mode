@@ -37,10 +37,7 @@ const DIRECT_MESSAGES: User[] = [
 ];
 
 export default function StudyArenaPage() {
-<<<<<<< HEAD
-=======
   const { t } = useTranslation();
->>>>>>> 81f69d8ec72d95716dfc207c0e1375e02fb11287
   const { currentUser } = useAuth();
   const user = currentUser?.user;
 

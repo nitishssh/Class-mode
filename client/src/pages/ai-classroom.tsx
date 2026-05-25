@@ -71,10 +71,6 @@ import { cn } from "@/lib/utils";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
-<<<<<<< HEAD
-interface ProjectIssue {
-  title: string;
-=======
 interface PlaybackAction {
   name: string;
   params?: Record<string, unknown>;
@@ -83,18 +79,11 @@ interface PlaybackAction {
 
 interface ProjectIssue {
   title?: string;
->>>>>>> 81f69d8ec72d95716dfc207c0e1375e02fb11287
   description?: string;
   content?: string;
 }
 
 interface ProjectMilestone {
-<<<<<<< HEAD
-  title: string;
-  description?: string;
-}
-
-=======
   title?: string;
   description?: string;
 }
@@ -117,7 +106,6 @@ interface SceneContent {
   [key: string]: unknown;
 }
 
->>>>>>> 81f69d8ec72d95716dfc207c0e1375e02fb11287
 interface Scene {
   id: string;
   type:
@@ -131,30 +119,8 @@ interface Scene {
     | "game"
     | "visualization3d";
   title: string;
-<<<<<<< HEAD
-  content: {
-    title?: string;
-    points?: string[];
-    image?: string;
-    question?: string;
-    options?: string[];
-    correctIndex?: number;
-    answer?: number;
-    issues?: ProjectIssue[];
-    milestones?: ProjectMilestone[];
-    [key: string]: unknown;
-  };
-  actions?: {
-    type?: "action" | "text";
-    name?: string;
-    content?: string;
-    params?: Record<string, unknown>;
-    actionId?: string;
-  }[];
-=======
   content: SceneContent;
   actions?: PlaybackAction[];
->>>>>>> 81f69d8ec72d95716dfc207c0e1375e02fb11287
   duration?: number;
 }
 
@@ -172,17 +138,6 @@ interface ClassroomRecord {
   scenes: Scene[];
   status: string;
   createdAt: string;
-<<<<<<< HEAD
-  classroomId?: string;
-  agents?: {
-    id: string;
-    name: string;
-    role: string;
-    persona: string;
-  }[];
-}
-
-=======
   agents?: ClassroomAgent[];
   classroomId?: string;
 }
@@ -206,17 +161,12 @@ interface AgentConfig {
   allowedActions: string[];
 }
 
->>>>>>> 81f69d8ec72d95716dfc207c0e1375e02fb11287
 // ── Native Classroom Player ──────────────────────────────────────────────────
 
 const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: () => void }) => {
   const { t } = useTranslation();
   const [currentSceneIndex, setCurrentSceneIndex] = useState(0);
-<<<<<<< HEAD
-  const currentScene = data.scenes.find((_, idx) => idx === currentSceneIndex) || data.scenes[0];
-=======
   const currentScene = data.scenes.at(currentSceneIndex) || data.scenes[0];
->>>>>>> 81f69d8ec72d95716dfc207c0e1375e02fb11287
   const progress = ((currentSceneIndex + 1) / data.scenes.length) * 100;
 
   // Quiz state
@@ -225,19 +175,6 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
   // Multi-agent state
   const [whiteboardOpen, setWhiteboardOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-<<<<<<< HEAD
-
-  interface ChatMessage {
-    id?: string;
-    role: "user" | "assistant";
-    name?: string;
-    avatar?: string;
-    color?: string;
-    content: string;
-  }
-
-=======
->>>>>>> 81f69d8ec72d95716dfc207c0e1375e02fb11287
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [userInput, setUserInput] = useState("");
   const { sendMessage, isGenerating } = useOrchestrator();
@@ -378,53 +315,6 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
     setUserInput("");
 
     const agentColors = ["#7c3aed", "#2563eb", "#10b981", "#f59e0b", "#ef4444"];
-<<<<<<< HEAD
-    const getAgentAvatar = (role: string): string => {
-      switch (role) {
-        case "teacher":
-          return "👨‍🏫";
-        case "assistant":
-          return "🤖";
-        case "student":
-          return "🧑‍🎓";
-        default:
-          return "🧑";
-      }
-    };
-    const classroomAgents = data.agents || [];
-    const agentConfigs =
-      classroomAgents.length > 0
-        ? classroomAgents.map((a, i: number) => ({
-            id: a.id,
-            name: a.name,
-            role: a.role,
-            avatar: getAgentAvatar(a.role),
-            persona: a.persona,
-            color: agentColors.at(i % agentColors.length),
-            allowedActions:
-              a.role === "teacher"
-                ? [
-                    "spotlight",
-                    "laser",
-                    "wb_open",
-                    "wb_close",
-                    "wb_clear",
-                    "wb_delete",
-                    "wb_draw_text",
-                    "wb_draw_shape",
-                    "wb_draw_chart",
-                    "wb_draw_latex",
-                    "wb_draw_table",
-                    "wb_draw_line",
-                    "wb_draw_code",
-                    "wb_edit_code",
-                    "discussion",
-                  ]
-                : a.role === "assistant"
-                  ? ["wb_open", "wb_draw_text", "wb_draw_latex", "wb_close", "discussion"]
-                  : [],
-          }))
-=======
     const classroomAgents = data.agents || [];
     const agentConfigs: AgentConfig[] =
       classroomAgents.length > 0
@@ -461,7 +351,6 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                     : [],
             };
           })
->>>>>>> 81f69d8ec72d95716dfc207c0e1375e02fb11287
         : [
             {
               id: "teacher",
@@ -506,11 +395,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
         whiteboardOpen: whiteboardOpen,
       },
       config: {
-<<<<<<< HEAD
-        agentIds: agentConfigs.map((a) => a.id),
-=======
         agentIds: agentConfigs.map((a: AgentConfig) => a.id),
->>>>>>> 81f69d8ec72d95716dfc207c0e1375e02fb11287
         agentConfigs,
         discussionTopic: data.topic,
       },
@@ -934,11 +819,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                         {(Array.isArray(currentScene.content.issues)
                           ? currentScene.content.issues
                           : []
-<<<<<<< HEAD
-                        ).map((issue, i: number) => (
-=======
                         ).map((issue: ProjectIssue, i: number) => (
->>>>>>> 81f69d8ec72d95716dfc207c0e1375e02fb11287
                           <Card key={i} className="border-l-4 border-l-amber-400">
                             <CardHeader className="pb-2">
                               <CardTitle className="text-base">
@@ -960,11 +841,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                         {(Array.isArray(currentScene.content.milestones)
                           ? currentScene.content.milestones
                           : []
-<<<<<<< HEAD
-                        ).map((m, i: number) => (
-=======
                         ).map((m: ProjectMilestone | string, i: number) => (
->>>>>>> 81f69d8ec72d95716dfc207c0e1375e02fb11287
                           <div
                             key={i}
                             className="flex items-start gap-3 rounded-xl border bg-slate-50/50 p-4"
@@ -1012,11 +889,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
             <div className="flex items-center gap-4 text-sm font-medium text-gray-500">
               <div className="flex items-center gap-1">
                 <Users className="h-4 w-4" />
-<<<<<<< HEAD
-                <span>{data.agents?.length || 3} AI Agents Online</span>
-=======
                 <span>{data.agents?.length || 3} {t("classroom.aiAgentsOnline", "AI Agents Online")}</span>
->>>>>>> 81f69d8ec72d95716dfc207c0e1375e02fb11287
               </div>
               <Separator orientation="vertical" className="h-4" />
               <span>
@@ -1276,17 +1149,10 @@ export default function StudyArenaPage() {
       setClassroomData(data);
       setActiveClassroomId(id);
     } catch (error: unknown) {
-<<<<<<< HEAD
-      const msg = error instanceof Error ? error.message : "Failed to load classroom";
-      toast({
-        title: "Error",
-        description: msg,
-=======
       const errorMessage = error instanceof Error ? error.message : "Failed to load classroom";
       toast({
         title: "Error",
         description: errorMessage,
->>>>>>> 81f69d8ec72d95716dfc207c0e1375e02fb11287
         variant: "destructive",
       });
     }
