@@ -48,7 +48,7 @@ export function RagChatSheet({ isOpen, onClose, subjectName, initialPrompt }: Ra
         ]);
       }
     }
-  }, [isOpen, initialPrompt, subjectName]);
+  }, [isOpen, initialPrompt, subjectName, messages.length]);
 
   // Auto-scroll to bottom
   useEffect(() => {

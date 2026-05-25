@@ -1,10 +1,10 @@
-import { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { UserRole } from "@/lib/firebase";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, FieldValues, UseFormReturn } from "react-hook-form";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
@@ -194,6 +194,42 @@ const IllustrationPanel = () => {
   );
 };
 
+const loginSchema = z.object({
+  email: z.string().email({ message: "Please enter a valid email address" }),
+  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
+});
+
+const registerSchema = z
+  .object({
+    name: z.string().min(2, { message: "Name must be at least 2 characters" }),
+    email: z.string().email({ message: "Please enter a valid email address" }),
+    password: z.string().min(6, { message: "Password must be at least 6 characters" }),
+    confirmPassword: z.string().min(1, { message: "Please confirm your password" }),
+    workspaceName: z.string().min(2, { message: "Workspace name is required" }),
+    role: z.enum(["admin", "teacher", "principal", "school_admin", "parent"], {
+      required_error: "Please select a role",
+    }),
+    grade: z.string().optional(),
+    board: z.string().optional(),
+    school_code: z.string().optional(),
+    subjects: z.string().optional(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  })
+  .refine(
+    (data) =>
+      !["teacher", "principal", "school_admin"].includes(data.role) || !!data.school_code,
+    {
+      message: "School code is required",
+      path: ["school_code"],
+    }
+  );
+
+type LoginFormValues = z.infer<typeof loginSchema>;
+type RegisterFormValues = z.infer<typeof registerSchema>;
+
 export function FirebaseAuthDialog() {
   const { login, register, resetUserPassword } = useFirebaseAuth();
   const [, setLocation] = useLocation();
@@ -209,53 +245,12 @@ export function FirebaseAuthDialog() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const loginSchema = useMemo(
-    () =>
-      z.object({
-        email: z.string().email({ message: "Please enter a valid email address" }),
-        password: z.string().min(6, { message: "Password must be at least 6 characters" }),
-      }),
-    []
-  );
-
-  const registerSchema = useMemo(
-    () =>
-      z
-        .object({
-          name: z.string().min(2, { message: "Name must be at least 2 characters" }),
-          email: z.string().email({ message: "Please enter a valid email address" }),
-          password: z.string().min(6, { message: "Password must be at least 6 characters" }),
-          confirmPassword: z.string().min(1, { message: "Please confirm your password" }),
-          workspaceName: z.string().min(2, { message: "Workspace name is required" }),
-          role: z.enum(["admin", "teacher", "principal", "school_admin", "parent"], {
-            required_error: "Please select a role",
-          }),
-          grade: z.string().optional(),
-          board: z.string().optional(),
-          school_code: z.string().optional(),
-          subjects: z.string().optional(),
-        })
-        .refine((data) => data.password === data.confirmPassword, {
-          message: "Passwords don't match",
-          path: ["confirmPassword"],
-        })
-        .refine(
-          (data) =>
-            !["teacher", "principal", "school_admin"].includes(data.role) || !!data.school_code,
-          {
-            message: "School code is required",
-            path: ["school_code"],
-          }
-        ),
-    []
-  );
-
-  const loginForm = useForm<z.infer<typeof loginSchema>>({
+  const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" },
   });
 
-  const registerForm = useForm<z.infer<typeof registerSchema>>({
+  const registerForm = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       name: "",
@@ -270,14 +265,15 @@ export function FirebaseAuthDialog() {
   });
 
   const onLoginSubmit = useCallback(
-    async (data: z.infer<typeof loginSchema>) => {
+    async (data: LoginFormValues) => {
       setLoginError(null);
       setIsLoginSubmitting(true);
       try {
         await login(data.email, data.password);
         setLocation("/dashboard");
-      } catch (error: any) {
-        setLoginError(error.message || "Login failed. Please try again.");
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Login failed. Please try again.";
+        setLoginError(errorMessage);
       } finally {
         setIsLoginSubmitting(false);
       }
@@ -296,14 +292,15 @@ export function FirebaseAuthDialog() {
     try {
       await resetUserPassword(email);
       setResetEmailSent(true);
-    } catch (error: any) {
-      setLoginError(error.message || "Failed to send reset email.");
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to send reset email.";
+      setLoginError(errorMessage);
     } finally {
       setIsLoginSubmitting(false);
     }
   }, [loginForm, resetUserPassword]);
 
-  const getRoleSpecificData = (role: string, data?: any) => {
+  const getRoleSpecificData = (role: string, data?: Partial<RegisterFormValues>) => {
     const subjectsArray = data?.subjects
       ? data.subjects.split(",").map((s: string) => s.trim())
       : [];
@@ -323,7 +320,7 @@ export function FirebaseAuthDialog() {
   };
 
   const onRegisterSubmit = useCallback(
-    async (data: z.infer<typeof registerSchema>) => {
+    async (data: RegisterFormValues) => {
       setRegisterError(null);
       setIsRegSubmitting(true);
       try {
@@ -331,8 +328,9 @@ export function FirebaseAuthDialog() {
         await register(data.email, data.password, data.name, data.role as UserRole, additionalData);
         // Redirect to email verification — user must enter the 4-digit OTP before accessing the platform
         setLocation("/verify-email");
-      } catch (error: any) {
-        setRegisterError(error.message || "Registration failed. Please try again.");
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Registration failed. Please try again.";
+        setRegisterError(errorMessage);
       } finally {
         setIsRegSubmitting(false);
       }
@@ -434,8 +432,10 @@ export function FirebaseAuthDialog() {
             </div>
           )}
 
-          {authTab === "login" && (
-            <Form {...loginForm}>
+          {authTab === "login" &&
+            React.createElement(
+              Form as React.FC<UseFormReturn<FieldValues> & { children?: React.ReactNode }>,
+              loginForm as unknown as UseFormReturn<FieldValues>,
               <form
                 key="login-form"
                 className="mt-8 space-y-4"
@@ -457,7 +457,11 @@ export function FirebaseAuthDialog() {
                           placeholder="Username/Email"
                           disabled={isLoginSubmitting}
                           className={inputClasses}
-                          {...field}
+                          name={field.name}
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
                         />
                       </FormControl>
                       <FormMessage className="px-2 text-xs text-red-500" />
@@ -476,7 +480,11 @@ export function FirebaseAuthDialog() {
                             placeholder="Password"
                             disabled={isLoginSubmitting}
                             className={inputClasses}
-                            {...field}
+                            name={field.name}
+                            value={field.value ?? ""}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            ref={field.ref}
                           />
                           <button
                             type="button"
@@ -512,11 +520,13 @@ export function FirebaseAuthDialog() {
                   Login
                 </button>
               </form>
-            </Form>
-          )}
+            )
+          }
 
-          {authTab === "register" && (
-            <Form {...registerForm}>
+          {authTab === "register" &&
+            React.createElement(
+              Form as React.FC<UseFormReturn<FieldValues> & { children?: React.ReactNode }>,
+              registerForm as unknown as UseFormReturn<FieldValues>,
               <form
                 key="register-form"
                 className="mt-6 space-y-3"
@@ -540,7 +550,11 @@ export function FirebaseAuthDialog() {
                           placeholder="Full Name"
                           disabled={isRegSubmitting}
                           className={inputClasses + " py-2.5"}
-                          {...field}
+                          name={field.name}
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
                         />
                       </FormControl>
                       <FormMessage className="px-2 text-xs text-red-500" />
@@ -558,7 +572,11 @@ export function FirebaseAuthDialog() {
                           placeholder="Email"
                           disabled={isRegSubmitting}
                           className={inputClasses + " py-2.5"}
-                          {...field}
+                          name={field.name}
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
                         />
                       </FormControl>
                       <FormMessage className="px-2 text-xs text-red-500" />
@@ -578,7 +596,11 @@ export function FirebaseAuthDialog() {
                               placeholder="Password"
                               disabled={isRegSubmitting}
                               className={inputClasses + " py-2.5"}
-                              {...field}
+                              name={field.name}
+                              value={field.value ?? ""}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                              ref={field.ref}
                             />
                           </div>
                         </FormControl>
@@ -598,7 +620,11 @@ export function FirebaseAuthDialog() {
                               placeholder="Confirm"
                               disabled={isRegSubmitting}
                               className={inputClasses + " py-2.5"}
-                              {...field}
+                              name={field.name}
+                              value={field.value ?? ""}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                              ref={field.ref}
                             />
                             <button
                               type="button"
@@ -625,7 +651,11 @@ export function FirebaseAuthDialog() {
                           placeholder="Workspace / company name"
                           disabled={isRegSubmitting}
                           className={inputClasses + " py-2.5"}
-                          {...field}
+                          name={field.name}
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
                         />
                       </FormControl>
                       <FormMessage className="px-2 text-xs text-red-500" />
@@ -642,7 +672,11 @@ export function FirebaseAuthDialog() {
                           <select
                             disabled={isRegSubmitting}
                             className={inputClasses + " appearance-none py-2.5"}
-                            {...field}
+                            name={field.name}
+                            value={field.value ?? ""}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            ref={field.ref}
                           >
                             <option value="admin">Workspace Owner</option>
                             <option value="teacher">Teacher</option>
@@ -669,7 +703,11 @@ export function FirebaseAuthDialog() {
                               placeholder="School Code"
                               disabled={isRegSubmitting}
                               className={inputClasses + " py-2.5"}
-                              {...field}
+                              name={field.name}
+                              value={field.value ?? ""}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                              ref={field.ref}
                             />
                           </FormControl>
                           <FormMessage className="px-2 text-[10px] text-red-500" />
@@ -688,8 +726,8 @@ export function FirebaseAuthDialog() {
                   Create Account
                 </button>
               </form>
-            </Form>
-          )}
+            )
+          }
 
           <p className="mt-8 text-center text-sm text-muted-foreground">
             {authTab === "login"

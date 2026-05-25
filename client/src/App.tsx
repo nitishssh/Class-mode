@@ -169,15 +169,24 @@ const OnboardingInvTeachRoute = withLayout(protect(InviteTeachers, ["school_admi
 const OnboardingTeacherRoute = withLayout(protect(TeacherClassSetup, ["teacher"]));
 const OnboardingInvStdRoute = withLayout(protect(InviteStudents, ["teacher"]));
 
-// Role → dashboard path map used to redirect /dashboard to the role-specific route
-const dashboardPathByRole: Partial<Record<string, string>> = {
-  principal: "/principal-dashboard",
-  school_admin: "/school-admin-dashboard",
-  admin: "/admin-dashboard",
-  teacher: "/teacher-dashboard",
-  student: "/student-dashboard",
-  parent: "/parent-dashboard",
-};
+function getDashboardPath(role: string): string {
+  switch (role) {
+    case "principal":
+      return "/principal-dashboard";
+    case "school_admin":
+      return "/school-admin-dashboard";
+    case "admin":
+      return "/admin-dashboard";
+    case "teacher":
+      return "/teacher-dashboard";
+    case "student":
+      return "/student-dashboard";
+    case "parent":
+      return "/parent-dashboard";
+    default:
+      return "/teacher-dashboard";
+  }
+}
 
 function App() {
   const {
@@ -247,7 +256,7 @@ function App() {
   }
 
   const dashboardPath = profile
-    ? (dashboardPathByRole[profile.role] ?? "/teacher-dashboard")
+    ? getDashboardPath(profile.role)
     : "/login";
 
   return (
