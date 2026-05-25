@@ -1,5 +1,5 @@
 import "dotenv/config";
-import mongoose from "mongoose";
+
 import fs from "fs";
 import path from "path";
 import axios from "axios";
@@ -19,14 +19,7 @@ async function main() {
   reportContent += "This report details the evaluation of the AI predictive features for our mock pilot school.\n\n";
 
   let dbConnected = false;
-  try {
-    console.log("🚀 Connecting to MongoDB...");
-    await mongoose.connect(MONGO_URL, { serverSelectionTimeoutMS: 2000 });
-    console.log("✅ Connected!\n");
-    dbConnected = true;
-  } catch (e) {
-    console.log("⚠️ MongoDB not available. Proceeding with database-free simulation.\n");
-  }
+  console.log("⚠️ MongoDB removed. Proceeding with database-free simulation.\n");
 
   try {
     // 2. Test Study Arena (AI Classroom Generator)
@@ -166,7 +159,7 @@ async function main() {
     console.error("❌ Simulation failed:", error);
     process.exit(1);
   } finally {
-    if (dbConnected) await mongoose.disconnect();
+    process.exit(0);
     process.exit(0);
   }
 }
