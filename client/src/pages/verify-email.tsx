@@ -16,6 +16,55 @@ export default function VerifyEmailPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
+  const setInputRef = (idx: number, el: HTMLInputElement | null) => {
+    switch (idx) {
+      case 0:
+        inputRefs.current[0] = el;
+        break;
+      case 1:
+        inputRefs.current[1] = el;
+        break;
+      case 2:
+        inputRefs.current[2] = el;
+        break;
+      case 3:
+        inputRefs.current[3] = el;
+        break;
+    }
+  };
+
+  const focusInputRef = (idx: number) => {
+    switch (idx) {
+      case 0:
+        inputRefs.current[0]?.focus();
+        break;
+      case 1:
+        inputRefs.current[1]?.focus();
+        break;
+      case 2:
+        inputRefs.current[2]?.focus();
+        break;
+      case 3:
+        inputRefs.current[3]?.focus();
+        break;
+    }
+  };
+
+  const getOtpDigit = (idx: number): string => {
+    switch (idx) {
+      case 0:
+        return otp[0];
+      case 1:
+        return otp[1];
+      case 2:
+        return otp[2];
+      case 3:
+        return otp[3];
+      default:
+        return "";
+    }
+  };
+
   // If user is already verified, redirect to dashboard
   useEffect(() => {
     if (isLoading) return;
@@ -41,13 +90,12 @@ export default function VerifyEmailPage() {
 
   const handleInput = (index: number, value: string) => {
     const digit = value.replace(/\D/g, "").slice(-1);
-    const newOtp = [...otp];
-    newOtp[index] = digit;
+    const newOtp = otp.map((item, idx) => (idx === index ? digit : item));
     setOtp(newOtp);
     setError(null);
 
     if (digit && index < 3) {
-      inputRefs.current[index + 1]?.focus();
+      focusInputRef(index + 1);
     }
 
     // Auto-submit when all 4 digits entered
@@ -60,8 +108,8 @@ export default function VerifyEmailPage() {
   };
 
   const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
+    if (e.key === "Backspace" && !getOtpDigit(index) && index > 0) {
+      focusInputRef(index - 1);
     }
   };
 
@@ -71,7 +119,7 @@ export default function VerifyEmailPage() {
     if (pasted.length === 4) {
       setOtp(pasted.split(""));
       setError(null);
-      inputRefs.current[3]?.focus();
+      focusInputRef(3);
       submitOtp(pasted);
     }
   };
@@ -107,7 +155,7 @@ export default function VerifyEmailPage() {
       const msg = err instanceof Error ? err.message : "Invalid code. Please try again.";
       setError(msg);
       setOtp(["", "", "", ""]);
-      inputRefs.current[0]?.focus();
+      focusInputRef(0);
     } finally {
       setIsVerifying(false);
     }
@@ -208,7 +256,7 @@ export default function VerifyEmailPage() {
               {otp.map((digit, i) => (
                 <motion.input
                   key={i}
-                  ref={(el) => { inputRefs.current[i] = el; }}
+                  ref={(el) => setInputRef(i, el)}
                   type="text"
                   inputMode="numeric"
                   maxLength={1}

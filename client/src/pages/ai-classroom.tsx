@@ -72,6 +72,17 @@ import { cn } from "@/lib/utils";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
+interface ProjectIssue {
+  title: string;
+  description?: string;
+  content?: string;
+}
+
+interface ProjectMilestone {
+  title: string;
+  description?: string;
+}
+
 interface Scene {
   id: string;
   type:
@@ -85,8 +96,25 @@ interface Scene {
     | "game"
     | "visualization3d";
   title: string;
-  content: any;
-  actions?: any[];
+  content: {
+    title?: string;
+    points?: string[];
+    image?: string;
+    question?: string;
+    options?: string[];
+    correctIndex?: number;
+    answer?: number;
+    issues?: ProjectIssue[];
+    milestones?: ProjectMilestone[];
+    [key: string]: unknown;
+  };
+  actions?: {
+    type?: "action" | "text";
+    name?: string;
+    content?: string;
+    params?: Record<string, unknown>;
+    actionId?: string;
+  }[];
   duration?: number;
 }
 
@@ -97,162 +125,39 @@ interface ClassroomRecord {
   scenes: Scene[];
   status: string;
   createdAt: string;
+  classroomId?: string;
+  agents?: {
+    id: string;
+    name: string;
+    role: string;
+    persona: string;
+  }[];
 }
-
-interface WhiteboardElement {
-  id: string;
-  type: string;
-  content?: string;
-  latex?: string;
-  x: number;
-  y: number;
-  width?: number;
-  height?: number;
-  data?: any;
-}
-
-// ── Whiteboard Component ─────────────────────────────────────────────────────
-
-const Whiteboard = ({
-  isOpen,
-  elements,
-  onClose,
-  onClear,
-}: {
-  isOpen: boolean;
-  elements: WhiteboardElement[];
-  onClose: () => void;
-  onClear: () => void;
-}) => {
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="absolute inset-4 z-50 flex flex-col overflow-hidden rounded-2xl border-2 border-purple-100 bg-white/95 shadow-2xl backdrop-blur-xl"
-        >
-          <div className="flex h-12 items-center justify-between border-b bg-purple-50/50 px-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-purple-700">
-              <PencilLine className="h-4 w-4" />
-              Whiteboard
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClear}
-                className="h-8 px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
-              >
-                <Eraser className="mr-1 h-3 w-3" />
-                Clear
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onClose}
-                className="h-8 w-8 rounded-full"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          <div className="relative flex-1 overflow-hidden bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:24px_24px]">
-            {elements.length === 0 && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground/30">
-                <PencilLine className="h-12 w-12 opacity-10" />
-                <p className="text-sm">The whiteboard is ready for notes</p>
-              </div>
-            )}
-
-            <div className="pointer-events-none absolute inset-0">
-              <svg className="h-full w-full" viewBox="0 0 1000 562">
-                {elements.map((el) => {
-                  if (el.type === "line") {
-                    const data = el.data || {};
-                    return (
-                      <line
-                        key={el.id}
-                        x1={el.x}
-                        y1={el.y}
-                        x2={data.endX || el.x + 100}
-                        y2={data.endY || el.y + 100}
-                        stroke="#7c3aed"
-                        strokeWidth="2"
-                        strokeDasharray="4 2"
-                      />
-                    );
-                  }
-                  if (el.type === "shape") {
-                    return (
-                      <rect
-                        key={el.id}
-                        x={el.x}
-                        y={el.y}
-                        width={el.width || 100}
-                        height={el.height || 100}
-                        fill="none"
-                        stroke="#7c3aed"
-                        strokeWidth="2"
-                        rx="4"
-                      />
-                    );
-                  }
-                  return null;
-                })}
-              </svg>
-
-              {elements.map((el) => {
-                if (el.type === "text" || el.type === "latex") {
-                  const style: React.CSSProperties = {
-                    position: "absolute",
-                    left: `${(el.x / 1000) * 100}%`,
-                    top: `${(el.y / 562) * 100}%`,
-                    maxWidth: el.width ? `${(el.width / 1000) * 100}%` : "200px",
-                    transform: "translate(-0%, -0%)",
-                    pointerEvents: "auto",
-                  };
-                  return (
-                    <div key={el.id} style={style}>
-                      {el.type === "latex" ? (
-                        <div className="rounded-lg border border-l-4 border-purple-100 border-l-purple-500 bg-white/90 p-2 text-purple-900 shadow-sm">
-                          <InlineMath math={el.latex || ""} />
-                        </div>
-                      ) : (
-                        <div className="rounded-lg border border-l-4 border-gray-100 border-l-blue-400 bg-white/80 p-2 text-sm font-medium shadow-sm">
-                          {el.content}
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
-                return null;
-              })}
-            </div>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-};
 
 // ── Native Classroom Player ──────────────────────────────────────────────────
 
 const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: () => void }) => {
   const [currentSceneIndex, setCurrentSceneIndex] = useState(0);
-  const currentScene = data.scenes[currentSceneIndex];
+  const currentScene = data.scenes.find((_, idx) => idx === currentSceneIndex) || data.scenes[0];
   const progress = ((currentSceneIndex + 1) / data.scenes.length) * 100;
 
   // Quiz state
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [answerRevealed, setAnswerRevealed] = useState(false);
-
   // Multi-agent state
   const [whiteboardOpen, setWhiteboardOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-  const [messages, setMessages] = useState<any[]>([]);
+
+  interface ChatMessage {
+    id?: string;
+    role: "user" | "assistant";
+    name?: string;
+    avatar?: string;
+    color?: string;
+    content: string;
+  }
+
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [userInput, setUserInput] = useState("");
   const { sendMessage, isGenerating } = useOrchestrator();
   const { toast } = useToast();
@@ -273,10 +178,8 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
     confirmDiscussion,
     skipDiscussion,
     confirmVideo,
-    handleUserInterrupt,
     setTTSMode,
   } = usePlayback();
-
   // TTS mode toggle (browser vs server)
   const [serverTTS, setServerTTS] = useState(false);
   const toggleTTS = () => {
@@ -334,7 +237,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
   // Chat-driven actions (separate from playback-driven actions)
   const [lastChatAction, setLastChatAction] = useState<{
     name: string;
-    params: Record<string, any>;
+    params: Record<string, unknown>;
   } | null>(null);
 
   // Combined action: prefer playback, fall back to chat
@@ -381,17 +284,28 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
     setUserInput("");
 
     const agentColors = ["#7c3aed", "#2563eb", "#10b981", "#f59e0b", "#ef4444"];
-    const agentAvatars: Record<string, string> = { teacher: "👨‍🏫", assistant: "🤖", student: "🧑‍🎓" };
-    const classroomAgents = (data as any).agents || [];
+    const getAgentAvatar = (role: string): string => {
+      switch (role) {
+        case "teacher":
+          return "👨‍🏫";
+        case "assistant":
+          return "🤖";
+        case "student":
+          return "🧑‍🎓";
+        default:
+          return "🧑";
+      }
+    };
+    const classroomAgents = data.agents || [];
     const agentConfigs =
       classroomAgents.length > 0
-        ? classroomAgents.map((a: any, i: number) => ({
+        ? classroomAgents.map((a, i: number) => ({
             id: a.id,
             name: a.name,
             role: a.role,
-            avatar: agentAvatars[a.role] || "🧑",
+            avatar: getAgentAvatar(a.role),
             persona: a.persona,
-            color: agentColors[i % agentColors.length],
+            color: agentColors.at(i % agentColors.length),
             allowedActions:
               a.role === "teacher"
                 ? [
@@ -459,7 +373,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
         whiteboardOpen: whiteboardOpen,
       },
       config: {
-        agentIds: agentConfigs.map((a: any) => a.id),
+        agentIds: agentConfigs.map((a) => a.id),
         agentConfigs,
         discussionTopic: data.topic,
       },
@@ -571,7 +485,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
               <DropdownMenuItem
                 onClick={async () => {
                   try {
-                    const cid = (data as any).classroomId || (data as any).id;
+                    const cid = data.classroomId || data.id;
                     const res = await fetch(`/api/ai-classroom/export/${cid}`, { method: "POST" });
                     if (!res.ok) throw new Error("Export failed");
                     const blob = await res.blob();
@@ -595,7 +509,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
               <DropdownMenuItem
                 onClick={async () => {
                   try {
-                    const cid = (data as any).classroomId || (data as any).id;
+                    const cid = data.classroomId || data.id;
                     const a = document.createElement("a");
                     a.href = `/api/ai-classroom/export/${cid}/html`;
                     a.download = `${data.topic.slice(0, 30)}.html`;
@@ -613,7 +527,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
-                  const cid = (data as any).classroomId || (data as any).id;
+                  const cid = data.classroomId || data.id;
                   const a = document.createElement("a");
                   a.href = `/api/ai-classroom/export/${cid}/zip`;
                   a.download = `classroom-${cid}.zip`;
@@ -701,7 +615,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
           )}
 
           <ScrollArea className="flex-1 overflow-hidden rounded-3xl border bg-white shadow-2xl">
-            <div ref={slideAreaRef as any} className="relative h-full min-h-[500px] w-full">
+            <div ref={slideAreaRef} className="relative h-full min-h-[500px] w-full">
               {/* Spotlight overlay for spotlight/laser actions */}
               <SpotlightOverlay
                 containerRef={slideAreaRef as React.RefObject<HTMLElement>}
@@ -883,7 +797,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                         {(Array.isArray(currentScene.content.issues)
                           ? currentScene.content.issues
                           : []
-                        ).map((issue: any, i: number) => (
+                        ).map((issue, i: number) => (
                           <Card key={i} className="border-l-4 border-l-amber-400">
                             <CardHeader className="pb-2">
                               <CardTitle className="text-base">
@@ -905,7 +819,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                         {(Array.isArray(currentScene.content.milestones)
                           ? currentScene.content.milestones
                           : []
-                        ).map((m: any, i: number) => (
+                        ).map((m, i: number) => (
                           <div
                             key={i}
                             className="flex items-start gap-3 rounded-xl border bg-slate-50/50 p-4"
@@ -951,7 +865,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
             <div className="flex items-center gap-4 text-sm font-medium text-gray-500">
               <div className="flex items-center gap-1">
                 <Users className="h-4 w-4" />
-                <span>{(data as any).agents?.length || 3} AI Agents Online</span>
+                <span>{data.agents?.length || 3} AI Agents Online</span>
               </div>
               <Separator orientation="vertical" className="h-4" />
               <span>
@@ -1209,10 +1123,11 @@ export default function StudyArenaPage() {
       cacheClassroom(data, parseInt(id)).catch(() => {});
       setClassroomData(data);
       setActiveClassroomId(id);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "Failed to load classroom";
       toast({
         title: "Error",
-        description: error.message,
+        description: msg,
         variant: "destructive",
       });
     }

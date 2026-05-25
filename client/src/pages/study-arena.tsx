@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -37,7 +36,6 @@ const DIRECT_MESSAGES: User[] = [
 ];
 
 export default function StudyArenaPage() {
-  const [, setLocation] = useLocation();
   const { currentUser } = useAuth();
   const user = currentUser?.user;
 
