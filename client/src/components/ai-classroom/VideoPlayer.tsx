@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { SkipForward, Play } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 
 interface VideoPlayerProps {
   src?: string;
@@ -11,6 +12,7 @@ interface VideoPlayerProps {
 }
 
 export function VideoPlayer({ src, onEnd, onSkip }: VideoPlayerProps) {
+  const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -39,7 +41,7 @@ export function VideoPlayer({ src, onEnd, onSkip }: VideoPlayerProps) {
         ) : (
           <div className="flex aspect-video items-center justify-center gap-2 text-sm text-slate-400">
             <Play className="h-8 w-8 opacity-40" />
-            <span>Video unavailable</span>
+            <span>{t("video.unavailable", "Video unavailable")}</span>
           </div>
         )}
         <div className="flex justify-end gap-2 bg-slate-900 p-3">
@@ -50,10 +52,10 @@ export function VideoPlayer({ src, onEnd, onSkip }: VideoPlayerProps) {
             className="gap-2 border-slate-600 text-slate-300 hover:bg-slate-700"
           >
             <SkipForward className="h-4 w-4" />
-            Skip
+            {t("discussion.skip", "Skip")}
           </Button>
           <Button size="sm" onClick={onEnd} className="bg-indigo-600 hover:bg-indigo-700">
-            Continue
+            {t("video.continue", "Continue")}
           </Button>
         </div>
       </div>

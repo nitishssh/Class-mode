@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, FieldValues, UseFormReturn } from "react-hook-form";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 
@@ -110,6 +111,7 @@ const FloatingCard = ({
 };
 
 const IllustrationPanel = () => {
+  const { t } = useTranslation();
   return (
     <div className="pointer-events-none relative flex h-full w-full flex-col items-center justify-center overflow-hidden bg-illustration">
       <svg
@@ -186,9 +188,10 @@ const IllustrationPanel = () => {
         <span className="h-4 w-4 rounded-full bg-foreground" />
       </div>
       <p className="relative z-10 mt-5 px-6 text-center text-base text-foreground">
-        Make your learning easier and organized
+        {t("auth.easierOrganized", "Make your learning easier and organized")}
         <br />
-        with <span className="font-bold">Class Mode</span>
+        {t("auth.simplifyWorkflow", "Simplify your workflow and boost your productivity with")}{" "}
+        <span className="font-bold">{t("auth.classMode", "Class Mode")}</span>
       </p>
     </div>
   );
@@ -231,6 +234,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export function FirebaseAuthDialog() {
+  const { t } = useTranslation();
   const { login, register, resetUserPassword } = useFirebaseAuth();
   const [, setLocation] = useLocation();
 
@@ -353,12 +357,12 @@ export function FirebaseAuthDialog() {
         <div className="pointer-events-auto relative z-50 mx-auto flex h-full w-full max-w-lg flex-col justify-center px-8 py-12 sm:px-12 lg:px-16 xl:px-20">
           <h1 className="font-display text-4xl font-bold text-foreground">
             {authTab === "login" && "Welcome back!"}
-            {authTab === "register" && <span className="text-3xl">Create an account</span>}
-            {authTab === "forgotPassword" && <span className="text-3xl">Reset Password</span>}
+            {authTab === "register" && <span className="text-3xl">{t("auth.createAccount", "Create an account")}</span>}
+            {authTab === "forgotPassword" && <span className="text-3xl">{t("auth.resetPassword", "Reset Password")}</span>}
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            Simplify your workflow and boost your productivity with{" "}
-            <span className="font-semibold text-foreground">Class Mode</span>.{" "}
+            {t("auth.simplifyWorkflow", "Simplify your workflow and boost your productivity with")}{" "}
+            <span className="font-semibold text-foreground">{t("auth.classMode", "Class Mode")}</span>.{" "}
             {authTab === "login"
               ? "Get started for free."
               : authTab === "register"
@@ -408,9 +412,9 @@ export function FirebaseAuthDialog() {
                       />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-medium">Check your email</h3>
+                  <h3 className="text-lg font-medium">{t("auth.checkEmail", "Check your email")}</h3>
                   <p className="text-sm text-muted-foreground">
-                    We&apos;ve sent a password reset link to{" "}
+                    {t("auth.weDispatched", "We've sent a password reset link to")}{" "}
                     <span className="font-semibold text-foreground">
                       {loginForm.getValues("email")}
                     </span>
@@ -427,7 +431,7 @@ export function FirebaseAuthDialog() {
                   setLoginError(null);
                 }}
               >
-                Back to login
+                {t("auth.backToLogin", "Back to login")}
               </button>
             </div>
           )}
@@ -508,7 +512,7 @@ export function FirebaseAuthDialog() {
                       setAuthTab("forgotPassword");
                     }}
                   >
-                    Forgot Password?
+                    {t("auth.forgotPassword", "Forgot Password?")}
                   </button>
                 </div>
                 <button
@@ -678,11 +682,11 @@ export function FirebaseAuthDialog() {
                             onBlur={field.onBlur}
                             ref={field.ref}
                           >
-                            <option value="admin">Workspace Owner</option>
-                            <option value="teacher">Teacher</option>
-                            <option value="principal">Principal</option>
-                            <option value="school_admin">School Admin</option>
-                            <option value="parent">Parent</option>
+                            <option value="admin">{t("auth.role.owner", "Workspace Owner")}</option>
+                            <option value="teacher">{t("auth.role.teacher", "Teacher")}</option>
+                            <option value="principal">{t("auth.role.principal", "Principal")}</option>
+                            <option value="school_admin">{t("auth.role.schoolAdmin", "School Admin")}</option>
+                            <option value="parent">{t("auth.role.parent", "Parent")}</option>
                           </select>
                         </FormControl>
                         <FormMessage className="px-2 text-[10px] text-red-500" />

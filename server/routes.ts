@@ -31,7 +31,7 @@ import {
   pgUpdateUser,
   pgCountUsers,
 } from "./lib/pg-queries";
-import { ACCESS_COOKIE, authMePayload, randomToken, tokenHash } from "./lib/auth-workspace";
+import { authMePayload, randomToken, tokenHash } from "./lib/auth-workspace";
 import { sendWorkspaceInvite } from "./lib/mailer";
 import { getPgPool, isPgReady } from "./db-pg";
 import messageRoutes from "./message/routes";
@@ -78,7 +78,7 @@ const JWT_SECRET: string = process.env.JWT_SECRET;
 // Verifies the server-issued JWT only — never calls Firebase Admin on hot path.
 // Firebase ID tokens are exchanged for server JWTs once at /api/auth/firebase.
 export async function authenticateToken(req: Request, res: Response, next: express.NextFunction) {
-  const token = req.cookies?.[ACCESS_COOKIE] || req.headers.authorization?.split(" ")[1];
+  const token = req.cookies?.access_token || req.headers.authorization?.split(" ")[1];
 
   if (token) {
     try {
@@ -2326,15 +2326,18 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
             attempts.length > 0 ? completedAttempts.length / attempts.length : 0;
 
           // Get subject breakdown from tests
-          const subjectScores: Record<string, { total: number; count: number }> = {};
+          const subjectScores: Record<string, { total: number; count: number }> = Object.create(null);
           for (const attempt of completedAttempts) {
             const test = await storage.getTest(attempt.testId);
-            if (test) {
-              if (!subjectScores[test.subject]) {
-                subjectScores[test.subject] = { total: 0, count: 0 };
+            if (test && test.subject) {
+              const subject = test.subject;
+              if (subject !== "__proto__" && subject !== "constructor" && subject !== "prototype") {
+                if (!subjectScores[subject]) {
+                  subjectScores[subject] = { total: 0, count: 0 };
+                }
+                subjectScores[subject].total += attempt.score || 0;
+                subjectScores[subject].count += 1;
               }
-              subjectScores[test.subject].total += attempt.score || 0;
-              subjectScores[test.subject].count += 1;
             }
           }
 

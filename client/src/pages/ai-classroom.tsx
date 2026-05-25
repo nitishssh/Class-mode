@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "@/lib/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Brain,
@@ -20,7 +21,6 @@ import {
   Send,
   Loader2,
   PencilLine,
-  Eraser,
   X,
   Users,
   BookOpen,
@@ -38,7 +38,6 @@ import { useOrchestrator } from "../hooks/use-orchestrator";
 import { usePlayback } from "../hooks/use-playback";
 import { StatelessChatRequest } from "@shared/study-arena";
 import "katex/dist/katex.min.css";
-import { InlineMath } from "react-katex";
 import { useToast } from "@/hooks/use-toast";
 import { PlaybackControls } from "@/components/ai-classroom/PlaybackControls";
 import { DiscussionCard } from "@/components/ai-classroom/DiscussionCard";
@@ -72,6 +71,41 @@ import { cn } from "@/lib/utils";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
+interface PlaybackAction {
+  name: string;
+  params?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+interface ProjectIssue {
+  title?: string;
+  description?: string;
+  content?: string;
+}
+
+interface ProjectMilestone {
+  title?: string;
+  description?: string;
+}
+
+interface SceneContent {
+  title?: string;
+  points?: string[];
+  image?: string;
+  question?: string;
+  options?: string[];
+  correctIndex?: number;
+  answer?: number;
+  explanation?: string;
+  widgetType?: string;
+  projectTopic?: string;
+  projectDescription?: string;
+  targetSkills?: string[];
+  issues?: ProjectIssue[];
+  milestones?: ProjectMilestone[];
+  [key: string]: unknown;
+}
+
 interface Scene {
   id: string;
   type:
@@ -85,9 +119,16 @@ interface Scene {
     | "game"
     | "visualization3d";
   title: string;
-  content: any;
-  actions?: any[];
+  content: SceneContent;
+  actions?: PlaybackAction[];
   duration?: number;
+}
+
+interface ClassroomAgent {
+  id: string;
+  name: string;
+  role: string;
+  persona?: string;
 }
 
 interface ClassroomRecord {
@@ -97,152 +138,35 @@ interface ClassroomRecord {
   scenes: Scene[];
   status: string;
   createdAt: string;
+  agents?: ClassroomAgent[];
+  classroomId?: string;
 }
 
-interface WhiteboardElement {
+interface ChatMessage {
+  id?: string;
+  role: string;
+  name?: string;
+  avatar?: string;
+  color?: string;
+  content: string;
+}
+
+interface AgentConfig {
   id: string;
-  type: string;
-  content?: string;
-  latex?: string;
-  x: number;
-  y: number;
-  width?: number;
-  height?: number;
-  data?: any;
+  name: string;
+  role: "teacher" | "assistant" | "student";
+  avatar: string;
+  persona: string;
+  color: string;
+  allowedActions: string[];
 }
-
-// ── Whiteboard Component ─────────────────────────────────────────────────────
-
-const Whiteboard = ({
-  isOpen,
-  elements,
-  onClose,
-  onClear,
-}: {
-  isOpen: boolean;
-  elements: WhiteboardElement[];
-  onClose: () => void;
-  onClear: () => void;
-}) => {
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="absolute inset-4 z-50 flex flex-col overflow-hidden rounded-2xl border-2 border-purple-100 bg-white/95 shadow-2xl backdrop-blur-xl"
-        >
-          <div className="flex h-12 items-center justify-between border-b bg-purple-50/50 px-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-purple-700">
-              <PencilLine className="h-4 w-4" />
-              Whiteboard
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClear}
-                className="h-8 px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
-              >
-                <Eraser className="mr-1 h-3 w-3" />
-                Clear
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onClose}
-                className="h-8 w-8 rounded-full"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          <div className="relative flex-1 overflow-hidden bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:24px_24px]">
-            {elements.length === 0 && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground/30">
-                <PencilLine className="h-12 w-12 opacity-10" />
-                <p className="text-sm">The whiteboard is ready for notes</p>
-              </div>
-            )}
-
-            <div className="pointer-events-none absolute inset-0">
-              <svg className="h-full w-full" viewBox="0 0 1000 562">
-                {elements.map((el) => {
-                  if (el.type === "line") {
-                    const data = el.data || {};
-                    return (
-                      <line
-                        key={el.id}
-                        x1={el.x}
-                        y1={el.y}
-                        x2={data.endX || el.x + 100}
-                        y2={data.endY || el.y + 100}
-                        stroke="#7c3aed"
-                        strokeWidth="2"
-                        strokeDasharray="4 2"
-                      />
-                    );
-                  }
-                  if (el.type === "shape") {
-                    return (
-                      <rect
-                        key={el.id}
-                        x={el.x}
-                        y={el.y}
-                        width={el.width || 100}
-                        height={el.height || 100}
-                        fill="none"
-                        stroke="#7c3aed"
-                        strokeWidth="2"
-                        rx="4"
-                      />
-                    );
-                  }
-                  return null;
-                })}
-              </svg>
-
-              {elements.map((el) => {
-                if (el.type === "text" || el.type === "latex") {
-                  const style: React.CSSProperties = {
-                    position: "absolute",
-                    left: `${(el.x / 1000) * 100}%`,
-                    top: `${(el.y / 562) * 100}%`,
-                    maxWidth: el.width ? `${(el.width / 1000) * 100}%` : "200px",
-                    transform: "translate(-0%, -0%)",
-                    pointerEvents: "auto",
-                  };
-                  return (
-                    <div key={el.id} style={style}>
-                      {el.type === "latex" ? (
-                        <div className="rounded-lg border border-l-4 border-purple-100 border-l-purple-500 bg-white/90 p-2 text-purple-900 shadow-sm">
-                          <InlineMath math={el.latex || ""} />
-                        </div>
-                      ) : (
-                        <div className="rounded-lg border border-l-4 border-gray-100 border-l-blue-400 bg-white/80 p-2 text-sm font-medium shadow-sm">
-                          {el.content}
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
-                return null;
-              })}
-            </div>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-};
 
 // ── Native Classroom Player ──────────────────────────────────────────────────
 
 const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: () => void }) => {
+  const { t } = useTranslation();
   const [currentSceneIndex, setCurrentSceneIndex] = useState(0);
-  const currentScene = data.scenes[currentSceneIndex];
+  const currentScene = data.scenes.at(currentSceneIndex) || data.scenes[0];
   const progress = ((currentSceneIndex + 1) / data.scenes.length) * 100;
 
   // Quiz state
@@ -252,7 +176,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
   // Multi-agent state
   const [whiteboardOpen, setWhiteboardOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [userInput, setUserInput] = useState("");
   const { sendMessage, isGenerating } = useOrchestrator();
   const { toast } = useToast();
@@ -273,7 +197,6 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
     confirmDiscussion,
     skipDiscussion,
     confirmVideo,
-    handleUserInterrupt,
     setTTSMode,
   } = usePlayback();
 
@@ -334,7 +257,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
   // Chat-driven actions (separate from playback-driven actions)
   const [lastChatAction, setLastChatAction] = useState<{
     name: string;
-    params: Record<string, any>;
+    params: Record<string, unknown>;
   } | null>(null);
 
   // Combined action: prefer playback, fall back to chat
@@ -373,6 +296,19 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
     return () => window.removeEventListener("keydown", handleKeyDown);
   });
 
+  const getAgentAvatar = (role: string): string => {
+    switch (role) {
+      case "teacher":
+        return "👨‍🏫";
+      case "assistant":
+        return "🤖";
+      case "student":
+        return "🧑‍🎓";
+      default:
+        return "🧑";
+    }
+  };
+
   const handleSend = async () => {
     if (!userInput.trim() || isGenerating) return;
 
@@ -381,40 +317,42 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
     setUserInput("");
 
     const agentColors = ["#7c3aed", "#2563eb", "#10b981", "#f59e0b", "#ef4444"];
-    const agentAvatars: Record<string, string> = { teacher: "👨‍🏫", assistant: "🤖", student: "🧑‍🎓" };
-    const classroomAgents = (data as any).agents || [];
-    const agentConfigs =
+    const classroomAgents = data.agents || [];
+    const agentConfigs: AgentConfig[] =
       classroomAgents.length > 0
-        ? classroomAgents.map((a: any, i: number) => ({
-            id: a.id,
-            name: a.name,
-            role: a.role,
-            avatar: agentAvatars[a.role] || "🧑",
-            persona: a.persona,
-            color: agentColors[i % agentColors.length],
-            allowedActions:
-              a.role === "teacher"
-                ? [
-                    "spotlight",
-                    "laser",
-                    "wb_open",
-                    "wb_close",
-                    "wb_clear",
-                    "wb_delete",
-                    "wb_draw_text",
-                    "wb_draw_shape",
-                    "wb_draw_chart",
-                    "wb_draw_latex",
-                    "wb_draw_table",
-                    "wb_draw_line",
-                    "wb_draw_code",
-                    "wb_edit_code",
-                    "discussion",
-                  ]
-                : a.role === "assistant"
-                  ? ["wb_open", "wb_draw_text", "wb_draw_latex", "wb_close", "discussion"]
-                  : [],
-          }))
+        ? classroomAgents.map((a: ClassroomAgent, i: number) => {
+            const role = (a.role === "teacher" || a.role === "assistant" || a.role === "student" ? a.role : "student") as "teacher" | "assistant" | "student";
+            return {
+              id: a.id,
+              name: a.name,
+              role,
+              avatar: getAgentAvatar(a.role),
+              persona: a.persona || "",
+              color: agentColors.at(i % agentColors.length) || "#7c3aed",
+              allowedActions:
+                role === "teacher"
+                  ? [
+                      "spotlight",
+                      "laser",
+                      "wb_open",
+                      "wb_close",
+                      "wb_clear",
+                      "wb_delete",
+                      "wb_draw_text",
+                      "wb_draw_shape",
+                      "wb_draw_chart",
+                      "wb_draw_latex",
+                      "wb_draw_table",
+                      "wb_draw_line",
+                      "wb_draw_code",
+                      "wb_edit_code",
+                      "discussion",
+                    ]
+                  : role === "assistant"
+                    ? ["wb_open", "wb_draw_text", "wb_draw_latex", "wb_close", "discussion"]
+                    : [],
+            };
+          })
         : [
             {
               id: "teacher",
@@ -459,7 +397,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
         whiteboardOpen: whiteboardOpen,
       },
       config: {
-        agentIds: agentConfigs.map((a: any) => a.id),
+        agentIds: agentConfigs.map((a: AgentConfig) => a.id),
         agentConfigs,
         discussionTopic: data.topic,
       },
@@ -510,7 +448,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
           <div>
             <h1 className="text-xl font-bold tracking-tight text-gray-900">{data.topic}</h1>
             <p className="text-sm text-muted-foreground">
-              Scene {currentSceneIndex + 1} of {data.scenes.length}
+              {t("classroom.scene", "Scene ")}{currentSceneIndex + 1}{t("classroom.of", " of ")}{data.scenes.length}
             </p>
           </div>
         </div>
@@ -535,7 +473,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
             onClick={() => setWhiteboardOpen(!whiteboardOpen)}
           >
             <PencilLine className="h-4 w-4" />
-            Whiteboard
+            {t("whiteboard.title", "Whiteboard")}
           </Button>
           <Button
             variant={"default"}
@@ -544,7 +482,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
             onClick={() => setChatOpen(!chatOpen)}
           >
             <MessageSquare className="h-4 w-4" />
-            Chat
+            {t("classroom.chat", "Chat")}
           </Button>
           <Button
             variant="outline"
@@ -553,8 +491,8 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
             onClick={toggleTTS}
             title={
               serverTTS
-                ? "Using server TTS — click to switch to browser TTS"
-                : "Using browser TTS — click to switch to server TTS"
+                ? t("classroom.usingServerTTS", "Using server TTS — click to switch to browser TTS")
+                : t("classroom.usingBrowserTTS", "Using browser TTS — click to switch to server TTS")
             }
           >
             {serverTTS ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
@@ -571,7 +509,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
               <DropdownMenuItem
                 onClick={async () => {
                   try {
-                    const cid = (data as any).classroomId || (data as any).id;
+                    const cid = data.classroomId || data.id;
                     const res = await fetch(`/api/ai-classroom/export/${cid}`, { method: "POST" });
                     if (!res.ok) throw new Error("Export failed");
                     const blob = await res.blob();
@@ -590,12 +528,12 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                   }
                 }}
               >
-                <Download className="mr-2 h-4 w-4" /> Export as PPTX
+                <Download className="mr-2 h-4 w-4" /> {t("classroom.exportPPTX", "Export as PPTX")}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={async () => {
                   try {
-                    const cid = (data as any).classroomId || (data as any).id;
+                    const cid = data.classroomId || data.id;
                     const a = document.createElement("a");
                     a.href = `/api/ai-classroom/export/${cid}/html`;
                     a.download = `${data.topic.slice(0, 30)}.html`;
@@ -609,18 +547,18 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                   }
                 }}
               >
-                <FileCode className="mr-2 h-4 w-4" /> Export as HTML
+                <FileCode className="mr-2 h-4 w-4" /> {t("classroom.exportHTML", "Export as HTML")}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
-                  const cid = (data as any).classroomId || (data as any).id;
+                  const cid = data.classroomId || data.id;
                   const a = document.createElement("a");
                   a.href = `/api/ai-classroom/export/${cid}/zip`;
                   a.download = `classroom-${cid}.zip`;
                   a.click();
                 }}
               >
-                <Archive className="mr-2 h-4 w-4" /> Export as ZIP
+                <Archive className="mr-2 h-4 w-4" /> {t("classroom.exportZIP", "Export as ZIP")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -681,7 +619,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
           </ScrollArea>
           <div className="mt-4 space-y-2 border-t pt-4">
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Overall Progress</span>
+              <span>{t("classroom.overallProgress", "Overall Progress")}</span>
               <span>{Math.round(progress)}%</span>
             </div>
             <Progress value={progress} className="h-1.5" />
@@ -701,10 +639,10 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
           )}
 
           <ScrollArea className="flex-1 overflow-hidden rounded-3xl border bg-white shadow-2xl">
-            <div ref={slideAreaRef as any} className="relative h-full min-h-[500px] w-full">
+            <div ref={slideAreaRef} className="relative h-full min-h-[500px] w-full">
               {/* Spotlight overlay for spotlight/laser actions */}
               <SpotlightOverlay
-                containerRef={slideAreaRef as React.RefObject<HTMLElement>}
+                containerRef={slideAreaRef}
                 action={activeAction}
               />
               {/* Scene Content */}
@@ -751,7 +689,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                         variant="outline"
                         className="mb-4 border-purple-200 bg-purple-50 text-purple-700"
                       >
-                        Knowledge Check
+                        {t("classroom.knowledgeCheck", "Knowledge Check")}
                       </Badge>
                       <h2 className="text-3xl font-bold">{currentScene.content.question}</h2>
                     </div>
@@ -813,7 +751,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                         animate={{ opacity: 1, y: 0 }}
                         className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-blue-900"
                       >
-                        <p className="mb-1 font-semibold">Explanation</p>
+                        <p className="mb-1 font-semibold">{t("classroom.explanation", "Explanation")}</p>
                         <p className="text-sm">{currentScene.content.explanation}</p>
                       </motion.div>
                     )}
@@ -850,7 +788,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                         variant="outline"
                         className="mb-3 border-amber-200 bg-amber-50 text-amber-700"
                       >
-                        Project-Based Learning
+                        {t("classroom.pbl", "Project-Based Learning")}
                       </Badge>
                       <h2 className="text-3xl font-extrabold text-gray-900">
                         {currentScene.content.projectTopic || currentScene.title}
@@ -879,15 +817,15 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                     )}
                     {currentScene.content.issues && (
                       <div className="space-y-4">
-                        <h3 className="text-lg font-bold">Project Tasks</h3>
+                        <h3 className="text-lg font-bold">{t("classroom.projectTasks", "Project Tasks")}</h3>
                         {(Array.isArray(currentScene.content.issues)
                           ? currentScene.content.issues
                           : []
-                        ).map((issue: any, i: number) => (
+                        ).map((issue: ProjectIssue, i: number) => (
                           <Card key={i} className="border-l-4 border-l-amber-400">
                             <CardHeader className="pb-2">
                               <CardTitle className="text-base">
-                                {issue.title || `Task ${i + 1}`}
+                                {issue.title || `${t("classroom.task", "Task")} ${i + 1}`}
                               </CardTitle>
                             </CardHeader>
                             <CardContent>
@@ -901,11 +839,11 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                     )}
                     {currentScene.content.milestones && (
                       <div className="space-y-3">
-                        <h3 className="text-lg font-bold">Milestones</h3>
+                        <h3 className="text-lg font-bold">{t("classroom.milestones", "Milestones")}</h3>
                         {(Array.isArray(currentScene.content.milestones)
                           ? currentScene.content.milestones
                           : []
-                        ).map((m: any, i: number) => (
+                        ).map((m: ProjectMilestone | string, i: number) => (
                           <div
                             key={i}
                             className="flex items-start gap-3 rounded-xl border bg-slate-50/50 p-4"
@@ -914,8 +852,10 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                               {i + 1}
                             </div>
                             <div>
-                              <p className="font-medium">{m.title || m}</p>
-                              {m.description && (
+                              <p className="font-medium">
+                                {typeof m === "string" ? m : (m.title || "")}
+                              </p>
+                              {typeof m !== "string" && m.description && (
                                 <p className="mt-1 text-sm text-muted-foreground">
                                   {m.description}
                                 </p>
@@ -937,25 +877,25 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
           <div className="mt-6 flex items-center justify-between">
             <div className="flex gap-3">
               <Button variant="outline" onClick={prevScene} disabled={currentSceneIndex === 0}>
-                Previous
+                {t("classroom.previous", "Previous")}
               </Button>
               <Button
                 onClick={nextScene}
                 disabled={currentSceneIndex === data.scenes.length - 1}
                 className="bg-purple-600 hover:bg-purple-700"
               >
-                Next Scene
+                {t("classroom.nextScene", "Next Scene")}
                 <Play className="ml-2 h-4 w-4" />
               </Button>
             </div>
             <div className="flex items-center gap-4 text-sm font-medium text-gray-500">
               <div className="flex items-center gap-1">
                 <Users className="h-4 w-4" />
-                <span>{(data as any).agents?.length || 3} AI Agents Online</span>
+                <span>{data.agents?.length || 3} {t("classroom.aiAgentsOnline", "AI Agents Online")}</span>
               </div>
               <Separator orientation="vertical" className="h-4" />
               <span>
-                Scene {currentSceneIndex + 1} / {data.scenes.length}
+                {t("classroom.scene", "Scene ")}{currentSceneIndex + 1} / {data.scenes.length}
               </span>
             </div>
           </div>
@@ -973,7 +913,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
               <div className="flex h-14 items-center justify-between border-b bg-blue-50/30 px-4">
                 <div className="flex items-center gap-2 font-semibold text-blue-700">
                   <MessageSquare className="h-4 w-4" />
-                  Class Chat
+                  {t("classroom.classChat", "Class Chat")}
                 </div>
                 <Button variant="ghost" size="icon" onClick={() => setChatOpen(false)}>
                   <X className="h-4 w-4" />
@@ -1025,7 +965,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                           <span className="h-1 w-1 animate-bounce rounded-full bg-gray-400 [animation-delay:0.2s]" />
                           <span className="h-1 w-1 animate-bounce rounded-full bg-gray-400 [animation-delay:0.4s]" />
                         </div>
-                        Director is thinking...
+                        {t("classroom.directorThinking", "Director is thinking...")}
                       </div>
                     )}
                 </div>
@@ -1040,7 +980,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                   className="relative"
                 >
                   <Input
-                    placeholder="Ask a question..."
+                    placeholder={t("classroom.askQuestion", "Ask a question...")}
                     value={userInput}
                     onChange={(e) => setUserInput(e.target.value)}
                     disabled={isGenerating}
@@ -1058,7 +998,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                       "absolute right-10 top-1 h-8 w-8 rounded-lg",
                       isRecording ? "bg-red-50 text-red-500" : "text-slate-400 hover:text-slate-600"
                     )}
-                    title="Hold to speak"
+                    title={t("classroom.holdSpeak", "Hold to speak")}
                   >
                     {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                   </Button>
@@ -1109,6 +1049,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
 // ── Main Page Component ───────────────────────────────────────────────────────
 
 export default function StudyArenaPage() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [topic, setTopic] = useState("");
@@ -1209,10 +1150,11 @@ export default function StudyArenaPage() {
       cacheClassroom(data, parseInt(id)).catch(() => {});
       setClassroomData(data);
       setActiveClassroomId(id);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to load classroom";
       toast({
         title: "Error",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -1280,16 +1222,16 @@ export default function StudyArenaPage() {
             <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-purple-100">
               <Brain className="h-10 w-10 animate-pulse text-purple-600" />
             </div>
-            <CardTitle className="text-3xl font-extrabold tracking-tight">AI Classroom</CardTitle>
+            <CardTitle className="text-3xl font-extrabold tracking-tight">{t("classroom.aiClassroom", "AI Classroom")}</CardTitle>
             <CardDescription className="text-lg">
-              Initializing your interactive learning sanctuary...
+              {t("classroom.initializing", "Initializing your interactive learning sanctuary...")}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center">
             <div className="mt-4 w-full max-w-xs space-y-2">
               <Progress value={45} className="h-2" />
               <p className="text-center text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                Connecting to Study Arena Engine
+                {t("classroom.connecting", "Connecting to Study Arena Engine")}
               </p>
             </div>
           </CardContent>
@@ -1313,20 +1255,20 @@ export default function StudyArenaPage() {
             <ArrowLeft className="h-6 w-6" />
           </Button>
           <div>
-            <h1 className="text-4xl font-extrabold tracking-tight text-gray-900">Study Arena</h1>
+            <h1 className="text-4xl font-extrabold tracking-tight text-gray-900">{t("classroom.studyArena", "Study Arena")}</h1>
             <p className="text-lg text-muted-foreground">
-              Interactive multi-agent classroom experiences
+              {t("classroom.interactiveExperiences", "Interactive multi-agent classroom experiences")}
             </p>
           </div>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" className="rounded-xl border-purple-200">
             <Settings2 className="mr-2 h-4 w-4" />
-            Preferences
+            {t("classroom.preferences", "Preferences")}
           </Button>
           <Button className="rounded-xl bg-purple-600 shadow-lg shadow-purple-200 hover:bg-purple-700">
             <Plus className="mr-2 h-4 w-4" />
-            Join Session
+            {t("classroom.joinSession", "Join Session")}
           </Button>
         </div>
       </div>
@@ -1338,16 +1280,16 @@ export default function StudyArenaPage() {
           <CardHeader className="bg-slate-50/50">
             <CardTitle className="flex items-center gap-2 transition-colors group-hover:text-purple-700">
               <Sparkles className="h-5 w-5 text-purple-500" />
-              New Learning Journey
+              {t("classroom.newLearningJourney", "New Learning Journey")}
             </CardTitle>
-            <CardDescription>What would you like to master today?</CardDescription>
+            <CardDescription>{t("classroom.whatToMaster", "What would you like to master today?")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6 pt-6">
             <div className="space-y-4">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="e.g. Quantum Mechanics for Beginners"
+                  placeholder={t("classroom.topicPlaceholder", "e.g. Quantum Mechanics for Beginners")}
                   className="h-12 rounded-xl border-slate-200 pl-10 focus:ring-purple-500"
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
@@ -1379,7 +1321,7 @@ export default function StudyArenaPage() {
                       {type === "pbl" && <FileText className="h-5 w-5" />}
                     </div>
                     <span className="text-sm font-semibold capitalize">
-                      {type === "pbl" ? "Problem Based" : type}
+                      {type === "pbl" ? t("classroom.pblShort", "Problem Based") : t("classroom.type." + type, type)}
                     </span>
                   </button>
                 ))}
@@ -1391,7 +1333,7 @@ export default function StudyArenaPage() {
               <div className="w-full space-y-2">
                 <Progress value={jobProgress} className="h-2" />
                 <div className="flex items-center justify-between">
-                  <p className="text-xs text-muted-foreground">{jobMessage || "Starting..."}</p>
+                  <p className="text-xs text-muted-foreground">{jobMessage || t("classroom.starting", "Starting...")}</p>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -1410,7 +1352,7 @@ export default function StudyArenaPage() {
                       }
                     }}
                   >
-                    Cancel
+                    {t("classroom.cancel", "Cancel")}
                   </Button>
                 </div>
               </div>
@@ -1423,12 +1365,12 @@ export default function StudyArenaPage() {
               {createClassroomMutation.isPending || activeJobId ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  {activeJobId ? `Generating (${jobProgress}%)...` : "Starting..."}
+                  {activeJobId ? `${t("classroom.generating", "Generating")} (${jobProgress}%)...` : t("classroom.starting", "Starting...")}
                 </>
               ) : (
                 <>
                   <Brain className="mr-2 h-5 w-5" />
-                  Start AI Classroom
+                  {t("classroom.startClassroom", "Start AI Classroom")}
                 </>
               )}
             </Button>
@@ -1440,10 +1382,10 @@ export default function StudyArenaPage() {
           <div className="flex items-center justify-between">
             <h2 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
               <HistoryIcon className="h-5 w-5 text-muted-foreground" />
-              Recent Classrooms
+              {t("classroom.recentClassrooms", "Recent Classrooms")}
             </h2>
             <Button variant="link" className="text-purple-600">
-              View All
+              {t("classroom.viewAll", "View All")}
             </Button>
           </div>
 
@@ -1466,9 +1408,9 @@ export default function StudyArenaPage() {
                   <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-50">
                     <Clock className="h-8 w-8 text-slate-300" />
                   </div>
-                  <h3 className="font-semibold text-slate-900">No sessions yet</h3>
+                  <h3 className="font-semibold text-slate-900">{t("classroom.noSessions", "No sessions yet")}</h3>
                   <p className="mt-1 max-w-[200px] text-sm text-muted-foreground">
-                    Your learning history will appear here once you start a classroom.
+                    {t("classroom.historyAppear", "Your learning history will appear here once you start a classroom.")}
                   </p>
                 </div>
               ) : (
@@ -1488,12 +1430,12 @@ export default function StudyArenaPage() {
                       <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Layout className="h-3 w-3" />
-                          {classroom.scenes?.length ?? "?"} Scenes
+                          {classroom.scenes?.length ?? "?"} {t("classroom.scenes", "Scenes")}
                         </span>
                         <Separator orientation="vertical" className="h-3" />
                         <span className="flex items-center gap-1">
                           <CheckCircle2 className="h-3 w-3" />
-                          Native Player
+                          {t("classroom.nativePlayer", "Native Player")}
                         </span>
                       </div>
                     </div>
