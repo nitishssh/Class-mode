@@ -8,3 +8,17 @@ declare module "express-session" {
     email: string;
   }
 }
+
+// Augment the core Request interface that all parameterised overloads extend.
+// Using express-serve-static-core ensures `req.user` is visible on
+// Request<Params, ResBody, ReqBody, Query> as well as the plain Request.
+declare module "express-serve-static-core" {
+  interface Request {
+    user?: {
+      id: number;
+      role?: string;
+      email?: string;
+      [key: string]: unknown;
+    };
+  }
+}

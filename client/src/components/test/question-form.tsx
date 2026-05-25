@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
@@ -124,7 +124,7 @@ export function QuestionForm({ testId, order, onSuccess }: QuestionFormProps) {
   };
 
   const form = useForm<QuestionFormValues>({
-    resolver: zodResolver(questionSchema),
+    resolver: zodResolver(questionSchema) as Resolver<QuestionFormValues>,
     defaultValues: {
       testId,
       type: "mcq",

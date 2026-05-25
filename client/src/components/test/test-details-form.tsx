@@ -1,4 +1,4 @@
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -52,7 +52,7 @@ export function TestDetailsForm() {
   });
 
   const form = useForm<TestFormValues>({
-    resolver: zodResolver(testSchema),
+    resolver: zodResolver(testSchema) as Resolver<TestFormValues>,
     defaultValues: {
       title: "",
       description: "",

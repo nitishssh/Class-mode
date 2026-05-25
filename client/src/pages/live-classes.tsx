@@ -166,7 +166,7 @@ export default function LiveClassesPage() {
                       <FormItem>
                         <FormLabel>Description (Optional)</FormLabel>
                         <FormControl>
-                          <Textarea placeholder="Topic summary or instructions..." {...field} />
+                          <Textarea placeholder="Topic summary or instructions..." {...field} value={field.value ?? ""} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -216,7 +216,15 @@ export default function LiveClassesPage() {
                       <FormItem>
                         <FormLabel>Date & Time</FormLabel>
                         <FormControl>
-                          <Input type="datetime-local" {...field} />
+                          <Input
+                              type="datetime-local"
+                              {...field}
+                              value={
+                                field.value instanceof Date
+                                  ? field.value.toISOString().slice(0, 16)
+                                  : (field.value ?? "")
+                              }
+                            />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

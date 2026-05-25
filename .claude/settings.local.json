@@ -60,7 +60,12 @@
       "Bash(openssl x509 *)",
       "Bash(gcloud logging *)",
       "Bash(node *)",
-      "Bash(gh pr *)"
+      "Bash(gh pr *)",
+      "Bash(findstr /n *)",
+      "Bash(Select-String -Pattern *)",
+      "Bash(Select-Object LineNumber, Line)",
+      "Bash(Format-Table -AutoSize)",
+      "Bash(npm uninstall *)"
     ]
   }
 }
