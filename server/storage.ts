@@ -62,6 +62,7 @@ export interface IStorage {
   createSession(session: InsertSession): Promise<Session>;
   getSession(id: number): Promise<Session | undefined>;
   getSessionByRefreshToken(tokenHash: string): Promise<Session | undefined>;
+  consumeSessionByRefreshToken(tokenHash: string): Promise<Session | undefined>;
   deleteSession(id: number): Promise<boolean>;
   deleteAllUserSessions(userId: number): Promise<boolean>;
   createOtp(otp: InsertOtp): Promise<Otp>;
@@ -565,6 +566,14 @@ export class PgStorage implements IStorage {
     const { rows } = await this.pool.query("SELECT * FROM sessions WHERE refresh_token_hash = $1", [
       refreshTokenHash,
     ]);
+    return rows[0] ? mapSession(rows[0]) : undefined;
+  }
+
+  async consumeSessionByRefreshToken(refreshTokenHash: string): Promise<Session | undefined> {
+    const { rows } = await this.pool.query(
+      "DELETE FROM sessions WHERE refresh_token_hash = $1 RETURNING *",
+      [refreshTokenHash]
+    );
     return rows[0] ? mapSession(rows[0]) : undefined;
   }
 

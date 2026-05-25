@@ -6,6 +6,7 @@ export const AUDIT_EVENTS = {
   USER_ROLE_CHANGED: "user.role_changed",
   USER_STATUS_CHANGED: "user.status_changed",
   USER_LOGIN: "user.login",
+  USER_LOGIN_FAILED: "user.login_failed",
   TEACHER_APPROVED: "teacher.approved",
   INVITE_SENT: "invite.sent",
   INVITE_ACCEPTED: "invite.accepted",

@@ -127,21 +127,14 @@ export function useChatWs({ onEvent, activeChannelId }: UseChatWsOptions) {
 
     dispatch({ type: "connecting" });
 
-    let token = "";
-    try {
-      token = await fbUser.getIdToken();
-    } catch {
-      console.warn(
-        "[use-chat-ws] Could not get Firebase ID token — connecting without token (session fallback)"
-      );
-    }
-
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     // Construct host properly handling cases where port isn't explicitly defined in window.location.host
     const host = window.location.port
       ? `${window.location.hostname}:${window.location.port}`
       : window.location.hostname;
-    const url = `${protocol}//${host}/ws/chat${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+    // Same-origin WS upgrade carries the session cookie; the server falls back
+    // to cookie/JWT auth when no token query param is present.
+    const url = `${protocol}//${host}/ws/chat`;
 
     const ws = new WebSocket(url);
     wsRef.current = ws;
