@@ -261,8 +261,12 @@ export function FirebaseAuthDialog() {
       setLoginError(null);
       setIsLoginSubmitting(true);
       try {
-        await login(data.email, data.password);
-        setLocation("/dashboard");
+        const profile = await login(data.email, data.password);
+        if (profile.emailVerified === false) {
+          setLocation("/verify-email");
+        } else {
+          setLocation("/dashboard");
+        }
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : "Login failed. Please try again.";
         setLoginError(errorMessage);

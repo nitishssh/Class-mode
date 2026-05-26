@@ -46,7 +46,7 @@ function brandEmailHtml(title: string, bodyContent: string, actionUrl?: string, 
           </div>
         `).join("")}
       </div>
-      <p style="font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; font-size: 12px; color: #94a3b8; margin-top: 14px; font-style: italic;">This high-clearance signature key will expire in 24 hours.</p>
+      <p style="font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; font-size: 12px; color: #94a3b8; margin-top: 14px; font-style: italic;">This high-clearance signature key will expire in 15 minutes.</p>
     </div>
   ` : "";
 

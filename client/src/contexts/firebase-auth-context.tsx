@@ -46,7 +46,7 @@ interface AuthRuntimeUser {
 interface AuthContextType {
   currentUser: AuthUser;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<UserProfile>;
   register: (
     email: string,
     password: string,
@@ -142,7 +142,7 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     refreshSession().finally(() => setIsLoading(false));
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<UserProfile> => {
     setIsLoading(true);
     try {
       const res = await fetch("/api/auth/login", {
@@ -160,6 +160,7 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         title: "Login successful",
         description: `Welcome back, ${data.user?.displayName || email}!`,
       });
+      return profile;
     } finally {
       setIsLoading(false);
     }
