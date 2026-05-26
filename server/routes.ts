@@ -45,6 +45,10 @@ import billingRoutes from "./routes/billing";
 import gdprRoutes from "./routes/gdpr";
 import lmsRoutes from "./routes/lms";
 import onboardingRouter from "./routes/onboarding";
+import { requireVerifiedEmail } from "./middleware";
+
+// Shorthand: auth + verified email — used on all dashboard-level routes
+const verifiedAuth = [authenticateToken, requireVerifiedEmail];
 
 import jwt from "jsonwebtoken";
 import "express-session";
@@ -145,29 +149,49 @@ export async function authenticateToken(req: Request, res: Response, next: expre
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // ── Global email-verification gate ─────────────────────────────────────────
+  // Any authenticated request to a non-auth, non-health endpoint requires
+  // the user's email to be verified. Auth routes are excluded so users can
+  // still hit /api/auth/email/verify/request and /api/auth/me while pending.
+  app.use("/api", (req: Request, res: Response, next: express.NextFunction) => {
+    const EXEMPT = ["/api/auth/", "/api/health", "/api/invite/validate", "/api/invites/"];
+    const isExempt = EXEMPT.some((p) => req.path.startsWith(p) || req.originalUrl.startsWith(p));
+    if (isExempt) return next();
+    const user = (req as any).user;
+    // Only block if we can confirm a logged-in user has unverified email;
+    // unauthenticated requests fall through to the individual route guards.
+    if (user && user.emailVerified === false) {
+      return res.status(403).json({
+        error: "Email verification required",
+        message: "Please verify your email before accessing this resource.",
+      });
+    }
+    return next();
+  });
+
   // Mount MessagePal REST API routes
   app.use("/api/messagepal", messageRoutes);
 
   // Mount New Daily.co Live Classes API routes
-  app.use("/api/live", authenticateToken, liveRouter);
+  app.use("/api/live", ...verifiedAuth, liveRouter);
 
   // Mount AI Classroom routes (Study Arena integration)
   app.use("/api/ai-classroom", aiClassroomRoutes);
 
   // Mount Grading API routes (AI-powered submission grading)
-  app.use("/api/grading", gradingRoutes);
+  app.use("/api/grading", ...verifiedAuth, gradingRoutes);
 
   // Mount Educator routes
-  app.use("/api/educator", educatorRoutes);
+  app.use("/api/educator", ...verifiedAuth, educatorRoutes);
 
   // Mount Parent routes
-  app.use("/api/parent", parentRoutes);
+  app.use("/api/parent", ...verifiedAuth, parentRoutes);
 
   // Mount Billing routes (Stripe subscriptions)
-  app.use("/api/billing", billingRoutes);
+  app.use("/api/billing", ...verifiedAuth, billingRoutes);
 
   // Mount LMS routes (Google Classroom, Canvas)
-  app.use("/api/lms", lmsRoutes);
+  app.use("/api/lms", ...verifiedAuth, lmsRoutes);
 
   // Mount GDPR routes (export, delete)
   app.use("/api/gdpr", gdprRoutes);
@@ -192,7 +216,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post(
     "/api/workspaces/:id/invites",
-    authenticateToken,
+    ...verifiedAuth,
     async (req: Request, res: Response) => {
       try {
         const workspaceId = parseInt(req.params.id, 10);
@@ -262,7 +286,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   /**
    * Student Dashboard Data Aggregation
    */
-  app.get("/api/dashboards/student", authenticateToken, async (req: Request, res: Response) => {
+  app.get("/api/dashboards/student", authenticateToken, requireVerifiedEmail, async (req: Request, res: Response) => {
     const studentId = req.session.userId;
     if (!studentId) return res.status(401).json({ message: "Unauthorized" });
 
@@ -323,7 +347,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   /**
    * Teacher Dashboard Data Aggregation
    */
-  app.get("/api/dashboards/teacher", authenticateToken, async (req: Request, res: Response) => {
+  app.get("/api/dashboards/teacher", authenticateToken, requireVerifiedEmail, async (req: Request, res: Response) => {
     const teacherId = req.session.userId;
     if (!teacherId) return res.status(401).json({ message: "Unauthorized" });
 
