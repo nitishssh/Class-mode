@@ -1,7 +1,6 @@
 import React, { useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
-import { UserRole } from "@/lib/firebase";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, FieldValues, UseFormReturn } from "react-hook-form";

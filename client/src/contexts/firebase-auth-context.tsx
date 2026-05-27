@@ -2,6 +2,14 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { clearServerToken, setServerToken } from "@/lib/queryClient";
 import type { UserRole } from "@/lib/firebase";
+import {
+  loginWithEmail,
+  registerWithEmail,
+  loginWithGoogle,
+  logoutUser,
+  resetPassword,
+  type UserProfile as FirebaseUserProfile,
+} from "@/lib/firebase";
 
 export interface UserProfile {
   uid: string;
@@ -106,6 +114,57 @@ async function parseError(res: Response, fallback: string) {
   return new Error(body.message || body.error || fallback);
 }
 
+async function exchangeFirebaseToken(
+  idToken: string,
+  options: { role?: UserRole; workspaceName?: string } = {}
+): Promise<UserProfile> {
+  const res = await fetch("/api/auth/firebase", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({
+      idToken,
+      role: options.role,
+      workspaceName: options.workspaceName,
+    }),
+  });
+  if (!res.ok) throw await parseError(res, "Firebase login failed");
+  const data = await res.json();
+  if (data.token) setServerToken(data.token);
+  return profileFromMe(data);
+}
+
+async function localPasswordLogin(email: string, password: string): Promise<UserProfile> {
+  const res = await fetch("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) throw await parseError(res, "Login failed");
+  const data = await res.json();
+  if (data.token) setServerToken(data.token);
+  return profileFromMe(data);
+}
+
+async function localPasswordSignup(args: {
+  email: string;
+  password: string;
+  name: string;
+  workspaceName: string;
+}): Promise<UserProfile> {
+  const res = await fetch("/api/auth/signup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(args),
+  });
+  if (!res.ok) throw await parseError(res, "Signup failed");
+  const data = await res.json();
+  if (data.token) setServerToken(data.token);
+  return profileFromMe(data);
+}
+
 export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<AuthUser>({ user: null, profile: null });
   const [isLoading, setIsLoading] = useState(true);
@@ -145,20 +204,19 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const login = async (email: string, password: string): Promise<UserProfile> => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ email, password }),
-      });
-      if (!res.ok) throw await parseError(res, "Login failed");
-      const data = await res.json();
-      if (data.token) setServerToken(data.token);
-      const profile = profileFromMe(data);
+      let profile: UserProfile;
+      try {
+        const firebaseUser = await loginWithEmail(email, password);
+        const idToken = await firebaseUser.getIdToken();
+        profile = await exchangeFirebaseToken(idToken);
+      } catch (error) {
+        if (!import.meta.env.DEV) throw error;
+        profile = await localPasswordLogin(email, password);
+      }
       setCurrentUser({ user: runtimeUserFromProfile(profile), profile });
       toast({
         title: "Login successful",
-        description: `Welcome back, ${data.user?.displayName || email}!`,
+        description: `Welcome back, ${profile.displayName || email}!`,
       });
       return profile;
     } finally {
@@ -182,15 +240,15 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         typeof additionalData?.workspaceName === "string" && additionalData.workspaceName
           ? additionalData.workspaceName
           : `${name}'s Workspace`;
-      const res = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ email, password, name, workspaceName }),
-      });
-      if (!res.ok) throw await parseError(res, "Signup failed");
-      const data = await res.json();
-      const profile = profileFromMe(data);
+      let profile: UserProfile;
+      try {
+        const firebaseUser = await registerWithEmail(email, password, name, "admin");
+        const idToken = await firebaseUser.getIdToken();
+        profile = await exchangeFirebaseToken(idToken, { workspaceName });
+      } catch (error) {
+        if (!import.meta.env.DEV) throw error;
+        profile = await localPasswordSignup({ email, password, name, workspaceName });
+      }
       setCurrentUser({ user: runtimeUserFromProfile(profile), profile });
       toast({ title: "Workspace created", description: `Welcome, ${name}!` });
     } finally {
@@ -199,28 +257,44 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   const googleLogin = async (): Promise<AuthUser> => {
-    throw new Error("Google sign-in is disabled for the custom auth release.");
+    setIsLoading(true);
+    try {
+      const result = await loginWithGoogle();
+      const idToken = await result.user.getIdToken();
+      const profile = await exchangeFirebaseToken(idToken);
+      const authUser = { user: runtimeUserFromProfile(profile), profile, isNewUser: result.isNewUser };
+      setCurrentUser(authUser);
+      return authUser;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const completeGoogleRegistration = async () => {
-    throw new Error("Google sign-in is disabled for the custom auth release.");
+  const completeGoogleRegistration: AuthContextType["completeGoogleRegistration"] = async (
+    user,
+    role,
+    additionalData
+  ) => {
+    const firebaseUser = user as { getIdToken?: () => Promise<string> };
+    if (!firebaseUser.getIdToken) throw new Error("Invalid Firebase user");
+    const profileData = additionalData as Partial<FirebaseUserProfile> | undefined;
+    const profile = await exchangeFirebaseToken(await firebaseUser.getIdToken(), {
+      role,
+      workspaceName: profileData?.institutionId,
+    });
+    setCurrentUser({ user: runtimeUserFromProfile(profile), profile });
   };
 
   const logout = async () => {
     await fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
+    await logoutUser().catch(() => {});
     clearServerToken();
     setCurrentUser({ user: null, profile: null });
     toast({ title: "Logged out", description: "You have been successfully logged out." });
   };
 
   const resetUserPassword = async (email: string) => {
-    const res = await fetch("/api/auth/password/forgot", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ email }),
-    });
-    if (!res.ok) throw await parseError(res, "Failed to send reset email");
+    await resetPassword(email);
     toast({
       title: "Password reset email sent",
       description: "Check your email for reset instructions.",

@@ -1,0 +1,34 @@
+# Exclude Git and other tool files
+.gcloudignore
+.git/
+.gitignore
+.gitmessage
+
+# Exclude local environment and scratch secrets
+.env
+.env.*
+temp_*.txt
+
+# Exclude local caches and IDEs
+.gemini/
+.kiro/
+.vscode/
+.agent/
+.agents/
+.claude/
+node_modules/
+dist/
+tmp/
+*.log
+*.tar.gz
+
+# Exclude large development/infra folders only at the root level (relative to root)
+/features/
+/mobile/
+/terraform/
+/terraform-gcp/
+/docs/
+/e2e/
+/scratch/
+/assets/
+/k8s/

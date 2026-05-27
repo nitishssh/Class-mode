@@ -33,3 +33,8 @@ output "vpc_connector_id" {
   description = "VPC Access connector ID"
   value       = google_vpc_access_connector.connector.id
 }
+
+output "cloud_sql_connection_name" {
+  description = "Cloud SQL connection name for Cloud Run"
+  value       = google_sql_database_instance.postgres.connection_name
+}

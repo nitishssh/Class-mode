@@ -133,6 +133,7 @@ describe("User Registration Status", () => {
         uid: "fire-uid-1",
         email: "fire-teacher@test.com",
         name: "Fire Teacher",
+        email_verified: true,
       });
 
       (pgFindUserByAuthSubject as Mock).mockResolvedValue(null);

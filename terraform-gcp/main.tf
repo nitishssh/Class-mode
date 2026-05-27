@@ -5,6 +5,10 @@ terraform {
       source  = "hashicorp/google"
       version = "~> 7.32"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.7"
+    }
   }
 }
 
@@ -27,6 +31,7 @@ resource "google_project_service" "apis" {
     "iamcredentials.googleapis.com",
     "sts.googleapis.com",
     "cloudresourcemanager.googleapis.com",
+    "sqladmin.googleapis.com",
   ])
   service            = each.value
   disable_on_destroy = false
@@ -84,6 +89,56 @@ resource "google_redis_instance" "cache" {
   depends_on = [google_project_service.apis]
 }
 
+# ─── Cloud SQL PostgreSQL for auth, workspaces, roles, and sessions ───────────
+resource "random_password" "postgres_app_password" {
+  length  = 32
+  special = true
+}
+
+resource "google_sql_database_instance" "postgres" {
+  name             = var.cloud_sql_instance_name
+  region           = var.region
+  database_version = "POSTGRES_16"
+
+  settings {
+    tier              = var.cloud_sql_tier
+    availability_type = "REGIONAL"
+    disk_type         = "PD_SSD"
+    disk_size         = 20
+    disk_autoresize   = true
+
+    backup_configuration {
+      enabled                        = true
+      point_in_time_recovery_enabled = true
+      start_time                     = "03:00"
+    }
+
+    ip_configuration {
+      ipv4_enabled = false
+    }
+
+    maintenance_window {
+      day          = 7
+      hour         = 3
+      update_track = "stable"
+    }
+  }
+
+  deletion_protection = true
+  depends_on          = [google_project_service.apis]
+}
+
+resource "google_sql_database" "app" {
+  name     = var.postgres_database_name
+  instance = google_sql_database_instance.postgres.name
+}
+
+resource "google_sql_user" "app" {
+  name     = var.postgres_user_name
+  instance = google_sql_database_instance.postgres.name
+  password = random_password.postgres_app_password.result
+}
+
 # ─── Dedicated Service Account ────────────────────────────────────────────────
 resource "google_service_account" "cloud_run_sa" {
   account_id   = "${var.service_name}-sa"
@@ -113,6 +168,7 @@ resource "google_artifact_registry_repository" "repo" {
 resource "google_secret_manager_secret" "app_secrets" {
   for_each = toset([
     "MONGODB_URL",
+    "POSTGRESQL_URL",
     "GOOGLE_API_KEY",
     "FIREBASE_SERVICE_ACCOUNT_JSON",
     "SESSION_SECRET",
@@ -124,6 +180,7 @@ resource "google_secret_manager_secret" "app_secrets" {
     "SMTP_HOST",
     "SMTP_USER",
     "SMTP_PASS",
+    "SMTP_FROM",
     "BRIDGE_SECRET",
   ])
 
@@ -138,6 +195,22 @@ resource "google_secret_manager_secret" "app_secrets" {
   }
 
   depends_on = [google_project_service.apis]
+}
+
+resource "google_secret_manager_secret_version" "postgresql_url" {
+  secret = google_secret_manager_secret.app_secrets["POSTGRESQL_URL"].id
+  secret_data = format(
+    "postgresql://%s:%s@localhost/%s?host=/cloudsql/%s",
+    var.postgres_user_name,
+    urlencode(random_password.postgres_app_password.result),
+    var.postgres_database_name,
+    google_sql_database_instance.postgres.connection_name
+  )
+
+  depends_on = [
+    google_sql_database.app,
+    google_sql_user.app,
+  ]
 }
 
 # ─── IAM: Cloud Run SA → Secret Manager ──────────────────────────────────────
@@ -200,6 +273,12 @@ resource "google_project_iam_member" "cloud_run_deployer" {
 resource "google_project_iam_member" "ar_writer" {
   project = var.project_id
   role    = "roles/artifactregistry.writer"
+  member  = "serviceAccount:${google_service_account.cloud_run_sa.email}"
+}
+
+resource "google_project_iam_member" "cloud_sql_client" {
+  project = var.project_id
+  role    = "roles/cloudsql.client"
   member  = "serviceAccount:${google_service_account.cloud_run_sa.email}"
 }
 
@@ -288,8 +367,20 @@ resource "google_cloud_run_v2_service" "default" {
 
     max_instance_request_concurrency = 80
 
+    volumes {
+      name = "cloudsql"
+      cloud_sql_instance {
+        instances = [google_sql_database_instance.postgres.connection_name]
+      }
+    }
+
     containers {
       image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.repository_name}/${var.service_name}:latest"
+
+      volume_mounts {
+        name       = "cloudsql"
+        mount_path = "/cloudsql"
+      }
 
       ports {
         container_port = 5001
@@ -360,6 +451,14 @@ resource "google_cloud_run_v2_service" "default" {
         value = "true"
       }
       env {
+        name  = "GOOGLE_CLOUD_PROJECT"
+        value = var.project_id
+      }
+      env {
+        name  = "ENABLE_FIREBASE_AUTH_COMPAT"
+        value = "true"
+      }
+      env {
         name  = "REDIS_HOST"
         value = google_redis_instance.cache.host
       }
@@ -377,8 +476,10 @@ resource "google_cloud_run_v2_service" "default" {
 
   depends_on = [
     google_vpc_access_connector.connector,
+    google_sql_database_instance.postgres,
     google_redis_instance.cache,
     google_secret_manager_secret_iam_member.secret_access,
+    google_project_iam_member.cloud_sql_client,
   ]
 }
 

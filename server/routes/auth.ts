@@ -19,7 +19,7 @@ import { verifyFirebaseToken, setCustomUserClaims } from "../lib/firebase-admin"
 import { logger } from "../lib/logger";
 import { recordAuditEvent, AUDIT_EVENTS } from "../lib/audit";
 import { storage } from "../storage";
-import { getPgPool } from "../db-pg";
+import { getPgPool, isPgReady } from "../db-pg";
 import {
   pgAcceptWorkspaceInvite,
   pgCreateUser,
@@ -34,8 +34,12 @@ import {
   pgSetUserLastLogin,
   pgUpdateUser,
   pgUpsertWorkspaceMembership,
+  type PgUser,
+  type PgWorkspace,
+  type PgWorkspaceMembership,
 } from "../lib/pg-queries";
 import { sendEmailVerification, sendPasswordReset, sendWelcomeEmail } from "../lib/mailer";
+import { normalizeSelfRegisterableRole } from "../../shared/authz";
 
 const router = Router();
 
@@ -115,10 +119,135 @@ if (!process.env.JWT_SECRET) {
 }
 const JWT_SECRET = process.env.JWT_SECRET;
 
+function isLocalPasswordAuthEnabled(): boolean {
+  return process.env.ENABLE_LOCAL_PASSWORD_AUTH === "true" || process.env.NODE_ENV !== "production";
+}
+
 type AccessPayload = { userId: number; sessionId?: number };
+
+type DevSession = {
+  id: number;
+  userId: number;
+  refreshTokenHash: string;
+  expiresAt: Date;
+};
+
+const devUsersByEmail = new Map<string, PgUser>();
+const devUsersById = new Map<number, PgUser>();
+const devWorkspacesByUserId = new Map<
+  number,
+  { workspace: PgWorkspace; membership: PgWorkspaceMembership }
+>();
+const devSessionsByRefreshHash = new Map<string, DevSession>();
+let nextDevUserId = 900_000;
+let nextDevWorkspaceId = 900_000;
+let nextDevSessionId = 900_000;
+
+function isDevAuthWithoutDbEnabled(): boolean {
+  return (
+    process.env.NODE_ENV !== "production" &&
+    process.env.ENABLE_DEV_AUTH_WITHOUT_DB === "true" &&
+    !isPgReady()
+  );
+}
+
+function createDevUser(data: {
+  email: string;
+  passwordHash: string;
+  name: string;
+  workspaceName: string;
+}): PgUser {
+  const id = nextDevUserId++;
+  const now = new Date();
+  const user: PgUser = {
+    id,
+    authProvider: "local-dev",
+    authSubject: data.email,
+    email: data.email,
+    username: `${data.email.split("@")[0]}_${Date.now()}`,
+    password: data.passwordHash,
+    name: data.name,
+    displayName: data.name,
+    avatar: null,
+    emailVerified: true,
+    role: "admin",
+    status: "active",
+    schoolCode: null,
+    schoolId: null,
+    parentId: null,
+    grade: null,
+    board: null,
+    subjects: [],
+    district: null,
+    class: null,
+    subject: null,
+    onboardingComplete: false,
+    studyPlan: {},
+    createdAt: now,
+    lastLoginAt: null,
+    firebaseUid: data.email,
+  };
+
+  const workspace: PgWorkspace = {
+    id: nextDevWorkspaceId++,
+    name: data.workspaceName,
+    slug: slugifyWorkspaceName(data.workspaceName),
+    type: "business",
+    description: null,
+    ownerId: id,
+    members: [id],
+    createdAt: now,
+  };
+  const membership: PgWorkspaceMembership = {
+    id: nextDevWorkspaceId++,
+    workspaceId: workspace.id,
+    userId: id,
+    role: "owner",
+    status: "active",
+    createdAt: now,
+  };
+
+  devUsersByEmail.set(data.email, user);
+  devUsersById.set(id, user);
+  devWorkspacesByUserId.set(id, { workspace, membership });
+  return user;
+}
+
+function devAuthPayload(user: PgUser) {
+  const workspaceContext = devWorkspacesByUserId.get(user.id);
+  return authMePayload({
+    user,
+    workspace: workspaceContext?.workspace ?? null,
+    membership: workspaceContext?.membership ?? null,
+  });
+}
 
 function issueAccessToken(payload: AccessPayload): string {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: "15m" });
+}
+
+async function createDevLoginSession(req: Request, res: Response, user: PgUser) {
+  const refreshToken = randomToken();
+  const session: DevSession = {
+    id: nextDevSessionId++,
+    userId: user.id,
+    refreshTokenHash: tokenHash(refreshToken),
+    expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
+  };
+  devSessionsByRefreshHash.set(session.refreshTokenHash, session);
+
+  await new Promise<void>((resolve, reject) => {
+    req.session.regenerate((err) => (err ? reject(err) : resolve()));
+  });
+
+  req.session.userId = user.id;
+  req.session.role = user.role;
+  req.session.firebaseUid = user.firebaseUid || user.authSubject;
+
+  const accessToken = issueAccessToken({ userId: user.id, sessionId: session.id });
+  res.cookie(ACCESS_COOKIE, accessToken, ACCESS_COOKIE_OPTS);
+  res.cookie(REFRESH_COOKIE, refreshToken, REFRESH_COOKIE_OPTS);
+  return { accessToken, refreshToken, sessionId: session.id };
 }
 
 async function createLoginSession(req: Request, res: Response, userId: number) {
@@ -209,11 +338,31 @@ const signupSchema = z.object({
 });
 
 router.post("/signup", signupLimiter, async (req: Request, res: Response) => {
+  if (!isLocalPasswordAuthEnabled()) {
+    return res.status(410).json({
+      message: "Password signup is disabled. Use Firebase Authentication.",
+    });
+  }
+
   const parsed = signupSchema.safeParse(req.body);
   if (!parsed.success)
     return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
 
   const email = parsed.data.email.toLowerCase().trim();
+  if (isDevAuthWithoutDbEnabled()) {
+    if (devUsersByEmail.has(email)) {
+      return res.status(409).json({ message: "An account with this email already exists" });
+    }
+    const user = createDevUser({
+      email,
+      passwordHash: await bcrypt.hash(parsed.data.password, 12),
+      name: parsed.data.name,
+      workspaceName: parsed.data.workspaceName,
+    });
+    const tokens = await createDevLoginSession(req, res, user);
+    return res.status(201).json({ token: tokens.accessToken, ...devAuthPayload(user) });
+  }
+
   if (await pgFindUserByEmail(email)) {
     return res.status(409).json({ message: "An account with this email already exists" });
   }
@@ -289,10 +438,27 @@ router.post("/signup", signupLimiter, async (req: Request, res: Response) => {
 const loginSchema = z.object({ email: z.string().email(), password: z.string().min(1) });
 
 router.post("/login", loginLimiter, async (req: Request, res: Response) => {
+  if (!isLocalPasswordAuthEnabled()) {
+    return res.status(410).json({
+      message: "Password login is disabled. Use Firebase Authentication.",
+    });
+  }
+
   try {
     const parsed = loginSchema.safeParse(req.body);
     if (!parsed.success)
       return res.status(400).json({ message: "Email and password are required" });
+
+    if (isDevAuthWithoutDbEnabled()) {
+      const email = parsed.data.email.toLowerCase().trim();
+      const user = devUsersByEmail.get(email);
+      if (!user || !(await bcrypt.compare(parsed.data.password, user.password || ""))) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+      user.lastLoginAt = new Date();
+      const tokens = await createDevLoginSession(req, res, user);
+      return res.status(200).json({ token: tokens.accessToken, ...devAuthPayload(user) });
+    }
 
     const user = await pgFindUserByEmail(parsed.data.email);
     if (!user || !(await bcrypt.compare(parsed.data.password, user.password || ""))) {
@@ -344,6 +510,23 @@ router.post("/refresh", async (req: Request, res: Response) => {
     const refreshToken = req.cookies?.refresh_token;
     if (!refreshToken) return res.status(401).json({ message: "Refresh token required" });
 
+    if (isDevAuthWithoutDbEnabled()) {
+      const refreshHash = tokenHash(refreshToken);
+      const session = devSessionsByRefreshHash.get(refreshHash);
+      devSessionsByRefreshHash.delete(refreshHash);
+      if (!session || session.expiresAt < new Date()) {
+        clearAuthCookies(req, res);
+        return res.status(401).json({ message: "Invalid refresh token" });
+      }
+      const user = devUsersById.get(session.userId);
+      if (!user || ["suspended", "rejected"].includes(user.status)) {
+        clearAuthCookies(req, res);
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      const tokens = await createDevLoginSession(req, res, user);
+      return res.status(200).json({ token: tokens.accessToken });
+    }
+
     // Atomic rotation: DELETE ... RETURNING ensures only one of N concurrent
     // refreshes with the same token wins. The losers get undefined and fail.
     const session = await storage.consumeSessionByRefreshToken(tokenHash(refreshToken));
@@ -371,6 +554,13 @@ router.get("/me", async (req: Request, res: Response) => {
     const token = req.cookies?.access_token || req.headers.authorization?.split(" ")[1];
     if (!token) return res.status(401).json({ message: "Not authenticated" });
     const payload = jwt.verify(token, JWT_SECRET) as AccessPayload;
+    if (isDevAuthWithoutDbEnabled()) {
+      const user = devUsersById.get(payload.userId);
+      if (!user || ["suspended", "rejected"].includes(user.status)) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      return res.status(200).json(devAuthPayload(user));
+    }
     const me = await currentAuthPayload(payload.userId);
     if (!me || ["suspended", "rejected"].includes(me.user.status)) {
       return res.status(401).json({ message: "Not authenticated" });
@@ -383,6 +573,11 @@ router.get("/me", async (req: Request, res: Response) => {
 
 router.post("/logout", async (req: Request, res: Response) => {
   const refreshToken = req.cookies?.refresh_token;
+  if (isDevAuthWithoutDbEnabled()) {
+    if (refreshToken) devSessionsByRefreshHash.delete(tokenHash(refreshToken));
+    clearAuthCookies(req, res);
+    return res.status(200).json({ message: "Logged out" });
+  }
   if (refreshToken) {
     const session = await storage.getSessionByRefreshToken(tokenHash(refreshToken));
     if (session) await storage.deleteSession(session.id);
@@ -469,6 +664,12 @@ router.post("/email/verify", verifyLimiter, async (req: Request, res: Response) 
 });
 
 router.post("/password/forgot", forgotLimiter, async (req: Request, res: Response) => {
+  if (!isLocalPasswordAuthEnabled()) {
+    return res.status(410).json({
+      message: "Password reset is disabled. Use Firebase Authentication.",
+    });
+  }
+
   const parsed = z.object({ email: z.string().email() }).safeParse(req.body);
   if (!parsed.success)
     return res.status(200).json({ message: "If the account exists, reset instructions were sent" });
@@ -492,6 +693,12 @@ router.post("/password/forgot", forgotLimiter, async (req: Request, res: Respons
 });
 
 router.post("/password/reset", resetLimiter, async (req: Request, res: Response) => {
+  if (!isLocalPasswordAuthEnabled()) {
+    return res.status(410).json({
+      message: "Password reset is disabled. Use Firebase Authentication.",
+    });
+  }
+
   const parsed = z
     .object({ token: z.string().min(10), password: passwordSchema })
     .safeParse(req.body);
@@ -597,32 +804,70 @@ router.post("/register", (_req: Request, res: Response) => {
 });
 
 router.post("/firebase", async (req: Request, res: Response) => {
-  if (process.env.ENABLE_FIREBASE_AUTH_COMPAT !== "true") {
+  if (process.env.ENABLE_FIREBASE_AUTH_COMPAT === "false") {
     return res.status(410).json({ message: "Firebase auth compatibility is disabled" });
   }
-  const { idToken, role } = req.body as { idToken?: string; role?: string };
+  const { idToken, role, workspaceName } = req.body as {
+    idToken?: string;
+    role?: string;
+    workspaceName?: string;
+  };
   if (!idToken) return res.status(400).json({ message: "idToken is required" });
   const decoded = await verifyFirebaseToken(idToken);
   if (!decoded?.email)
     return res.status(401).json({ message: "Invalid or expired Firebase ID token" });
+
+  const email = decoded.email.toLowerCase().trim();
   let user =
     (await pgFindUserByAuthSubject("firebase", decoded.uid)) ||
-    (await pgFindUserByEmail(decoded.email.toLowerCase()));
+    (await pgFindUserByEmail(email));
   if (!user) {
-    const userRole = role === "teacher" ? "teacher" : "student";
+    const requestedWorkspaceName =
+      typeof workspaceName === "string" && workspaceName.trim().length >= 2
+        ? workspaceName.trim()
+        : null;
+    const userRole = requestedWorkspaceName ? "admin" : normalizeSelfRegisterableRole(role);
+    const userStatus = userRole === "teacher" ? "pending" : "active";
     user = await pgCreateUser({
       authProvider: "firebase",
       authSubject: decoded.uid,
-      email: decoded.email.toLowerCase(),
-      username: `${decoded.email.split("@")[0]}_${Date.now()}`,
+      email,
+      username: `${email.split("@")[0]}_${Date.now()}`,
       passwordHash: `firebase_managed_${decoded.uid}`,
-      name: decoded.name || decoded.email.split("@")[0],
+      name: decoded.name || email.split("@")[0],
       displayName: decoded.name || null,
       avatar: decoded.picture || null,
       role: userRole,
-      status: userRole === "teacher" ? "pending" : "active",
+      status: userStatus,
       emailVerified: !!decoded.email_verified,
     });
+
+    if (requestedWorkspaceName) {
+      const workspace = await pgCreateWorkspace({
+        name: requestedWorkspaceName,
+        slug: await makeUniqueSlug(requestedWorkspaceName),
+        type: "business",
+        ownerId: user.id,
+      });
+      await pgUpsertWorkspaceMembership({
+        workspaceId: workspace.id,
+        userId: user.id,
+        role: "owner",
+      });
+      recordAuditEvent({
+        actorUserId: user.id,
+        targetUserId: user.id,
+        eventType: AUDIT_EVENTS.USER_REGISTERED,
+        payload: { provider: "firebase", workspaceId: workspace.id, workspaceRole: "owner" },
+      });
+    }
+
+    if (!decoded.email_verified) {
+      const verifyToken = await createVerificationToken(user.id);
+      sendEmailVerification(user.email, user.displayName || user.name, verifyToken).catch((e) =>
+        logger.warn("[auth/firebase] Failed to send verification email", { error: String(e) })
+      );
+    }
     sendWelcomeEmail(user.email, user.displayName || user.name).catch((e) =>
       logger.warn("[auth/firebase] Failed to send welcome email", { error: String(e) })
     );

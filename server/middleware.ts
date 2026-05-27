@@ -1,13 +1,22 @@
 import { type Request, type Response, type NextFunction } from "express";
 import { isPgReady } from "./db-pg";
 
+function isDevAuthWithoutDbEnabled(req: Request): boolean {
+  return (
+    process.env.NODE_ENV !== "production" &&
+    process.env.ENABLE_DEV_AUTH_WITHOUT_DB === "true" &&
+    req.path.startsWith("/auth/")
+  );
+}
+
 // ── DB health guard ───────────────────────────────────────────────────────────
 export function requireDb(req: Request, res: Response, next: NextFunction) {
   // Allow health / diagnostic endpoints through even when DB is down
   if (
     req.path === "/health" ||
     req.path.startsWith("/health/") ||
-    req.path === "/ai-classroom/health"
+    req.path === "/ai-classroom/health" ||
+    isDevAuthWithoutDbEnabled(req)
   ) {
     return next();
   }

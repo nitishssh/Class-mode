@@ -69,3 +69,27 @@ variable "alert_email" {
   type        = string
   default     = "alerts@inmodel.in"
 }
+
+variable "cloud_sql_instance_name" {
+  description = "Cloud SQL PostgreSQL instance name"
+  type        = string
+  default     = "plp-pg"
+}
+
+variable "cloud_sql_tier" {
+  description = "Cloud SQL machine tier"
+  type        = string
+  default     = "db-custom-1-3840"
+}
+
+variable "postgres_database_name" {
+  description = "Application PostgreSQL database name"
+  type        = string
+  default     = "eduai"
+}
+
+variable "postgres_user_name" {
+  description = "Application PostgreSQL user name"
+  type        = string
+  default     = "plpapp"
+}

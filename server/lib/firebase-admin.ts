@@ -24,7 +24,10 @@ function ensureInitialised() {
   }
 
   const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID;
+  const projectId =
+    process.env.FIREBASE_PROJECT_ID ||
+    process.env.VITE_FIREBASE_PROJECT_ID ||
+    process.env.GOOGLE_CLOUD_PROJECT;
 
   if (!projectId) {
     console.warn(
@@ -34,8 +37,19 @@ function ensureInitialised() {
   }
 
   try {
+    let serviceAccount: any = null;
     if (serviceAccountJson) {
-      const serviceAccount = JSON.parse(serviceAccountJson);
+      try {
+        const parsed = JSON.parse(serviceAccountJson);
+        if (parsed && typeof parsed.private_key === "string") {
+          serviceAccount = parsed;
+        }
+      } catch (e) {
+        console.warn("[firebase-admin] Failed to parse service account JSON:", String(e));
+      }
+    }
+
+    if (serviceAccount) {
       initializeApp({
         credential: cert(serviceAccount),
         projectId,
@@ -43,10 +57,7 @@ function ensureInitialised() {
       console.log("[firebase-admin] Initialised with service account, project:", projectId);
     } else {
       initializeApp({ projectId });
-      console.log("[firebase-admin] Initialised (no service account) project:", projectId);
-      console.warn(
-        "[firebase-admin] To enable Firebase token verification, set FIREBASE_SERVICE_ACCOUNT_JSON."
-      );
+      console.log("[firebase-admin] Initialised (no service account / ADC fallback) project:", projectId);
     }
     initialised = true;
   } catch (err) {
@@ -70,8 +81,7 @@ export async function verifyFirebaseToken(idToken: string): Promise<DecodedIdTok
 
 export function checkFirebaseAdminReadiness(): void {
   ensureInitialised();
-  const hasApp = getApps().length > 0;
-  const hasServiceAccount = !!process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  const { hasApp, hasServiceAccount } = getFirebaseAdminStatus();
 
   if (!hasApp) {
     console.error(
@@ -84,6 +94,28 @@ export function checkFirebaseAdminReadiness(): void {
   } else {
     console.log("[firebase-admin] READY — Service account configured, token verification enabled.");
   }
+}
+
+export function getFirebaseAdminStatus() {
+  ensureInitialised();
+  return {
+    hasApp: getApps().length > 0,
+    hasServiceAccount: (() => {
+      try {
+        return !!(
+          process.env.FIREBASE_SERVICE_ACCOUNT_JSON &&
+          JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON).private_key
+        );
+      } catch {
+        return false;
+      }
+    })(),
+    projectId:
+      process.env.FIREBASE_PROJECT_ID ||
+      process.env.VITE_FIREBASE_PROJECT_ID ||
+      process.env.GOOGLE_CLOUD_PROJECT ||
+      null,
+  };
 }
 
 export async function setCustomUserClaims(

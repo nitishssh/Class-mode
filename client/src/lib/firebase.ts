@@ -7,6 +7,7 @@ import {
   signInWithPopup,
   signOut,
   sendPasswordResetEmail,
+  sendEmailVerification,
   updateProfile,
   User,
 } from "firebase/auth";
@@ -137,6 +138,7 @@ export const registerWithEmail = async (
 
     // Update profile with display name
     await updateProfile(user, { displayName });
+    sendEmailVerification(user).catch(() => {});
 
     // Create user document in Firestore
     const userData: UserProfile = {

@@ -16,6 +16,7 @@ import { setupChatWebSocket } from "./chat-ws";
 import { setupMessagePalWebSocket } from "./message";
 import { initCassandra } from "./lib/cassandra";
 import { checkFirebaseAdminReadiness } from "./lib/firebase-admin";
+import { requireDb } from "./middleware";
 
 // Fix SRV resolution errors by forcing Google DNS globally
 try {
@@ -125,13 +126,22 @@ app.use(
 );
 
 // ── Rate limiting ─────────────────────────────────────────────────────────────
+// Database outages should return 503 before auth rate limiting consumes attempts.
+app.use("/api", requireDb);
+
 app.use(
   "/api/ai",
   rateLimit({ windowMs: 60_000, max: 20, message: { error: "Too many requests, slow down" } })
 );
 app.use(
   "/api/auth",
-  rateLimit({ windowMs: 60_000, max: 10, message: { error: "Too many auth attempts" } })
+  rateLimit({
+    windowMs: 60_000,
+    max: 10,
+    message: { error: "Too many auth attempts" },
+    skip: () =>
+      process.env.NODE_ENV !== "production" && process.env.ENABLE_DEV_AUTH_WITHOUT_DB === "true",
+  })
 );
 
 // Serve uploaded files
@@ -179,13 +189,10 @@ app.use(
 );
 
 // ── DB health guard ───────────────────────────────────────────────────────────
-import { requireDb } from "./middleware";
-app.use("/api", requireDb);
-
 (async () => {
   // Initialize Database
   await connectPostgres();
-  initCassandra();
+  await initCassandra();
 
   const server = await registerRoutes(app);
 

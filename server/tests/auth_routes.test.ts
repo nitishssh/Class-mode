@@ -8,6 +8,7 @@ import {
   pgCreateUser,
   pgCreateWorkspace,
   pgFindFirstWorkspaceMembership,
+  pgFindUserByAuthSubject,
   pgFindUserByEmail,
   pgFindUserById,
   pgFindWorkspaceBySlug,
@@ -15,6 +16,7 @@ import {
   pgUpsertWorkspaceMembership,
 } from "../lib/pg-queries";
 import { storage } from "../storage";
+import { verifyFirebaseToken } from "../lib/firebase-admin";
 
 vi.mock("../lib/mailer", () => ({
   sendEmailVerification: vi.fn().mockResolvedValue(undefined),
@@ -26,6 +28,7 @@ vi.mock("../lib/audit", () => ({
   AUDIT_EVENTS: {
     USER_REGISTERED: "user_registered",
     USER_LOGIN: "user_login",
+    USER_LOGIN_FAILED: "user_login_failed",
     INVITE_ACCEPTED: "invite_accepted",
   },
   recordAuditEvent: vi.fn(),
@@ -175,8 +178,60 @@ describe("custom auth routes", () => {
     expect(res.status).toBe(401);
   });
 
-  it("disables Firebase exchange unless compatibility is enabled", async () => {
+  it("disables Firebase exchange only when explicitly configured off", async () => {
+    process.env.ENABLE_FIREBASE_AUTH_COMPAT = "false";
     const res = await request(app).post("/api/auth/firebase").send({ idToken: "token" });
     expect(res.status).toBe(410);
+    delete process.env.ENABLE_FIREBASE_AUTH_COMPAT;
+  });
+
+  it("exchanges a Firebase token and creates a workspace owner when workspaceName is provided", async () => {
+    const user = {
+      id: 3,
+      email: "owner-firebase@example.com",
+      authProvider: "firebase",
+      authSubject: "firebase-owner-uid",
+      name: "Firebase Owner",
+      displayName: "Firebase Owner",
+      role: "admin",
+      status: "active",
+      emailVerified: true,
+      subjects: [],
+    };
+    (verifyFirebaseToken as any).mockResolvedValue({
+      uid: "firebase-owner-uid",
+      email: "owner-firebase@example.com",
+      name: "Firebase Owner",
+      email_verified: true,
+    });
+    (pgFindUserByAuthSubject as any).mockResolvedValue(null);
+    (pgFindUserByEmail as any).mockResolvedValue(null);
+    (pgCreateUser as any).mockResolvedValue(user);
+    (pgFindWorkspaceBySlug as any).mockResolvedValue(null);
+    (pgCreateWorkspace as any).mockResolvedValue({
+      id: 20,
+      name: "Firebase School",
+      slug: "firebase-school",
+      type: "business",
+    });
+    (pgUpsertWorkspaceMembership as any).mockResolvedValue({ id: 15 });
+    (pgFindUserById as any).mockResolvedValue(user);
+
+    const res = await request(app).post("/api/auth/firebase").send({
+      idToken: "firebase-token",
+      workspaceName: "Firebase School",
+    });
+
+    expect(res.status).toBe(200);
+    expect(pgCreateUser).toHaveBeenCalledWith(expect.objectContaining({ role: "admin" }));
+    expect(pgCreateWorkspace).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Firebase School", ownerId: 3 })
+    );
+    expect(pgUpsertWorkspaceMembership).toHaveBeenCalledWith({
+      workspaceId: 20,
+      userId: 3,
+      role: "owner",
+    });
+    expect(res.body.user.email).toBe("owner-firebase@example.com");
   });
 });
