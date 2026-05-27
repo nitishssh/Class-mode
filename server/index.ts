@@ -41,10 +41,10 @@ app.use(cookieParser());
 
 // ── Redirect to Canonical Domain ──────────────────────────────────────────────
 app.use((req: Request, res: Response, next: NextFunction) => {
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NODE_ENV === "production" && process.env.CANONICAL_DOMAIN) {
     const host = req.headers.host;
-    if (host && host !== "classmode.inmodel.in") {
-      return res.redirect(301, `https://classmode.inmodel.in${req.originalUrl}`);
+    if (host && host !== process.env.CANONICAL_DOMAIN) {
+      return res.redirect(301, `https://${process.env.CANONICAL_DOMAIN}${req.originalUrl}`);
     }
   }
   next();
