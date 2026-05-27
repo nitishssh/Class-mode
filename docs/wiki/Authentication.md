@@ -8,10 +8,10 @@
 
 ## Test Status
 
-*   The authentication flow is well-tested. Files like `auth.test.ts`, `auth_routes.test.ts`, `auth_security.test.ts`, and `teacher_registration.test.ts` are all passing.
+*   The authentication flow is well-tested. Files like `auth.test.ts`, `auth_routes.test.ts`, and `auth_security.test.ts` are all passing.
 *   Test coverage checks successful signup, invitation acceptance, password hashing, and role logic.
 
 ## Simplification Recommendations
 
-*   **Consolidate Auth Routes:** The `server/routes/auth.ts`, `server/routes/onboarding.ts`, and `server/routes/teacher_registration.ts` have overlapping logic. Consider a unified `POST /api/users` endpoint that accepts a `role` and handles the specific side-effects (like creating a workspace or linking a parent) via strategy patterns or simple switch statements instead of separate routing files.
-*   **Role Logic:** The `role_logic.ts` is a good abstraction, but ensure it doesn't get overly fragmented. Keep authorization middleware simple (`requireRole(['admin', 'teacher'])`).
+*   **Consolidate Auth Routes:** The `server/routes/auth.ts` and `server/routes/onboarding.ts` have overlapping logic (teacher invites and acceptance live inside `onboarding.ts` as `/invite/teacher` and `/invite/accept`). Consider a unified `POST /api/users` endpoint that accepts a `role` and handles the specific side-effects (like creating a workspace or linking a parent) via strategy patterns or simple switch statements instead of separate routing files.
+*   **Role Logic:** The authorization middleware is defined in `server/middleware.ts` (imported as `requireRole`). Keep it simple (e.g., `requireRole(['admin', 'teacher'])`) rather than splitting role decisions across many files.
