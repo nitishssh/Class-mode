@@ -1,9 +1,13 @@
 import pg from 'pg';
 const { Pool } = pg;
-const pool = new Pool({
-  connectionString: 'postgresql://postgres:postgres@localhost:5432/eduai',
-  connectionTimeoutMillis: 5000
-});
+
+const connectionString = process.env.POSTGRESQL_URL;
+if (!connectionString) {
+  console.error('❌ POSTGRESQL_URL environment variable is not set.');
+  process.exit(1);
+}
+
+const pool = new Pool({ connectionString, connectionTimeoutMillis: 5000 });
 
 try {
   await pool.query(`
