@@ -49,6 +49,8 @@ export async function connectPostgres(): Promise<void> {
       max: parseInt(process.env.PG_MAX_POOL || "10", 10),
       idleTimeoutMillis: parseInt(process.env.PG_IDLE_TIMEOUT_MS || "30000", 10),
       connectionTimeoutMillis: parseInt(process.env.PG_CONNECTION_TIMEOUT_MS || "5000", 10),
+      statement_timeout: 10000,
+      query_timeout: 10000,
     });
 
     pool.on("error", (err) => {

@@ -54,7 +54,7 @@ export default function InviteStudents() {
           studentName,
           parentEmail,
           grade,
-          classId: cls._id,
+          classId: cls.id,
         });
         sent++;
       } catch (err) {
@@ -66,7 +66,7 @@ export default function InviteStudents() {
     if (csvRef.current) csvRef.current.value = "";
   };
 
-  const selectedClass = (classes as any[]).find((c: any) => c._id === form.classId);
+  const selectedClass = (classes as any[]).find((c: any) => c.id === form.classId);
   const canSend = form.studentName && form.parentEmail && form.grade && form.classId;
 
   return (
@@ -82,10 +82,10 @@ export default function InviteStudents() {
       <div className="flex flex-wrap gap-2">
         {(classes as any[]).map((cls: any) => (
           <button
-            key={cls._id}
+            key={cls.id}
             type="button"
-            onClick={() => setForm((f) => ({ ...f, classId: cls._id, grade: cls.grade }))}
-            className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${form.classId === cls._id ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-muted"}`}
+            onClick={() => setForm((f) => ({ ...f, classId: cls.id, grade: cls.grade }))}
+            className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${form.classId === cls.id ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-muted"}`}
           >
             {cls.name}
           </button>
@@ -139,7 +139,7 @@ export default function InviteStudents() {
           </h2>
           {(invites as any[]).map((inv: any) => (
             <div
-              key={inv._id}
+              key={inv.id}
               className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3"
             >
               <div>
@@ -154,7 +154,7 @@ export default function InviteStudents() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => resendMutation.mutate(inv._id)}
+                    onClick={() => resendMutation.mutate(inv.id)}
                   >
                     Resend
                   </Button>

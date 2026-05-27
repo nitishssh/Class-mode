@@ -107,7 +107,7 @@ export default function InviteTeachers() {
             </h2>
             {invites.map((inv: any) => (
               <div
-                key={inv._id}
+                key={inv.id}
                 className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3"
               >
                 <div>
@@ -122,7 +122,7 @@ export default function InviteTeachers() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => resendMutation.mutate(inv._id)}
+                      onClick={() => resendMutation.mutate(inv.id)}
                     >
                       Resend
                     </Button>

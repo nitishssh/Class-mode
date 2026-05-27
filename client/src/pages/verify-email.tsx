@@ -5,6 +5,8 @@ import { Loader2, Mail, ShieldCheck, RefreshCw } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/lib/i18n";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import heroImg from "@/assets/hero-runway.png";
 
 export default function VerifyEmailPage() {
   const { t } = useTranslation();
@@ -215,26 +217,34 @@ export default function VerifyEmailPage() {
   const userEmail = currentUser.profile?.email || "your email";
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-gradient-to-br from-indigo-950 via-violet-900 to-purple-950 p-4">
-      {/* Animated ambient background glows */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-indigo-500/20 blur-3xl" />
-        <div className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-violet-500/20 blur-3xl" />
-        <div className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-500/10 blur-3xl" />
+    <div className="relative flex min-h-screen w-full items-center justify-center bg-background p-4 text-foreground selection:bg-primary/20 overflow-hidden">
+      {/* Background runway illustration to match the landing page perfectly */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <img
+          src={heroImg}
+          alt="Illustrated airport runway background"
+          className="h-full w-full object-cover opacity-20"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/80 to-background" />
+      </div>
+
+      {/* Theme toggle located at the top-right */}
+      <div className="absolute right-6 top-6 z-50">
+        <ThemeToggle />
       </div>
 
       <motion.div
-        className="relative w-full max-w-md"
+        className="relative z-10 w-full max-w-md"
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
       >
         {/* Card */}
-        <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-2xl">
-          {/* Top gradient band */}
-          <div className="h-1.5 w-full bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500" />
+        <div className="relative overflow-hidden sketch-border sketch-shadow-yellow bg-card px-8 pb-10 pt-8 text-card-foreground">
+          {/* Top accent bar matching primary theme color */}
+          <div className="absolute top-0 left-0 right-0 h-1.5 bg-primary" />
 
-          <div className="px-8 pb-10 pt-8">
+          <div>
             {/* Icon */}
             <motion.div
               className="mb-6 flex justify-center"
@@ -243,23 +253,23 @@ export default function VerifyEmailPage() {
               transition={{ delay: 0.2, type: "spring", stiffness: 200, damping: 15 }}
             >
               <div className="relative">
-                <div className="absolute inset-0 animate-ping rounded-full bg-indigo-500/30" />
-                <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/30">
-                  <Mail className="h-7 w-7 text-white" />
+                <div className="absolute inset-0 animate-ping rounded-full bg-primary/20" />
+                <div className="relative flex h-16 w-16 items-center justify-center rounded-full border-2 border-foreground bg-background shadow-[4px_4px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_hsl(var(--primary))] text-foreground">
+                  <Mail className="h-7 w-7" />
                 </div>
               </div>
             </motion.div>
 
             {/* Header */}
             <div className="mb-2 text-center">
-              <h1 className="text-2xl font-black tracking-tight text-white">
+              <h1 className="font-display text-3xl font-extrabold tracking-tight text-foreground">
                 {t("verify.title", "Verify Your Email")}
               </h1>
-              <p className="mt-3 text-sm leading-relaxed text-white/60">
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
                 {t("verify.dispatched", "We've dispatched a")}{" "}
-                <span className="font-semibold text-indigo-300">4-digit secure code</span> to
+                <span className="font-bold text-primary">4-digit secure code</span> to
               </p>
-              <p className="mt-1 truncate text-sm font-semibold text-white/80">
+              <p className="mt-1 truncate text-sm font-bold text-foreground">
                 {userEmail}
               </p>
             </div>
@@ -285,11 +295,10 @@ export default function VerifyEmailPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 + i * 0.07 }}
                   className={[
-                    "h-16 w-14 rounded-2xl border-2 bg-white/10 text-center text-2xl font-black text-white outline-none backdrop-blur-sm",
-                    "transition-all duration-150",
-                    "focus:border-indigo-400 focus:bg-indigo-500/20 focus:shadow-lg focus:shadow-indigo-500/20",
-                    digit ? "border-violet-400 bg-violet-500/20 shadow-md shadow-violet-500/20" : "border-white/20",
-                    error ? "border-red-400/70" : "",
+                    "h-16 w-14 rounded-2xl border-2 bg-background text-center text-2xl font-black text-foreground outline-none transition-all duration-150",
+                    "focus:border-primary focus:ring-2 focus:ring-primary/20",
+                    digit ? "border-primary shadow-[3px_3px_0px_hsl(var(--primary))]" : "border-border shadow-sm",
+                    error ? "border-destructive focus:border-destructive" : "",
                     "disabled:opacity-50",
                   ].join(" ")}
                 />
@@ -299,7 +308,7 @@ export default function VerifyEmailPage() {
             {/* Error message */}
             {error && (
               <motion.div
-                className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-center text-sm text-red-300"
+                className="mb-6 rounded-xl border-2 border-destructive bg-destructive/5 px-4 py-3 text-center text-sm font-semibold text-destructive"
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
               >
@@ -311,28 +320,28 @@ export default function VerifyEmailPage() {
             <button
               onClick={handleManualSubmit}
               disabled={otp.join("").length !== 4 || isVerifying}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-500 to-violet-600 py-4 text-sm font-bold text-white shadow-lg shadow-indigo-500/30 transition-all duration-150 hover:from-indigo-400 hover:to-violet-500 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+              className="sketch-border sketch-shadow-yellow hover-tilt flex w-full items-center justify-center gap-2 rounded-full bg-primary py-4 font-heading text-base font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {isVerifying ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
-                <ShieldCheck className="h-4 w-4" />
+                <ShieldCheck className="h-5 w-5" />
               )}
               {isVerifying ? "Verifying Access..." : "Verify & Enter"}
             </button>
 
             {/* Divider */}
             <div className="my-6 flex items-center gap-4">
-              <div className="h-px flex-1 bg-white/10" />
-              <span className="text-xs text-white/30">{t("verify.didNotReceive", "didn't receive it?")}</span>
-              <div className="h-px flex-1 bg-white/10" />
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-xs text-muted-foreground">{t("verify.didNotReceive", "didn't receive it?")}</span>
+              <div className="h-px flex-1 bg-border" />
             </div>
 
             {/* Resend */}
             <button
               onClick={handleResend}
               disabled={isResending || resendCooldown > 0}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 py-3 text-sm font-semibold text-white/70 transition-all duration-150 hover:border-white/20 hover:bg-white/10 hover:text-white active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+              className="sketch-border sketch-shadow hover-tilt flex w-full items-center justify-center gap-2 rounded-full bg-card py-3 font-heading text-sm font-semibold text-foreground hover:bg-muted/50 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <RefreshCw className={`h-4 w-4 ${isResending ? "animate-spin" : ""}`} />
               {resendCooldown > 0
@@ -343,10 +352,10 @@ export default function VerifyEmailPage() {
             </button>
 
             {/* Quote footer */}
-            <p className="mt-8 text-center text-xs italic text-white/30">
+            <p className="mt-8 text-center text-xs italic text-muted-foreground/60 font-body">
               "Education is not the filling of a pail, but the lighting of a fire."
             </p>
-            <p className="mt-1 text-center text-[10px] font-semibold tracking-widest text-white/20 uppercase">
+            <p className="mt-1 text-center text-[10px] font-semibold tracking-widest text-muted-foreground/40 uppercase font-sans">
               — William Butler Yeats
             </p>
           </div>

@@ -77,7 +77,7 @@ export default function TeacherClassSetup() {
             </h2>
             {classes.map((cls: any) => (
               <div
-                key={cls._id}
+                key={cls.id}
                 className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3"
               >
                 <div>

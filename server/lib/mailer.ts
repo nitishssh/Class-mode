@@ -1,15 +1,35 @@
 import nodemailer from "nodemailer";
+import { logger } from "./logger";
 
 const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: SMTP_PORT,
-  secure: SMTP_PORT === 465,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+const useRealSmtp = !!(process.env.SMTP_USER && process.env.SMTP_PASS);
+
+const transporter = useRealSmtp
+  ? nodemailer.createTransport({
+      host: process.env.SMTP_HOST || "smtp.gmail.com",
+      port: SMTP_PORT,
+      secure: SMTP_PORT === 465,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    })
+  : nodemailer.createTransport({
+      jsonTransport: true,
+    });
+
+if (!useRealSmtp) {
+  logger.warn("[mailer] SMTP credentials not provided. Falling back to log-only JSON transporter.");
+  const originalSendMail = transporter.sendMail.bind(transporter);
+  transporter.sendMail = async function (mailOptions: any, callback?: any) {
+    logger.info(`[mailer] Mock Email Dispatched:`, {
+      to: mailOptions.to,
+      subject: mailOptions.subject,
+      text: mailOptions.text,
+    });
+    return originalSendMail(mailOptions, callback);
+  } as any;
+}
 
 const APP_URL = process.env.APP_URL || "http://localhost:5001";
 const FROM = process.env.SMTP_FROM || "Class Mode Platform <no-reply@classmode.com>";
