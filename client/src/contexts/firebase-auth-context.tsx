@@ -168,6 +168,7 @@ async function localPasswordSignup(args: {
 interface AuthServerConfig {
   localPasswordAuthEnabled: boolean;
   firebaseExchangeEnabled: boolean;
+  devAuthWithoutDb: boolean;
 }
 
 const DEFAULT_AUTH_CONFIG: AuthServerConfig = {
@@ -175,7 +176,24 @@ const DEFAULT_AUTH_CONFIG: AuthServerConfig = {
   // so we don't probe a disabled endpoint on every Firebase failure.
   localPasswordAuthEnabled: false,
   firebaseExchangeEnabled: true,
+  devAuthWithoutDb: false,
 };
+
+// Cap how long we wait on the Firebase SDK before falling through to the
+// local-password path. Firestore writes can hang indefinitely (no thrown
+// error) when the project is partially configured or unreachable, which
+// would otherwise leave the Create Account button spinning forever.
+const FIREBASE_AUTH_TIMEOUT_MS = 8000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+    promise.then(
+      (v) => { clearTimeout(t); resolve(v); },
+      (e) => { clearTimeout(t); reject(e); }
+    );
+  });
+}
 
 async function fetchAuthConfig(): Promise<AuthServerConfig> {
   try {
@@ -185,6 +203,7 @@ async function fetchAuthConfig(): Promise<AuthServerConfig> {
     return {
       localPasswordAuthEnabled: !!data.localPasswordAuthEnabled,
       firebaseExchangeEnabled: data.firebaseExchangeEnabled !== false,
+      devAuthWithoutDb: !!data.devAuthWithoutDb,
     };
   } catch {
     return DEFAULT_AUTH_CONFIG;
@@ -235,13 +254,23 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setIsLoading(true);
     try {
       let profile: UserProfile;
-      try {
-        const firebaseUser = await loginWithEmail(email, password);
-        const idToken = await firebaseUser.getIdToken();
-        profile = await exchangeFirebaseToken(idToken);
-      } catch (error) {
-        if (!authConfig.localPasswordAuthEnabled) throw error;
+      // When the server is running dev-without-db, Firebase can't work
+      // anyway (no Firestore project, no admin SDK). Go straight to local.
+      if (authConfig.devAuthWithoutDb && authConfig.localPasswordAuthEnabled) {
         profile = await localPasswordLogin(email, password);
+      } else {
+        try {
+          const firebaseUser = await withTimeout(
+            loginWithEmail(email, password),
+            FIREBASE_AUTH_TIMEOUT_MS,
+            "Firebase login"
+          );
+          const idToken = await firebaseUser.getIdToken();
+          profile = await exchangeFirebaseToken(idToken);
+        } catch (error) {
+          if (!authConfig.localPasswordAuthEnabled) throw error;
+          profile = await localPasswordLogin(email, password);
+        }
       }
       setCurrentUser({ user: runtimeUserFromProfile(profile), profile });
       toast({
@@ -271,13 +300,21 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
           ? additionalData.workspaceName
           : `${name}'s Workspace`;
       let profile: UserProfile;
-      try {
-        const firebaseUser = await registerWithEmail(email, password, name, "admin");
-        const idToken = await firebaseUser.getIdToken();
-        profile = await exchangeFirebaseToken(idToken, { workspaceName });
-      } catch (error) {
-        if (!authConfig.localPasswordAuthEnabled) throw error;
+      if (authConfig.devAuthWithoutDb && authConfig.localPasswordAuthEnabled) {
         profile = await localPasswordSignup({ email, password, name, workspaceName });
+      } else {
+        try {
+          const firebaseUser = await withTimeout(
+            registerWithEmail(email, password, name, "admin"),
+            FIREBASE_AUTH_TIMEOUT_MS,
+            "Firebase register"
+          );
+          const idToken = await firebaseUser.getIdToken();
+          profile = await exchangeFirebaseToken(idToken, { workspaceName });
+        } catch (error) {
+          if (!authConfig.localPasswordAuthEnabled) throw error;
+          profile = await localPasswordSignup({ email, password, name, workspaceName });
+        }
       }
       setCurrentUser({ user: runtimeUserFromProfile(profile), profile });
       toast({ title: "Workspace created", description: `Welcome, ${name}!` });
