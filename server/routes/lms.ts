@@ -160,6 +160,14 @@ router.post("/google/courses/:courseId/import", authenticateToken, async (req: R
         });
         created++;
       } else {
+        // Guard: only import students. Skip existing admins/teachers/owners
+        // to prevent a teacher from silently adding privileged users to
+        // their workspace without those users' consent.
+        if (pgUser.role !== "student") {
+          skipped++;
+          failures.push({ email: s.email, reason: "existing_non_student" });
+          continue;
+        }
         existing++;
       }
       await pgUpsertWorkspaceMembership({
