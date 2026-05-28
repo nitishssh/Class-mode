@@ -1,0 +1,60 @@
+# Local development Postgres ONLY.
+# Memory-capped at 384MB so it won't eat your laptop's RAM.
+# Start:  docker-compose -f docker-compose.dev.yml up -d
+# Stop:   docker-compose -f docker-compose.dev.yml down
+# Reset:  docker-compose -f docker-compose.dev.yml down -v   (drops volume!)
+# Logs:   docker-compose -f docker-compose.dev.yml logs -f pg
+
+services:
+  pg:
+    image: postgres:16-alpine
+    container_name: classmode-dev-pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: classmode_dev
+      POSTGRES_USER: classmode
+      POSTGRES_PASSWORD: classmode
+      # Lighter defaults so PG doesn't try to use system memory it doesn't have
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    # Tune Postgres for a tiny dev workload — keep RAM use under ~150MB
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_buffers=64MB"
+      - "-c"
+      - "max_connections=20"
+      - "-c"
+      - "work_mem=4MB"
+      - "-c"
+      - "maintenance_work_mem=32MB"
+      - "-c"
+      - "effective_cache_size=128MB"
+      - "-c"
+      - "wal_buffers=4MB"
+      - "-c"
+      - "fsync=off"             # faster + safe to lose data in dev
+      - "-c"
+      - "synchronous_commit=off"
+    ports:
+      - "5432:5432"
+    volumes:
+      - classmode_dev_pg:/var/lib/postgresql/data
+      # Mount the schema into Postgres' first-run init dir. Runs ONCE on an
+      # empty volume — drop the volume with `down -v` to re-apply.
+      - ./scripts/pg-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U classmode -d classmode_dev"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+          cpus: "1.0"
+    # macOS Docker Desktop applies the limits via the linuxkit VM, so they're
+    # advisory but honored. On Linux they're hard caps via cgroups.
+
+volumes:
+  classmode_dev_pg:
+    name: classmode_dev_pg
