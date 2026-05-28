@@ -139,9 +139,54 @@ const devWorkspacesByUserId = new Map<
   { workspace: PgWorkspace; membership: PgWorkspaceMembership }
 >();
 const devSessionsByRefreshHash = new Map<string, DevSession>();
+
+type DevOtp = {
+  id: number;
+  userId: number;
+  otpHash: string;
+  // Plaintext is kept ONLY in dev (no DB) mode to make local testing
+  // possible without scraping the console. The whole map lives in process
+  // memory and is unreachable when NODE_ENV=production.
+  plaintext: string;
+  type: "registration" | "password_reset";
+  expiresAt: Date;
+  used: boolean;
+  attempts: number;
+  createdAt: Date;
+};
+const devOtpsByUserId = new Map<number, DevOtp[]>();
+let nextDevOtpId = 900_000;
+
 let nextDevUserId = 900_000;
 let nextDevWorkspaceId = 900_000;
 let nextDevSessionId = 900_000;
+
+function createDevOtp(userId: number, type: DevOtp["type"], ttlMinutes: number): string {
+  const token = String(crypto.randomInt(1000, 10000));
+  const otp: DevOtp = {
+    id: nextDevOtpId++,
+    userId,
+    otpHash: tokenHash(token),
+    plaintext: token,
+    type,
+    expiresAt: new Date(Date.now() + ttlMinutes * 60 * 1000),
+    used: false,
+    attempts: 0,
+    createdAt: new Date(),
+  };
+  const list = devOtpsByUserId.get(userId) ?? [];
+  list.push(otp);
+  devOtpsByUserId.set(userId, list);
+  return token;
+}
+
+function latestDevOtp(userId: number, type: DevOtp["type"]): DevOtp | null {
+  const list = devOtpsByUserId.get(userId) ?? [];
+  const now = Date.now();
+  const valid = list.filter((o) => !o.used && o.type === type && o.expiresAt.getTime() > now);
+  if (valid.length === 0) return null;
+  return valid.reduce((a, b) => (a.createdAt > b.createdAt ? a : b));
+}
 
 function isDevAuthWithoutDbEnabled(): boolean {
   return (
@@ -169,7 +214,7 @@ function createDevUser(data: {
     name: data.name,
     displayName: data.name,
     avatar: null,
-    emailVerified: true,
+    emailVerified: false,
     role: "admin",
     status: "active",
     schoolCode: null,
@@ -336,6 +381,33 @@ router.get("/config", (_req: Request, res: Response) => {
   res.status(200).json({
     localPasswordAuthEnabled: isLocalPasswordAuthEnabled(),
     firebaseExchangeEnabled: process.env.ENABLE_FIREBASE_AUTH_COMPAT !== "false",
+    devAuthWithoutDb: isDevAuthWithoutDbEnabled(),
+  });
+});
+
+// Dev-only helper: returns the latest unused OTP for an email so the UI can
+// be tested without SMTP. Guarded by isDevAuthWithoutDbEnabled() — never
+// active in production (which requires NODE_ENV != "production" AND
+// ENABLE_DEV_AUTH_WITHOUT_DB=true AND !isPgReady()).
+router.get("/dev/last-otp", (req: Request, res: Response) => {
+  if (!isDevAuthWithoutDbEnabled()) {
+    return res.status(404).json({ message: "Not found" });
+  }
+  const email = String(req.query.email || "").toLowerCase().trim();
+  if (!email) return res.status(400).json({ message: "email query param required" });
+  const user = devUsersByEmail.get(email);
+  if (!user) return res.status(404).json({ message: "No dev user for this email" });
+  // We never store the plaintext OTP — only its hash. The plaintext was
+  // already printed to the dev console by the mock mailer (look for
+  // "OTP CODE →"). This endpoint returns the OTP metadata so the test
+  // harness can confirm one was created.
+  const otp = latestDevOtp(user.id, "registration");
+  if (!otp) return res.status(404).json({ message: "No active registration OTP" });
+  return res.json({
+    userId: user.id,
+    code: otp.plaintext,
+    expiresAt: otp.expiresAt,
+    attempts: otp.attempts,
   });
 });
 
@@ -368,6 +440,10 @@ router.post("/signup", signupLimiter, async (req: Request, res: Response) => {
       name: parsed.data.name,
       workspaceName: parsed.data.workspaceName,
     });
+    const verifyToken = createDevOtp(user.id, "registration", 15);
+    sendEmailVerification(user.email, user.displayName || user.name, verifyToken).catch((e) =>
+      logger.warn("[auth/signup/dev] Failed to mock-send verification email", { error: String(e) })
+    );
     const tokens = await createDevLoginSession(req, res, user);
     return res.status(201).json({ token: tokens.accessToken, ...devAuthPayload(user) });
   }
@@ -614,6 +690,16 @@ router.post("/email/verify/request", verifyRequestLimiter, async (req: Request, 
     const token = req.cookies?.access_token || req.headers.authorization?.split(" ")[1];
     if (!token) return res.status(401).json({ message: "Not authenticated" });
     const payload = jwt.verify(token, JWT_SECRET) as AccessPayload;
+
+    if (isDevAuthWithoutDbEnabled()) {
+      const user = devUsersById.get(payload.userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      if (user.emailVerified) return res.json({ message: "Email already verified" });
+      const verifyToken = createDevOtp(user.id, "registration", 15);
+      await sendEmailVerification(user.email, user.displayName || user.name, verifyToken);
+      return res.json({ message: "Verification email sent" });
+    }
+
     const user = await pgFindUserById(payload.userId);
     if (!user) return res.status(404).json({ message: "User not found" });
     if (user.emailVerified) return res.json({ message: "Email already verified" });
@@ -641,6 +727,25 @@ router.post("/email/verify", verifyLimiter, async (req: Request, res: Response) 
     userId = (jwt.verify(accessToken, JWT_SECRET) as AccessPayload).userId;
   } catch {
     return res.status(401).json({ message: "Not authenticated" });
+  }
+
+  if (isDevAuthWithoutDbEnabled()) {
+    const otp = latestDevOtp(userId, "registration");
+    if (!otp) {
+      return res.status(400).json({ message: "No active verification code. Request a new one." });
+    }
+    otp.attempts += 1;
+    if (otp.attempts > OTP_MAX_ATTEMPTS) {
+      otp.used = true;
+      return res.status(429).json({ message: "Too many attempts. Request a new verification code." });
+    }
+    if (otp.otpHash !== tokenHash(parsed.data.token)) {
+      return res.status(400).json({ message: "Invalid verification code" });
+    }
+    otp.used = true;
+    const user = devUsersById.get(userId);
+    if (user) user.emailVerified = true;
+    return res.json({ message: "Email verified" });
   }
 
   const pool = getPgPool();

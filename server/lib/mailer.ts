@@ -22,6 +22,21 @@ if (!useRealSmtp) {
   logger.warn("[mailer] SMTP credentials not provided. Falling back to log-only JSON transporter.");
   const originalSendMail = transporter.sendMail.bind(transporter);
   transporter.sendMail = async function (mailOptions: any, callback?: any) {
+    // Surface OTPs prominently in the dev console so testers don't have
+    // to scrape the JSON log line. Matches the 4-digit registration code
+    // text pattern: "...verification code is: 1234..."
+    const otpMatch =
+      typeof mailOptions.text === "string"
+        ? mailOptions.text.match(/verification code is:\s*(\d{4,8})/i)
+        : null;
+    if (otpMatch) {
+      const code = otpMatch[1];
+      const banner = "═".repeat(46);
+      // eslint-disable-next-line no-console
+      console.log(
+        `\n${banner}\n  [mailer:dev] ${mailOptions.subject}\n  to: ${mailOptions.to}\n  OTP CODE → ${code}\n${banner}\n`
+      );
+    }
     logger.info(`[mailer] Mock Email Dispatched:`, {
       to: mailOptions.to,
       subject: mailOptions.subject,

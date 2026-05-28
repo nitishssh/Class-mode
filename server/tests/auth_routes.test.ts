@@ -203,6 +203,44 @@ describe("custom auth routes", () => {
     delete process.env.ENABLE_FIREBASE_AUTH_COMPAT;
   });
 
+  it("hides /dev/last-otp outside dev-without-db mode", async () => {
+    const res = await request(app).get("/api/auth/dev/last-otp?email=anyone@example.com");
+    expect(res.status).toBe(404);
+  });
+
+  it("returns emailVerified=false from prod signup so user is gated", async () => {
+    const user = {
+      id: 7,
+      email: "gated@example.com",
+      name: "Gated",
+      displayName: "Gated",
+      role: "admin",
+      status: "active",
+      emailVerified: false,
+      subjects: [],
+    };
+    (pgFindUserByEmail as any).mockResolvedValue(null);
+    (pgFindWorkspaceBySlug as any).mockResolvedValue(null);
+    (pgCreateUser as any).mockResolvedValue(user);
+    (pgCreateWorkspace as any).mockResolvedValue({ id: 11, name: "G", slug: "g", type: "business" });
+    (pgUpsertWorkspaceMembership as any).mockResolvedValue({ id: 6 });
+    (pgFindUserById as any).mockResolvedValue(user);
+    (pgFindFirstWorkspaceMembership as any).mockResolvedValue({
+      workspace: { id: 11, name: "G", slug: "g", type: "business" },
+      membership: { id: 6, workspaceId: 11, userId: 7, role: "owner", status: "active" },
+    });
+
+    const res = await request(app).post("/api/auth/signup").send({
+      name: "Gated",
+      email: "gated@example.com",
+      password: "secret123",
+      workspaceName: "Gated Co",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.user.emailVerified).toBe(false);
+  });
+
   it("exchanges a Firebase token and creates a workspace owner when workspaceName is provided", async () => {
     const user = {
       id: 3,
