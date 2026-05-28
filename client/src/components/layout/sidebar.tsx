@@ -30,6 +30,7 @@ import {
   ClipboardCheck,
   UserCheck,
   FileText,
+  Link2,
 } from "lucide-react";
 
 interface NavItem {
@@ -96,6 +97,11 @@ export function Sidebar({ className }: SidebarProps) {
       disabled: true,
     },
     { title: "Reports", href: "/reports", icon: <FileText className="h-5 w-5" />, disabled: true },
+    {
+      title: "Google Classroom",
+      href: "/integrations/google-classroom",
+      icon: <Link2 className="h-5 w-5" />,
+    },
     { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" /> },
   ];
 
@@ -119,6 +125,11 @@ export function Sidebar({ className }: SidebarProps) {
       disabled: true,
     },
     { title: "Reports", href: "/reports", icon: <FileText className="h-5 w-5" />, disabled: true },
+    {
+      title: "Google Classroom",
+      href: "/integrations/google-classroom",
+      icon: <Link2 className="h-5 w-5" />,
+    },
     { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" /> },
   ];
 
@@ -139,6 +150,11 @@ export function Sidebar({ className }: SidebarProps) {
     },
     { title: "Classes", href: "/classes", icon: <School className="h-5 w-5" />, disabled: true },
     { title: "Reports", href: "/reports", icon: <FileText className="h-5 w-5" />, disabled: true },
+    {
+      title: "Google Classroom",
+      href: "/integrations/google-classroom",
+      icon: <Link2 className="h-5 w-5" />,
+    },
     { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" /> },
   ];
 
@@ -161,6 +177,11 @@ export function Sidebar({ className }: SidebarProps) {
     { title: "Live Classes", href: "/live-classes", icon: <Video className="h-5 w-5" /> },
     { title: "AI Classroom", href: "/ai-classroom", icon: <Sparkles className="h-5 w-5" /> },
     { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
+    {
+      title: "Google Classroom",
+      href: "/integrations/google-classroom",
+      icon: <Link2 className="h-5 w-5" />,
+    },
     { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" /> },
   ];
 

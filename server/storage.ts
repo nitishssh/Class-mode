@@ -48,7 +48,7 @@ import {
   cassandraGetPinnedMessages,
 } from "./lib/cassandra-message-store";
 import session from "express-session";
-import MemoryStore from "memorystore";
+import connectPgSimple from "connect-pg-simple";
 
 export interface IStorage {
   sessionStore: session.Store;
@@ -431,9 +431,21 @@ export class PgStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
-    const MemStore = MemoryStore(session);
-    this.sessionStore = new MemStore({
-      checkPeriod: process.env.NODE_ENV === "test" ? 0 : 24 * 60 * 60 * 1000,
+    const PgStore = connectPgSimple(session);
+    // Uses a dedicated "express_sessions" table (separate from the "sessions"
+    // refresh-token table). connect-pg-simple creates it on first boot via
+    // createTableIfMissing, so no manual migration is required.
+    //
+    // We intentionally use conString (not pool:getPgPool()) because this
+    // constructor runs at module-import time, before connectPostgres() has
+    // initialized the shared pool. conString defers pool creation to the
+    // first actual session query, avoiding the boot-ordering crash.
+    this.sessionStore = new PgStore({
+      conString: process.env.POSTGRESQL_URL,
+      tableName: "express_sessions",
+      createTableIfMissing: true,
+      // Prune expired sessions every hour; disabled in test to avoid open handles.
+      pruneSessionInterval: process.env.NODE_ENV === "test" ? false : 60 * 60,
     });
   }
 

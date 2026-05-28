@@ -49,6 +49,7 @@ import SchoolSetup from "@/pages/onboarding/school-setup";
 import InviteTeachers from "@/pages/onboarding/invite-teachers";
 import TeacherClassSetup from "@/pages/onboarding/teacher-class-setup";
 import InviteStudents from "@/pages/onboarding/invite-students";
+import GoogleClassroomIntegration from "@/pages/integrations/google-classroom";
 import { useOnboardingGuard } from "@/hooks/use-onboarding-guard";
 
 function Layout({
@@ -175,6 +176,9 @@ const OnboardingSchoolRoute = withLayout(protect(SchoolSetup, ["school_admin"]))
 const OnboardingInvTeachRoute = withLayout(protect(InviteTeachers, ["school_admin"]));
 const OnboardingTeacherRoute = withLayout(protect(TeacherClassSetup, ["teacher"]));
 const OnboardingInvStdRoute = withLayout(protect(InviteStudents, ["teacher"]));
+const GoogleClassroomRoute = withLayout(
+  protect(GoogleClassroomIntegration, ["teacher", "school_admin", "admin", "principal"])
+);
 
 function getDashboardPath(role: string): string {
   switch (role) {
@@ -337,6 +341,9 @@ function App() {
       <Route path="/onboarding/invite-teachers" component={OnboardingInvTeachRoute} />
       <Route path="/onboarding/teacher" component={OnboardingTeacherRoute} />
       <Route path="/onboarding/invite-students" component={OnboardingInvStdRoute} />
+
+      {/* ── Integrations ─────────────────────────────────────────── */}
+      <Route path="/integrations/google-classroom" component={GoogleClassroomRoute} />
 
       <Route component={NotFound} />
     </Switch>

@@ -5,7 +5,6 @@ import type { UserRole } from "@/lib/firebase";
 import {
   loginWithEmail,
   registerWithEmail,
-  loginWithGoogle,
   logoutUser,
   resetPassword,
   type UserProfile as FirebaseUserProfile,
@@ -63,6 +62,10 @@ interface AuthContextType {
     additionalData?: Record<string, unknown>
   ) => Promise<void>;
   googleLogin: () => Promise<AuthUser>;
+  // High-level Google auth that always returns a usable profile: signs the
+  // user in if they exist, creates a workspace for them if they're new.
+  // workspaceNameHint is used only when the server has to create a workspace.
+  googleAuth: (workspaceNameHint?: string) => Promise<UserProfile>;
   completeGoogleRegistration: (
     user: unknown,
     role: UserRole,
@@ -323,18 +326,22 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
+  // Google sign-in is now server-driven: the "Continue with Google" button
+  // navigates to /api/auth/google/start, which handles the entire OAuth code
+  // flow server-side and sets the session cookie before redirecting to
+  // /dashboard. These stubs remain on the context for type compatibility
+  // but should not be called by new UI code.
   const googleLogin = async (): Promise<AuthUser> => {
-    setIsLoading(true);
-    try {
-      const result = await loginWithGoogle();
-      const idToken = await result.user.getIdToken();
-      const profile = await exchangeFirebaseToken(idToken);
-      const authUser = { user: runtimeUserFromProfile(profile), profile, isNewUser: result.isNewUser };
-      setCurrentUser(authUser);
-      return authUser;
-    } finally {
-      setIsLoading(false);
-    }
+    window.location.href = "/api/auth/google/start";
+    return new Promise<AuthUser>(() => {}); // never resolves; page navigates
+  };
+
+  const googleAuth = async (workspaceNameHint?: string): Promise<UserProfile> => {
+    const url = workspaceNameHint
+      ? `/api/auth/google/start?workspaceName=${encodeURIComponent(workspaceNameHint)}`
+      : "/api/auth/google/start";
+    window.location.href = url;
+    return new Promise<UserProfile>(() => {}); // never resolves; page navigates
   };
 
   const completeGoogleRegistration: AuthContextType["completeGoogleRegistration"] = async (
@@ -376,6 +383,7 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         login,
         register,
         googleLogin,
+        googleAuth,
         completeGoogleRegistration,
         logout,
         resetUserPassword,

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
-import { Loader2, Mail, ShieldCheck, RefreshCw } from "lucide-react";
+import { Loader2, Mail, ShieldCheck, RefreshCw, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/lib/i18n";
@@ -13,12 +13,29 @@ export default function VerifyEmailPage() {
   const [otp, setOtp] = useState(["", "", "", ""]);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const [isStartingOver, setIsStartingOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const { currentUser, refreshSession, isLoading } = useFirebaseAuth();
+  const { currentUser, refreshSession, logout, isLoading } = useFirebaseAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+
+  // Escape hatch: user typed the wrong email at signup. Clear the session,
+  // bounce them back to /login. They can register again with the correct
+  // address (or log in if they realize they already have an account).
+  const handleStartOver = async () => {
+    if (isStartingOver) return;
+    setIsStartingOver(true);
+    try {
+      await logout();
+    } catch {
+      // logout is best-effort; even if the server call fails we still want
+      // to clear the client and get the user out of this stuck state.
+    } finally {
+      setLocation("/login");
+    }
+  };
 
   const setInputRef = (idx: number, el: HTMLInputElement | null) => {
     switch (idx) {
@@ -269,8 +286,11 @@ export default function VerifyEmailPage() {
                 {t("verify.dispatched", "We've dispatched a")}{" "}
                 <span className="font-bold text-primary">4-digit secure code</span> to
               </p>
-              <p className="mt-1 truncate text-sm font-bold text-foreground">
+              <p className="mt-1 truncate text-sm font-bold text-foreground" data-testid="verify-email-target">
                 {userEmail}
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Code expires in 15 minutes. Check your spam folder if you don't see it.
               </p>
             </div>
 
@@ -350,6 +370,34 @@ export default function VerifyEmailPage() {
                 ? "Sending..."
                 : "Resend Code"}
             </button>
+
+            {/* Escape hatches: wrong email + already have account */}
+            <div className="mt-6 flex flex-col items-center gap-3 text-center text-sm">
+              <button
+                type="button"
+                onClick={handleStartOver}
+                disabled={isStartingOver || isVerifying}
+                className="inline-flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+                data-testid="verify-wrong-email"
+              >
+                {isStartingOver ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                )}
+                Wrong email? Sign out and start over
+              </button>
+              <span className="text-xs text-muted-foreground/70">
+                Already verified on another device? <button
+                  type="button"
+                  onClick={handleStartOver}
+                  disabled={isStartingOver || isVerifying}
+                  className="font-semibold text-primary underline-offset-2 hover:underline disabled:opacity-50"
+                >
+                  Log in instead
+                </button>
+              </span>
+            </div>
 
             {/* Quote footer */}
             <p className="mt-8 text-center text-xs italic text-muted-foreground/60 font-body">

@@ -5,6 +5,8 @@ import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut,
   sendPasswordResetEmail,
   sendEmailVerification,
@@ -165,42 +167,87 @@ export const registerWithEmail = async (
   }
 };
 
-export const loginWithGoogle = async () => {
-  if (!firebaseEnabled || !auth || !db || !googleProvider)
-    throw new Error("Firebase is not configured");
+// Errors where a popup didn't reliably complete — usually browser extension
+// interference (MetaMask, ad blockers), aggressive popup blockers, mobile
+// Safari, or COOP issues. Retrying with signInWithRedirect is bulletproof
+// because the whole page navigates to Google instead of relying on a popup
+// channel.
+const POPUP_FALLBACK_CODES = new Set([
+  "auth/popup-blocked",
+  "auth/popup-closed-by-user",
+  "auth/cancelled-popup-request",
+  "auth/operation-not-supported-in-this-environment",
+  "auth/web-storage-unsupported",
+]);
+
+async function resolveGoogleUser(user: User) {
+  // Check if user exists in Firestore (best effort — if it fails we'll just
+  // treat them as new and let the server-side firebase exchange figure it out).
+  let isNewUser = true;
+  let profile: UserProfile | null = null;
   try {
-    const result = await signInWithPopup(auth, googleProvider);
-    const user = result.user;
-
-    // Check if user exists in Firestore
-    const userDoc = await getDoc(doc(db, "users", user.uid));
-
-    if (!userDoc.exists()) {
-      // First time Google login - redirect to role selection
-      // We'll handle this in the UI
-      return {
-        user,
-        profile: null,
-        isNewUser: true,
-      };
-    } else {
-      // Existing user - update last login
-      await updateDoc(doc(db, "users", user.uid), {
-        lastLogin: serverTimestamp(),
-      });
-      const userData = userDoc.data() as UserProfile;
-      return {
-        user,
-        profile: userData,
-        isNewUser: false,
-      };
+    if (db) {
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if (userDoc.exists()) {
+        isNewUser = false;
+        profile = userDoc.data() as UserProfile;
+        await updateDoc(doc(db, "users", user.uid), { lastLogin: serverTimestamp() }).catch(() => {});
+      }
     }
-  } catch (error: any) {
-    const friendlyMsg = mapFirebaseError(error);
-    console.error("Error logging in with Google:", error);
-    const newErr = new Error(friendlyMsg) as any;
-    newErr.code = error.code;
-    throw newErr;
+  } catch {
+    // Firestore unreachable; carry on, server will resolve.
+  }
+  return { user, profile, isNewUser };
+}
+
+// We deliberately use signInWithRedirect rather than signInWithPopup.
+// Real-world reliability beats the "snappier" popup UX:
+//   - Cross-Origin-Opener-Policy (even at same-origin-allow-popups) blocks
+//     Firebase's window.closed polling, so popup completion is lost
+//   - Browser extensions that inject content scripts (MetaMask, ad blockers)
+//     intercept postMessage between popup and opener
+//   - Mobile Safari blocks popups outright in many flows
+//   - Popup blockers are common
+// With redirect, the whole page navigates to Google's consent screen and
+// returns via Firebase's authDomain handler. The result is consumed on
+// boot by consumePendingGoogleRedirect() in the auth context.
+export const loginWithGoogle = async (): Promise<never> => {
+  console.log("[google] loginWithGoogle called, firebaseEnabled=", firebaseEnabled);
+  if (!firebaseEnabled || !auth || !googleProvider)
+    throw new Error("Firebase is not configured");
+  console.log("[google] calling signInWithRedirect…");
+  // signInWithRedirect navigates the entire page to Google. The returned
+  // Promise never resolves in normal flow (the document is being torn down
+  // for navigation). The credential is picked up on the next page load by
+  // consumePendingGoogleRedirect() in firebase-auth-context's boot effect.
+  try {
+    await signInWithRedirect(auth, googleProvider);
+  } catch (err) {
+    console.error("[google] signInWithRedirect threw:", err);
+    throw err;
+  }
+  // Should be unreachable — if we get here, navigation didn't happen.
+  console.warn("[google] signInWithRedirect resolved without navigating — this is unusual.");
+  throw new Error("Google sign-in: navigation to consent screen did not start.");
+};
+
+// Suppress unused-import warning — kept for the popup-based code path
+// future maintainers may want to switch back to.
+void POPUP_FALLBACK_CODES;
+void signInWithPopup;
+
+// Call on app boot. If the user just returned from signInWithRedirect, this
+// resolves to the user object so the auth context can exchange the Firebase
+// token for our server session. Returns null when there's nothing to consume.
+export const consumePendingGoogleRedirect = async () => {
+  if (!firebaseEnabled || !auth) return null;
+  try {
+    const result = await getRedirectResult(auth);
+    if (!result?.user) return null;
+    return await resolveGoogleUser(result.user);
+  } catch (err: any) {
+    console.error("Error consuming Google redirect result:", err);
+    return null;
   }
 };
 

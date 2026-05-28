@@ -31,14 +31,6 @@ export function requireDb(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-// ── Auth check (session-based fallback) ───────────────────────────────────────
-export function isAuthenticated(req: Request, res: Response, next: NextFunction) {
-  if (!req.session?.userId) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-  next();
-}
-
 // ── Role guard ────────────────────────────────────────────────────────────────
 export function requireRole(...roles: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
