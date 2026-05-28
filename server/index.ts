@@ -147,8 +147,12 @@ app.use(
     windowMs: 60_000,
     max: 10,
     message: { error: "Too many auth attempts" },
-    skip: () =>
-      process.env.NODE_ENV !== "production" && process.env.ENABLE_DEV_AUTH_WITHOUT_DB === "true",
+    // Skip the global auth rate limit in any non-prod environment so
+    // developers (and React StrictMode's double-mounting) don't keep
+    // tripping it during normal testing. The per-route limiters inside
+    // server/routes/auth.ts (signupLimiter, loginLimiter, etc.) still
+    // give us per-action brute-force protection in dev.
+    skip: () => process.env.NODE_ENV !== "production",
   })
 );
 

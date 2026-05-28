@@ -212,14 +212,22 @@ async function resolveGoogleUser(user: User) {
 // returns via Firebase's authDomain handler. The result is consumed on
 // boot by consumePendingGoogleRedirect() in the auth context.
 export const loginWithGoogle = async (): Promise<never> => {
+  console.log("[google] loginWithGoogle called, firebaseEnabled=", firebaseEnabled);
   if (!firebaseEnabled || !auth || !googleProvider)
     throw new Error("Firebase is not configured");
+  console.log("[google] calling signInWithRedirect…");
   // signInWithRedirect navigates the entire page to Google. The returned
   // Promise never resolves in normal flow (the document is being torn down
   // for navigation). The credential is picked up on the next page load by
   // consumePendingGoogleRedirect() in firebase-auth-context's boot effect.
-  await signInWithRedirect(auth, googleProvider);
+  try {
+    await signInWithRedirect(auth, googleProvider);
+  } catch (err) {
+    console.error("[google] signInWithRedirect threw:", err);
+    throw err;
+  }
   // Should be unreachable — if we get here, navigation didn't happen.
+  console.warn("[google] signInWithRedirect resolved without navigating — this is unusual.");
   throw new Error("Google sign-in: navigation to consent screen did not start.");
 };
 
