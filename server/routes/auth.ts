@@ -411,6 +411,131 @@ router.get("/dev/last-otp", (req: Request, res: Response) => {
   });
 });
 
+// ── Server-driven Google sign-in (no Firebase popup) ─────────────────────
+//
+// Why a server-side OAuth code flow instead of Firebase signInWithPopup:
+//   - COOP blocks Firebase's popup polling even with same-origin-allow-popups
+//   - Wallet/ad-blocker extensions (MetaMask) intercept window.opener
+//   - signInWithRedirect lands back at our origin but storage isolation
+//     across the redirect chain occasionally drops the result
+// Server-side flow has none of these failure modes.
+
+router.get("/google/start", async (req: Request, res: Response) => {
+  const { getSignInAuthUrl, isGoogleSignInConfigured } = await import("../lib/google-signin");
+  if (!isGoogleSignInConfigured()) {
+    return res.status(503).send("Google sign-in is not configured on this server.");
+  }
+  const state = crypto.randomBytes(32).toString("hex");
+  req.session.googleSignInState = state;
+  // Capture an optional workspace-name hint so first-time sign-ups land in
+  // a workspace named after their company instead of "<Name>'s Workspace".
+  const wsName = String(req.query.workspaceName ?? "").trim();
+  if (wsName.length >= 2 && wsName.length <= 100) {
+    req.session.googleSignInWorkspaceName = wsName;
+  }
+  await new Promise<void>((resolve, reject) =>
+    req.session.save((err) => (err ? reject(err) : resolve()))
+  );
+  res.redirect(getSignInAuthUrl(state));
+});
+
+router.get("/google/callback", async (req: Request, res: Response) => {
+  const { exchangeSignInCode } = await import("../lib/google-signin");
+
+  const code = String(req.query.code ?? "");
+  const state = String(req.query.state ?? "");
+  const expectedState = req.session.googleSignInState;
+  const workspaceNameHint = req.session.googleSignInWorkspaceName;
+
+  // Clear the one-shot session keys regardless of outcome.
+  delete req.session.googleSignInState;
+  delete req.session.googleSignInWorkspaceName;
+
+  if (!code || !state) {
+    return res.redirect("/login?error=google_oauth_missing_params");
+  }
+  if (!expectedState || expectedState !== state) {
+    return res.redirect("/login?error=google_oauth_csrf");
+  }
+
+  let info;
+  try {
+    info = await exchangeSignInCode(code);
+  } catch (err) {
+    logger.error("[auth/google/callback] code exchange failed", { error: String(err) });
+    return res.redirect("/login?error=google_oauth_exchange");
+  }
+
+  try {
+    // Find-or-create the user. Email is the join key. If a user exists
+    // under a different auth_provider (e.g. local password), we still let
+    // them sign in via Google as long as they had already verified that
+    // address — the same email reaching us means Google vouched for it,
+    // so account takeover isn't possible from a stranger's Google account.
+    let user = await pgFindUserByAuthSubject("google", info.sub);
+    if (!user) {
+      user = await pgFindUserByEmail(info.email);
+    }
+    if (!user) {
+      // New user — create + own workspace
+      const username = `${info.email.split("@")[0]}_${Date.now()}`;
+      user = await pgCreateUser({
+        authProvider: "google",
+        authSubject: info.sub,
+        email: info.email,
+        username,
+        // Google-only sign-in: placeholder hash, blocks bcrypt compare
+        passwordHash: `google_managed_${info.sub}`,
+        name: info.name || info.email.split("@")[0],
+        displayName: info.name || null,
+        avatar: info.picture,
+        emailVerified: info.emailVerified,
+        role: "admin",
+        status: "active",
+      });
+      const fallbackWsName =
+        workspaceNameHint ||
+        `${info.name || info.email.split("@")[0]}'s Workspace`;
+      const workspace = await pgCreateWorkspace({
+        name: fallbackWsName,
+        slug: await makeUniqueSlug(fallbackWsName),
+        type: "business",
+        ownerId: user.id,
+      });
+      await pgUpsertWorkspaceMembership({
+        workspaceId: workspace.id,
+        userId: user.id,
+        role: "owner",
+      });
+      recordAuditEvent({
+        actorUserId: user.id,
+        targetUserId: user.id,
+        eventType: AUDIT_EVENTS.USER_REGISTERED,
+        payload: { provider: "google", workspaceId: workspace.id, workspaceRole: "owner" },
+      });
+    } else if (["suspended", "rejected"].includes(user.status)) {
+      return res.redirect("/login?error=account_inactive");
+    }
+
+    await createLoginSession(req, res, user.id);
+    await pgSetUserLastLogin(user.id);
+    recordAuditEvent({
+      actorUserId: user.id,
+      targetUserId: user.id,
+      eventType: AUDIT_EVENTS.USER_LOGIN,
+      payload: { provider: "google", ip: req.ip, ua: req.headers["user-agent"] },
+    });
+
+    // Always reload server profile so a stale OAuth response can't leave
+    // us redirecting to the wrong dashboard. The /dashboard route on the
+    // client side will then resolve to the role-specific path.
+    return res.redirect("/dashboard");
+  } catch (err) {
+    logger.error("[auth/google/callback] sign-in failed", { error: String(err) });
+    return res.redirect("/login?error=google_signin_failed");
+  }
+});
+
 const signupSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),

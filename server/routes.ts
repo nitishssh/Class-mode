@@ -61,6 +61,8 @@ declare module "express-session" {
     email?: string; // optional — not always set by createLoginSession
     oauthState?: string;
     lmsOauthUserId?: number;
+    googleSignInState?: string;
+    googleSignInWorkspaceName?: string;
   }
 }
 

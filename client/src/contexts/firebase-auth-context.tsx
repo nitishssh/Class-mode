@@ -5,8 +5,6 @@ import type { UserRole } from "@/lib/firebase";
 import {
   loginWithEmail,
   registerWithEmail,
-  loginWithGoogle,
-  consumePendingGoogleRedirect,
   logoutUser,
   resetPassword,
   type UserProfile as FirebaseUserProfile,
@@ -249,51 +247,10 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   useEffect(() => {
-    (async () => {
-      try {
-        // Step 1: fetch server-side auth flags + check for a pending Google
-        // redirect result in parallel. Log each decision so we can see why
-        // the post-Google flow does or doesn't fire when debugging.
-        console.log("[auth-boot] starting…");
-        const [config, redirectResult] = await Promise.all([
-          fetchAuthConfig(),
-          consumePendingGoogleRedirect(),
-        ]);
-        setAuthConfig(config);
-        console.log("[auth-boot] config:", config);
-        console.log(
-          "[auth-boot] google redirect result:",
-          redirectResult ? `user=${redirectResult.user.email} isNew=${redirectResult.isNewUser}` : "null"
-        );
-
-        if (redirectResult?.user) {
-          try {
-            const idToken = await redirectResult.user.getIdToken();
-            console.log("[auth-boot] got Firebase ID token, exchanging with /api/auth/firebase…");
-            const fallbackName =
-              `${redirectResult.user.displayName || redirectResult.user.email?.split("@")[0] || "Personal"}'s Workspace`;
-            const profile = await exchangeFirebaseToken(idToken, { workspaceName: fallbackName });
-            console.log("[auth-boot] exchange OK, profile.email:", profile.email);
-            setCurrentUser({ user: runtimeUserFromProfile(profile), profile });
-            toast({
-              title: redirectResult.isNewUser ? "Workspace created" : "Welcome back",
-              description: profile.displayName || profile.email,
-            });
-            return; // skip refreshSession; we already set the user
-          } catch (err) {
-            console.error("[auth-boot] Failed to exchange Google redirect token:", err);
-            toast({
-              title: "Google sign-in failed",
-              description: err instanceof Error ? err.message : String(err),
-              variant: "destructive",
-            });
-          }
-        }
-        await refreshSession();
-      } finally {
-        setIsLoading(false);
-      }
-    })();
+    Promise.all([
+      fetchAuthConfig().then(setAuthConfig),
+      refreshSession(),
+    ]).finally(() => setIsLoading(false));
   }, []);
 
   const login = async (email: string, password: string): Promise<UserProfile> => {
@@ -369,41 +326,22 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
+  // Google sign-in is now server-driven: the "Continue with Google" button
+  // navigates to /api/auth/google/start, which handles the entire OAuth code
+  // flow server-side and sets the session cookie before redirecting to
+  // /dashboard. These stubs remain on the context for type compatibility
+  // but should not be called by new UI code.
   const googleLogin = async (): Promise<AuthUser> => {
-    setIsLoading(true);
-    try {
-      const result = await withTimeout(loginWithGoogle(), FIREBASE_AUTH_TIMEOUT_MS, "Google sign-in");
-      const idToken = await result.user.getIdToken();
-      const profile = await exchangeFirebaseToken(idToken);
-      const authUser = { user: runtimeUserFromProfile(profile), profile, isNewUser: result.isNewUser };
-      setCurrentUser(authUser);
-      return authUser;
-    } finally {
-      setIsLoading(false);
-    }
+    window.location.href = "/api/auth/google/start";
+    return new Promise<AuthUser>(() => {}); // never resolves; page navigates
   };
 
-  // One-call Google flow that always returns a usable profile. If the user
-  // is brand new on our side, sends a workspaceName so the server creates a
-  // workspace as part of the same token exchange (auth.ts /firebase handler).
   const googleAuth = async (workspaceNameHint?: string): Promise<UserProfile> => {
-    setIsLoading(true);
-    try {
-      const result = await withTimeout(loginWithGoogle(), FIREBASE_AUTH_TIMEOUT_MS, "Google sign-in");
-      const idToken = await result.user.getIdToken();
-      const fallbackName =
-        workspaceNameHint?.trim() ||
-        `${result.user.displayName || result.user.email?.split("@")[0] || "Personal"}'s Workspace`;
-      const profile = await exchangeFirebaseToken(idToken, { workspaceName: fallbackName });
-      setCurrentUser({ user: runtimeUserFromProfile(profile), profile });
-      toast({
-        title: result.isNewUser ? "Workspace created" : "Welcome back",
-        description: profile.displayName || profile.email,
-      });
-      return profile;
-    } finally {
-      setIsLoading(false);
-    }
+    const url = workspaceNameHint
+      ? `/api/auth/google/start?workspaceName=${encodeURIComponent(workspaceNameHint)}`
+      : "/api/auth/google/start";
+    window.location.href = url;
+    return new Promise<UserProfile>(() => {}); // never resolves; page navigates
   };
 
   const completeGoogleRegistration: AuthContextType["completeGoogleRegistration"] = async (

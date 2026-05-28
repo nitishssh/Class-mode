@@ -242,7 +242,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
 export function FirebaseAuthDialog() {
   const { t } = useTranslation();
-  const { login, register, googleAuth, resetUserPassword } = useFirebaseAuth();
+  const { login, register, resetUserPassword } = useFirebaseAuth();
   const [, setLocation] = useLocation();
 
   const [authTab, setAuthTab] = useState<"login" | "register" | "forgotPassword">("login");
@@ -299,35 +299,26 @@ export function FirebaseAuthDialog() {
   );
 
   // Shared "Continue with Google" handler used by both Login and Register tabs.
-  // Server creates a workspace on first sign-in if the user is new (defaults
-  // to a name derived from their Google display name).
-  const onGoogleClick = useCallback(async () => {
+  //
+  // Drives a SERVER-SIDE OAuth code flow (/api/auth/google/start) — not the
+  // Firebase JS SDK. Reason: signInWithPopup is broken by COOP +
+  // wallet/ad-blocker extensions + popup blockers; signInWithRedirect loses
+  // state across the redirect chain in too many edge cases. A full-page
+  // navigation to our own backend, which then bounces to Google, sidesteps
+  // every one of those issues. After consent the server creates the session
+  // cookie and redirects to /dashboard directly.
+  const onGoogleClick = useCallback(() => {
     if (isGoogleSubmitting) return;
     setLoginError(null);
     setRegisterError(null);
     setIsGoogleSubmitting(true);
-    try {
-      const wsHint = authTab === "register"
-        ? registerForm.getValues("workspaceName") || undefined
-        : undefined;
-      const profile = await googleAuth(wsHint);
-      if (profile.emailVerified === false) {
-        setLocation("/verify-email");
-      } else {
-        setLocation("/dashboard");
-      }
-    } catch (error: unknown) {
-      const msg = isRateLimitError(error)
-        ? "Too many attempts. Please wait a minute and try again."
-        : error instanceof Error
-          ? error.message
-          : "Google sign-in failed. Please try again.";
-      if (authTab === "register") setRegisterError(msg);
-      else setLoginError(msg);
-    } finally {
-      setIsGoogleSubmitting(false);
-    }
-  }, [authTab, googleAuth, isGoogleSubmitting, registerForm, setLocation]);
+    const wsHint =
+      authTab === "register" ? registerForm.getValues("workspaceName") || "" : "";
+    const url = wsHint
+      ? `/api/auth/google/start?workspaceName=${encodeURIComponent(wsHint)}`
+      : "/api/auth/google/start";
+    window.location.href = url;
+  }, [authTab, isGoogleSubmitting, registerForm]);
 
   const onForgotPasswordSubmit = useCallback(async () => {
     const email = loginForm.getValues("email");
