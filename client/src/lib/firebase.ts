@@ -5,6 +5,8 @@ import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut,
   sendPasswordResetEmail,
   sendEmailVerification,
@@ -165,42 +167,79 @@ export const registerWithEmail = async (
   }
 };
 
+// Errors where a popup didn't reliably complete — usually browser extension
+// interference (MetaMask, ad blockers), aggressive popup blockers, mobile
+// Safari, or COOP issues. Retrying with signInWithRedirect is bulletproof
+// because the whole page navigates to Google instead of relying on a popup
+// channel.
+const POPUP_FALLBACK_CODES = new Set([
+  "auth/popup-blocked",
+  "auth/popup-closed-by-user",
+  "auth/cancelled-popup-request",
+  "auth/operation-not-supported-in-this-environment",
+  "auth/web-storage-unsupported",
+]);
+
+async function resolveGoogleUser(user: User) {
+  // Check if user exists in Firestore (best effort — if it fails we'll just
+  // treat them as new and let the server-side firebase exchange figure it out).
+  let isNewUser = true;
+  let profile: UserProfile | null = null;
+  try {
+    if (db) {
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if (userDoc.exists()) {
+        isNewUser = false;
+        profile = userDoc.data() as UserProfile;
+        await updateDoc(doc(db, "users", user.uid), { lastLogin: serverTimestamp() }).catch(() => {});
+      }
+    }
+  } catch {
+    // Firestore unreachable; carry on, server will resolve.
+  }
+  return { user, profile, isNewUser };
+}
+
 export const loginWithGoogle = async () => {
-  if (!firebaseEnabled || !auth || !db || !googleProvider)
+  if (!firebaseEnabled || !auth || !googleProvider)
     throw new Error("Firebase is not configured");
   try {
     const result = await signInWithPopup(auth, googleProvider);
-    const user = result.user;
-
-    // Check if user exists in Firestore
-    const userDoc = await getDoc(doc(db, "users", user.uid));
-
-    if (!userDoc.exists()) {
-      // First time Google login - redirect to role selection
-      // We'll handle this in the UI
-      return {
-        user,
-        profile: null,
-        isNewUser: true,
-      };
-    } else {
-      // Existing user - update last login
-      await updateDoc(doc(db, "users", user.uid), {
-        lastLogin: serverTimestamp(),
-      });
-      const userData = userDoc.data() as UserProfile;
-      return {
-        user,
-        profile: userData,
-        isNewUser: false,
-      };
-    }
+    return await resolveGoogleUser(result.user);
   } catch (error: any) {
+    if (POPUP_FALLBACK_CODES.has(error?.code)) {
+      // Popup didn't work — try the redirect flow. This NAVIGATES THE
+      // WHOLE PAGE to Google's consent screen and returns via Firebase's
+      // authDomain redirect handler. We never return from this call;
+      // the result is picked up by consumePendingGoogleRedirect() on the
+      // next page load.
+      await signInWithRedirect(auth, googleProvider);
+      // Throw a typed "in-progress" so the caller can show a "redirecting…"
+      // state without surfacing it as an error.
+      const navErr = new Error("Redirecting to Google sign-in…") as any;
+      navErr.code = "auth/redirect-in-progress";
+      throw navErr;
+    }
     const friendlyMsg = mapFirebaseError(error);
     console.error("Error logging in with Google:", error);
     const newErr = new Error(friendlyMsg) as any;
     newErr.code = error.code;
     throw newErr;
+  }
+};
+
+// Call on app boot. If the user just returned from signInWithRedirect, this
+// resolves to the user object so the auth context can exchange the Firebase
+// token for our server session. Returns null when there's nothing to consume.
+export const consumePendingGoogleRedirect = async () => {
+  if (!firebaseEnabled || !auth) return null;
+  try {
+    const result = await getRedirectResult(auth);
+    if (!result?.user) return null;
+    return await resolveGoogleUser(result.user);
+  } catch (err: any) {
+    console.error("Error consuming Google redirect result:", err);
+    return null;
   }
 };
 

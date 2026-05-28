@@ -6,6 +6,7 @@ import {
   loginWithEmail,
   registerWithEmail,
   loginWithGoogle,
+  consumePendingGoogleRedirect,
   logoutUser,
   resetPassword,
   type UserProfile as FirebaseUserProfile,
@@ -248,10 +249,35 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   useEffect(() => {
-    Promise.all([
-      fetchAuthConfig().then(setAuthConfig),
-      refreshSession(),
-    ]).finally(() => setIsLoading(false));
+    (async () => {
+      try {
+        const [, redirectResult] = await Promise.all([
+          fetchAuthConfig().then(setAuthConfig),
+          // If we just came back from signInWithRedirect (Google), consume
+          // the result and exchange the token for a server session.
+          consumePendingGoogleRedirect(),
+        ]);
+        if (redirectResult?.user) {
+          try {
+            const idToken = await redirectResult.user.getIdToken();
+            const fallbackName =
+              `${redirectResult.user.displayName || redirectResult.user.email?.split("@")[0] || "Personal"}'s Workspace`;
+            const profile = await exchangeFirebaseToken(idToken, { workspaceName: fallbackName });
+            setCurrentUser({ user: runtimeUserFromProfile(profile), profile });
+            toast({
+              title: redirectResult.isNewUser ? "Workspace created" : "Welcome back",
+              description: profile.displayName || profile.email,
+            });
+            return; // skip refreshSession; we already set the user
+          } catch (err) {
+            console.error("Failed to exchange Google redirect token:", err);
+          }
+        }
+        await refreshSession();
+      } finally {
+        setIsLoading(false);
+      }
+    })();
   }, []);
 
   const login = async (email: string, password: string): Promise<UserProfile> => {
