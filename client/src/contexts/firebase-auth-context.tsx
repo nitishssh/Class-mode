@@ -63,6 +63,10 @@ interface AuthContextType {
     additionalData?: Record<string, unknown>
   ) => Promise<void>;
   googleLogin: () => Promise<AuthUser>;
+  // High-level Google auth that always returns a usable profile: signs the
+  // user in if they exist, creates a workspace for them if they're new.
+  // workspaceNameHint is used only when the server has to create a workspace.
+  googleAuth: (workspaceNameHint?: string) => Promise<UserProfile>;
   completeGoogleRegistration: (
     user: unknown,
     role: UserRole,
@@ -326,12 +330,35 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const googleLogin = async (): Promise<AuthUser> => {
     setIsLoading(true);
     try {
-      const result = await loginWithGoogle();
+      const result = await withTimeout(loginWithGoogle(), FIREBASE_AUTH_TIMEOUT_MS, "Google sign-in");
       const idToken = await result.user.getIdToken();
       const profile = await exchangeFirebaseToken(idToken);
       const authUser = { user: runtimeUserFromProfile(profile), profile, isNewUser: result.isNewUser };
       setCurrentUser(authUser);
       return authUser;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // One-call Google flow that always returns a usable profile. If the user
+  // is brand new on our side, sends a workspaceName so the server creates a
+  // workspace as part of the same token exchange (auth.ts /firebase handler).
+  const googleAuth = async (workspaceNameHint?: string): Promise<UserProfile> => {
+    setIsLoading(true);
+    try {
+      const result = await withTimeout(loginWithGoogle(), FIREBASE_AUTH_TIMEOUT_MS, "Google sign-in");
+      const idToken = await result.user.getIdToken();
+      const fallbackName =
+        workspaceNameHint?.trim() ||
+        `${result.user.displayName || result.user.email?.split("@")[0] || "Personal"}'s Workspace`;
+      const profile = await exchangeFirebaseToken(idToken, { workspaceName: fallbackName });
+      setCurrentUser({ user: runtimeUserFromProfile(profile), profile });
+      toast({
+        title: result.isNewUser ? "Workspace created" : "Welcome back",
+        description: profile.displayName || profile.email,
+      });
+      return profile;
     } finally {
       setIsLoading(false);
     }
@@ -376,6 +403,7 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         login,
         register,
         googleLogin,
+        googleAuth,
         completeGoogleRegistration,
         logout,
         resetUserPassword,
