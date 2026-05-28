@@ -83,6 +83,14 @@ app.use(
             },
           }
         : false, // CSP handled by Vite in dev
+    // Firebase signInWithPopup requires the popup to share an opener
+    // context with the parent window so it can postMessage the credential
+    // back. helmet's default of "same-origin" blocks that and Firebase
+    // throws auth/popup-closed-by-user even when the user finished consent.
+    // "same-origin-allow-popups" keeps process isolation while letting our
+    // own popups talk to us — this is the setting Firebase + Google docs
+    // recommend for OAuth flows.
+    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
   })
 );
 
