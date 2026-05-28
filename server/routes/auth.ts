@@ -123,7 +123,15 @@ function isLocalPasswordAuthEnabled(): boolean {
   return process.env.ENABLE_LOCAL_PASSWORD_AUTH === "true" || process.env.NODE_ENV !== "production";
 }
 
-type AccessPayload = { userId: number; sessionId?: number };
+type AccessPayload = {
+  userId: number;
+  sessionId?: number;
+  role?: string;
+  email?: string;
+  emailVerified?: boolean;
+  workspaceId?: number | null;
+  workspaceRole?: string | null;
+};
 
 type DevSession = {
   id: number;
@@ -289,7 +297,16 @@ async function createDevLoginSession(req: Request, res: Response, user: PgUser) 
   req.session.role = user.role;
   req.session.firebaseUid = user.firebaseUid || user.authSubject;
 
-  const accessToken = issueAccessToken({ userId: user.id, sessionId: session.id });
+  const devWs = devWorkspacesByUserId.get(user.id);
+  const accessToken = issueAccessToken({
+    userId: user.id,
+    sessionId: session.id,
+    role: user.role,
+    email: user.email,
+    emailVerified: user.emailVerified,
+    workspaceId: devWs?.workspace.id ?? null,
+    workspaceRole: devWs?.membership.role ?? null,
+  });
   res.cookie(ACCESS_COOKIE, accessToken, ACCESS_COOKIE_OPTS);
   res.cookie(REFRESH_COOKIE, refreshToken, REFRESH_COOKIE_OPTS);
   return { accessToken, refreshToken, sessionId: session.id };
@@ -311,15 +328,26 @@ async function createLoginSession(req: Request, res: Response, userId: number) {
     req.session.regenerate((err) => (err ? reject(err) : resolve()));
   });
 
-  // Fetch user to populate detailed session keys
-  const user = await pgFindUserById(userId);
+  // Fetch user + workspace in parallel to populate session and embed in token.
+  const [user, workspaceContext] = await Promise.all([
+    pgFindUserById(userId),
+    pgFindFirstWorkspaceMembership(userId),
+  ]);
   if (user && req.session) {
     req.session.userId = user.id;
     req.session.role = user.role;
     req.session.firebaseUid = user.firebaseUid || user.authSubject;
   }
 
-  const accessToken = issueAccessToken({ userId, sessionId: session.id });
+  const accessToken = issueAccessToken({
+    userId,
+    sessionId: session.id,
+    role: user?.role,
+    email: user?.email,
+    emailVerified: user?.emailVerified,
+    workspaceId: workspaceContext?.workspace.id ?? null,
+    workspaceRole: workspaceContext?.membership.role ?? null,
+  });
   res.cookie(ACCESS_COOKIE, accessToken, ACCESS_COOKIE_OPTS);
   res.cookie(REFRESH_COOKIE, refreshToken, REFRESH_COOKIE_OPTS);
   return { accessToken, refreshToken, sessionId: session.id };

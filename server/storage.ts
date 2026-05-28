@@ -48,7 +48,7 @@ import {
   cassandraGetPinnedMessages,
 } from "./lib/cassandra-message-store";
 import session from "express-session";
-import MemoryStore from "memorystore";
+import connectPgSimple from "connect-pg-simple";
 
 export interface IStorage {
   sessionStore: session.Store;
@@ -431,9 +431,16 @@ export class PgStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
-    const MemStore = MemoryStore(session);
-    this.sessionStore = new MemStore({
-      checkPeriod: process.env.NODE_ENV === "test" ? 0 : 24 * 60 * 60 * 1000,
+    const PgStore = connectPgSimple(session);
+    // Uses a dedicated "express_sessions" table (separate from the "sessions"
+    // refresh-token table). connect-pg-simple creates it on first boot via
+    // createTableIfMissing, so no manual migration is required.
+    this.sessionStore = new PgStore({
+      pool: getPgPool(),
+      tableName: "express_sessions",
+      createTableIfMissing: true,
+      // Prune expired sessions every hour.
+      pruneSessionInterval: process.env.NODE_ENV === "test" ? false : 60 * 60,
     });
   }
 

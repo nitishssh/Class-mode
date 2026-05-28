@@ -31,7 +31,7 @@ import {
   pgUpdateUser,
   pgCountUsers,
 } from "./lib/pg-queries";
-import { authMePayload, randomToken, tokenHash } from "./lib/auth-workspace";
+import { authMePayload, permissionsForWorkspaceRole, randomToken, tokenHash } from "./lib/auth-workspace";
 import { sendWorkspaceInvite } from "./lib/mailer";
 import { getPgPool, isPgReady } from "./db-pg";
 import messageRoutes from "./message/routes";
@@ -71,6 +71,9 @@ interface CustomJwtPayload extends jwt.JwtPayload {
   sessionId?: number;
   role?: string;
   email?: string;
+  emailVerified?: boolean;
+  workspaceId?: number | null;
+  workspaceRole?: string | null;
 }
 
 if (!process.env.JWT_SECRET) {
@@ -83,6 +86,15 @@ const JWT_SECRET: string = process.env.JWT_SECRET;
 // Auth Middleware
 // Verifies the server-issued JWT only — never calls Firebase Admin on hot path.
 // Firebase ID tokens are exchanged for server JWTs once at /api/auth/firebase.
+//
+// Hot-path optimization: tokens minted after the v2 payload upgrade embed role,
+// emailVerified, workspaceId, and workspaceRole directly. Those requests skip
+// all DB queries. Old tokens (pre-upgrade, still within 15-min TTL) fall back
+// to a single pgFindUserById + pgFindFirstWorkspaceMembership lookup.
+//
+// Suspension window: a suspended user's existing JWT remains valid for up to
+// 15 minutes (the access-token TTL). Acceptable for this threat model; if
+// stricter enforcement is needed, add a short-TTL token blacklist.
 export async function authenticateToken(req: Request, res: Response, next: express.NextFunction) {
   const token = req.cookies?.access_token || req.headers.authorization?.split(" ")[1];
 
@@ -90,6 +102,27 @@ export async function authenticateToken(req: Request, res: Response, next: expre
     try {
       const payload = jwt.verify(token, JWT_SECRET) as CustomJwtPayload;
       if (payload?.userId) {
+        // Fast path: new tokens embed the profile — zero DB queries.
+        if (payload.role !== undefined) {
+          req.session!.userId = payload.userId;
+          req.session!.role = payload.role;
+          (req as any).user = {
+            id: payload.userId,
+            role: payload.role,
+            email: payload.email ?? "",
+            status: "active",
+            emailVerified: payload.emailVerified ?? false,
+          };
+          // Minimal workspace shape sufficient for requireActiveWorkspace check.
+          (req as any).workspace = payload.workspaceId ? { id: payload.workspaceId } : null;
+          (req as any).workspaceRole = payload.workspaceRole ?? null;
+          (req as any).permissions = permissionsForWorkspaceRole(
+            (payload.workspaceRole ?? null) as Parameters<typeof permissionsForWorkspaceRole>[0]
+          );
+          return next();
+        }
+
+        // Slow path: pre-upgrade tokens without embedded profile — hit DB once.
         const user = await pgFindUserById(payload.userId);
         if (!user || ["suspended", "rejected"].includes(user.status)) {
           return res.status(401).json({ message: "Authentication required" });
