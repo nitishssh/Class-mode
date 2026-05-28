@@ -112,6 +112,10 @@ const withProtection = <P extends object>(
       return <Redirect to="/login" />;
     }
 
+    if (profile.emailVerified === false) {
+      return <Redirect to="/verify-email" />;
+    }
+
     if (allowedRoles && !allowedRoles.includes(profile.role)) {
       return (
         <Layout>
@@ -288,7 +292,11 @@ function App() {
 
       {/* ── /dashboard — redirects to the role-specific dashboard ─── */}
       <Route path="/dashboard">
-        {!profile ? <Redirect to="/login" /> : <Redirect to={dashboardPath} />}
+        {!profile
+          ? <Redirect to="/login" />
+          : profile.emailVerified === false
+            ? <Redirect to="/verify-email" />
+            : <Redirect to={dashboardPath} />}
       </Route>
 
       {/* ── Role-specific dashboards ──────────────────────────────── */}

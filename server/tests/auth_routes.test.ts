@@ -131,6 +131,7 @@ describe("custom auth routes", () => {
       role: "owner",
     });
     expect(res.body.workspaceRole).toBe("owner");
+    expect(typeof res.body.token).toBe("string");
   });
 
   it("rejects public student registration", async () => {
@@ -167,6 +168,7 @@ describe("custom auth routes", () => {
     expect(res.status).toBe(200);
     expect(pgSetUserLastLogin).toHaveBeenCalledWith(2);
     expect(res.body.user.email).toBe("member@example.com");
+    expect(typeof res.body.token).toBe("string");
   });
 
   it("rejects bad local credentials", async () => {
@@ -182,6 +184,22 @@ describe("custom auth routes", () => {
     process.env.ENABLE_FIREBASE_AUTH_COMPAT = "false";
     const res = await request(app).post("/api/auth/firebase").send({ idToken: "token" });
     expect(res.status).toBe(410);
+    delete process.env.ENABLE_FIREBASE_AUTH_COMPAT;
+  });
+
+  it("exposes auth capability flags via /config", async () => {
+    const res = await request(app).get("/api/auth/config");
+    expect(res.status).toBe(200);
+    // In test env NODE_ENV != "production", so local password is enabled by default.
+    expect(res.body.localPasswordAuthEnabled).toBe(true);
+    expect(res.body.firebaseExchangeEnabled).toBe(true);
+  });
+
+  it("/config reflects ENABLE_FIREBASE_AUTH_COMPAT=false", async () => {
+    process.env.ENABLE_FIREBASE_AUTH_COMPAT = "false";
+    const res = await request(app).get("/api/auth/config");
+    expect(res.status).toBe(200);
+    expect(res.body.firebaseExchangeEnabled).toBe(false);
     delete process.env.ENABLE_FIREBASE_AUTH_COMPAT;
   });
 

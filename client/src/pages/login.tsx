@@ -6,18 +6,20 @@ import { FirebaseAuthDialog } from "@/components/auth/firebase-auth-dialog";
 export default function LoginPage() {
   const {
     currentUser: { profile },
+    isLoading,
   } = useFirebaseAuth();
   const [, setLocation] = useLocation();
 
   // Already logged in — go to dashboard (or verify-email if not yet verified)
   useEffect(() => {
+    if (isLoading) return;
     if (!profile) return;
     if (profile.emailVerified === false) {
       setLocation("/verify-email");
     } else {
       setLocation("/dashboard");
     }
-  }, [profile, setLocation]);
+  }, [profile, setLocation, isLoading]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">

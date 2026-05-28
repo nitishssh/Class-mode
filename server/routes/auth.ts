@@ -330,6 +330,15 @@ async function findOtpByTokenHash(hash: string, type: "registration" | "password
   return rows[0] ?? null;
 }
 
+// Public auth-capability flags so the client can decide whether to attempt
+// Firebase first, fall back to local password, etc. Safe to expose.
+router.get("/config", (_req: Request, res: Response) => {
+  res.status(200).json({
+    localPasswordAuthEnabled: isLocalPasswordAuthEnabled(),
+    firebaseExchangeEnabled: process.env.ENABLE_FIREBASE_AUTH_COMPAT !== "false",
+  });
+});
+
 const signupSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
@@ -402,7 +411,7 @@ router.post("/signup", signupLimiter, async (req: Request, res: Response) => {
     });
 
     const verifyToken = await createVerificationToken(user.id);
-    await createLoginSession(req, res, user.id);
+    const { accessToken } = await createLoginSession(req, res, user.id);
 
     sendEmailVerification(user.email, user.displayName || user.name, verifyToken).catch((e) =>
       logger.warn("[auth/signup] Failed to send verification email", { error: String(e) })
@@ -418,7 +427,7 @@ router.post("/signup", signupLimiter, async (req: Request, res: Response) => {
       payload: { provider: "local", workspaceId: workspace.id, workspaceRole: "owner" },
     });
 
-    return res.status(201).json(await currentAuthPayload(user.id));
+    return res.status(201).json({ token: accessToken, ...(await currentAuthPayload(user.id)) });
   } catch (err) {
     logger.error("[auth/signup] Error", { error: String(err) });
     if (workspaceId !== null) {
@@ -490,7 +499,7 @@ router.post("/login", loginLimiter, async (req: Request, res: Response) => {
       return res.status(403).json({ message: "Account is not active" });
     }
 
-    await createLoginSession(req, res, user.id);
+    const { accessToken } = await createLoginSession(req, res, user.id);
     await pgSetUserLastLogin(user.id);
     recordAuditEvent({
       actorUserId: user.id,
@@ -498,7 +507,7 @@ router.post("/login", loginLimiter, async (req: Request, res: Response) => {
       eventType: AUDIT_EVENTS.USER_LOGIN,
       payload: { ip: req.ip, ua: req.headers["user-agent"] },
     });
-    return res.status(200).json(await currentAuthPayload(user.id));
+    return res.status(200).json({ token: accessToken, ...(await currentAuthPayload(user.id)) });
   } catch (err) {
     logger.error("[auth/login] Error", { error: String(err) });
     return res.status(500).json({ message: "Login failed" });
@@ -780,7 +789,7 @@ async function acceptWorkspaceInvite(req: Request, res: Response) {
     role: invite.role,
   });
   await pgAcceptWorkspaceInvite(invite.id);
-  await createLoginSession(req, res, user.id);
+  const { accessToken } = await createLoginSession(req, res, user.id);
 
   recordAuditEvent({
     targetUserId: user.id,
@@ -788,7 +797,7 @@ async function acceptWorkspaceInvite(req: Request, res: Response) {
     payload: { workspaceId: invite.workspaceId, kind: invite.kind, workspaceRole: invite.role },
   });
 
-  return res.status(201).json(await currentAuthPayload(user.id));
+  return res.status(201).json({ token: accessToken, ...(await currentAuthPayload(user.id)) });
 }
 
 router.post("/invites/:token/accept", (req, res) => {

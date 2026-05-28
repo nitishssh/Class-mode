@@ -165,9 +165,36 @@ async function localPasswordSignup(args: {
   return profileFromMe(data);
 }
 
+interface AuthServerConfig {
+  localPasswordAuthEnabled: boolean;
+  firebaseExchangeEnabled: boolean;
+}
+
+const DEFAULT_AUTH_CONFIG: AuthServerConfig = {
+  // Conservative default: assume disabled until the server says otherwise,
+  // so we don't probe a disabled endpoint on every Firebase failure.
+  localPasswordAuthEnabled: false,
+  firebaseExchangeEnabled: true,
+};
+
+async function fetchAuthConfig(): Promise<AuthServerConfig> {
+  try {
+    const res = await fetch("/api/auth/config", { credentials: "include" });
+    if (!res.ok) return DEFAULT_AUTH_CONFIG;
+    const data = await res.json();
+    return {
+      localPasswordAuthEnabled: !!data.localPasswordAuthEnabled,
+      firebaseExchangeEnabled: data.firebaseExchangeEnabled !== false,
+    };
+  } catch {
+    return DEFAULT_AUTH_CONFIG;
+  }
+}
+
 export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<AuthUser>({ user: null, profile: null });
   const [isLoading, setIsLoading] = useState(true);
+  const [authConfig, setAuthConfig] = useState<AuthServerConfig>(DEFAULT_AUTH_CONFIG);
   const { toast } = useToast();
 
   const refreshSession = async () => {
@@ -198,7 +225,10 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   useEffect(() => {
-    refreshSession().finally(() => setIsLoading(false));
+    Promise.all([
+      fetchAuthConfig().then(setAuthConfig),
+      refreshSession(),
+    ]).finally(() => setIsLoading(false));
   }, []);
 
   const login = async (email: string, password: string): Promise<UserProfile> => {
@@ -210,7 +240,7 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         const idToken = await firebaseUser.getIdToken();
         profile = await exchangeFirebaseToken(idToken);
       } catch (error) {
-        if (!import.meta.env.DEV) throw error;
+        if (!authConfig.localPasswordAuthEnabled) throw error;
         profile = await localPasswordLogin(email, password);
       }
       setCurrentUser({ user: runtimeUserFromProfile(profile), profile });
@@ -246,7 +276,7 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         const idToken = await firebaseUser.getIdToken();
         profile = await exchangeFirebaseToken(idToken, { workspaceName });
       } catch (error) {
-        if (!import.meta.env.DEV) throw error;
+        if (!authConfig.localPasswordAuthEnabled) throw error;
         profile = await localPasswordSignup({ email, password, name, workspaceName });
       }
       setCurrentUser({ user: runtimeUserFromProfile(profile), profile });
