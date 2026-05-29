@@ -572,3 +572,68 @@ CREATE TABLE IF NOT EXISTS workspace_templates (
   type        text         NOT NULL,
   config      jsonb        NOT NULL DEFAULT '{}'
 );
+
+-- ─── No-Code SIS (Airtable/Clay) ─────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS dynamic_bases (
+  id            bigserial    PRIMARY KEY,
+  workspace_id  bigint       NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  name          text         NOT NULL,
+  description   text,
+  icon          text,
+  color         text,
+  created_at    timestamptz  NOT NULL DEFAULT now(),
+  updated_at    timestamptz  NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS dynamic_tables (
+  id          bigserial    PRIMARY KEY,
+  base_id     bigint       NOT NULL REFERENCES dynamic_bases(id) ON DELETE CASCADE,
+  name        text         NOT NULL,
+  description text,
+  icon        text,
+  ord         int          NOT NULL DEFAULT 0,
+  created_at  timestamptz  NOT NULL DEFAULT now(),
+  updated_at  timestamptz  NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS dynamic_fields (
+  id            bigserial    PRIMARY KEY,
+  table_id      bigint       NOT NULL REFERENCES dynamic_tables(id) ON DELETE CASCADE,
+  name          text         NOT NULL,
+  type          text         NOT NULL, -- text, number, date, select, multiselect, checkbox, relation, formula, ai_enrichment, whatsapp_action, api_fetch
+  config        jsonb        NOT NULL DEFAULT '{}',
+  ord           int          NOT NULL DEFAULT 0,
+  is_primary    boolean      NOT NULL DEFAULT false,
+  is_hidden     boolean      NOT NULL DEFAULT false,
+  created_at    timestamptz  NOT NULL DEFAULT now(),
+  updated_at    timestamptz  NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS dynamic_records (
+  id          uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
+  table_id    bigint       NOT NULL REFERENCES dynamic_tables(id) ON DELETE CASCADE,
+  data        jsonb        NOT NULL DEFAULT '{}',
+  created_at  timestamptz  NOT NULL DEFAULT now(),
+  updated_at  timestamptz  NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS dynamic_views (
+  id          bigserial    PRIMARY KEY,
+  table_id    bigint       NOT NULL REFERENCES dynamic_tables(id) ON DELETE CASCADE,
+  name        text         NOT NULL,
+  type        text         NOT NULL DEFAULT 'grid', -- grid, kanban, calendar, gallery
+  config      jsonb        NOT NULL DEFAULT '{}',
+  filter      jsonb        NOT NULL DEFAULT '{}',
+  sort        jsonb        NOT NULL DEFAULT '[]',
+  ord         int          NOT NULL DEFAULT 0,
+  created_at  timestamptz  NOT NULL DEFAULT now()
+);
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_dynamic_bases_workspace ON dynamic_bases(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_dynamic_tables_base     ON dynamic_tables(base_id);
+CREATE INDEX IF NOT EXISTS idx_dynamic_fields_table    ON dynamic_fields(table_id, ord);
+CREATE INDEX IF NOT EXISTS idx_dynamic_records_table   ON dynamic_records(table_id);
+CREATE INDEX IF NOT EXISTS idx_dynamic_records_data    ON dynamic_records USING GIN(data);
+CREATE INDEX IF NOT EXISTS idx_dynamic_views_table     ON dynamic_views(table_id);

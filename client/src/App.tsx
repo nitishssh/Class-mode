@@ -34,6 +34,8 @@ import Settings from "@/pages/settings";
 import AiStudyPlans from "./pages/ai-study-plans";
 import Focus from "@/pages/focus";
 import AIClassroom from "@/pages/ai-classroom";
+import DynamicSIS from "@/pages/dynamic-sis";
+import DynamicSISBase from "@/pages/dynamic-sis-base";
 import EducatorGrading from "@/pages/educator/grading";
 import EducatorStudents from "@/pages/educator/students";
 import StudyArena from "@/pages/study-arena";
@@ -50,7 +52,11 @@ import InviteTeachers from "@/pages/onboarding/invite-teachers";
 import TeacherClassSetup from "@/pages/onboarding/teacher-class-setup";
 import InviteStudents from "@/pages/onboarding/invite-students";
 import GoogleClassroomIntegration from "@/pages/integrations/google-classroom";
+import WorkspaceSettings from "@/pages/workspace/settings";
+import WorkspaceCreate from "@/pages/workspace/create";
+import JoinWorkspace from "@/pages/workspace/join";
 import { useOnboardingGuard } from "@/hooks/use-onboarding-guard";
+import { WorkspaceProvider } from "@/contexts/workspace-context";
 
 function Layout({
   children,
@@ -172,6 +178,8 @@ const MyProgressRoute = withLayout(protect(MyProgress, ["student", "parent"]), {
 const SettingsRoute = withLayout(protect(Settings));
 const AiStudyPlansRoute = withLayout(protect(AiStudyPlans, ["student"]));
 const AIClassroomRoute = withLayout(protect(AIClassroom, ["student", "teacher"]));
+const DynamicSISRoute = withLayout(protect(DynamicSIS, ["admin", "school_admin", "principal", "teacher"]));
+const DynamicSISBaseRoute = withLayout(protect(DynamicSISBase, ["admin", "school_admin", "principal", "teacher"]), { fullWidth: true });
 const OnboardingSchoolRoute = withLayout(protect(SchoolSetup, ["school_admin"]));
 const OnboardingInvTeachRoute = withLayout(protect(InviteTeachers, ["school_admin"]));
 const OnboardingTeacherRoute = withLayout(protect(TeacherClassSetup, ["teacher"]));
@@ -179,9 +187,14 @@ const OnboardingInvStdRoute = withLayout(protect(InviteStudents, ["teacher"]));
 const GoogleClassroomRoute = withLayout(
   protect(GoogleClassroomIntegration, ["teacher", "school_admin", "admin", "principal"])
 );
+const WorkspaceSettingsRoute = withLayout(protect(WorkspaceSettings));
+const WorkspaceCreateRoute = withLayout(protect(WorkspaceCreate));
+// Join is public-ish — unauthenticated users are redirected to login by protect(), then back
+const JoinWorkspaceRoute = withLayout(protect(JoinWorkspace));
 
 function getDashboardPath(role: string): string {
-  switch (role) {
+  const r = (role || "").toLowerCase();
+  switch (r) {
     case "principal":
       return "/principal-dashboard";
     case "school_admin":
@@ -267,21 +280,19 @@ function App() {
     );
   }
 
-  const dashboardPath = profile
-    ? getDashboardPath(profile.role)
-    : "/login";
-
   return (
     <Switch>
       {/* ── Public routes — no auth required ─────────────────────── */}
-      <Route path="/" component={Landing} />
+      <Route path="/">
+        {profile ? <Redirect to="/dashboard" /> : <Landing />}
+      </Route>
 
       {/* /login: show login page; if already authenticated go to dashboard (or verify-email if unverified) */}
       <Route path="/login">
         {profile
           ? profile.emailVerified === false
             ? <Redirect to="/verify-email" />
-            : <Redirect to={dashboardPath} />
+            : <Redirect to={getDashboardPath(profile.role)} />
           : <LoginPage />}
       </Route>
 
@@ -300,7 +311,7 @@ function App() {
           ? <Redirect to="/login" />
           : profile.emailVerified === false
             ? <Redirect to="/verify-email" />
-            : <Redirect to={dashboardPath} />}
+            : <Redirect to={getDashboardPath(profile.role)} />}
       </Route>
 
       {/* ── Role-specific dashboards ──────────────────────────────── */}
@@ -335,12 +346,19 @@ function App() {
       <Route path="/settings" component={SettingsRoute} />
       <Route path="/ai-study-plans" component={AiStudyPlansRoute} />
       <Route path="/ai-classroom" component={AIClassroomRoute} />
+      <Route path="/dynamic-sis" component={DynamicSISRoute} />
+      <Route path="/dynamic-sis/base/:id" component={DynamicSISBaseRoute} />
 
       {/* ── Onboarding flows ──────────────────────────────────────── */}
       <Route path="/onboarding/school" component={OnboardingSchoolRoute} />
       <Route path="/onboarding/invite-teachers" component={OnboardingInvTeachRoute} />
       <Route path="/onboarding/teacher" component={OnboardingTeacherRoute} />
       <Route path="/onboarding/invite-students" component={OnboardingInvStdRoute} />
+
+      {/* ── Workspace routes ─────────────────────────────────────── */}
+      <Route path="/workspace/new" component={WorkspaceCreateRoute} />
+      <Route path="/workspace/join/:token" component={JoinWorkspaceRoute} />
+      <Route path="/workspace/:id/settings" component={WorkspaceSettingsRoute} />
 
       {/* ── Integrations ─────────────────────────────────────────── */}
       <Route path="/integrations/google-classroom" component={GoogleClassroomRoute} />
@@ -355,10 +373,12 @@ export default function Root() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="system">
         <FirebaseAuthProvider>
-          <I18nProvider>
-            <App />
-            <Toaster />
-          </I18nProvider>
+          <WorkspaceProvider>
+            <I18nProvider>
+              <App />
+              <Toaster />
+            </I18nProvider>
+          </WorkspaceProvider>
         </FirebaseAuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

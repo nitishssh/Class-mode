@@ -26,6 +26,7 @@ import {
   UserCog,
   CalendarDays,
   Award,
+  Database,
   ChevronLeft,
   ChevronRight,
   ClipboardCheck,
@@ -83,6 +84,7 @@ export function Sidebar({ className }: SidebarProps) {
     },
     { title: "Analytics", href: "/analytics", icon: <BarChart className="h-5 w-5" /> },
     { title: "Live Classes", href: "/live-classes", icon: <Video className="h-5 w-5" /> },
+    { title: "No-Code SIS", href: "/dynamic-sis", icon: <Database className="h-5 w-5" /> },
     { title: "Calendar", href: "/calendar", icon: <CalendarDays className="h-5 w-5" /> },
     { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
     {
@@ -118,6 +120,7 @@ export function Sidebar({ className }: SidebarProps) {
       icon: <GraduationCap className="h-5 w-5" />,
     },
     { title: "Analytics", href: "/analytics", icon: <BarChart className="h-5 w-5" /> },
+    { title: "No-Code SIS", href: "/dynamic-sis", icon: <Database className="h-5 w-5" /> },
     { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
     {
       title: "Staff Management",
@@ -142,6 +145,7 @@ export function Sidebar({ className }: SidebarProps) {
       icon: <GraduationCap className="h-5 w-5" />,
     },
     { title: "Analytics", href: "/analytics", icon: <BarChart className="h-5 w-5" /> },
+    { title: "No-Code SIS", href: "/dynamic-sis", icon: <Database className="h-5 w-5" /> },
     { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
     {
       title: "User Management",
@@ -175,6 +179,7 @@ export function Sidebar({ className }: SidebarProps) {
       icon: <GraduationCap className="h-5 w-5" />,
     },
     { title: "Analytics", href: "/analytics", icon: <BarChart className="h-5 w-5" /> },
+    { title: "No-Code SIS", href: "/dynamic-sis", icon: <Database className="h-5 w-5" /> },
     { title: "Live Classes", href: "/live-classes", icon: <Video className="h-5 w-5" /> },
     { title: "AI Classroom", href: "/ai-classroom", icon: <Sparkles className="h-5 w-5" /> },
     { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },

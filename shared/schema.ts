@@ -277,3 +277,94 @@ export const insertAIClassroomSchema = z.object({
 });
 export type InsertAIClassroom = z.infer<typeof insertAIClassroomSchema>;
 export type AIClassroom = InsertAIClassroom & { id: number; createdAt: Date };
+
+// ─── No-Code SIS (Airtable/Clay) Schemas ─────────────────────────────────────
+
+export const dynamicFieldTypeSchema = z.enum([
+  "text",
+  "number",
+  "date",
+  "select",
+  "multiselect",
+  "checkbox",
+  "relation",
+  "formula",
+  "ai_enrichment",
+  "whatsapp_action",
+  "api_fetch",
+]);
+
+export const insertDynamicBaseSchema = z.object({
+  workspaceId: z.number(),
+  name: z.string().min(1),
+  description: z.string().optional().nullable(),
+  icon: z.string().optional().nullable(),
+  color: z.string().optional().nullable(),
+});
+
+export const insertDynamicTableSchema = z.object({
+  baseId: z.number(),
+  name: z.string().min(1),
+  description: z.string().optional().nullable(),
+  icon: z.string().optional().nullable(),
+  ord: z.number().default(0),
+});
+
+export const insertDynamicFieldSchema = z.object({
+  tableId: z.number(),
+  name: z.string().min(1),
+  type: dynamicFieldTypeSchema,
+  config: z.record(z.any()).default({}),
+  ord: z.number().default(0),
+  isPrimary: z.boolean().default(false),
+  isHidden: z.boolean().default(false),
+});
+
+export const insertDynamicRecordSchema = z.object({
+  tableId: z.number(),
+  data: z.record(z.any()).default({}),
+});
+
+export const insertDynamicViewSchema = z.object({
+  tableId: z.number(),
+  name: z.string().min(1),
+  type: z.enum(["grid", "kanban", "calendar", "gallery"]).default("grid"),
+  config: z.record(z.any()).default({}),
+  filter: z.record(z.any()).default({}),
+  sort: z.array(z.any()).default([]),
+  ord: z.number().default(0),
+});
+
+export type DynamicBase = z.infer<typeof insertDynamicBaseSchema> & {
+  id: number;
+  createdAt: Date;
+  updatedAt: Date;
+};
+export type InsertDynamicBase = z.infer<typeof insertDynamicBaseSchema>;
+
+export type DynamicTable = z.infer<typeof insertDynamicTableSchema> & {
+  id: number;
+  createdAt: Date;
+  updatedAt: Date;
+};
+export type InsertDynamicTable = z.infer<typeof insertDynamicTableSchema>;
+
+export type DynamicField = z.infer<typeof insertDynamicFieldSchema> & {
+  id: number;
+  createdAt: Date;
+  updatedAt: Date;
+};
+export type InsertDynamicField = z.infer<typeof insertDynamicFieldSchema>;
+
+export type DynamicRecord = z.infer<typeof insertDynamicRecordSchema> & {
+  id: string; // UUID
+  createdAt: Date;
+  updatedAt: Date;
+};
+export type InsertDynamicRecord = z.infer<typeof insertDynamicRecordSchema>;
+
+export type DynamicView = z.infer<typeof insertDynamicViewSchema> & {
+  id: number;
+  createdAt: Date;
+};
+export type InsertDynamicView = z.infer<typeof insertDynamicViewSchema>;

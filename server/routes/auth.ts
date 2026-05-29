@@ -247,6 +247,8 @@ function createDevUser(data: {
     slug: slugifyWorkspaceName(data.workspaceName),
     type: "business",
     description: null,
+    iconUrl: null,
+    settings: {},
     ownerId: id,
     members: [id],
     createdAt: now,

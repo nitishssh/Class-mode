@@ -88,64 +88,27 @@ jobs:
     needs: build-and-push-image
     runs-on: ubuntu-latest
     environment: production
-    if: ${{ false }}
     permissions:
       id-token: write
       contents: read
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
       - name: Authenticate to Google Cloud (Workload Identity — no static keys)
         uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
-      - name: Push image to Artifact Registry
+      - name: Set up gcloud CLI
+        uses: google-github-actions/setup-gcloud@6189d56e4096ee891640bb02ac264be376592d6a # v2
+
+      - name: Submit build and deploy via Cloud Build
         run: |
-          gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
-          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main
-          docker tag \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main \
-            ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.GCP_REPO }}/${{ env.GCP_SERVICE }}:${{ needs.build-and-push-image.outputs.image-tag }}
-          docker push \
-            ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.GCP_REPO }}/${{ env.GCP_SERVICE }}:${{ needs.build-and-push-image.outputs.image-tag }}
-
-      - name: Deploy to Cloud Run
-        uses: google-github-actions/deploy-cloudrun@2028e2d7d30a78c6910e0632e48dd561b064884d # v3
-        with:
-          service: ${{ env.GCP_SERVICE }}
-          region: ${{ env.GCP_REGION }}
-          image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.GCP_REPO }}/${{ env.GCP_SERVICE }}:${{ needs.build-and-push-image.outputs.image-tag }}
-
-  deploy-staging:
-    needs: build-and-push-image
-    runs-on: ubuntu-latest
-    environment: staging
-    if: ${{ false }}
-    permissions:
-      packages: read
-
-    steps:
-      - name: Check staging secrets
-        id: check
-        env:
-          STAGING_HOST: ${{ secrets.STAGING_HOST }}
-        run: |
-          if [ -n "$STAGING_HOST" ]; then
-            echo "has_secrets=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_secrets=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Deploy to staging server
-        if: steps.check.outputs.has_secrets == 'true'
-        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
-        with:
-          host: ${{ secrets.STAGING_HOST }}
-          username: ${{ secrets.STAGING_USER }}
-          key: ${{ secrets.STAGING_SSH_KEY }}
-          script: |
-            echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            docker pull ghcr.io/${{ github.repository }}/personallearningpro:main
-            docker compose -f docker-compose.staging.yml up -d --remove-orphans
-            docker image prune -f
+          gcloud builds submit \
+            --config cloudbuild.yaml \
+            --substitutions=_TAG=${{ github.sha }} \
+            --project=${{ secrets.GCP_PROJECT_ID }} \
+            --async
