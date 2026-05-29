@@ -65,7 +65,9 @@
       "Bash(Select-String -Pattern *)",
       "Bash(Select-Object LineNumber, Line)",
       "Bash(Format-Table -AutoSize)",
-      "Bash(npm uninstall *)"
+      "Bash(npm uninstall *)",
+      "Bash(xargs kill *)",
+      "Bash(echo \" PID: $!\" sleep 7 curl -s -o /dev/null -w \" /api/health HTTP %{http_code}\\\\n\" http://localhost:5001/api/health)"
     ]
   }
 }

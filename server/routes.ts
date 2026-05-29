@@ -45,6 +45,7 @@ import billingRoutes from "./routes/billing";
 import gdprRoutes from "./routes/gdpr";
 import lmsRoutes from "./routes/lms";
 import onboardingRouter from "./routes/onboarding";
+import workspaceRouter from "./routes/workspace";
 import { requireVerifiedEmail } from "./middleware";
 
 // Shorthand: auth + verified email — used on all dashboard-level routes
@@ -227,6 +228,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount LMS routes (Google Classroom, Canvas)
   app.use("/api/lms", ...verifiedAuth, lmsRoutes);
+
+  // Mount Workspace v2 routes
+  app.use("/api", workspaceRouter);
 
   // Mount GDPR routes (export, delete)
   app.use("/api/gdpr", gdprRoutes);

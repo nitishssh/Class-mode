@@ -7,7 +7,63 @@ export const REFRESH_COOKIE = "refresh_token";
 export const ACCESS_TOKEN_TTL_MS = 15 * 60 * 1000;
 export const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
-export type WorkspaceRole = "owner" | "admin" | "member";
+export type WorkspaceRole =
+  | "owner"
+  | "admin"
+  | "co-teacher"
+  | "teaching-assistant"
+  | "member"
+  | "auditor";
+
+export type WorkspacePermission =
+  | "workspace:read"
+  | "workspace:update"
+  | "workspace:billing"
+  | "workspace:invite"
+  | "workspace:members:manage"
+  | "workspace:members:remove"
+  | "workspace:delete"
+  | "curriculum:create"
+  | "curriculum:grade"
+  | "class:start"
+  | "analytics:view";
+
+const ROLE_PERMISSIONS: Record<WorkspaceRole, WorkspacePermission[]> = {
+  owner: [
+    "workspace:read",
+    "workspace:update",
+    "workspace:billing",
+    "workspace:invite",
+    "workspace:members:manage",
+    "workspace:members:remove",
+    "workspace:delete",
+    "curriculum:create",
+    "curriculum:grade",
+    "class:start",
+    "analytics:view",
+  ],
+  admin: [
+    "workspace:read",
+    "workspace:update",
+    "workspace:invite",
+    "workspace:members:manage",
+    "workspace:members:remove",
+    "curriculum:create",
+    "curriculum:grade",
+    "class:start",
+    "analytics:view",
+  ],
+  "co-teacher": [
+    "workspace:read",
+    "workspace:invite",
+    "curriculum:create",
+    "curriculum:grade",
+    "class:start",
+  ],
+  "teaching-assistant": ["workspace:read", "curriculum:grade", "analytics:view"],
+  member: ["workspace:read"],
+  auditor: ["workspace:read", "analytics:view"],
+};
 
 export const ACCESS_COOKIE_OPTS = {
   httpOnly: true,
@@ -42,20 +98,16 @@ export function slugifyWorkspaceName(name: string): string {
 }
 
 export function permissionsForWorkspaceRole(role?: WorkspaceRole | null): string[] {
-  if (role === "owner") {
-    return [
-      "workspace:read",
-      "workspace:update",
-      "workspace:billing",
-      "workspace:invite",
-      "workspace:members:manage",
-    ];
-  }
-  if (role === "admin") {
-    return ["workspace:read", "workspace:update", "workspace:invite", "workspace:members:manage"];
-  }
-  if (role === "member") return ["workspace:read"];
-  return [];
+  if (!role) return [];
+  return ROLE_PERMISSIONS[role] ?? [];
+}
+
+export function hasWorkspacePermission(
+  role: WorkspaceRole | null | undefined,
+  permission: WorkspacePermission
+): boolean {
+  if (!role) return false;
+  return (ROLE_PERMISSIONS[role] ?? []).includes(permission);
 }
 
 export function authMePayload(args: {

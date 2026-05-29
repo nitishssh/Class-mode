@@ -106,6 +106,8 @@ export interface PgWorkspace {
   slug: string | null;
   type: string;
   description: string | null;
+  iconUrl: string | null;
+  settings: Record<string, any>;
   ownerId: number;
   members: number[];
   createdAt: Date;
@@ -115,7 +117,7 @@ export interface PgWorkspaceMembership {
   id: number;
   workspaceId: number;
   userId: number;
-  role: "owner" | "admin" | "member";
+  role: "owner" | "admin" | "co-teacher" | "teaching-assistant" | "member" | "auditor";
   status: string;
   createdAt: Date;
 }
@@ -125,7 +127,7 @@ export interface PgWorkspaceInvite {
   workspaceId: number;
   email: string;
   name: string | null;
-  role: "admin" | "member";
+  role: "admin" | "co-teacher" | "teaching-assistant" | "member" | "auditor";
   kind: "business_member" | "student";
   tokenHash: string;
   status: string;
@@ -275,6 +277,8 @@ function mapWorkspace(r: any): PgWorkspace {
     slug: r.slug ?? null,
     type: r.type ?? "business",
     description: r.description ?? null,
+    iconUrl: r.icon_url ?? null,
+    settings: r.settings ?? {},
     ownerId: n(r.owner_id)!,
     members: (r.members ?? []).map(Number),
     createdAt: r.created_at,
@@ -532,6 +536,7 @@ export async function pgUpdateUser(id: number, data: Record<string, any>): Promi
       passwordHash: "password_hash",
       name: "name",
       username: "username",
+      lastActiveWorkspaceId: "last_active_workspace_id",
     };
     const sets: string[] = [];
     const params: any[] = [];
@@ -960,7 +965,7 @@ export async function pgFindWorkspaceBySlug(slug: string): Promise<PgWorkspace |
 export async function pgUpsertWorkspaceMembership(data: {
   workspaceId: number;
   userId: number;
-  role: "owner" | "admin" | "member";
+  role: "owner" | "admin" | "co-teacher" | "teaching-assistant" | "member" | "auditor";
   status?: string;
 }): Promise<PgWorkspaceMembership> {
   const { rows } = await getPgPool().query(
@@ -1035,7 +1040,7 @@ export async function pgCreateWorkspaceInvite(data: {
   workspaceId: number;
   email: string;
   name?: string | null;
-  role: "admin" | "member";
+  role: "admin" | "co-teacher" | "teaching-assistant" | "member" | "auditor";
   kind: "business_member" | "student";
   tokenHash: string;
   invitedBy?: number | null;
@@ -1083,6 +1088,200 @@ export async function pgAcceptWorkspaceInvite(id: number): Promise<void> {
     "UPDATE workspace_invites SET status = 'accepted', accepted_at = now() WHERE id = $1",
     [id]
   );
+}
+
+// ─── Workspace v2 queries ─────────────────────────────────────────────────────
+
+export async function pgListUserWorkspaces(userId: number): Promise<
+  Array<{
+    workspace: PgWorkspace;
+    membership: PgWorkspaceMembership;
+  }>
+> {
+  if (!isPgReady()) return [];
+  try {
+    const { rows } = await getPgPool().query(
+      `SELECT w.*, wm.id AS membership_id, wm.role AS membership_role,
+              wm.status AS membership_status, wm.created_at AS membership_created_at
+       FROM workspace_memberships wm
+       JOIN workspaces w ON w.id = wm.workspace_id
+       WHERE wm.user_id = $1 AND wm.status = 'active'
+       ORDER BY wm.created_at`,
+      [userId]
+    );
+    return rows.map((r) => ({
+      workspace: mapWorkspace(r),
+      membership: mapWorkspaceMembership({
+        id: r.membership_id,
+        workspace_id: r.id,
+        user_id: userId,
+        role: r.membership_role,
+        status: r.membership_status,
+        created_at: r.membership_created_at,
+      }),
+    }));
+  } catch (err) {
+    logger.error("[pg] pgListUserWorkspaces failed", { err: String(err) });
+    return [];
+  }
+}
+
+export async function pgListWorkspaceMembers(workspaceId: number): Promise<
+  Array<{
+    user: Pick<PgUser, "id" | "email" | "displayName" | "name" | "avatar" | "role">;
+    membership: PgWorkspaceMembership;
+  }>
+> {
+  if (!isPgReady()) return [];
+  try {
+    const { rows } = await getPgPool().query(
+      `SELECT u.id, u.email, u.display_name, u.name, u.avatar, u.role AS user_role,
+              wm.id AS membership_id, wm.workspace_id, wm.user_id, wm.role AS membership_role,
+              wm.status, wm.created_at
+       FROM workspace_memberships wm
+       JOIN users u ON u.id = wm.user_id
+       WHERE wm.workspace_id = $1
+       ORDER BY CASE wm.role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 ELSE 2 END, wm.created_at`,
+      [workspaceId]
+    );
+    return rows.map((r) => ({
+      user: {
+        id: n(r.id)!,
+        email: r.email,
+        displayName: r.display_name ?? null,
+        name: r.name ?? "",
+        avatar: r.avatar ?? null,
+        role: r.user_role,
+      },
+      membership: mapWorkspaceMembership({
+        id: r.membership_id,
+        workspace_id: r.workspace_id,
+        user_id: r.user_id,
+        role: r.membership_role,
+        status: r.status,
+        created_at: r.created_at,
+      }),
+    }));
+  } catch (err) {
+    logger.error("[pg] pgListWorkspaceMembers failed", { err: String(err) });
+    return [];
+  }
+}
+
+export async function pgListWorkspaceInvites(workspaceId: number): Promise<any[]> {
+  if (!isPgReady()) return [];
+  try {
+    const { rows } = await getPgPool().query(
+      `SELECT wi.*, u.email AS inviter_email, u.name AS inviter_name
+       FROM workspace_invites wi
+       LEFT JOIN users u ON u.id = wi.invited_by
+       WHERE wi.workspace_id = $1 AND wi.status = 'pending'
+       ORDER BY wi.created_at DESC`,
+      [workspaceId]
+    );
+    return rows.map((r) => ({
+      id: n(r.id)!,
+      workspaceId: n(r.workspace_id)!,
+      email: r.email,
+      name: r.name ?? null,
+      role: r.role,
+      kind: r.kind,
+      status: r.status,
+      invitedBy: r.invited_by ? { id: n(r.invited_by), email: r.inviter_email, name: r.inviter_name } : null,
+      expiresAt: r.expires_at,
+      createdAt: r.created_at,
+    }));
+  } catch (err) {
+    logger.error("[pg] pgListWorkspaceInvites failed", { err: String(err) });
+    return [];
+  }
+}
+
+export async function pgRevokeWorkspaceInvite(inviteId: number, workspaceId: number): Promise<void> {
+  if (!isPgReady()) return;
+  try {
+    await getPgPool().query(
+      "UPDATE workspace_invites SET status = 'revoked' WHERE id = $1 AND workspace_id = $2",
+      [inviteId, workspaceId]
+    );
+  } catch (err) {
+    logger.error("[pg] pgRevokeWorkspaceInvite failed", { err: String(err) });
+  }
+}
+
+export async function pgDeleteWorkspace(id: number): Promise<void> {
+  if (!isPgReady()) return;
+  try {
+    await getPgPool().query("DELETE FROM workspaces WHERE id = $1", [id]);
+  } catch (err) {
+    logger.error("[pg] pgDeleteWorkspace failed", { err: String(err) });
+    throw err;
+  }
+}
+
+export async function pgUpdateWorkspace(
+  id: number,
+  data: { name?: string; description?: string; iconUrl?: string; settings?: Record<string, any> }
+): Promise<PgWorkspace | null> {
+  if (!isPgReady()) return null;
+  try {
+    const columnMap: Record<string, string> = {
+      name: "name",
+      description: "description",
+      iconUrl: "icon_url",
+      settings: "settings",
+    };
+    const sets: string[] = [];
+    const params: any[] = [];
+    let i = 1;
+    for (const [k, col] of Object.entries(columnMap)) {
+      if (k in data) {
+        sets.push(`${col} = $${i++}`);
+        const val = (data as any)[k];
+        params.push(k === "settings" ? JSON.stringify(val) : val);
+      }
+    }
+    if (!sets.length) return pgFindWorkspaceById(id);
+    params.push(id);
+    const { rows } = await getPgPool().query(
+      `UPDATE workspaces SET ${sets.join(", ")} WHERE id = $${i} RETURNING *`,
+      params
+    );
+    return rows[0] ? mapWorkspace(rows[0]) : null;
+  } catch (err) {
+    logger.error("[pg] pgUpdateWorkspace failed", { err: String(err) });
+    return null;
+  }
+}
+
+export async function pgGetWorkspaceOnboardingProgress(workspaceId: number): Promise<{
+  hasMembers: boolean;
+  hasChannels: boolean;
+  hasClasses: boolean;
+}> {
+  if (!isPgReady()) return { hasMembers: false, hasChannels: false, hasClasses: false };
+  try {
+    const pool = getPgPool();
+    const [membersRes, channelsRes, classesRes] = await Promise.all([
+      pool.query(
+        "SELECT COUNT(*) FROM workspace_memberships WHERE workspace_id = $1 AND status = 'active'",
+        [workspaceId]
+      ),
+      pool.query("SELECT COUNT(*) FROM channels WHERE workspace_id = $1", [workspaceId]),
+      pool.query("SELECT COUNT(*) FROM live_classes WHERE workspace_id = $1", [workspaceId]),
+    ]);
+    const memberCount = parseInt(membersRes.rows[0].count, 10);
+    const channelCount = parseInt(channelsRes.rows[0].count, 10);
+    const classCount = parseInt(classesRes.rows[0].count, 10);
+    return {
+      hasMembers: memberCount > 1,
+      hasChannels: channelCount > 0,
+      hasClasses: classCount > 0,
+    };
+  } catch (err) {
+    logger.error("[pg] pgGetWorkspaceOnboardingProgress failed", { err: String(err) });
+    return { hasMembers: false, hasChannels: false, hasClasses: false };
+  }
 }
 
 // ─── GradingResult queries ────────────────────────────────────────────────────

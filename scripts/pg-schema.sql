@@ -548,3 +548,27 @@ CREATE INDEX IF NOT EXISTS idx_lms_user            ON lms_connections(user_id);
 
 CREATE INDEX IF NOT EXISTS idx_subs_user           ON subscriptions(user_id, status);
 CREATE INDEX IF NOT EXISTS idx_subs_stripe         ON subscriptions(stripe_customer_id);
+
+-- ─── Workspace v2 ──────────────────────────────────────────────────────────────
+ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS icon_url text;
+ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS settings jsonb NOT NULL DEFAULT '{}';
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_workspace_id bigint REFERENCES workspaces(id) ON DELETE SET NULL;
+
+-- Expand membership roles to include edtech-specific roles
+ALTER TABLE workspace_memberships DROP CONSTRAINT IF EXISTS workspace_memberships_role_check;
+ALTER TABLE workspace_memberships ADD CONSTRAINT workspace_memberships_role_check
+  CHECK (role IN ('owner','admin','co-teacher','teaching-assistant','member','auditor'));
+
+-- Expand invite roles
+ALTER TABLE workspace_invites DROP CONSTRAINT IF EXISTS workspace_invites_role_check;
+ALTER TABLE workspace_invites ADD CONSTRAINT workspace_invites_role_check
+  CHECK (role IN ('admin','co-teacher','teaching-assistant','member','auditor'));
+
+CREATE TABLE IF NOT EXISTS workspace_templates (
+  id          text         PRIMARY KEY,
+  name        text         NOT NULL,
+  description text,
+  type        text         NOT NULL,
+  config      jsonb        NOT NULL DEFAULT '{}'
+);

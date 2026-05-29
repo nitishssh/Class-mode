@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useFirebaseAuth as useAuth } from "@/contexts/firebase-auth-context";
 import { useTranslation } from "@/lib/i18n";
+import { WorkspaceSwitcher } from "@/components/workspace/workspace-switcher";
 import {
   LayoutDashboard,
   FileQuestion,
@@ -311,8 +312,13 @@ export function Sidebar({ className }: SidebarProps) {
           )}
         </div>
 
+        {/* Workspace switcher */}
+        <div className={cn("px-3", isCollapsed ? "flex justify-center" : "")}>
+          <WorkspaceSwitcher isCollapsed={isCollapsed} />
+        </div>
+
         {/* User info */}
-        <div className={cn("mb-6 mt-2 px-3", isCollapsed && "flex justify-center")}>
+        <div className={cn("mb-4 mt-2 px-3", isCollapsed && "flex justify-center")}>
           {isCollapsed ? (
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-soft text-sm font-semibold text-accent">
               {user?.displayName ? getInitials(user.displayName) : "U"}
