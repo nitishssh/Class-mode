@@ -7,9 +7,19 @@ import {
   insertCompetitionSchema
 } from "@shared/schema";
 
+import { getSocraticNudge } from "../services/nudge";
+
 const router = Router();
 
 // ─── Doubts ──────────────────────────────────────────────────────────────────
+
+router.get("/doubts/nudge", async (req: Request, res: Response) => {
+  const topic = req.query.topic as string;
+  if (!topic) return res.status(400).json({ message: "Topic is required" });
+  
+  const nudge = await getSocraticNudge(topic);
+  res.json({ nudge });
+});
 
 router.post("/doubts", async (req: Request, res: Response) => {
   const user = (req as any).user;

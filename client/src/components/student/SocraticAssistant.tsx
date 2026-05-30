@@ -11,10 +11,21 @@ export function SocraticAssistant() {
   const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showNudge, setShowNudge] = useState(false);
+  const [nudgeText, setNudgeText] = useState("Have you considered the basic principles we covered in the last lesson?");
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (isLoading) {
+    if (isLoading && query) {
+      // Fetch a nudge while waiting
+      fetch(`/api/lifecycle/doubts/nudge?topic=${encodeURIComponent(query)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.nudge) {
+            setNudgeText(data.nudge);
+          }
+        })
+        .catch(console.error);
+
       timerRef.current = setTimeout(() => {
         setShowNudge(true);
       }, 5000);
@@ -23,7 +34,7 @@ export function SocraticAssistant() {
       setShowNudge(false);
     }
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [isLoading]);
+  }, [isLoading, query]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +42,6 @@ export function SocraticAssistant() {
 
     setMessages(prev => [...prev, { role: 'user', content: query }]);
     const currentQuery = query;
-    setQuery("");
     setIsLoading(true);
 
     // AI logic placeholder (will link to real backend later)
@@ -42,7 +52,8 @@ export function SocraticAssistant() {
         content: `Regarding "${currentQuery}": That's a great question. Before I explain, what do you already know about this topic? Thinking about the basics can often lead to the answer.` 
       }]);
       setIsLoading(false);
-    }, 3000); 
+      setQuery("");
+    }, 8000); 
   };
 
   return (
@@ -100,7 +111,7 @@ export function SocraticAssistant() {
                 Assistant is thinking...
                 {showNudge && (
                   <div className="mt-2 text-accent font-bold animate-fade-in">
-                    💡 Nudge: Have you considered the basic principles we covered in the last lesson?
+                    💡 Nudge: {nudgeText}
                   </div>
                 )}
               </div>
