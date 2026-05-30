@@ -30,19 +30,6 @@ steps:
       - "push"
       - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:latest"
 
-  # ─── DB Schema Migration (idempotent — CREATE TABLE IF NOT EXISTS) ──────────
-  - name: "gcr.io/cloud-builders/gcloud"
-    entrypoint: bash
-    args:
-      - "-c"
-      - |
-        apt-get install -y postgresql-client -qq
-        DB_URL=$$(gcloud secrets versions access latest --secret=POSTGRESQL_URL --project=${PROJECT_ID})
-        psql "$$DB_URL" -f scripts/pg-schema.sql
-    volumes:
-      - name: "cloudsql"
-        path: "/cloudsql"
-
   # ─── Deploy to Cloud Run ────────────────────────────────────────────────────
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     entrypoint: gcloud
