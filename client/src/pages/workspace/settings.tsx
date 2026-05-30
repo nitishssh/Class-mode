@@ -57,7 +57,6 @@ import { getInitials } from "@/lib/utils";
 type MemberRole = "owner" | "admin" | "co-teacher" | "teaching-assistant" | "member" | "auditor";
 
 interface WorkspaceMember {
-  id: number;
   userId: number;
   displayName: string;
   email: string;
@@ -70,7 +69,7 @@ interface WorkspaceInvite {
   id: number;
   email: string;
   role: MemberRole;
-  token: string;
+  token?: string;
   expiresAt: string;
   status: "pending" | "accepted" | "revoked" | "expired";
 }
@@ -292,9 +291,9 @@ function MembersTab({ workspaceId }: { workspaceId: number }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaceId]);
 
-  const handleChangeRole = async (memberId: number, newRole: MemberRole) => {
+  const handleChangeRole = async (userId: number, newRole: MemberRole) => {
     try {
-      const res = await fetch(`/api/workspaces/${workspaceId}/members/${memberId}`, {
+      const res = await fetch(`/api/workspaces/${workspaceId}/members/${userId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -302,7 +301,7 @@ function MembersTab({ workspaceId }: { workspaceId: number }) {
       });
       if (!res.ok) throw new Error("Failed to update role");
       setMembers((prev) =>
-        prev.map((m) => (m.id === memberId ? { ...m, role: newRole } : m))
+        prev.map((m) => (m.userId === userId ? { ...m, role: newRole } : m))
       );
       toast({ title: "Role updated" });
     } catch (err) {
@@ -311,14 +310,14 @@ function MembersTab({ workspaceId }: { workspaceId: number }) {
   };
 
   const handleRemove = async (member: WorkspaceMember) => {
-    setRemovingId(member.id);
+    setRemovingId(member.userId);
     try {
-      const res = await fetch(`/api/workspaces/${workspaceId}/members/${member.id}`, {
+      const res = await fetch(`/api/workspaces/${workspaceId}/members/${member.userId}`, {
         method: "DELETE",
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to remove member");
-      setMembers((prev) => prev.filter((m) => m.id !== member.id));
+      setMembers((prev) => prev.filter((m) => m.userId !== member.userId));
       toast({ title: "Member removed", description: `${member.displayName} has been removed.` });
     } catch (err) {
       toast({ title: "Error", description: err instanceof Error ? err.message : "Unknown", variant: "destructive" });
@@ -352,7 +351,7 @@ function MembersTab({ workspaceId }: { workspaceId: number }) {
             )}
             {members.map((member) => (
               <div
-                key={member.id}
+                key={member.userId}
                 className="flex items-center gap-3 px-6 py-3"
               >
                 <Avatar className="h-8 w-8 flex-shrink-0">
@@ -381,7 +380,7 @@ function MembersTab({ workspaceId }: { workspaceId: number }) {
                         (role) => (
                           <DropdownMenuItem
                             key={role}
-                            onSelect={() => handleChangeRole(member.id, role)}
+                            onSelect={() => handleChangeRole(member.userId, role)}
                             className="text-sm"
                           >
                             {member.role === role && <Check className="mr-2 h-3.5 w-3.5" />}
@@ -427,9 +426,9 @@ function MembersTab({ workspaceId }: { workspaceId: number }) {
             <Button
               variant="destructive"
               onClick={() => confirmRemove && handleRemove(confirmRemove)}
-              disabled={removingId === confirmRemove?.id}
+              disabled={removingId === confirmRemove?.userId}
             >
-              {removingId === confirmRemove?.id && (
+              {removingId === confirmRemove?.userId && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
               Remove
@@ -515,7 +514,7 @@ function InvitesTab({ workspaceId }: { workspaceId: number }) {
   };
 
   const handleCopyLink = (token: string) => {
-    const url = `${window.location.origin}/join/${token}`;
+    const url = `${window.location.origin}/workspace/join/${token}`;
     navigator.clipboard.writeText(url);
     setCopiedToken(token);
     setTimeout(() => setCopiedToken(null), 2000);
@@ -608,8 +607,9 @@ function InvitesTab({ workspaceId }: { workspaceId: number }) {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 flex-shrink-0"
-                    title="Copy magic link"
-                    onClick={() => handleCopyLink(invite.token)}
+                    title={invite.token ? "Copy magic link" : "Link only available right after sending"}
+                    disabled={!invite.token}
+                    onClick={() => invite.token && handleCopyLink(invite.token)}
                   >
                     {copiedToken === invite.token ? (
                       <Check className="h-4 w-4 text-green-600" />

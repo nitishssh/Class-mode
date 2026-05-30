@@ -7,9 +7,9 @@ This guide walks through setting up the project locally **without Docker**. For 
 - **Node.js** v18 or later
 - **npm** (comes with Node.js)
 - **Git**
-- **PostgreSQL** (Mandatory for core identity and workspaces)
-- **MongoDB** (Required for assessment data)
-- **Apache Cassandra** (optional - for MessagePal chat history)
+- **PostgreSQL** (Required — primary data store)
+- **MongoDB** (Optional — legacy content only)
+- **Apache Cassandra** (Optional — MessagePal chat history; falls back to MongoDB)
 
 ## 1. Clone the Repository
 
@@ -26,45 +26,101 @@ npm install
 
 ## 3. Database Initialization
 
-### PostgreSQL (Transactional Store)
+### PostgreSQL (Required)
 
-1. Create a database named `eduai_pg`.
-2. Provide the connection string in your `.env` as `DATABASE_URL`.
-3. Run the schema script: `psql -d eduai_pg -f scripts/pg-schema.sql`.
+1. Create a database named `eduai_pg` (or any name you prefer).
+2. Provide the connection string in your `.env` as `POSTGRESQL_URL`.
+3. Run the schema script:
 
-### MongoDB (Assessment Store)
+```bash
+psql -d eduai_pg -f scripts/pg-schema.sql
+```
+
+All DDL is idempotent — safe to re-run.
+
+### MongoDB (Optional)
 
 1. Install locally or use MongoDB Atlas.
-2. Provide the connection string as `MONGODB_URL`.
+2. Provide the connection string as `MONGODB_URL` in `.env`.
+3. If omitted, the server starts without MongoDB (legacy test features will be unavailable).
 
 ## 4. Environment Variables
-
-Create a `.env` file:
 
 ```bash
 cp .env.example .env
 ```
 
-Required variables for local development:
+### Required Variables
 
 ```env
-# PostgreSQL (Required)
-DATABASE_URL=postgres://user:pass@localhost:5432/eduai_pg
+# PostgreSQL
+POSTGRESQL_URL=postgres://user:pass@localhost:5432/eduai_pg
 
-# MongoDB (Required)
-MONGODB_URL=mongodb://localhost:27017/eduai
-
-# Session secrets (Required)
+# Session & JWT secrets (generate with: openssl rand -hex 32)
 SESSION_SECRET=your-session-secret
 JWT_SECRET=your-jwt-secret
+REFRESH_SECRET=your-refresh-secret
 
-# Gemini (Required for AI features)
+# Gemini (primary AI provider)
 GOOGLE_API_KEY=your-gemini-key
+```
 
-# SMTP (Required for invites and verification)
+### Required for Email Features (Invites, Verification, Password Reset)
+
+```env
 SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
+SMTP_FROM=EduAI <no-reply@yourdomain.com>
+```
+
+> If using Gmail, generate an **App Password** at myaccount.google.com/apppasswords.
+
+### Required for Google OAuth ("Continue with Google")
+
+```env
+GOOGLE_CLIENT_ID=your-oauth-client-id
+GOOGLE_CLIENT_SECRET=your-oauth-client-secret
+```
+
+Register redirect URIs in GCP Console:
+- `http://localhost:5001/api/auth/google/callback` (local)
+- `https://<your-prod-host>/api/auth/google/callback` (production)
+
+### Optional Variables
+
+```env
+# MongoDB (legacy content)
+MONGODB_URL=mongodb://localhost:27017/eduai
+
+# OpenAI (fallback AI provider)
+OPENAI_API_KEY=your-openai-key
+
+# Google Classroom LMS integration
+GOOGLE_CLASSROOM_CLIENT_ID=
+GOOGLE_CLASSROOM_CLIENT_SECRET=
+GOOGLE_CLASSROOM_REDIRECT_URI=http://localhost:5001/api/lms/google/callback
+
+# Daily.co video calls
+DAILY_API_KEY=
+
+# Stripe billing (routes return 503 until a real key is set)
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+
+# Cassandra / Astra DB (MessagePal — falls back to MongoDB)
+ASTRA_DB_SECURE_BUNDLE_PATH=./config/secure-connect-chat-db.zip
+ASTRA_DB_APPLICATION_TOKEN=
+ASTRA_DB_KEYSPACE=chat
+
+# IniClaw AI gateway (Study Arena)
+INICLAW_GATEWAY_URL=http://localhost:7070
+BRIDGE_SECRET=
+USE_INICLAW=false
+
+# Firebase compat (backward compat only)
+ENABLE_FIREBASE_AUTH_COMPAT=true
 ```
 
 ## 5. Start the Development Server
@@ -75,28 +131,50 @@ npm run dev
 
 The application will be available at: **[http://localhost:5001](http://localhost:5001)**
 
-> **Note:** Access and Refresh tokens are delivered via HttpOnly cookies. Ensure your browser allows cookies for localhost.
+> Access and Refresh tokens are delivered via HttpOnly cookies. Use `localhost:5001` (not `127.0.0.1`) to avoid cookie issues.
 
 ## Project Structure
 
-| Directory                  | Description                        |
-| -------------------------- | ---------------------------------- |
-| `client/src/`              | React frontend (Vite)              |
-| `server/routes/auth.ts`    | Local and Workspace Auth logic     |
-| `server/lib/pg-queries.ts` | PostgreSQL data access layer       |
-| `server/storage.ts`        | Legacy/MongoDB storage abstraction |
-| `scripts/pg-schema.sql`    | PostgreSQL database schema         |
+| Directory                     | Description                              |
+| ----------------------------- | ---------------------------------------- |
+| `client/src/`                 | React frontend (Vite)                    |
+| `server/routes/auth.ts`       | Auth routes (login, signup, Google OAuth)|
+| `server/routes/workspace.ts`  | Workspace CRUD and membership            |
+| `server/lib/pg-queries.ts`    | PostgreSQL data access layer             |
+| `server/lib/google-signin.ts` | Server-side Google OAuth 2.0 flow        |
+| `server/storage.ts`           | Legacy/MongoDB storage abstraction       |
+| `scripts/pg-schema.sql`       | PostgreSQL database schema               |
+
+## Useful Commands
+
+```bash
+npm run dev          # Start dev server (port 5001)
+npm run check        # TypeScript type check
+npm test             # Run tests (vitest)
+npm run lint         # ESLint
+npm run lint:fix     # ESLint with auto-fix
+npm run format       # Prettier
+npm run build        # Production build
+```
 
 ## Troubleshooting
 
 ### PostgreSQL Connection Errors
 
-Verify that your `DATABASE_URL` is correct and the PostgreSQL service is running. Use `psql -l` to check if your database exists.
+Verify `POSTGRESQL_URL` is correct and PostgreSQL is running. Use `psql -l` to list databases.
 
 ### Invitation Emails Not Sending
 
-Ensure your SMTP settings in `.env` are valid. If using Gmail, you must use an **App Password**.
+Ensure SMTP settings are valid. Gmail requires an **App Password**, not your account password.
 
 ### Cookies Not Setting
 
-If you are testing on `127.0.0.1` instead of `localhost`, some browsers may block HttpOnly cookies. Use `localhost:5001` consistently.
+Use `localhost:5001` consistently — some browsers block HttpOnly cookies on `127.0.0.1`.
+
+### Google OAuth Not Working
+
+Ensure both redirect URIs are registered in GCP Console under your OAuth 2.0 Web client. The same client is used for both Google Sign-In and Google Classroom.
+
+### AI Features Not Working
+
+Set `GOOGLE_API_KEY` with a valid Gemini API key from [aistudio.google.com](https://aistudio.google.com/app/apikey).

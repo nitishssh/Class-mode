@@ -1175,7 +1175,7 @@ export async function pgListWorkspaceInvites(workspaceId: number): Promise<any[]
       `SELECT wi.*, u.email AS inviter_email, u.name AS inviter_name
        FROM workspace_invites wi
        LEFT JOIN users u ON u.id = wi.invited_by
-       WHERE wi.workspace_id = $1 AND wi.status = 'pending'
+       WHERE wi.workspace_id = $1
        ORDER BY wi.created_at DESC`,
       [workspaceId]
     );

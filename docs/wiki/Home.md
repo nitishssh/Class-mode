@@ -1,6 +1,6 @@
-# EduAI Platform - Feature Audit & Product Review
+# EduAI Platform — Wiki
 
-Welcome to the EduAI Platform documentation wiki. This wiki was created as part of a product review to audit the codebase, categorize features, review testing coverage, and identify areas of the application that are "over coded" and candidates for simplification.
+Welcome to the EduAI (PersonalLearningPro) platform wiki. This wiki covers architecture, features, and operational guidance for the v1.5+ codebase.
 
 ## Table of Contents
 
@@ -10,10 +10,22 @@ Welcome to the EduAI Platform documentation wiki. This wiki was created as part 
 4. [Messaging & Live Classes](Messaging.md)
 5. [Database & Storage Layer](Storage.md)
 
-## Overall Simplification Recommendations
+## Platform Summary (v1.5)
 
-During the audit, a few overarching themes for simplification emerged:
+EduAI is a multi-tenant AI-powered learning platform built on:
 
-*   **Consolidate Dashboard Logic:** There are multiple dashboards (`admin-dashboard.tsx`, `student-dashboard.tsx`, `parent-dashboard.tsx`, `principal-dashboard.tsx`, `school-admin-dashboard.tsx`). While roles differ, a single generic dashboard component that renders widgets dynamically based on user role would significantly reduce code duplication.
-*   **Simplify Database Architecture:** The current implementation uses a hybrid approach (PostgreSQL for relational data, Cassandra for high-volume data like messages). Unless there is a massive scale requirement for messages right now, moving everything to a single unified database (like PostgreSQL) would heavily reduce infrastructure and mental overhead.
-*   **Reduce AI Abstraction:** The "IniClaw" gateway concept adds a layer of abstraction over simple LLM API calls. Standardizing on a simple `generateText` or `analyzeData` utility without full gateway patterns could simplify the AI integration layer.
+- **Backend**: Node.js 18 + Express + TypeScript, single process (`tsx server/index.ts`)
+- **Frontend**: React 18 + Vite + Tailwind CSS + shadcn/ui + wouter
+- **Primary DB**: PostgreSQL (all transactional data — users, workspaces, sessions, tests, SIS)
+- **AI**: Google Gemini 2.0 Flash (primary) + OpenAI GPT-4o (fallback)
+- **Auth**: Self-hosted JWT + cookies + Google OAuth 2.0 (server-side)
+- **Real-time**: WebSockets (chat + MessagePal) + Daily.co (video)
+- **Deployment**: GCP Cloud Run via Cloud Build CI/CD
+
+## Key Architectural Decisions
+
+- **No Firebase on the hot path** — Auth is fully self-hosted. Firebase compat endpoint exists for backward compatibility only (`ENABLE_FIREBASE_AUTH_COMPAT`).
+- **PostgreSQL as the single source of truth** — MongoDB is optional (legacy). All new features use PostgreSQL.
+- **Server-side Google OAuth** — Avoids all browser popup/redirect issues. Same OAuth client reused for Google Classroom.
+- **Dynamic SIS** — Flexible student information system built on PostgreSQL with JSONB fields, no separate NoSQL store needed.
+- **Gemini-first AI** — All AI features (tutoring, grading, study plans, classroom generation) use Gemini 2.0 Flash. OpenAI is a fallback only.

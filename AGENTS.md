@@ -10,6 +10,7 @@ npm run lint       # ESLint (flat config: eslint.config.js)
 npm run format     # Prettier (includes prettier-plugin-tailwindcss)
 npm run build      # vite build (client/) + esbuild (server/index.ts)
 npm start          # node dist/index.js (production)
+npm run deploy:gcp # gcloud builds submit --config cloudbuild.yaml
 ```
 
 CI order (`.github/workflows/ci.yml`): `check → lint → build → test`.
@@ -44,13 +45,61 @@ Single `package.json` (no monorepo tool). Key directories:
 
 ## Architecture
 
-- **Auth**: Firebase Client (browser) → exchange for server JWT (cookie). Dual fallback: JWT verify → session lookup.
-- **DB**: MongoDB (mongoose, primary). Cassandra (MessagePal only, optional — falls back to MongoDB).
-- **AI**: Google Gemini (`server/lib/gemini.ts`) primary; OpenAI GPT-4o (`server/lib/openai.ts`) optional fallback.
+- **Auth**: Self-hosted PostgreSQL-backed identity. Dual fallback: JWT verify → session lookup. Google OAuth 2.0 server-side flow via `server/lib/google-signin.ts` (`/api/auth/google/start` → `/api/auth/google/callback`). Firebase token-exchange endpoint kept for backward compat (`ENABLE_FIREBASE_AUTH_COMPAT`).
+- **DB**: PostgreSQL primary (all transactional data — users, workspaces, sessions, tests, SIS). MongoDB optional (legacy content). Cassandra (MessagePal only, optional — falls back to MongoDB).
+- **AI**: Google Gemini 2.0 Flash (`server/lib/gemini.ts`) primary; OpenAI GPT-4o (`server/lib/openai.ts`) optional fallback.
 - **Real-time**: Two WebSocket servers (chat + MessagePal) attached to HTTP server after `registerRoutes()`.
 - **Routing**: `wouter` (not react-router). Pages in `client/src/pages/`.
 - **Validation**: Zod schemas in `shared/schema.ts`. Mongoose models in `shared/mongo-schema.ts`.
 - **Rate limiting**: `/api/ai` 20/min, `/api/auth` 10/min, `/api/upload` 10/15min, `/api/ocr` 5/min.
+
+## Server route files
+
+| File                          | Responsibility                                      |
+| ----------------------------- | --------------------------------------------------- |
+| `server/routes/auth.ts`       | Signup, login, logout, refresh, Google OAuth, OTPs  |
+| `server/routes/workspace.ts`  | Workspace CRUD, membership, invites                 |
+| `server/routes/onboarding.ts` | Teacher/student invite flows                        |
+| `server/routes/lms.ts`        | Google Classroom OAuth + course/student import      |
+| `server/routes/dynamic-sis.ts`| Dynamic SIS bases, tables, fields, records, views   |
+| `server/routes/ai-classroom.ts`| Study Arena classroom generation + job management  |
+| `server/routes/grading.ts`    | AI-powered answer grading                           |
+| `server/routes/live.ts`       | Daily.co room creation + participant tokens         |
+| `server/routes/educator.ts`   | Educator-specific endpoints                         |
+| `server/routes/parent.ts`     | Parent-specific endpoints                           |
+| `server/routes/billing.ts`    | Stripe billing (disabled until `STRIPE_SECRET_KEY`) |
+| `server/routes/gdpr.ts`       | GDPR data export                                    |
+| `server/routes/health.ts`     | Health check + readiness probe                      |
+| `server/message/routes.ts`    | MessagePal WebSocket + REST                         |
+
+## Key lib files
+
+| File                              | Responsibility                                    |
+| --------------------------------- | ------------------------------------------------- |
+| `server/lib/pg-queries.ts`        | All PostgreSQL queries (primary data access layer)|
+| `server/lib/pg-dynamic-sis.ts`    | Dynamic SIS PostgreSQL queries                    |
+| `server/lib/auth-workspace.ts`    | JWT helpers, workspace permission checks          |
+| `server/lib/google-signin.ts`     | Server-side Google OAuth 2.0 flow                 |
+| `server/lib/gemini.ts`            | Gemini 2.0 Flash wrapper                          |
+| `server/lib/openai.ts`            | OpenAI GPT-4o wrapper (fallback)                  |
+| `server/lib/mailer.ts`            | Nodemailer SMTP (invites, verification, reset)    |
+| `server/lib/cassandra.ts`         | Cassandra/Astra DB client                         |
+| `server/lib/cassandra-message-store.ts` | Message persistence (Cassandra → MongoDB fallback)|
+| `server/lib/audit.ts`             | Audit event recording                             |
+| `server/lib/upload.ts`            | Multer file upload handler                        |
+| `server/lib/tesseract.ts`         | OCR processing                                    |
+| `server/lib/rubricParser.ts`      | Grading rubric parsing                            |
+| `server/lib/lms/googleClassroom.ts`| Google Classroom API integration                 |
+
+## Services
+
+| File                                    | Responsibility                              |
+| --------------------------------------- | ------------------------------------------- |
+| `server/services/dynamic-enrichment.ts`| AI enrichment for SIS records               |
+| `server/services/whatsapp.ts`           | WhatsApp outbound notifications             |
+| `server/services/gradingService.ts`     | Gemini-powered grading engine               |
+| `server/services/daily.ts`              | Daily.co room/token management              |
+| `server/services/study-arena/`          | Study Arena orchestration + job management  |
 
 ## Repo conventions
 
@@ -63,7 +112,8 @@ Single `package.json` (no monorepo tool). Key directories:
 
 - **Production**: GCP Cloud Run via Cloud Build (`cloudbuild.yaml`). Secrets from Secret Manager.
 - **Docker**: Multi-stage (`deps → development → build → production`). See `docker-compose.yml`.
-- **CI/CD**: `.github/workflows/cd.yml` builds the image on push to `main`, pushes to Artifact Registry, and deploys to Cloud Run. Firebase (Firestore + Auth) is used for data/auth only — not for hosting.
+- **CI/CD**: `.github/workflows/cd.yml` builds the image on push to `main`, pushes to Artifact Registry, and deploys to Cloud Run.
+- **Terraform**: `terraform-gcp/` manages Cloud Run service, IAM, and Secret Manager bindings.
 
 ## Gotchas
 
@@ -73,3 +123,5 @@ Single `package.json` (no monorepo tool). Key directories:
 - `.env.test` is gitignored. CI test env vars fall back to defaults in `vitest.config.ts`.
 - `package.json` has `overrides` for `sucrase`, `@tootallnate/once`, `picomatch`.
 - Prettier sorts Tailwind classes via `prettier-plugin-tailwindcss`.
+- Google OAuth reuses the same OAuth Web client as Google Classroom. Both redirect URIs must be registered in GCP Console.
+- Stripe billing routes return `503` until `STRIPE_SECRET_KEY` is a real `sk_live_`/`sk_test_` key.

@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-05-30
+
+### Added
+
+- **Google OAuth 2.0 (Server-Side)** — New server-driven sign-in flow via `server/lib/google-signin.ts`. Routes: `GET /api/auth/google/start` (redirect to Google) and `GET /api/auth/google/callback` (exchange code → session cookie). Bypasses all browser popup/redirect issues (COOP, MetaMask, Safari ITP, in-app browsers). Reuses the same OAuth Web client as Google Classroom.
+- **Dynamic SIS** — Flexible, workspace-scoped Student Information System. Teachers can create custom bases, tables, fields, records, and views entirely in PostgreSQL. Routes in `server/routes/dynamic-sis.ts`, queries in `server/lib/pg-dynamic-sis.ts`, AI enrichment in `server/services/dynamic-enrichment.ts`.
+- **Google Classroom LMS Integration** — OAuth-based connection to import courses and students from Google Classroom. Routes in `server/routes/lms.ts`, API client in `server/lib/lms/googleClassroom.ts`. Stores OAuth tokens in `lms_connections` PostgreSQL table.
+- **WhatsApp Notifications** — Outbound WhatsApp messaging service via `server/services/whatsapp.ts`.
+- **OTP Brute-Force Protection** — `attempts` column added to `otps` table; failed OTP verifications increment the counter and lock out after threshold.
+- **Canonical Domain Redirect** — Production server redirects non-canonical hostnames to `CANONICAL_DOMAIN` env var (301 redirect).
+
+### Changed
+
+- **Primary DB: PostgreSQL only** — Tests, questions, test attempts, and answers are now stored in PostgreSQL (`scripts/pg-schema.sql`). MongoDB is fully optional (legacy fallback only).
+- **`POSTGRESQL_URL` env var** — Renamed from `DATABASE_URL` to `POSTGRESQL_URL` to match GCP Secret Manager naming. Update your `.env` accordingly.
+- **Google OAuth client reuse** — Google Sign-In and Google Classroom now share the same OAuth 2.0 Web client. Both redirect URIs must be registered in GCP Console.
+- **`users` table** — Added `auth_provider`, `auth_subject` columns for multi-provider identity. `UNIQUE (auth_provider, auth_subject)` constraint added.
+
+### Fixed
+
+- **OTP attempts column** — Added `ALTER TABLE otps ADD COLUMN IF NOT EXISTS attempts` migration for existing databases.
+- **Dynamic SIS workspace isolation** — All SIS queries enforce `workspace_id` scoping to prevent cross-tenant data access.
+
 ## [1.4.0] - 2026-05-22
 
 ### Added

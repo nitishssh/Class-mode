@@ -13,7 +13,7 @@
 | Workspace Member | Access to workspace channels, tests, AI tutor      | `workspaceRole: "member"` |
 | System Admin     | Global platform management, infrastructure         | `role: "admin"`           |
 
-> Roles and permissions are now managed locally in PostgreSQL and enforced via JWT session claims.
+> Roles and permissions are managed in PostgreSQL and enforced via JWT session claims.
 
 ---
 
@@ -61,7 +61,7 @@
 
 ---
 
-## 2️⃣ Login Flow
+## 2️⃣ Login Flow (Email + Password)
 
 ```
 [Login Screen]
@@ -87,7 +87,53 @@
 
 ---
 
-## 3️⃣ Forgot Password Flow
+## 3️⃣ Google OAuth Flow (Server-Side)
+
+The Google sign-in flow is handled entirely server-side to avoid browser popup/redirect issues (COOP headers, popup blockers, MetaMask, Safari ITP, mobile in-app browsers).
+
+```
+[Login Screen]
+  - Click "Continue with Google"
+      │
+      ▼
+[GET /api/auth/google/start]
+  - Generates state parameter (CSRF protection)
+  - Stores state in session
+  - Redirects to accounts.google.com with:
+      - client_id, redirect_uri, scope (openid email profile)
+      - response_type=code, state
+      │
+      ▼
+[User consents at Google]
+      │
+      ▼
+[accounts.google.com → GET /api/auth/google/callback?code=…&state=…]
+      │
+      ▼
+[Server validates state, exchanges code for tokens]
+  - POST to https://oauth2.googleapis.com/token
+  - Fetches user info (email, name, picture)
+      │
+      ▼
+[Upsert user in PostgreSQL]
+  - auth_provider: "google", auth_subject: google_sub
+  - Creates workspace if first login
+  - Issues Access Token + Refresh Token (same as email/password flow)
+      │
+      ▼
+[302 Redirect to /dashboard]
+```
+
+**Implementation**: `server/lib/google-signin.ts`
+**Routes**: `GET /api/auth/google/start`, `GET /api/auth/google/callback`
+
+> The same OAuth Web client is reused for Google Classroom. Both redirect URIs must be registered in GCP Console:
+> - `http://localhost:5001/api/auth/google/callback`
+> - `https://<prod-host>/api/auth/google/callback`
+
+---
+
+## 4️⃣ Forgot Password Flow
 
 ```
 [Forgot Password Screen]
@@ -107,6 +153,7 @@
       ▼
 [POST /api/auth/password/reset]
   - Verifies token hash in DB
+  - Checks attempts count (brute-force protection)
   - Updates password_hash in PostgreSQL
   - Invalidates all existing sessions for user
       │
@@ -116,12 +163,12 @@
 
 ---
 
-## 4️⃣ Workspace Invite Flow
+## 5️⃣ Workspace Invite Flow
 
 ```
 [Admin sends Invite]
   - POST /api/workspaces/:id/invites
-  - Generates secure token
+  - Generates secure token (SHA-256 hashed)
   - Sends email: "Join [Workspace] on Class Mode"
       │
       ▼
@@ -148,7 +195,7 @@
 
 ---
 
-## 5️⃣ Session & Token Management
+## 6️⃣ Session & Token Management
 
 ```
 The system uses a hybrid Cookie + JWT approach for maximum security.
@@ -172,18 +219,20 @@ The system uses a hybrid Cookie + JWT approach for maximum security.
 
 ---
 
-## 6️⃣ Security Summary
+## 7️⃣ Security Summary
 
 | Feature              | Implementation                                    |
 | -------------------- | ------------------------------------------------- |
 | Password Hashing     | Bcrypt (12 rounds)                                |
 | Session Storage      | PostgreSQL `sessions` table (Server-side)         |
 | Authentication       | Dual-token JWT + HttpOnly Cookies                 |
+| Google OAuth         | Server-side code flow (no popup, no JS tokens)    |
 | RBAC                 | PostgreSQL `workspace_memberships` + Middleware   |
 | Invite Security      | HMAC-SHA256 hashed tokens with 7-day expiry       |
-| Email Verification   | Required for critical actions (Coming soon)       |
+| OTP Brute-Force      | `attempts` counter in `otps` table                |
+| Email Verification   | Required for critical actions                     |
 | Cross-Site Scripting | Mitigation via HttpOnly Cookies (No JS access)    |
-| CSRF                 | Mitigation via SameSite=Lax + Custom Auth headers |
+| CSRF                 | Mitigation via SameSite=Lax + state param (OAuth) |
 
 ---
 
@@ -200,10 +249,12 @@ The system uses a hybrid Cookie + JWT approach for maximum security.
 | Reset Password       | `/api/auth/password/reset`       | POST   |
 | Verify Email Request | `/api/auth/email/verify/request` | POST   |
 | Verify Email Confirm | `/api/auth/email/verify`         | POST   |
+| Google OAuth Start   | `/api/auth/google/start`         | GET    |
+| Google OAuth Callback| `/api/auth/google/callback`      | GET    |
 | Invite Member        | `/api/workspaces/:id/invites`    | POST   |
 | Validate Invite      | `/api/invite/validate/:token`    | GET    |
 | Accept Invite        | `/api/invite/accept`             | POST   |
 
 ---
 
-_This system replaces the legacy Firebase implementation with a more flexible, multi-tenant workspace architecture._
+_This system replaces the legacy Firebase implementation with a more flexible, multi-tenant workspace architecture. Google OAuth is handled server-side for maximum browser compatibility._

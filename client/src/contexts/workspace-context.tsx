@@ -8,8 +8,6 @@ export interface WorkspaceWithRole {
   type: string;
   description: string | null;
   iconUrl: string | null;
-  ownerId: number;
-  createdAt: string;
   role: "owner" | "admin" | "co-teacher" | "teaching-assistant" | "member" | "auditor";
 }
 

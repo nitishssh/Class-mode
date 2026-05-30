@@ -9,16 +9,16 @@ import { Plus, Database, Settings, ArrowRight, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { Link } from "wouter";
+import { useWorkspace } from "@/contexts/workspace-context";
 
 export default function DynamicSISPage() {
   const { t } = useTranslation();
-  const { currentUser: { profile } } = useFirebaseAuth();
+  const { activeWorkspace } = useWorkspace();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newBaseName, setNewBaseName] = useState("");
 
-  const workspaceId = (profile as any)?.lastActiveWorkspaceId || (profile as any)?.workspaceId;
+  const workspaceId = activeWorkspace?.id;
 
   const { data: bases, isLoading } = useQuery<DynamicBase[]>({
     queryKey: [`/api/dynamic-sis/workspaces/${workspaceId}/bases`],

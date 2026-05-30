@@ -214,6 +214,40 @@ router.post("/workspaces", authenticateToken, async (req: Request, res: Response
   }
 });
 
+// ─── GET /workspaces/join/:token — preview invite info ───────────────────────
+
+router.get("/workspaces/join/:token", authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const hash = tokenHash(req.params.token);
+    const invite = await pgFindWorkspaceInviteByTokenHash(hash);
+    if (!invite) return res.status(404).json({ message: "Invalid or expired invite token" });
+
+    const workspace = await pgFindWorkspaceById(invite.workspaceId);
+    const inviter = invite.invitedBy ? await pgFindUserById(invite.invitedBy) : null;
+
+    const now = new Date();
+    const status =
+      invite.status !== "pending"
+        ? invite.status
+        : invite.expiresAt < now
+        ? "expired"
+        : "pending";
+
+    return res.json({
+      workspace: workspace
+        ? { id: workspace.id, name: workspace.name, type: workspace.type, description: workspace.description, iconUrl: workspace.iconUrl }
+        : null,
+      inviterName: inviter?.displayName || inviter?.name || null,
+      role: invite.role,
+      expiresAt: invite.expiresAt,
+      status,
+    });
+  } catch (err) {
+    logger.error("[workspace] GET /workspaces/join/:token failed", { err: String(err) });
+    return res.status(500).json({ message: "Failed to fetch invite" });
+  }
+});
+
 // ─── GET /workspaces/:id — get workspace ─────────────────────────────────────
 
 router.get("/workspaces/:id", authenticateToken, async (req: Request, res: Response) => {
@@ -348,10 +382,10 @@ router.get("/workspaces/:id/members", authenticateToken, async (req: Request, re
         userId: u.id,
         email: u.email,
         displayName: u.displayName || u.name,
-        avatar: u.avatar,
+        avatarUrl: u.avatar,
         role: m.role,
         status: m.status,
-        memberSince: m.createdAt,
+        joinedAt: m.createdAt,
       }))
     );
   } catch (err) {
@@ -647,19 +681,31 @@ router.post("/workspaces/:id/transfer", authenticateToken, async (req: Request, 
       return res.status(404).json({ message: "Target user is not a member of this workspace" });
     }
 
-    const pool = getPgPool();
-    await pool.query("BEGIN");
+    const client = await getPgPool().connect();
     try {
+      await client.query("BEGIN");
       // Demote current owner to admin
-      await pgUpsertWorkspaceMembership({ workspaceId, userId: user.id, role: "admin" });
+      await client.query(
+        `INSERT INTO workspace_memberships (workspace_id, user_id, role, status)
+         VALUES ($1,$2,'admin','active')
+         ON CONFLICT (workspace_id, user_id) DO UPDATE SET role = 'admin'`,
+        [workspaceId, user.id]
+      );
       // Promote new owner
-      await pgUpsertWorkspaceMembership({ workspaceId, userId: newOwnerId, role: "owner" });
+      await client.query(
+        `INSERT INTO workspace_memberships (workspace_id, user_id, role, status)
+         VALUES ($1,$2,'owner','active')
+         ON CONFLICT (workspace_id, user_id) DO UPDATE SET role = 'owner'`,
+        [workspaceId, newOwnerId]
+      );
       // Update workspace owner_id
-      await pool.query("UPDATE workspaces SET owner_id = $1 WHERE id = $2", [newOwnerId, workspaceId]);
-      await pool.query("COMMIT");
+      await client.query("UPDATE workspaces SET owner_id = $1 WHERE id = $2", [newOwnerId, workspaceId]);
+      await client.query("COMMIT");
     } catch (txErr) {
-      await pool.query("ROLLBACK");
+      await client.query("ROLLBACK");
       throw txErr;
+    } finally {
+      client.release();
     }
 
     return res.json({ message: "Ownership transferred", newOwnerId });

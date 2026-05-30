@@ -78,7 +78,7 @@ export default function JoinWorkspace() {
   const handleAccept = async () => {
     if (!currentUser.profile) {
       // Redirect to login, then come back
-      navigate(`/login?redirect=/join/${token}`);
+      navigate(`/login?redirect=/workspace/join/${token}`);
       return;
     }
 

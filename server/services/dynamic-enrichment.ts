@@ -1,11 +1,78 @@
 import { logger } from "../lib/logger";
-import { 
-  pgFindRecordById, 
-  pgUpdateRecord, 
+import {
+  pgFindRecordById,
+  pgUpdateRecord,
   pgListFields
 } from "../lib/pg-dynamic-sis";
 import { geminiChat } from "../lib/gemini";
 import { DynamicField } from "@shared/schema";
+
+// Rejects URLs that point to private/loopback networks (SSRF prevention)
+function isPrivateUrl(rawUrl: string): boolean {
+  try {
+    const { hostname, protocol } = new URL(rawUrl);
+    if (protocol !== "https:" && protocol !== "http:") return true;
+    const privatePatterns = [
+      /^localhost$/i,
+      /^127\./,
+      /^10\./,
+      /^172\.(1[6-9]|2\d|3[01])\./,
+      /^192\.168\./,
+      /^0\./,
+      /^::1$/,
+      /^fc[0-9a-f]{2}:/i,
+      /^fe[89ab][0-9a-f]:/i,
+      /^169\.254\./,
+      /^metadata\.google\.internal$/i,
+    ];
+    return privatePatterns.some((p) => p.test(hostname));
+  } catch {
+    return true;
+  }
+}
+
+// Safe recursive-descent math evaluator — no eval / new Function
+function safeMathEval(expr: string): number {
+  const tokens = expr.match(/[0-9]*\.?[0-9]+|[+\-*/()]/g) ?? [];
+  let pos = 0;
+
+  function parseExpr(): number {
+    let val = parseTerm();
+    while (pos < tokens.length && (tokens[pos] === "+" || tokens[pos] === "-")) {
+      const op = tokens[pos++];
+      val = op === "+" ? val + parseTerm() : val - parseTerm();
+    }
+    return val;
+  }
+
+  function parseTerm(): number {
+    let val = parseFactor();
+    while (pos < tokens.length && (tokens[pos] === "*" || tokens[pos] === "/")) {
+      const op = tokens[pos++];
+      const right = parseFactor();
+      if (op === "/" && right === 0) throw new Error("Division by zero");
+      val = op === "*" ? val * right : val / right;
+    }
+    return val;
+  }
+
+  function parseFactor(): number {
+    if (tokens[pos] === "(") {
+      pos++;
+      const val = parseExpr();
+      if (tokens[pos] !== ")") throw new Error("Mismatched parentheses");
+      pos++;
+      return val;
+    }
+    const n = parseFloat(tokens[pos++]);
+    if (isNaN(n)) throw new Error(`Unexpected token: ${tokens[pos - 1]}`);
+    return n;
+  }
+
+  const result = parseExpr();
+  if (pos !== tokens.length) throw new Error("Unexpected trailing tokens");
+  return result;
+}
 
 /**
  * Service to handle background enrichments (AI, API fetches, Formulas)
@@ -106,15 +173,10 @@ export class DynamicEnrichmentService {
     const interpolated = DynamicEnrichmentService.interpolate(formulaTemplate, data);
 
     try {
-      // Basic math evaluator (numbers and operators)
       if (/^[0-9+\-*/().\s]+$/.test(interpolated)) {
-        // Safe evaluation for simple math: use Function constructor with strict scope or a simple parser
-        // For this prototype, we'll use a slightly safer regex-validated approach
-        // eslint-disable-next-line no-new-func
-        const result = new Function(`return (${interpolated})`)();
+        const result = safeMathEval(interpolated);
         await pgUpdateRecord(recordId, { [field.name]: String(result) });
       } else {
-        // Just treat as a string concatenation
         await pgUpdateRecord(recordId, { [field.name]: interpolated });
       }
     } catch (error) {
@@ -136,6 +198,12 @@ export class DynamicEnrichmentService {
 
     const finalUrl = DynamicEnrichmentService.interpolate(urlTemplate, data);
     if (finalUrl.includes("{{")) return;
+
+    if (isPrivateUrl(finalUrl)) {
+      logger.warn(`[Enrichment] Blocked SSRF attempt to private URL: ${finalUrl}`);
+      await pgUpdateRecord(recordId, { [field.name]: "#BLOCKED: private URL not allowed" });
+      return;
+    }
 
     try {
       const res = await fetch(finalUrl);

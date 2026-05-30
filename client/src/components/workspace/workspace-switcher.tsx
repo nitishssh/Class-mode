@@ -145,7 +145,7 @@ export function WorkspaceSwitcher({ isCollapsed = false }: { isCollapsed?: boole
               <CommandGroup heading="Workspaces">
                 {allWorkspaces.map((ws) => {
                   const isActive = ws.id === activeWorkspace?.id;
-                  const isSwtiching = switching === ws.id;
+                  const isSwitching = switching === ws.id;
                   return (
                     <CommandItem
                       key={ws.id}
@@ -165,7 +165,7 @@ export function WorkspaceSwitcher({ isCollapsed = false }: { isCollapsed?: boole
                           {ROLE_LABELS[ws.role]}
                         </span>
                       </div>
-                      {isSwtiching ? (
+                      {isSwitching ? (
                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                       ) : isActive ? (
                         <Check className="h-4 w-4 text-accent" />
@@ -182,7 +182,7 @@ export function WorkspaceSwitcher({ isCollapsed = false }: { isCollapsed?: boole
               <CommandItem
                 onSelect={() => {
                   setOpen(false);
-                  navigate("/workspace/create");
+                  navigate("/workspace/new");
                 }}
                 className="flex items-center gap-2 py-2 text-sm"
               >

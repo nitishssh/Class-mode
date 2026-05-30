@@ -1,14 +1,33 @@
 # Database & Storage Layer
 
-## Features
+## Architecture
 
-*   **Hybrid Database Architecture:** The platform uses a mix of databases.
-    *   **PostgreSQL:** Used for structured, relational data (entities, auth). Seen in `db-pg.ts` and `pg` dependency.
-    *   **Cassandra (Optional/Historical):** There are references to Cassandra (e.g., `cassandra-schema.ts`, `cassandra-driver` in `package.json` optional dependencies), typically used for high-volume data like messages.
-*   **ORM/Query Builder:** Likely using Drizzle or raw queries given `pg` usage and `schema.ts`.
+| Store | Role | Required? |
+|---|---|---|
+| **PostgreSQL** | Primary — users, workspaces, sessions, tests, SIS, audit | ✅ Required |
+| **MongoDB** | Legacy content fallback | ❌ Optional |
+| **Cassandra (Astra DB)** | MessagePal chat history | ❌ Optional (falls back to MongoDB) |
 
-## Simplification Recommendations
+## PostgreSQL (Primary)
 
-*   **Drop Cassandra:** Unless this application is currently processing tens of thousands of messages a second, Cassandra is massive overkill. It requires significant operational overhead, complex schema migrations, and makes local development harder.
-*   **Move Everything to PostgreSQL:** PostgreSQL can easily handle millions of rows of messages and typical school application workloads. Consolidating to a single database will drastically simplify deployments, backups, and developer onboarding.
-*   **Storage.ts Cleanup:** `server/storage.ts` is quite large (54KB). This usually indicates it's acting as a monolithic "God object" for all database operations. Break this down into domain-specific repositories (e.g., `user.repository.ts`, `class.repository.ts`).
+All critical data lives in PostgreSQL. Schema: `scripts/pg-schema.sql` (idempotent, safe to re-run).
+
+Key tables: `users`, `workspaces`, `workspace_memberships`, `workspace_invites`, `sessions`, `otps`, `tests`, `questions`, `test_attempts`, `answers`, `analytics`, `test_assignments`, `audit_events`, `schools`, `invites`, `dynamic_bases/tables/fields/records/views`, `lms_connections`.
+
+Query layer: `server/lib/pg-queries.ts` (general) + `server/lib/pg-dynamic-sis.ts` (SIS).
+
+## MongoDB (Optional)
+
+Set `MONGODB_URL` to enable. Used only for legacy test/question content. Server starts without it — MongoDB errors are non-fatal.
+
+## Cassandra / Astra DB (Optional)
+
+Used by MessagePal for high-throughput chat message storage. Falls back to MongoDB if unavailable. Client: `server/lib/cassandra.ts`. Message store: `server/lib/cassandra-message-store.ts`.
+
+## Dynamic SIS
+
+A flexible, workspace-scoped Student Information System built entirely on PostgreSQL. Teachers create custom bases (like Airtable), tables, fields (text, number, date, select, etc.), records, and views. No separate NoSQL store needed.
+
+- Routes: `server/routes/dynamic-sis.ts`
+- Queries: `server/lib/pg-dynamic-sis.ts`
+- AI enrichment: `server/services/dynamic-enrichment.ts`

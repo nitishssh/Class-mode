@@ -338,6 +338,9 @@ router.post("/tables/:tableId/bulk-records", authenticateToken, async (req: Requ
     if (!Array.isArray(records)) {
       return res.status(400).json({ message: "Invalid bulk data (expected records array)" });
     }
+    if (records.length > 5000) {
+      return res.status(400).json({ message: "Batch too large (max 5000 records)" });
+    }
 
     await pgBulkCreateRecords(tableId, records);
     res.status(201).json({ message: `Successfully imported ${records.length} records` });
