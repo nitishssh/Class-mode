@@ -1,12 +1,12 @@
 import { Router, Request, Response } from "express";
 import { storage } from "../storage";
-import { 
-  insertDoubtSchema, 
-  insertMilestoneSchema, 
+import {
+  insertDoubtSchema,
+  insertMilestoneSchema,
   insertStudentAchievementSchema,
   insertCompetitionSchema
 } from "@shared/schema";
-
+import { requireRole } from "../middleware";
 import { getSocraticNudge } from "../services/nudge";
 
 const router = Router();
@@ -16,7 +16,7 @@ const router = Router();
 router.get("/doubts/nudge", async (req: Request, res: Response) => {
   const topic = req.query.topic as string;
   if (!topic) return res.status(400).json({ message: "Topic is required" });
-  
+
   const nudge = await getSocraticNudge(topic);
   res.json({ nudge });
 });
@@ -45,18 +45,19 @@ router.get("/doubts/me", async (req: Request, res: Response) => {
   res.json(doubts);
 });
 
-router.patch("/doubts/:id/resolve", async (req: Request, res: Response) => {
-  const user = (req as any).user;
-  if (!user) return res.status(401).json({ message: "Unauthorized" });
+router.patch(
+  "/doubts/:id/resolve",
+  requireRole("teacher", "school_admin", "admin"),
+  async (req: Request, res: Response) => {
+    const { answer } = req.body;
+    if (!answer) return res.status(400).json({ message: "Answer is required" });
 
-  const { answer } = req.body;
-  if (!answer) return res.status(400).json({ message: "Answer is required" });
+    const doubt = await storage.resolveDoubt(req.params.id, answer);
+    if (!doubt) return res.status(404).json({ message: "Doubt not found" });
 
-  const doubt = await storage.resolveDoubt(parseInt(req.params.id), answer);
-  if (!doubt) return res.status(404).json({ message: "Doubt not found" });
-
-  res.json(doubt);
-});
+    res.json(doubt);
+  }
+);
 
 // ─── Milestones ─────────────────────────────────────────────────────────────
 
@@ -86,18 +87,21 @@ router.get("/milestones/me", async (req: Request, res: Response) => {
 
 // ─── Achievements ──────────────────────────────────────────────────────────
 
-router.post("/achievements", async (req: Request, res: Response) => {
-  const user = (req as any).user;
-  if (!user) return res.status(401).json({ message: "Unauthorized" });
-
-  try {
-    const data = insertStudentAchievementSchema.parse(req.body);
-    const achievement = await storage.createAchievement(data);
-    res.status(201).json(achievement);
-  } catch (error: any) {
-    res.status(400).json({ message: error.message });
+router.post(
+  "/achievements",
+  requireRole("teacher", "school_admin", "admin"),
+  async (req: Request, res: Response) => {
+    try {
+      // Strip client-supplied verification fields — only server flows may set these.
+      const { verified: _v, verifiedBy: _vb, verificationMetadata: _vm, ...rest } = req.body;
+      const data = insertStudentAchievementSchema.parse(rest);
+      const achievement = await storage.createAchievement(data);
+      res.status(201).json(achievement);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
   }
-});
+);
 
 router.get("/achievements/me", async (req: Request, res: Response) => {
   const user = (req as any).user;

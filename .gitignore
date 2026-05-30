@@ -38,3 +38,4 @@ clean_test_users.cjs
 scratch_db_test.cjs
 scratch_db_test.js
 send_test_email.ts
+.gstack/

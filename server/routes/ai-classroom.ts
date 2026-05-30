@@ -20,7 +20,7 @@ const router = Router();
 
 // Request schemas
 const createClassroomSchema = z.object({
-  topic: z.string().min(1, "Topic is required"),
+  topic: z.string().min(1, "Topic is required").max(500, "Topic must be 500 characters or fewer"),
   language: z.string().optional(),
   enableTTS: z.boolean().optional(),
   enableWebSearch: z.boolean().optional(),

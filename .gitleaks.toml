@@ -1,0 +1,19 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allowlist for test fixtures and example config"
+paths = [
+  ".env.example",
+  ".env.staging",
+  '''.*\.test\.ts''',
+  '''.*\.spec\.ts''',
+]
+regexes = [
+  # Placeholder values that look like secrets but aren't
+  '''your_openai_api_key''',
+  '''your_.*_key''',
+  '''changeme''',
+  '''super_secret_jwt_key_learning_pro_123''',
+  '''class-mode-secret-key''',
+]

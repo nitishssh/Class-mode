@@ -53,12 +53,29 @@ const ALLOWED_MIME = new Set([
   "text/plain",
 ]);
 
+// Extension allowlist guards against MIME spoofing: a client can claim any
+// Content-Type, so we validate both the declared MIME and the file extension.
+// express.static infers Content-Type from extension, so .html with a spoofed
+// MIME would be served as text/html and execute as XSS.
+const ALLOWED_EXTENSIONS = new Set([
+  ".jpg", ".jpeg", ".png", ".gif", ".webp",
+  ".pdf",
+  ".doc", ".docx",
+  ".xls", ".xlsx",
+  ".txt",
+]);
+
 function fileFilter(_req: Request, file: Express.Multer.File, cb: FileFilterCallback) {
-  if (ALLOWED_MIME.has(file.mimetype)) {
-    cb(null, true);
-  } else {
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (!ALLOWED_MIME.has(file.mimetype)) {
     cb(new Error(`File type '${file.mimetype}' is not allowed.`));
+    return;
   }
+  if (!ALLOWED_EXTENSIONS.has(ext)) {
+    cb(new Error(`File extension '${ext}' is not allowed.`));
+    return;
+  }
+  cb(null, true);
 }
 
 // ─── Export ───────────────────────────────────────────────────────────────────
