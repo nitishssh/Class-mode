@@ -1,6 +1,7 @@
 import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import authRouter from "./routes/auth";
+import adminRouter from "./routes/admin";
 import { storage } from "./storage";
 import {
   insertTestSchema,

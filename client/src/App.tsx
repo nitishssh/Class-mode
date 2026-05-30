@@ -2,6 +2,14 @@ import React from "react";
 import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
+// Admin pages
+import { AdminDashboard as SchoolAdminDash } from "@/pages/admin/AdminDashboard";
+import { StudentsPage } from "@/pages/admin/StudentsPage";
+import { StudentDetail } from "@/pages/admin/StudentDetail";
+import { TeachersPage } from "@/pages/admin/TeachersPage";
+import { ContentPage } from "@/pages/admin/ContentPage";
+import { AnalyticsPage } from "@/pages/admin/AnalyticsPage";
+
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/contexts/theme-context";
 import { FirebaseAuthProvider, useFirebaseAuth } from "@/contexts/firebase-auth-context";
@@ -172,6 +180,13 @@ const OnboardingInvTeachRoute = withLayout(protect(InviteTeachers, ["school_admi
 const OnboardingTeacherRoute = withLayout(protect(TeacherClassSetup, ["teacher"]));
 const OnboardingInvStdRoute = withLayout(protect(InviteStudents, ["teacher"]));
 
+const SchoolAdminDashboardPageRoute = protect(SchoolAdminDash, ["school_admin"]);
+const AdminStudentsPageRoute = protect(StudentsPage, ["school_admin"]);
+const AdminStudentDetailRoute = protect(StudentDetail, ["school_admin"]);
+const AdminTeachersPageRoute = protect(TeachersPage, ["school_admin"]);
+const AdminContentPageRoute = protect(ContentPage, ["school_admin"]);
+const AdminAnalyticsPageRoute = protect(AnalyticsPage, ["school_admin"]);
+
 function getDashboardPath(role: string): string {
   switch (role) {
     case "principal":
@@ -329,6 +344,14 @@ function App() {
       <Route path="/onboarding/invite-teachers" component={OnboardingInvTeachRoute} />
       <Route path="/onboarding/teacher" component={OnboardingTeacherRoute} />
       <Route path="/onboarding/invite-students" component={OnboardingInvStdRoute} />
+
+      {/* ── Admin Dashboard Routes ────────────────────────────────── */}
+      <Route path="/admin" component={SchoolAdminDashboardPageRoute} />
+      <Route path="/admin/students" component={AdminStudentsPageRoute} />
+      <Route path="/admin/students/:id" component={AdminStudentDetailRoute} />
+      <Route path="/admin/teachers" component={AdminTeachersPageRoute} />
+      <Route path="/admin/content" component={AdminContentPageRoute} />
+      <Route path="/admin/analytics" component={AdminAnalyticsPageRoute} />
 
       <Route component={NotFound} />
     </Switch>
