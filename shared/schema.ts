@@ -368,3 +368,69 @@ export type DynamicView = z.infer<typeof insertDynamicViewSchema> & {
   createdAt: Date;
 };
 export type InsertDynamicView = z.infer<typeof insertDynamicViewSchema>;
+
+// ─── Student Lifecycle Schemas ──────────────────────────────────────────────
+
+export const insertCompetencySchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional().nullable(),
+});
+
+export const insertDoubtSchema = z.object({
+  id: z.string().uuid().optional(),
+  studentId: z.number(),
+  classroomId: z.number().optional().nullable(),
+  testId: z.number().optional().nullable(),
+  question: z.string().min(1),
+  answer: z.string().optional().nullable(),
+  status: z.enum(["pending", "resolved"]).default("pending"),
+  resolvedAt: z.string().or(z.date()).optional().nullable(),
+});
+
+export const insertMilestoneSchema = z.object({
+  id: z.string().uuid().optional(),
+  studentId: z.number(),
+  competencyId: z.number(),
+  phase: z.enum(["decide", "plan", "compete", "sorted"]),
+  reflection: z.string().optional().nullable(),
+  score: z.number().min(0).max(100).default(0),
+});
+
+export const insertCompetitionSchema = z.object({
+  name: z.string().min(1),
+  organizer: z.string().optional().nullable(),
+  level: z.enum(["school", "district", "state", "national", "international"]).default("school"),
+  category: z.string().optional().nullable(),
+  competitionDate: z.string().or(z.date()).optional().nullable(),
+});
+
+export const insertStudentAchievementSchema = z.object({
+  id: z.string().uuid().optional(),
+  studentId: z.number(),
+  competitionId: z.number(),
+  awardType: z.string().min(1), // winner, runner_up, participation, etc.
+  score: z.number().optional().nullable(),
+  rank: z.number().optional().nullable(),
+  certificateUrl: z.string().optional().nullable(),
+  verified: z.boolean().default(false),
+  verifiedBy: z.number().optional().nullable(),
+  verificationMetadata: z.record(z.any()).default({}),
+});
+
+export type Competency = z.infer<typeof insertCompetencySchema> & { id: number; createdAt: Date };
+export type InsertCompetency = z.infer<typeof insertCompetencySchema>;
+
+export type Doubt = z.infer<typeof insertDoubtSchema> & { id: string; createdAt: Date };
+export type InsertDoubt = z.infer<typeof insertDoubtSchema>;
+
+export type Milestone = z.infer<typeof insertMilestoneSchema> & { id: string; createdAt: Date };
+export type InsertMilestone = z.infer<typeof insertMilestoneSchema>;
+
+export type Competition = z.infer<typeof insertCompetitionSchema> & { id: number; createdAt: Date };
+export type InsertCompetition = z.infer<typeof insertCompetitionSchema>;
+
+export type StudentAchievement = z.infer<typeof insertStudentAchievementSchema> & {
+  id: string;
+  createdAt: Date;
+};
+export type InsertStudentAchievement = z.infer<typeof insertStudentAchievementSchema>;

@@ -637,3 +637,69 @@ CREATE INDEX IF NOT EXISTS idx_dynamic_fields_table    ON dynamic_fields(table_i
 CREATE INDEX IF NOT EXISTS idx_dynamic_records_table   ON dynamic_records(table_id);
 CREATE INDEX IF NOT EXISTS idx_dynamic_records_data    ON dynamic_records USING GIN(data);
 CREATE INDEX IF NOT EXISTS idx_dynamic_views_table     ON dynamic_views(table_id);
+
+-- ─── Student Lifecycle ──────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS competencies (
+  id          bigserial    PRIMARY KEY,
+  name        text         NOT NULL,
+  description text,
+  created_at  timestamptz  NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS doubts (
+  id           uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id   bigint       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  classroom_id bigint       REFERENCES ai_classrooms(id) ON DELETE SET NULL,
+  test_id      bigint       REFERENCES tests(id) ON DELETE SET NULL,
+  question     text         NOT NULL,
+  answer       text,
+  status       text         NOT NULL DEFAULT 'pending',
+  created_at   timestamptz  NOT NULL DEFAULT now(),
+  resolved_at  timestamptz,
+  CONSTRAINT doubts_status_check CHECK (status IN ('pending', 'resolved'))
+);
+
+CREATE TABLE IF NOT EXISTS milestones (
+  id            uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id    bigint       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  competency_id bigint       NOT NULL REFERENCES competencies(id) ON DELETE CASCADE,
+  phase         text         NOT NULL,
+  reflection    text,
+  score         int          NOT NULL DEFAULT 0,
+  created_at    timestamptz  NOT NULL DEFAULT now(),
+  CONSTRAINT milestones_phase_check CHECK (phase IN ('decide', 'plan', 'compete', 'sorted')),
+  CONSTRAINT milestones_score_check CHECK (score >= 0 AND score <= 100)
+);
+
+CREATE TABLE IF NOT EXISTS competitions (
+  id               bigserial    PRIMARY KEY,
+  name             text         NOT NULL,
+  organizer        text,
+  level            text         NOT NULL DEFAULT 'school',
+  category         text,
+  competition_date date,
+  created_at       timestamptz  NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS student_achievements (
+  id              uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id      bigint       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  competition_id  bigint       NOT NULL REFERENCES competitions(id) ON DELETE CASCADE,
+  award_type      text         NOT NULL,
+  score           numeric,
+  rank            int,
+  certificate_url text,
+  verified        boolean      DEFAULT false NOT NULL,
+  verified_by     bigint       REFERENCES users(id),
+  verification_metadata jsonb  DEFAULT '{}' NOT NULL,
+  created_at      timestamptz  NOT NULL DEFAULT now()
+);
+
+-- Indexes for Student Lifecycle
+CREATE INDEX IF NOT EXISTS idx_doubts_student       ON doubts(student_id);
+CREATE INDEX IF NOT EXISTS idx_milestones_student   ON milestones(student_id);
+CREATE INDEX IF NOT EXISTS idx_achievements_student ON student_achievements(student_id);
+
+-- Ensure milestones are unique per student/competency/phase
+CREATE UNIQUE INDEX IF NOT EXISTS idx_milestones_unique ON milestones(student_id, competency_id, phase);
