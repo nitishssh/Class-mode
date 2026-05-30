@@ -67,7 +67,13 @@
       "Bash(Format-Table -AutoSize)",
       "Bash(npm uninstall *)",
       "Bash(xargs kill *)",
-      "Bash(echo \" PID: $!\" sleep 7 curl -s -o /dev/null -w \" /api/health HTTP %{http_code}\\\\n\" http://localhost:5001/api/health)"
+      "Bash(echo \" PID: $!\" sleep 7 curl -s -o /dev/null -w \" /api/health HTTP %{http_code}\\\\n\" http://localhost:5001/api/health)",
+      "Bash(cp package.json /tmp/current-package.json)",
+      "Bash(cp package-lock.json /tmp/current-lockfile.json)",
+      "Bash(cp /tmp/main-lockfile.json package-lock.json)",
+      "Bash(npm audit *)",
+      "Bash(python3 -c ' *)",
+      "Bash(cp /tmp/current-lockfile.json package-lock.json)"
     ]
   }
 }

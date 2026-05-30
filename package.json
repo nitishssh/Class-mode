@@ -134,6 +134,7 @@
     "@typescript-eslint/eslint-plugin": "^8.58.0",
     "@typescript-eslint/parser": "^8.58.0",
     "@vitejs/plugin-react": "^4.7.0",
+    "@vitest/coverage-v8": "^4.0.18",
     "autoprefixer": "^10.4.20",
     "esbuild": "^0.25.0",
     "eslint": "^9.39.4",
@@ -159,6 +160,7 @@
   "overrides": {
     "sucrase": "3.35.1",
     "@tootallnate/once": "^3.0.1",
-    "picomatch": "^4.0.4"
+    "picomatch": "^4.0.4",
+    "uuid": ">=10.0.0"
   }
 }
