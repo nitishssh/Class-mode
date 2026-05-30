@@ -35,6 +35,16 @@ import {
   type InsertNotification,
   type FocusSession,
   type InsertFocusSession,
+  type Competency,
+  type InsertCompetency,
+  type Doubt,
+  type InsertDoubt,
+  type Milestone,
+  type InsertMilestone,
+  type Competition,
+  type InsertCompetition,
+  type StudentAchievement,
+  type InsertStudentAchievement,
 } from "@shared/schema";
 import { getPgPool } from "./db-pg";
 import { getCassandraClient } from "./lib/cassandra";
@@ -50,8 +60,7 @@ import {
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 
-export interface IStorage {
-  sessionStore: session.Store;
+export interface IUserStorage {
   getUser(id: number | string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
@@ -59,6 +68,10 @@ export interface IStorage {
   getUsers(role?: string): Promise<User[]>;
   getUsersByClass(className: string): Promise<User[]>;
   updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
+}
+
+export interface IAuthStorage {
+  sessionStore: session.Store;
   createSession(session: InsertSession): Promise<Session>;
   getSession(id: number): Promise<Session | undefined>;
   getSessionByRefreshToken(tokenHash: string): Promise<Session | undefined>;
@@ -69,6 +82,9 @@ export interface IStorage {
   getOtp(id: number): Promise<Otp | undefined>;
   getValidOtp(userId: number, type: string): Promise<Otp | undefined>;
   markOtpUsed(id: number): Promise<boolean>;
+}
+
+export interface IEducationStorage {
   createTest(test: InsertTest): Promise<Test>;
   getTest(id: number): Promise<Test | undefined>;
   getTests(teacherId?: number, status?: string): Promise<Test[]>;
@@ -109,6 +125,21 @@ export interface IStorage {
     studentId: number,
     testId: number
   ): Promise<TestAssignment | undefined>;
+  createLiveClass(liveClass: InsertLiveClass): Promise<LiveClass>;
+  getLiveClass(id: number): Promise<LiveClass | undefined>;
+  getLiveClassesBySchoolAndClass(schoolCode: string, className: string): Promise<LiveClass[]>;
+  updateLiveClass(id: number, update: Partial<InsertLiveClass>): Promise<LiveClass | undefined>;
+  createLiveSessionAttendance(
+    attendance: InsertLiveSessionAttendance
+  ): Promise<LiveSessionAttendance>;
+  getAttendanceBySession(sessionId: number): Promise<LiveSessionAttendance[]>;
+  updateLiveSessionAttendance(
+    id: number,
+    update: Partial<InsertLiveSessionAttendance>
+  ): Promise<LiveSessionAttendance | undefined>;
+}
+
+export interface IChatStorage {
   createWorkspace(workspace: InsertWorkspace): Promise<Workspace>;
   getWorkspace(id: number): Promise<Workspace | undefined>;
   getWorkspaces(userId: number): Promise<Workspace[]>;
@@ -136,18 +167,9 @@ export interface IStorage {
     userId: number,
     channelId?: number
   ): Promise<Message | undefined>;
-  createLiveClass(liveClass: InsertLiveClass): Promise<LiveClass>;
-  getLiveClass(id: number): Promise<LiveClass | undefined>;
-  getLiveClassesBySchoolAndClass(schoolCode: string, className: string): Promise<LiveClass[]>;
-  updateLiveClass(id: number, update: Partial<InsertLiveClass>): Promise<LiveClass | undefined>;
-  createLiveSessionAttendance(
-    attendance: InsertLiveSessionAttendance
-  ): Promise<LiveSessionAttendance>;
-  getAttendanceBySession(sessionId: number): Promise<LiveSessionAttendance[]>;
-  updateLiveSessionAttendance(
-    id: number,
-    update: Partial<InsertLiveSessionAttendance>
-  ): Promise<LiveSessionAttendance | undefined>;
+}
+
+export interface IProductivityStorage {
   upsertFcmToken(token: InsertFcmToken): Promise<FcmToken>;
   getFcmTokensByUser(userId: number): Promise<FcmToken[]>;
   removeFcmToken(token: string): Promise<boolean>;
@@ -165,6 +187,28 @@ export interface IStorage {
   createFocusSession(session: InsertFocusSession): Promise<FocusSession>;
   getFocusSessionsByUser(userId: number): Promise<FocusSession[]>;
 }
+
+export interface ICareerStorage {
+  createCompetency(c: InsertCompetency): Promise<Competency>;
+  getCompetencies(): Promise<Competency[]>;
+  createDoubt(d: InsertDoubt): Promise<Doubt>;
+  getDoubtsByStudent(studentId: number): Promise<Doubt[]>;
+  resolveDoubt(id: string, answer: string): Promise<Doubt | undefined>;
+  createMilestone(m: InsertMilestone): Promise<Milestone>;
+  getMilestonesByStudent(studentId: number): Promise<Milestone[]>;
+  createCompetition(c: InsertCompetition): Promise<Competition>;
+  getCompetitions(): Promise<Competition[]>;
+  createAchievement(a: InsertStudentAchievement): Promise<StudentAchievement>;
+  getAchievementsByStudent(studentId: number): Promise<StudentAchievement[]>;
+}
+
+export interface IStorage
+  extends IUserStorage,
+    IAuthStorage,
+    IEducationStorage,
+    IChatStorage,
+    IProductivityStorage,
+    ICareerStorage {}
 
 // ─── Row mappers ──────────────────────────────────────────────────────────────
 
@@ -422,6 +466,69 @@ function mapFocusSession(r: any): FocusSession {
     mode: r.mode as any,
     durationSeconds: n(r.duration_seconds)!,
     completedAt: r.completed_at,
+  };
+}
+
+function mapCompetency(r: any): Competency {
+  return {
+    id: n(r.id)!,
+    name: r.name,
+    description: r.description ?? null,
+    createdAt: r.created_at,
+  };
+}
+
+function mapDoubt(r: any): Doubt {
+  return {
+    id: r.id, // uuid
+    studentId: n(r.student_id)!,
+    classroomId: n(r.classroom_id),
+    testId: n(r.test_id),
+    question: r.question,
+    answer: r.answer ?? null,
+    status: r.status as any,
+    createdAt: r.created_at,
+    resolvedAt: r.resolved_at ?? null,
+  };
+}
+
+function mapMilestone(r: any): Milestone {
+  return {
+    id: r.id, // uuid
+    studentId: n(r.student_id)!,
+    competencyId: n(r.competency_id)!,
+    phase: r.phase as any,
+    reflection: r.reflection ?? null,
+    score: n(r.score) ?? 0,
+    createdAt: r.created_at,
+  };
+}
+
+function mapCompetition(r: any): Competition {
+  return {
+    id: n(r.id)!,
+    name: r.name,
+    organizer: r.organizer ?? null,
+    level: r.level as any,
+    category: r.category ?? null,
+    competitionDate: r.competition_date,
+    createdAt: r.created_at,
+  };
+}
+
+function mapAchievement(r: any): StudentAchievement {
+  return {
+    id: r.id, // uuid
+    studentId: n(r.student_id)!,
+    competitionId: n(r.competition_id)!,
+    awardType: r.award_type,
+    score: r.score != null ? parseFloat(r.score) : null,
+    rank: n(r.rank),
+    certificateUrl: r.certificate_url ?? null,
+    verified: r.verified ?? false,
+    verifiedBy: n(r.verified_by),
+    verificationMetadata: r.verification_metadata ?? {},
+    createdAt: r.created_at,
   };
 }
 
@@ -1568,6 +1675,109 @@ export class PgStorage implements IStorage {
       [userId]
     );
     return rows.map(mapFocusSession);
+  }
+
+  // ─── Student Lifecycle ──────────────────────────────────────────────────
+
+  async createCompetency(c: InsertCompetency): Promise<Competency> {
+    const { rows } = await this.pool.query(
+      "INSERT INTO competencies (name, description) VALUES ($1, $2) RETURNING *",
+      [c.name, c.description ?? null]
+    );
+    return mapCompetency(rows[0]);
+  }
+
+  async getCompetencies(): Promise<Competency[]> {
+    const { rows } = await this.pool.query("SELECT * FROM competencies ORDER BY name ASC");
+    return rows.map(mapCompetency);
+  }
+
+  async createDoubt(d: InsertDoubt): Promise<Doubt> {
+    const { rows } = await this.pool.query(
+      `INSERT INTO doubts (id, student_id, classroom_id, test_id, question, answer, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [d.id ?? crypto.randomUUID(), d.studentId, d.classroomId ?? null, d.testId ?? null, d.question, d.answer ?? null, d.status]
+    );
+    return mapDoubt(rows[0]);
+  }
+
+  async getDoubtsByStudent(studentId: number): Promise<Doubt[]> {
+    const { rows } = await this.pool.query(
+      "SELECT * FROM doubts WHERE student_id=$1 ORDER BY created_at DESC",
+      [studentId]
+    );
+    return rows.map(mapDoubt);
+  }
+
+  async resolveDoubt(id: string, answer: string): Promise<Doubt | undefined> {
+    const { rows } = await this.pool.query(
+      "UPDATE doubts SET answer=$1, status='resolved', resolved_at=now() WHERE id=$2 RETURNING *",
+      [answer, id]
+    );
+    return rows[0] ? mapDoubt(rows[0]) : undefined;
+  }
+
+  async createMilestone(m: InsertMilestone): Promise<Milestone> {
+    const { rows } = await this.pool.query(
+      `INSERT INTO milestones (id, student_id, competency_id, phase, reflection, score)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (student_id, competency_id, phase) 
+       DO UPDATE SET reflection = EXCLUDED.reflection, score = GREATEST(milestones.score, EXCLUDED.score)
+       RETURNING *`,
+      [m.id ?? crypto.randomUUID(), m.studentId, m.competencyId, m.phase, m.reflection ?? null, m.score]
+    );
+    return mapMilestone(rows[0]);
+  }
+
+  async getMilestonesByStudent(studentId: number): Promise<Milestone[]> {
+    const { rows } = await this.pool.query(
+      "SELECT * FROM milestones WHERE student_id=$1 ORDER BY created_at DESC",
+      [studentId]
+    );
+    return rows.map(mapMilestone);
+  }
+
+  async createCompetition(c: InsertCompetition): Promise<Competition> {
+    const { rows } = await this.pool.query(
+      `INSERT INTO competitions (name, organizer, level, category, competition_date)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [c.name, c.organizer ?? null, c.level, c.category ?? null, c.competitionDate ?? null]
+    );
+    return mapCompetition(rows[0]);
+  }
+
+  async getCompetitions(): Promise<Competition[]> {
+    const { rows } = await this.pool.query("SELECT * FROM competitions ORDER BY competition_date DESC");
+    return rows.map(mapCompetition);
+  }
+
+  async createAchievement(a: InsertStudentAchievement): Promise<StudentAchievement> {
+    const { rows } = await this.pool.query(
+      `INSERT INTO student_achievements 
+         (id, student_id, competition_id, award_type, score, rank, certificate_url, verified, verified_by, verification_metadata)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+      [
+        a.id ?? crypto.randomUUID(),
+        a.studentId,
+        a.competitionId,
+        a.awardType,
+        a.score ?? null,
+        a.rank ?? null,
+        a.certificateUrl ?? null,
+        a.verified,
+        a.verifiedBy ?? null,
+        a.verificationMetadata ?? {},
+      ]
+    );
+    return mapAchievement(rows[0]);
+  }
+
+  async getAchievementsByStudent(studentId: number): Promise<StudentAchievement[]> {
+    const { rows } = await this.pool.query(
+      "SELECT * FROM student_achievements WHERE student_id=$1 ORDER BY created_at DESC",
+      [studentId]
+    );
+    return rows.map(mapAchievement);
   }
 }
 

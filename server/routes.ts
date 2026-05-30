@@ -47,6 +47,7 @@ import lmsRoutes from "./routes/lms";
 import onboardingRouter from "./routes/onboarding";
 import workspaceRouter from "./routes/workspace";
 import dynamicSisRouter from "./routes/dynamic-sis";
+import lifecycleRouter from "./routes/lifecycle";
 import { requireVerifiedEmail } from "./middleware";
 
 // Shorthand: auth + verified email — used on all dashboard-level routes
@@ -235,6 +236,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount No-Code SIS routes
   app.use("/api/dynamic-sis", dynamicSisRouter);
+  app.use("/api/lifecycle", authenticateToken, lifecycleRouter);
 
   // Mount GDPR routes (export, delete)
   app.use("/api/gdpr", gdprRoutes);
