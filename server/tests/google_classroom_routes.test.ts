@@ -113,7 +113,7 @@ describe("LMS Google Classroom routes", () => {
     ]);
     // alice exists, bob is new
     (pgFindUserByEmail as any).mockImplementation(async (email: string) =>
-      email === "alice@school.edu" ? { id: 100, email } : null
+      email === "alice@school.edu" ? { id: 100, email, role: "student" } : null
     );
     (pgCreateUser as any).mockImplementation(async (data: any) => ({
       id: 200,
