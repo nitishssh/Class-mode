@@ -1838,3 +1838,116 @@ export async function pgCountTests(teacherId: number): Promise<number> {
     return 0;
   }
 }
+
+// ─── Timetable queries ────────────────────────────────────────────────────────
+
+export async function pgGetTimetableByWorkspace(workspaceId: number): Promise<any[]> {
+  if (!isPgReady()) return [];
+  try {
+    const { rows } = await getPgPool().query(
+      "SELECT * FROM timetable_slots WHERE workspace_id = $1 ORDER BY day_of_week, period_number",
+      [workspaceId]
+    );
+    return rows;
+  } catch (err) {
+    logger.error("[pg] pgGetTimetableByWorkspace failed", { err: String(err) });
+    return [];
+  }
+}
+
+export async function pgGetTimetableByClass(workspaceId: number, className: string): Promise<any[]> {
+  if (!isPgReady()) return [];
+  try {
+    const { rows } = await getPgPool().query(
+      "SELECT * FROM timetable_slots WHERE workspace_id = $1 AND class_name = $2 ORDER BY day_of_week, period_number",
+      [workspaceId, className]
+    );
+    return rows;
+  } catch (err) {
+    logger.error("[pg] pgGetTimetableByClass failed", { err: String(err) });
+    return [];
+  }
+}
+
+export async function pgCreateTimetableSlot(data: any): Promise<any> {
+  const pool = getPgPool();
+  const { rows } = await pool.query(
+    `INSERT INTO timetable_slots (workspace_id, teacher_id, class_name, subject, day_of_week, period_number, start_time, end_time, room)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+    [
+      data.workspaceId,
+      data.teacherId,
+      data.className,
+      data.subject,
+      data.dayOfWeek,
+      data.periodNumber,
+      data.startTime,
+      data.endTime,
+      data.room || null,
+    ]
+  );
+  return rows[0];
+}
+
+export async function pgDeleteTimetableSlot(id: number, workspaceId: number): Promise<boolean> {
+  if (!isPgReady()) return false;
+  try {
+    const { rowCount } = await getPgPool().query(
+      "DELETE FROM timetable_slots WHERE id = $1 AND workspace_id = $2",
+      [id, workspaceId]
+    );
+    return (rowCount ?? 0) > 0;
+  } catch (err) {
+    logger.error("[pg] pgDeleteTimetableSlot failed", { err: String(err) });
+    return false;
+  }
+}
+
+// ─── AI Usage queries ─────────────────────────────────────────────────────────
+
+export async function pgGetAIUsage(
+  userId: number,
+  feature: "ai_classroom" | "ai_tutor" | "ocr"
+): Promise<number> {
+  if (!isPgReady()) return 0;
+  try {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const { rows } = await getPgPool().query(
+      `SELECT COUNT(*) FROM usage_logs 
+       WHERE user_id = $1 AND feature = $2 AND created_at >= $3`,
+      [userId, feature, startOfMonth]
+    );
+    return parseInt(rows[0].count, 10);
+  } catch (err) {
+    logger.error("[pg] pgGetAIUsage failed", { err: String(err) });
+    return 0;
+  }
+}
+
+export async function pgIncrementAIUsage(data: {
+  userId: number;
+  workspaceId?: number | null;
+  feature: "ai_classroom" | "ai_tutor" | "ocr";
+  tokensUsed?: number | null;
+  metadata?: any;
+}): Promise<void> {
+  if (!isPgReady()) return;
+  try {
+    await getPgPool().query(
+      `INSERT INTO usage_logs (user_id, workspace_id, feature, tokens_used, metadata)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [
+        data.userId,
+        data.workspaceId ?? null,
+        data.feature,
+        data.tokensUsed ?? null,
+        JSON.stringify(data.metadata || {}),
+      ]
+    );
+  } catch (err) {
+    logger.error("[pg] pgIncrementAIUsage failed", { err: String(err) });
+  }
+}

@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -19,6 +22,7 @@ import {
   BookOpen,
   Building2,
   DollarSign,
+  MessageCircle,
 } from "lucide-react";
 import {
   PieChart,
@@ -36,77 +40,60 @@ import {
 
 /**
  * Renders the Principal's dashboard with statistics, charts, staff and finance summaries, events, and notifications.
- *
- * The component pulls the current user from authentication context to personalize the header and composes
- * multiple UI sections (stats grid, tabbed main content for Academic/Staff/Finance/Infrastructure, and
- * Events & Notifications) driven by internal data arrays.
- *
- * @returns A React element that displays the principal's dashboard UI
  */
 export default function PrincipalDashboard() {
   const { currentUser } = useFirebaseAuth();
+  const [isDemoMode, setIsDemoMode] = useState(true);
 
-  const { data: tests, isLoading: isLoadingTests } = useQuery<any[]>({
-    queryKey: ["/api/tests"],
-    queryFn: () => apiRequest("GET", "/api/tests").then((r) => r.json()),
-  });
-
-  const {
-    data: students,
-    isLoading: isLoadingStudents,
-    isError: isErrorStudents,
-  } = useQuery<any[]>({
-    queryKey: ["/api/users", { role: "student" }],
-    queryFn: () => apiRequest("GET", "/api/users?role=student").then((r) => r.json()),
+  const { data: dashboardData, isLoading: isLoadingStats } = useQuery<any>({
+    queryKey: ["/api/admin/stats", { demo: isDemoMode }],
+    queryFn: () => apiRequest("GET", `/api/admin/stats${isDemoMode ? "?demo=true" : ""}`).then((r) => r.json()),
   });
 
   const stats = [
     {
       label: "Total Students",
-      value: isLoadingStudents
-        ? null
-        : isErrorStudents
-          ? "Error"
-          : students?.length?.toLocaleString() || "0",
+      value: dashboardData?.totalStudents?.toLocaleString(),
       icon: <GraduationCap className="h-5 w-5" />,
-      trend: "+42 this term",
+      trend: isDemoMode ? "+42 this term" : "Current census",
       gradient: "from-blue-500 to-indigo-600",
-      isLoading: isLoadingStudents,
+      isLoading: isLoadingStats,
     },
     {
       label: "Teachers",
-      value: "87",
+      value: dashboardData?.totalTeachers?.toLocaleString(),
       icon: <Users className="h-5 w-5" />,
-      trend: "3 new hires",
+      trend: isDemoMode ? "3 new hires" : "Active staff",
       gradient: "from-emerald-500 to-teal-600",
-      isLoading: false,
+      isLoading: isLoadingStats,
     },
     {
       label: "Active Classes",
-      value: "36",
+      value: dashboardData?.activeClasses || "0",
       icon: <School className="h-5 w-5" />,
       trend: "All running",
       gradient: "from-amber-500 to-orange-600",
-      isLoading: false,
+      isLoading: isLoadingStats,
     },
     {
       label: "Pass Rate",
-      value: "94.2%",
+      value: `${dashboardData?.attendanceRate || 0}%`,
       icon: <TrendingUp className="h-5 w-5" />,
-      trend: "+2.1% vs last year",
+      trend: isDemoMode ? "+2.1% vs last year" : "Avg attendance",
       gradient: "from-purple-500 to-violet-600",
-      isLoading: false,
+      isLoading: isLoadingStats,
     },
   ];
 
-  const performanceData = [
-    { subject: "Physics", avgScore: 78, passRate: 92 },
-    { subject: "Chem", avgScore: 72, passRate: 88 },
-    { subject: "Math", avgScore: 82, passRate: 95 },
-    { subject: "Bio", avgScore: 76, passRate: 91 },
-    { subject: "CS", avgScore: 85, passRate: 97 },
-    { subject: "English", avgScore: 80, passRate: 94 },
-  ];
+  const performanceData = dashboardData?.subjectPerformance || [];
+
+  const gradeDistribution = (dashboardData?.gradeDistribution || []).map((g: any) => ({
+    ...g,
+    color: g.grade === "A+" ? "from-emerald-500 to-teal-500" :
+           g.grade === "A" ? "from-blue-500 to-indigo-500" :
+           g.grade === "B" ? "from-amber-500 to-orange-500" :
+           g.grade === "C" ? "from-rose-400 to-red-500" : "from-gray-400 to-gray-500"
+  }));
 
   const staffDistribution = [
     { name: "Science", value: 25, color: "hsl(var(--chart-1))" },
@@ -117,9 +104,9 @@ export default function PrincipalDashboard() {
   ];
 
   const financeSummary = [
-    { label: "Annual Budget", value: "₹2.4 Cr", status: "Approved" },
-    { label: "Spent YTD", value: "₹1.8 Cr", status: "75% utilized" },
-    { label: "Pending Fees", value: "₹12.5 L", status: "8% outstanding" },
+    { label: "Annual Budget", value: dashboardData?.revenue || "₹0", status: "Approved" },
+    { label: "Spent YTD", value: isDemoMode ? "₹1.8 Cr" : "₹0", status: "75% utilized" },
+    { label: "Pending Fees", value: dashboardData?.pendingFees || "₹0", status: "8% outstanding" },
   ];
 
   const upcomingEvents = [
@@ -158,6 +145,16 @@ export default function PrincipalDashboard() {
         className="animate-fade-in-up"
         breadcrumbs={[{ label: "Dashboard", href: "/" }, { label: "Principal Dashboard" }]}
       >
+        <div className="mr-4 flex items-center space-x-2">
+          <Switch
+            id="demo-mode"
+            checked={isDemoMode}
+            onCheckedChange={setIsDemoMode}
+          />
+          <Label htmlFor="demo-mode" className="text-xs font-semibold text-muted-foreground">
+            Demo Data
+          </Label>
+        </div>
         <Button variant="outline">
           <Calendar className="mr-2 h-4 w-4" />
           Schedule
@@ -191,7 +188,7 @@ export default function PrincipalDashboard() {
                 ) : stat.value === "Error" ? (
                   <span className="text-sm text-red-500">Error</span>
                 ) : (
-                  stat.value
+                  stat.value || "0"
                 )}
               </div>
               <div className="text-sm text-muted-foreground">{stat.label}</div>
@@ -267,28 +264,7 @@ export default function PrincipalDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {[
-                    {
-                      grade: "A+ (90-100%)",
-                      count: 312,
-                      pct: 25,
-                      color: "from-emerald-500 to-teal-500",
-                    },
-                    {
-                      grade: "A (80-89%)",
-                      count: 436,
-                      pct: 35,
-                      color: "from-blue-500 to-indigo-500",
-                    },
-                    {
-                      grade: "B (70-79%)",
-                      count: 312,
-                      pct: 25,
-                      color: "from-amber-500 to-orange-500",
-                    },
-                    { grade: "C (60-69%)", count: 124, pct: 10, color: "from-rose-400 to-red-500" },
-                    { grade: "Below C", count: 61, pct: 5, color: "from-gray-400 to-gray-500" },
-                  ].map((g) => (
+                  {gradeDistribution.map((g: any) => (
                     <div key={g.grade} className="flex items-center gap-3">
                       <span className="w-28 text-xs font-medium text-muted-foreground">
                         {g.grade}
@@ -535,6 +511,14 @@ export default function PrincipalDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Support Chat Floating Button */}
+      <Button
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl transition-transform hover:scale-110 active:scale-95"
+        size="icon"
+      >
+        <MessageCircle className="h-6 w-6" />
+      </Button>
     </>
   );
 }

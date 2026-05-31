@@ -434,3 +434,60 @@ export type StudentAchievement = z.infer<typeof insertStudentAchievementSchema> 
   createdAt: Date;
 };
 export type InsertStudentAchievement = z.infer<typeof insertStudentAchievementSchema>;
+
+// ─── Subscription Schemas ────────────────────────────────────────────────────
+
+export const insertSubscriptionSchema = z.object({
+  userId: z.number(),
+  workspaceId: z.number().optional().nullable(),
+  tier: z.enum(["free", "pro", "educator", "institution"]).default("free"),
+  stripeCustomerId: z.string().optional().nullable(),
+  stripeSubscriptionId: z.string().optional().nullable(),
+  status: z.enum(["active", "canceled", "past_due", "trialing"]).default("active"),
+  currentPeriodStart: z.string().or(z.date()).optional().nullable(),
+  currentPeriodEnd: z.string().or(z.date()).optional().nullable(),
+  cancelAtPeriodEnd: z.boolean().default(false),
+});
+
+export type Subscription = z.infer<typeof insertSubscriptionSchema> & {
+  id: number;
+  createdAt: Date;
+  updatedAt: Date;
+};
+export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
+
+// ─── Usage Logging Schemas (for AI Quotas) ───────────────────────────────────
+
+export const insertUsageLogSchema = z.object({
+  userId: z.number(),
+  workspaceId: z.number().optional().nullable(),
+  feature: z.enum(["ai_classroom", "ai_tutor", "ocr"]),
+  tokensUsed: z.number().optional().nullable(),
+  metadata: z.record(z.any()).default({}),
+});
+
+export type UsageLog = z.infer<typeof insertUsageLogSchema> & {
+  id: number;
+  createdAt: Date;
+};
+export type InsertUsageLog = z.infer<typeof insertUsageLogSchema>;
+
+// ─── Timetable Schemas ──────────────────────────────────────────────────────
+
+export const insertTimetableSlotSchema = z.object({
+  workspaceId: z.number(),
+  teacherId: z.number(),
+  className: z.string().min(1),
+  subject: z.string().min(1),
+  dayOfWeek: z.number().min(0).max(6), // 0 = Sunday, 1 = Monday, etc.
+  periodNumber: z.number().min(1).max(12),
+  startTime: z.string(), // "08:00"
+  endTime: z.string(), // "08:45"
+  room: z.string().optional().nullable(),
+});
+
+export type TimetableSlot = z.infer<typeof insertTimetableSlotSchema> & {
+  id: number;
+  createdAt: Date;
+};
+export type InsertTimetableSlot = z.infer<typeof insertTimetableSlotSchema>;
