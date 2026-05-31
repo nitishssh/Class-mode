@@ -340,7 +340,7 @@ export default function VerifyEmailPage() {
             <button
               onClick={handleManualSubmit}
               disabled={otp.join("").length !== 4 || isVerifying}
-              className="sketch-border sketch-shadow-yellow hover-tilt flex w-full items-center justify-center gap-2 rounded-full bg-primary py-4 font-heading text-base font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="sketch-border sketch-shadow-yellow hover-tilt flex w-full items-center justify-center gap-2 rounded-full bg-primary py-4 font-heading text-base font-bold text-primary-foreground hover:bg-primary/90 disabled:bg-primary/30 disabled:text-primary-foreground/70 disabled:cursor-not-allowed"
             >
               {isVerifying ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
@@ -400,10 +400,10 @@ export default function VerifyEmailPage() {
             </div>
 
             {/* Quote footer */}
-            <p className="mt-8 text-center text-xs italic text-muted-foreground/60 font-body">
+            <p className="mt-8 text-center text-xs italic text-muted-foreground font-body">
               "Education is not the filling of a pail, but the lighting of a fire."
             </p>
-            <p className="mt-1 text-center text-[10px] font-semibold tracking-widest text-muted-foreground/40 uppercase font-sans">
+            <p className="mt-1 text-center text-[10px] font-semibold tracking-widest text-muted-foreground/70 uppercase font-sans">
               — William Butler Yeats
             </p>
           </div>

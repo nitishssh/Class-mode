@@ -40,7 +40,7 @@ const translations: Record<string, Record<string, string>> = {
     "video.unavailable": "Video unavailable",
     "video.continue": "Continue",
     "verify.title": "Verify Your Email",
-    "verify.dispatched": "We've dispatched a 4-digit secure code to",
+    "verify.dispatched": "We've dispatched a",
     "verify.didNotReceive": "didn't receive it?",
     "whiteboard.title": "Whiteboard",
     "classroom.scene": "Scene ",
