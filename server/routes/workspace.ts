@@ -30,7 +30,7 @@ import {
 } from "../lib/auth-workspace";
 import { sendWorkspaceInvite } from "../lib/mailer";
 import { logger } from "../lib/logger";
-import { authenticateToken } from "../routes";
+import { authenticateToken } from "../middleware";
 
 const router = Router();
 

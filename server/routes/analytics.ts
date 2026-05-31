@@ -136,7 +136,7 @@ router.get("/dashboards/teacher", authenticateToken, requireVerifiedEmail, async
   }
 });
 
-// GET /api/student/weak-subjects — Get subjects where student averages < 60%
+// GET /api/student/weak-subjects
 router.get("/student/weak-subjects", authenticateToken, async (req: Request, res: Response) => {
   try {
     const studentId = req.session?.userId;
@@ -164,7 +164,7 @@ router.get("/student/weak-subjects", authenticateToken, async (req: Request, res
   }
 });
 
-// POST /api/ai/study-plan — Generate personalized study plan
+// POST /api/ai/study-plan
 router.post("/ai/study-plan", await checkAIQuota("ai_tutor"), async (req: Request, res: Response) => {
   try {
     const { weakSubjects } = req.body;
@@ -187,7 +187,6 @@ router.post("/ai/study-plan", await checkAIQuota("ai_tutor"), async (req: Reques
     );
     const plan = JSON.parse(response.content);
 
-    // Increment Usage
     await pgIncrementAIUsage({
       userId,
       workspaceId: workspace?.id,
@@ -202,7 +201,7 @@ router.post("/ai/study-plan", await checkAIQuota("ai_tutor"), async (req: Reques
   }
 });
 
-// POST /api/ai/performance-analysis — Analyze student performance
+// POST /api/ai/performance-analysis
 router.post(
   "/ai/performance-analysis",
   await checkAIQuota("ai_tutor"),
@@ -249,7 +248,6 @@ router.post(
       );
       const analysis = JSON.parse(response.content);
 
-      // Increment Usage
       await pgIncrementAIUsage({
         userId: studentId,
         workspaceId: workspace?.id,
@@ -265,9 +263,9 @@ router.post(
   }
 );
 
-// GET /api/analytics/student/:studentId — Real test scores by subject
+// GET /api/analytics/student/:studentId
 router.get(
-  "/student/:studentId",
+  "/analytics/student/:studentId",
   authenticateToken,
   async (req: Request, res: Response) => {
     try {
@@ -280,7 +278,6 @@ router.get(
         return res.status(400).json({ message: "Invalid student ID" });
       }
 
-      // Authorization: students can only view their own, teachers/admins can view any
       if (req.session.role === "student" && req.session.userId !== studentId) {
         return res.status(403).json({ message: "Forbidden: Can only view your own analytics" });
       }
@@ -311,7 +308,6 @@ router.get(
         }
       }
 
-      // Format response
       const result = Array.from(subjectScores.entries()).map(([subject, data]) => ({
         subject,
         avgScore: Math.round((data.total / data.count) * 100) / 100,
@@ -325,7 +321,7 @@ router.get(
   }
 );
 
-// GET /api/progress/student/:studentId — Month-by-month progress
+// GET /api/progress/student/:studentId
 router.get(
   "/progress/student/:studentId",
   authenticateToken,
@@ -340,7 +336,6 @@ router.get(
         return res.status(400).json({ message: "Invalid student ID" });
       }
 
-      // Authorization
       if (req.session.role === "student" && req.session.userId !== studentId) {
         return res.status(403).json({ message: "Forbidden: Can only view your own progress" });
       }
@@ -370,14 +365,13 @@ router.get(
   }
 );
 
-// GET /api/admin/stats — Real school-wide statistics
+// GET /api/admin/stats
 router.get("/admin/stats", authenticateToken, async (req: Request, res: Response) => {
   try {
     if (!req.session?.userId) {
       return res.status(401).json({ message: "Not authenticated" });
     }
 
-    // Only admin/principal/school_admin can access
     if (!["admin", "principal", "school_admin"].includes(req.session.role || "")) {
       return res.status(403).json({ message: "Forbidden: Admin access required" });
     }
@@ -442,8 +436,8 @@ router.get("/admin/stats", authenticateToken, async (req: Request, res: Response
   }
 });
 
-// GET /api/analytics/students — per-student analytics aggregation
-router.get("/students", authenticateToken, async (req: Request, res: Response) => {
+// GET /api/analytics/students
+router.get("/analytics/students", authenticateToken, async (req: Request, res: Response) => {
   try {
     if (
       !req.session?.userId ||
@@ -451,13 +445,11 @@ router.get("/students", authenticateToken, async (req: Request, res: Response) =
     ) {
       return res.status(403).json({ message: "Forbidden: Insufficient permissions" });
     }
-    // Get all students
     const students = await storage.getUsers("student");
     if (!students || students.length === 0) {
       return res.status(200).json([]);
     }
 
-    // For each student, aggregate their test attempts
     const summaries = await Promise.all(
       students.map(async (student) => {
         const attempts = await storage.getTestAttemptsByStudent(student.id);
@@ -474,7 +466,6 @@ router.get("/students", authenticateToken, async (req: Request, res: Response) =
         const completionRate =
           attempts.length > 0 ? completedAttempts.length / attempts.length : 0;
 
-        // Get subject breakdown from tests
         const subjectScores: Record<string, { total: number; count: number }> = Object.create(null);
         for (const attempt of completedAttempts) {
           const test = await storage.getTest(attempt.testId);

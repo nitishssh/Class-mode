@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { authenticateToken } from "../routes";
+import { authenticateToken } from "../middleware";
 import { createMessageStore } from "./factory";
 
 const router = Router();

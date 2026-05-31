@@ -1,19 +1,14 @@
 import { Router, Request, Response } from "express";
 import { upload, diskPathToUrl } from "../lib/upload";
 import { logger } from "../lib/logger";
+import { authenticateToken } from "../middleware";
 
 const router = Router();
 
 // POST /api/upload — Real multipart file upload (multer disk storage)
 router.post(
   "/",
-  (req: Request, res: Response, next) => {
-    // Auth guard before multer processes the body
-    if (!req.session?.userId) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-    next();
-  },
+  authenticateToken,
   upload.single("file"),
   (req: Request, res: Response) => {
     try {

@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { authenticateToken } from "../routes";
+import { authenticateToken } from "../middleware";
 import { requireRole } from "../middleware";
 import { pgFindUsers, pgFindGradingResults } from "../lib/pg-queries";
 import { storage } from "../storage";

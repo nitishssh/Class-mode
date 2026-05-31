@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { isCassandraConnected } from "../lib/cassandra";
 import { isPgReady, getPgPool } from "../db-pg";
-import { authenticateToken } from "../routes";
+import { authenticateToken } from "../middleware";
 import { getFirebaseAdminStatus } from "../lib/firebase-admin";
 
 const router = Router();

@@ -7,7 +7,7 @@ const router = Router();
 
 // ─── Task routes ─────────────────────────────────────────────────────────
 
-router.post("/", authenticateToken, async (req: Request, res: Response) => {
+router.post("/tasks", authenticateToken, async (req: Request, res: Response) => {
   try {
     if (!req.session?.userId) {
       return res.status(401).json({ message: "Not authenticated" });
@@ -25,7 +25,7 @@ router.post("/", authenticateToken, async (req: Request, res: Response) => {
   }
 });
 
-router.get("/", authenticateToken, async (req: Request, res: Response) => {
+router.get("/tasks", authenticateToken, async (req: Request, res: Response) => {
   try {
     if (!req.session?.userId) {
       return res.status(401).json({ message: "Not authenticated" });
@@ -37,7 +37,7 @@ router.get("/", authenticateToken, async (req: Request, res: Response) => {
   }
 });
 
-router.patch("/:id", authenticateToken, async (req: Request, res: Response) => {
+router.patch("/tasks/:id", authenticateToken, async (req: Request, res: Response) => {
   try {
     if (!req.session?.userId) {
       return res.status(401).json({ message: "Not authenticated" });
@@ -67,7 +67,7 @@ router.patch("/:id", authenticateToken, async (req: Request, res: Response) => {
   }
 });
 
-router.delete("/:id", authenticateToken, async (req: Request, res: Response) => {
+router.delete("/tasks/:id", authenticateToken, async (req: Request, res: Response) => {
   try {
     if (!req.session?.userId) {
       return res.status(401).json({ message: "Not authenticated" });

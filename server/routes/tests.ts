@@ -16,7 +16,7 @@ import { pgIncrementAIUsage } from "../lib/pg-queries";
 const router = Router();
 
 // POST /api/tests
-router.post("/", authenticateToken, async (req: Request, res: Response) => {
+router.post("/tests", authenticateToken, async (req: Request, res: Response) => {
   try {
     if (!req.session?.userId || (req.session.role || "") !== "teacher") {
       return res.status(401).json({ message: "Unauthorized: Only teachers can create tests" });
@@ -24,7 +24,6 @@ router.post("/", authenticateToken, async (req: Request, res: Response) => {
 
     const testData = insertTestSchema.parse(req.body);
 
-    // Ensure the teacher is creating their own test
     if (testData.teacherId !== req.session.userId) {
       return res.status(403).json({ message: "Forbidden: Can only create tests for yourself" });
     }
@@ -40,7 +39,7 @@ router.post("/", authenticateToken, async (req: Request, res: Response) => {
 });
 
 // GET /api/tests
-router.get("/", authenticateToken, async (req: Request, res: Response) => {
+router.get("/tests", authenticateToken, async (req: Request, res: Response) => {
   try {
     if (!req.session?.userId) {
       return res.status(401).json({ message: "Not authenticated" });
@@ -72,7 +71,7 @@ router.get("/", authenticateToken, async (req: Request, res: Response) => {
 });
 
 // GET /api/tests/:id
-router.get("/:id", authenticateToken, async (req: Request, res: Response) => {
+router.get("/tests/:id", authenticateToken, async (req: Request, res: Response) => {
   try {
     if (!req.session?.userId) {
       return res.status(401).json({ message: "Not authenticated" });
@@ -100,7 +99,7 @@ router.get("/:id", authenticateToken, async (req: Request, res: Response) => {
 });
 
 // PATCH /api/tests/:id
-router.patch("/:id", authenticateToken, async (req: Request, res: Response) => {
+router.patch("/tests/:id", authenticateToken, async (req: Request, res: Response) => {
   try {
     if (!req.session?.userId || (req.session.role || "") !== "teacher") {
       return res.status(401).json({ message: "Unauthorized: Only teachers can update tests" });
@@ -127,17 +126,7 @@ router.patch("/:id", authenticateToken, async (req: Request, res: Response) => {
   }
 });
 
-// Question routes
-// POST /api/tests/questions (Renamed from /api/questions in routes.ts for consistency, but routes.ts used /api/questions)
-// I'll keep /api/questions for now if needed, but better to group under /api/tests/questions or keep as is.
-// Actually, let's keep the paths as they were in routes.ts but inside this file.
-// If I mount this router at /api/tests, then /questions will be /api/tests/questions.
-// But the original was /api/questions.
-// Let's mount this at /api/tests AND separately /api/questions? No, let's just use /api/tests as base.
-// Wait, routes.ts had app.post("/api/questions", ...).
-
-// I'll define them here and mount them properly in registerRoutes.
-
+// POST /api/questions
 router.post("/questions", authenticateToken, async (req: Request, res: Response) => {
   try {
     if (!req.session?.userId || (req.session.role || "") !== "teacher") {
@@ -162,7 +151,8 @@ router.post("/questions", authenticateToken, async (req: Request, res: Response)
   }
 });
 
-router.get("/:testId/questions", authenticateToken, async (req: Request, res: Response) => {
+// GET /api/questions/:testId
+router.get("/questions/:testId", authenticateToken, async (req: Request, res: Response) => {
   try {
     if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
 
@@ -188,8 +178,8 @@ router.get("/:testId/questions", authenticateToken, async (req: Request, res: Re
   }
 });
 
-// Test Attempt routes
-router.post("/attempts", authenticateToken, async (req: Request, res: Response) => {
+// POST /api/test-attempts
+router.post("/test-attempts", authenticateToken, async (req: Request, res: Response) => {
   try {
     if (!req.session?.userId || (req.session.role || "") !== "student") {
       return res.status(401).json({ message: "Unauthorized: Only students can attempt tests" });
@@ -229,7 +219,8 @@ router.post("/attempts", authenticateToken, async (req: Request, res: Response) 
   }
 });
 
-router.patch("/attempts/:id", authenticateToken, async (req: Request, res: Response) => {
+// PATCH /api/test-attempts/:id
+router.patch("/test-attempts/:id", authenticateToken, async (req: Request, res: Response) => {
   try {
     if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
 
@@ -263,7 +254,7 @@ router.patch("/attempts/:id", authenticateToken, async (req: Request, res: Respo
   }
 });
 
-// Answer routes
+// POST /api/answers
 router.post("/answers", authenticateToken, async (req: Request, res: Response) => {
   try {
     if (!req.session?.userId || (req.session.role || "") !== "student") {
@@ -296,8 +287,8 @@ router.post("/answers", authenticateToken, async (req: Request, res: Response) =
   }
 });
 
-// AI evaluation routes
-router.post("/evaluate", await checkAIQuota("ai_tutor"), async (req: Request, res: Response) => {
+// POST /api/evaluate
+router.post("/evaluate", authenticateToken, await checkAIQuota("ai_tutor"), async (req: Request, res: Response) => {
   try {
     if (!req.session?.userId || (req.session.role || "") !== "teacher") {
       return res.status(401).json({ message: "Unauthorized: Only teachers can evaluate answers" });
@@ -342,7 +333,6 @@ router.post("/evaluate", await checkAIQuota("ai_tutor"), async (req: Request, re
       aiFeedback: evaluation.feedback,
     });
 
-    // Increment Usage
     await pgIncrementAIUsage({
       userId,
       workspaceId: workspace?.id,
@@ -356,8 +346,8 @@ router.post("/evaluate", await checkAIQuota("ai_tutor"), async (req: Request, re
   }
 });
 
-// POST /api/ai/generate-test — Generate test questions
-router.post("/generate-test", await checkAIQuota("ai_tutor"), async (req: Request, res: Response) => {
+// POST /api/ai/generate-test
+router.post("/ai/generate-test", authenticateToken, await checkAIQuota("ai_tutor"), async (req: Request, res: Response) => {
   try {
     const { subject, numQuestions, difficulty, grade } = req.body;
     const userId = req.session!.userId;
@@ -383,7 +373,6 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
       }
     }
 
-    // Increment Usage
     await pgIncrementAIUsage({
       userId,
       workspaceId: workspace?.id,
@@ -398,8 +387,8 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
   }
 });
 
-// GET /api/teacher/subjects — Get distinct subjects for a teacher
-router.get("/subjects", authenticateToken, async (req: Request, res: Response) => {
+// GET /api/teacher/subjects
+router.get("/teacher/subjects", authenticateToken, async (req: Request, res: Response) => {
   try {
     const teacherId = req.session?.userId;
     if (!teacherId || (req.session.role || "") !== "teacher") {

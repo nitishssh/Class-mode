@@ -12,7 +12,7 @@ import { StatelessChatRequest } from "../services/study-arena/types";
 import { generatePPTX } from "../services/study-arena/pptx-export";
 import { generateClassroomHTML } from "../services/study-arena/html-export";
 import { logger } from "../lib/logger";
-import { authenticateToken } from "../routes";
+import { authenticateToken } from "../middleware";
 import { checkAIQuota } from "../middleware/aiQuota";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });

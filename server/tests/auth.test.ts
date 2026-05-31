@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import { Request, Response } from "express";
-import { authenticateToken } from "../routes";
+import { authenticateToken } from "../middleware";
 import jwt from "jsonwebtoken";
 import { pgFindFirstWorkspaceMembership, pgFindUserById } from "../lib/pg-queries";
 

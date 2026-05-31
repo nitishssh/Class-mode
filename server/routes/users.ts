@@ -11,7 +11,7 @@ import { getPgPool } from "../db-pg";
 const router = Router();
 
 // GET /api/users/me
-router.get("/me", authenticateToken, async (req: Request, res: Response) => {
+router.get("/users/me", authenticateToken, async (req: Request, res: Response) => {
   try {
     if (!req.session?.userId) {
       return res.status(401).json({ message: "Not authenticated" });
@@ -23,7 +23,6 @@ router.get("/me", authenticateToken, async (req: Request, res: Response) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Don't return the password
     const userWithoutPassword = { ...user };
     delete (userWithoutPassword as any).password;
 

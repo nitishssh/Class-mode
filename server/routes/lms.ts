@@ -8,7 +8,7 @@ import {
   pgFindFirstWorkspaceMembership,
   pgUpsertWorkspaceMembership,
 } from "../lib/pg-queries";
-import { authenticateToken } from "../routes";
+import { authenticateToken } from "../middleware";
 import {
   getAuthUrl,
   exchangeCode,

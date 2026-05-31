@@ -3,7 +3,7 @@ import crypto from "crypto";
 import { z } from "zod";
 import admin from "firebase-admin";
 import { setCustomUserClaims } from "../lib/firebase-admin";
-import { authenticateToken } from "../routes";
+import { authenticateToken } from "../middleware";
 import { upload, diskPathToUrl } from "../lib/upload";
 import { logger } from "../lib/logger";
 import {

@@ -1,9 +1,13 @@
 import { Router, Request, Response } from "express";
 import { processOCRImage } from "../lib/tesseract";
+import { authenticateToken } from "../middleware";
 
 const router = Router();
 
-// POST /api/ocr — extract text from image using OCR (Old endpoint)
+// Middleware to protect subsequent routes
+router.use(authenticateToken);
+
+// POST /api/ocr — extract text from image using OCR
 router.post("/", async (req: Request, res: Response) => {
   try {
     const { imageData } = req.body;
@@ -20,7 +24,7 @@ router.post("/", async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/ocr/extract — legacy/mobile compatibility (Now points to real OCR)
+// POST /api/ocr/extract — legacy/mobile compatibility
 router.post("/extract", async (req: Request, res: Response) => {
   try {
     const { image } = req.body;
@@ -30,7 +34,6 @@ router.post("/extract", async (req: Request, res: Response) => {
 
     const result = await processOCRImage(image);
     
-    // Maintain backward compatibility for mobile client
     return res.status(200).json({
       text: result.text,
       confidence: result.confidence,

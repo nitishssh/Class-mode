@@ -6,7 +6,7 @@ const router = Router();
 
 // ─── Notification routes ──────────────────────────────────────────────────
 
-router.get("/", authenticateToken, async (req: Request, res: Response) => {
+router.get("/notifications", authenticateToken, async (req: Request, res: Response) => {
   try {
     if (!req.session?.userId) {
       return res.status(401).json({ message: "Not authenticated" });
@@ -18,7 +18,7 @@ router.get("/", authenticateToken, async (req: Request, res: Response) => {
   }
 });
 
-router.patch("/read-all", authenticateToken, async (req: Request, res: Response) => {
+router.patch("/notifications/read-all", authenticateToken, async (req: Request, res: Response) => {
   try {
     if (!req.session?.userId) {
       return res.status(401).json({ message: "Not authenticated" });
@@ -30,7 +30,7 @@ router.patch("/read-all", authenticateToken, async (req: Request, res: Response)
   }
 });
 
-router.patch("/:id/read", authenticateToken, async (req: Request, res: Response) => {
+router.patch("/notifications/:id/read", authenticateToken, async (req: Request, res: Response) => {
   try {
     if (!req.session?.userId) {
       return res.status(401).json({ message: "Not authenticated" });
@@ -54,7 +54,7 @@ router.patch("/:id/read", authenticateToken, async (req: Request, res: Response)
   }
 });
 
-router.delete("/:id", authenticateToken, async (req: Request, res: Response) => {
+router.delete("/notifications/:id", authenticateToken, async (req: Request, res: Response) => {
   try {
     if (!req.session?.userId) {
       return res.status(401).json({ message: "Not authenticated" });

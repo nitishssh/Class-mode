@@ -17,7 +17,7 @@ import {
   insertDynamicRecordSchema, 
   insertDynamicViewSchema 
 } from "@shared/schema";
-import { authenticateToken } from "../routes";
+import { authenticateToken } from "../middleware";
 import { logger } from "../lib/logger";
 
 const router = Router();

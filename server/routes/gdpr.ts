@@ -1,6 +1,6 @@
 import { Router, Response, Request as ExpressRequest } from "express";
 import { pgFindUserById, pgDeleteUser } from "../lib/pg-queries";
-import { authenticateToken } from "../routes";
+import { authenticateToken } from "../middleware";
 import { logger } from "../lib/logger";
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);

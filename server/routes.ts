@@ -39,7 +39,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ── Global email-verification gate ─────────────────────────────────────────
   app.use("/api", (req: Request, res: Response, next: express.NextFunction) => {
     const EXEMPT = ["/api/auth/", "/api/health", "/api/invite/validate", "/api/invites/"];
-    const isExempt = EXEMPT.some((p) => req.path.startsWith(p) || req.originalUrl.startsWith(p));
+    const isExempt = EXEMPT.some((p) => req.path?.startsWith(p) || req.originalUrl?.startsWith(p));
     if (isExempt) return next();
     const user = (req as any).user;
     if (user && user.emailVerified === false) {
@@ -66,20 +66,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/health", healthRoutes);
   app.use("/api/onboarding", onboardingRouter);
 
-  // Mount newly extracted domain routers
-  app.use("/api/auth", authRouter);
-  app.use("/api/users", usersRouter);
-  app.use("/api/analytics", analyticsRouter);
-  app.use("/api/tests", testsRouter);
-  app.use("/api/timetable", timetableRouter);
+  // Mount newly extracted domain routers at /api root
+  app.use("/api/auth", authRouter); // Supports /api/auth/*
+  app.use("/api", authRouter);      // Supports /api/* (login, signup, etc.)
+  app.use("/api", usersRouter);
+  app.use("/api", analyticsRouter);
+  app.use("/api", testsRouter);
+  app.use("/api", timetableRouter);
   app.use("/api", aiRouter); // Handles /api/ai-chat
-  app.use("/api", chatRouter); // Handles /workspaces, /channels, /messages, /chat
-  app.use("/api/tasks", tasksRouter);
-  app.use("/api/notifications", notificationsRouter);
+  app.use("/api", chatRouter); // Handles /api/workspaces, /api/channels, /api/messages
+  app.use("/api", tasksRouter);
+  app.use("/api", notificationsRouter);
   app.use("/api/ocr", ocrRouter);
   app.use("/api/upload", uploadRouter);
   
-  // Legacy Workspace v2 (must be last to catch generic /api routes if any)
+  // Legacy Workspace v2 (must be last)
   app.use("/api", workspaceRouter);
 
   const httpServer = createServer(app);

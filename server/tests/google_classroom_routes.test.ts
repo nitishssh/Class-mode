@@ -31,7 +31,7 @@ vi.mock("../lib/pg-queries", () => ({
 
 // authenticateToken normally verifies the access_token cookie. Stub it to
 // attach a fixed user.
-vi.mock("../routes", () => ({
+vi.mock("../middleware", () => ({
   authenticateToken: (req: any, _res: any, next: any) => {
     req.user = { id: 42 };
     next();
