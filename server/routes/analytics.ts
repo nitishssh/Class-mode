@@ -1,8 +1,8 @@
 import { Router, Request, Response } from "express";
 import { authenticateToken, requireVerifiedEmail } from "../middleware";
 import { storage } from "../storage";
-import { pgFindUserById, pgCountUsers, getPgPool } from "../lib/pg-queries";
-import { isPgReady } from "../db-pg";
+import { pgFindUserById, pgCountUsers } from "../lib/pg-queries";
+import { isPgReady, getPgPool } from "../db-pg";
 import { logger } from "../lib/logger";
 import { aiChat } from "../lib/openai";
 import { checkAIQuota } from "../middleware/aiQuota";

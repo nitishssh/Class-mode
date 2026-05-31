@@ -41,6 +41,12 @@ EduAI is a robust multi-tenant platform. Whether you're a school, a coaching cen
 - **Answer Evaluation**: AI-driven grading with detailed qualitative feedback.
 - **Study Plan Generator**: Personalized weekly schedules based on performance.
 - **Study Arena (AI Classroom)**: Real-time interactive lesson playback with whiteboard, TTS, Whisper ASR, and PBL support.
+- **Persistent AI Jobs**: Redis-backed BullMQ integration for state-resilient AI tutor and whiteboard orchestration.
+
+### 💳 Billing & Quota Management
+
+- **Stripe Integration**: Complete billing lifecycle with checkout sessions and customer portal.
+- **AI Quota Guard**: Tiered monthly usage limits (Free, Pro, Enterprise) for AI features.
 
 ### 💬 Real-Time Messaging — MessagePal
 
@@ -67,8 +73,9 @@ EduAI is a robust multi-tenant platform. Whether you're a school, a coaching cen
 | ------------------------------ | ------------------------------------------------------------- |
 | **Frontend**                   | React 18, Vite, TypeScript, Tailwind CSS, shadcn/ui           |
 | **Backend**                    | Node.js 18+, Express, TypeScript                              |
-| **Primary DB (Transactional)** | **PostgreSQL** (Users, Workspaces, Sessions, Tests, SIS)      |
+| **Primary DB (Transactional)** | **PostgreSQL** (Users, Workspaces, Sessions, Tests, SIS, Billing) |
 | **Message Store**              | **Apache Cassandra** (Astra DB) · MongoDB fallback            |
+| **Job Queue**                  | **Redis** (BullMQ) · AI Job persistence                       |
 | **AI Engine**                  | **Google Gemini 2.0 Flash** · OpenAI GPT-4o (fallback)        |
 | **Auth**                       | Local JWT + Cookies · Google OAuth 2.0 (server-side)          |
 | **Real-time**                  | WebSockets (ws) · Daily.co (video)                            |

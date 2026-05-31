@@ -2,11 +2,10 @@ import { Queue, Worker, Job } from "bullmq";
 import Redis from "ioredis";
 import { whatsappService } from "./whatsapp";
 import { 
-  getPgPool, 
-  isPgReady, 
   pgFindUserById, 
   pgFindWorkspaceById 
 } from "../lib/pg-queries";
+import { getPgPool, isPgReady } from "../db-pg";
 import { logger } from "../lib/logger";
 
 const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";

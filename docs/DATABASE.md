@@ -4,9 +4,10 @@
 
 PersonalLearningPro uses a multi-database architecture optimized for different data access patterns:
 
-- **PostgreSQL**: Primary transactional data store for users, workspaces, tenancy, sessions, tests, SIS, and all critical business logic.
+- **PostgreSQL**: Primary transactional data store for users, workspaces, tenancy, sessions, tests, SIS, billing, and all critical business logic.
 - **MongoDB**: Optional legacy store for non-relational content (tests, questions, analytics). Not required for core functionality.
 - **Cassandra (Astra DB)**: High-performance message storage for MessagePal, with automatic fallback to MongoDB.
+- **Redis (BullMQ)**: Persistent job queue for AI tutor tasks, whiteboard orchestration, and long-running generation jobs.
 
 ---
 
@@ -123,6 +124,22 @@ Server-side session management for local auth (refresh tokens).
 | `ip_address` | `text` | |
 | `created_at` | `timestamptz` | |
 | `expires_at` | `timestamptz` | |
+
+#### `subscriptions`
+
+Billing and subscription tier data.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `bigserial` | Primary Key |
+| `user_id` | `bigint` | References `users.id` ON DELETE CASCADE |
+| `workspace_id` | `bigint` | References `workspaces.id` ON DELETE CASCADE |
+| `tier` | `text` | `free\|pro\|educator\|institution` |
+| `stripe_customer_id` | `text` | |
+| `stripe_subscription_id` | `text` | |
+| `status` | `text` | `active\|canceled\|past_due\|trialing` |
+| `current_period_end` | `timestamptz` | |
+| `cancel_at_period_end` | `boolean` | |
 
 #### `otps`
 
@@ -325,6 +342,18 @@ CREATE TABLE messages (
   PRIMARY KEY (channel_id, message_id)
 ) WITH CLUSTERING ORDER BY (message_id DESC);
 ```
+
+---
+
+## ⚡ Redis (Job Queue)
+
+Used for stateful AI operations and long-running background tasks via **BullMQ**.
+
+| Queue Name | Purpose |
+|---|---|
+| `ai-tutor` | Manages AI tutor chat sessions and context preservation. |
+| `whiteboard` | Orchestrates real-time whiteboard updates and scene generation. |
+| `whatsapp` | Handles outbound parent notification delivery. |
 
 ---
 
