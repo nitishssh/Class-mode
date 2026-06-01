@@ -156,7 +156,7 @@ export default function ResetPasswordPage() {
                       placeholder="New password"
                       autoComplete="new-password"
                       disabled={status === "loading"}
-                      className="w-full rounded-2xl border border-white/20 bg-white/10 px-5 py-4 text-sm text-white placeholder:text-white/40 outline-none transition-all focus:border-indigo-400 focus:bg-indigo-500/10 focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50"
+                      className="w-full rounded-2xl border border-white/20 bg-white/10 px-5 py-4 text-sm text-white outline-none transition-all placeholder:text-white/40 focus:border-indigo-400 focus:bg-indigo-500/10 focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50"
                       {...form.register("password")}
                     />
                     {form.formState.errors.password && (
@@ -172,7 +172,7 @@ export default function ResetPasswordPage() {
                       placeholder="Confirm new password"
                       autoComplete="new-password"
                       disabled={status === "loading"}
-                      className="w-full rounded-2xl border border-white/20 bg-white/10 px-5 py-4 text-sm text-white placeholder:text-white/40 outline-none transition-all focus:border-indigo-400 focus:bg-indigo-500/10 focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50"
+                      className="w-full rounded-2xl border border-white/20 bg-white/10 px-5 py-4 text-sm text-white outline-none transition-all placeholder:text-white/40 focus:border-indigo-400 focus:bg-indigo-500/10 focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50"
                       {...form.register("confirmPassword")}
                     />
                     {form.formState.errors.confirmPassword && (

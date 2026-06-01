@@ -1,23 +1,42 @@
 import { Router, Request, Response } from "express";
-import { pgListBases, pgFindBaseById, pgCreateBase, pgUpdateBase, pgDeleteBase,
-  pgListTables, pgFindTableById, pgCreateTable, pgUpdateTable, pgDeleteTable,
-  pgListFields, pgFindFieldById, pgCreateField, pgUpdateField, pgDeleteField,
-  pgListRecords, pgFindRecordById, pgCreateRecord, pgUpdateRecord, pgDeleteRecord, pgBulkCreateRecords,
-  pgListViews, pgCreateView, pgUpdateView, pgDeleteView
+import {
+  pgListBases,
+  pgFindBaseById,
+  pgCreateBase,
+  pgUpdateBase,
+  pgDeleteBase,
+  pgListTables,
+  pgFindTableById,
+  pgCreateTable,
+  pgUpdateTable,
+  pgDeleteTable,
+  pgListFields,
+  pgFindFieldById,
+  pgCreateField,
+  pgUpdateField,
+  pgDeleteField,
+  pgListRecords,
+  pgFindRecordById,
+  pgCreateRecord,
+  pgUpdateRecord,
+  pgDeleteRecord,
+  pgBulkCreateRecords,
+  pgListViews,
+  pgCreateView,
 } from "../lib/pg-dynamic-sis";
 import { dynamicEnrichmentService, DynamicEnrichmentService } from "../services/dynamic-enrichment";
 import { whatsappService } from "../services/whatsapp";
 
 import { pgFindWorkspaceMembership } from "../lib/pg-queries";
-import { hasWorkspacePermission, type WorkspaceRole } from "../lib/auth-workspace";
-import { 
-  insertDynamicBaseSchema, 
-  insertDynamicTableSchema, 
-  insertDynamicFieldSchema, 
-  insertDynamicRecordSchema, 
-  insertDynamicViewSchema 
+import { type WorkspaceRole } from "../lib/auth-workspace";
+import {
+  insertDynamicBaseSchema,
+  insertDynamicTableSchema,
+  insertDynamicFieldSchema,
+  insertDynamicRecordSchema,
+  insertDynamicViewSchema,
 } from "@shared/schema";
-import { authenticateToken } from "../routes";
+import { authenticateToken } from "../middleware";
 import { logger } from "../lib/logger";
 
 const router = Router();
@@ -47,7 +66,7 @@ async function requireWorkspacePermission(
   // co-teacher, teaching-assistant -> edit, view
   // member, auditor -> view
   const role = membership.role as WorkspaceRole;
-  
+
   if (permission === "admin") {
     if (!["owner", "admin"].includes(role)) {
       res.status(403).json({ message: "Admin permission required" });
@@ -66,32 +85,40 @@ async function requireWorkspacePermission(
 
 // ─── Bases ───────────────────────────────────────────────────────────────────
 
-router.get("/workspaces/:workspaceId/bases", authenticateToken, async (req: Request, res: Response) => {
-  try {
-    const workspaceId = parseInt(req.params.workspaceId);
-    if (!(await requireWorkspacePermission(req, res, workspaceId, "view"))) return;
+router.get(
+  "/workspaces/:workspaceId/bases",
+  authenticateToken,
+  async (req: Request, res: Response) => {
+    try {
+      const workspaceId = parseInt(req.params.workspaceId);
+      if (!(await requireWorkspacePermission(req, res, workspaceId, "view"))) return;
 
-    const bases = await pgListBases(workspaceId);
-    res.json(bases);
-  } catch (error) {
-    logger.error("[dynamic-sis/bases] List error", { error: String(error) });
-    res.status(500).json({ message: "Failed to list bases" });
+      const bases = await pgListBases(workspaceId);
+      res.json(bases);
+    } catch (error) {
+      logger.error("[dynamic-sis/bases] List error", { error: String(error) });
+      res.status(500).json({ message: "Failed to list bases" });
+    }
   }
-});
+);
 
-router.post("/workspaces/:workspaceId/bases", authenticateToken, async (req: Request, res: Response) => {
-  try {
-    const workspaceId = parseInt(req.params.workspaceId);
-    if (!(await requireWorkspacePermission(req, res, workspaceId, "admin"))) return;
+router.post(
+  "/workspaces/:workspaceId/bases",
+  authenticateToken,
+  async (req: Request, res: Response) => {
+    try {
+      const workspaceId = parseInt(req.params.workspaceId);
+      if (!(await requireWorkspacePermission(req, res, workspaceId, "admin"))) return;
 
-    const parsed = insertDynamicBaseSchema.parse({ ...req.body, workspaceId });
-    const base = await pgCreateBase(parsed);
-    res.status(201).json(base);
-  } catch (error) {
-    logger.error("[dynamic-sis/bases] Create error", { error: String(error) });
-    res.status(400).json({ message: "Invalid base data" });
+      const parsed = insertDynamicBaseSchema.parse({ ...req.body, workspaceId });
+      const base = await pgCreateBase(parsed);
+      res.status(201).json(base);
+    } catch (error) {
+      logger.error("[dynamic-sis/bases] Create error", { error: String(error) });
+      res.status(400).json({ message: "Invalid base data" });
+    }
   }
-});
+);
 
 router.get("/bases/:id", authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -312,9 +339,9 @@ router.post("/tables/:tableId/records", authenticateToken, async (req: Request, 
 
     const parsed = insertDynamicRecordSchema.parse({ ...req.body, tableId });
     const record = await pgCreateRecord(parsed);
-    
+
     // Trigger enrichments in background
-    dynamicEnrichmentService.processRecord(record.id, tableId).catch(err => {
+    dynamicEnrichmentService.processRecord(record.id, tableId).catch((err) => {
       logger.error("[dynamic-sis/records] Background enrichment error", { err: String(err) });
     });
 
@@ -325,30 +352,34 @@ router.post("/tables/:tableId/records", authenticateToken, async (req: Request, 
   }
 });
 
-router.post("/tables/:tableId/bulk-records", authenticateToken, async (req: Request, res: Response) => {
-  try {
-    const tableId = parseInt(req.params.tableId);
-    const table = await pgFindTableById(tableId);
-    if (!table) return res.status(404).json({ message: "Table not found" });
+router.post(
+  "/tables/:tableId/bulk-records",
+  authenticateToken,
+  async (req: Request, res: Response) => {
+    try {
+      const tableId = parseInt(req.params.tableId);
+      const table = await pgFindTableById(tableId);
+      if (!table) return res.status(404).json({ message: "Table not found" });
 
-    const base = await pgFindBaseById(table.baseId);
-    if (!base || !(await requireWorkspacePermission(req, res, base.workspaceId, "edit"))) return;
+      const base = await pgFindBaseById(table.baseId);
+      if (!base || !(await requireWorkspacePermission(req, res, base.workspaceId, "edit"))) return;
 
-    const { records } = req.body;
-    if (!Array.isArray(records)) {
-      return res.status(400).json({ message: "Invalid bulk data (expected records array)" });
+      const { records } = req.body;
+      if (!Array.isArray(records)) {
+        return res.status(400).json({ message: "Invalid bulk data (expected records array)" });
+      }
+      if (records.length > 5000) {
+        return res.status(400).json({ message: "Batch too large (max 5000 records)" });
+      }
+
+      await pgBulkCreateRecords(tableId, records);
+      res.status(201).json({ message: `Successfully imported ${records.length} records` });
+    } catch (error) {
+      logger.error("[dynamic-sis/records] Bulk create error", { error: String(error) });
+      res.status(500).json({ message: "Failed to bulk import records" });
     }
-    if (records.length > 5000) {
-      return res.status(400).json({ message: "Batch too large (max 5000 records)" });
-    }
-
-    await pgBulkCreateRecords(tableId, records);
-    res.status(201).json({ message: `Successfully imported ${records.length} records` });
-  } catch (error) {
-    logger.error("[dynamic-sis/records] Bulk create error", { error: String(error) });
-    res.status(500).json({ message: "Failed to bulk import records" });
   }
-});
+);
 
 router.patch("/records/:id", authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -363,7 +394,7 @@ router.patch("/records/:id", authenticateToken, async (req: Request, res: Respon
     const updated = await pgUpdateRecord(id, req.body);
 
     // Trigger enrichments in background
-    dynamicEnrichmentService.processRecord(id, record.tableId).catch(err => {
+    dynamicEnrichmentService.processRecord(id, record.tableId).catch((err) => {
       logger.error("[dynamic-sis/records] Background enrichment error", { err: String(err) });
     });
 
@@ -394,54 +425,60 @@ router.delete("/records/:id", authenticateToken, async (req: Request, res: Respo
 
 // ─── Actions ─────────────────────────────────────────────────────────────────
 
-router.post("/records/:id/whatsapp/:fieldId", authenticateToken, async (req: Request, res: Response) => {
-  try {
-    const { id, fieldId } = req.params;
-    const record = await pgFindRecordById(id);
-    const field = await pgFindFieldById(parseInt(fieldId));
+router.post(
+  "/records/:id/whatsapp/:fieldId",
+  authenticateToken,
+  async (req: Request, res: Response) => {
+    try {
+      const { id, fieldId } = req.params;
+      const record = await pgFindRecordById(id);
+      const field = await pgFindFieldById(parseInt(fieldId));
 
-    if (!record || !field || field.tableId !== record.tableId) {
-      return res.status(404).json({ message: "Record or field not found" });
+      if (!record || !field || field.tableId !== record.tableId) {
+        return res.status(404).json({ message: "Record or field not found" });
+      }
+
+      const table = await pgFindTableById(record.tableId);
+      const base = table ? await pgFindBaseById(table.baseId) : null;
+      if (!base || !(await requireWorkspacePermission(req, res, base.workspaceId, "edit"))) return;
+
+      const phoneField = field.config?.phoneField as string;
+      const template = field.config?.template as string;
+
+      if (!phoneField || !template) {
+        return res
+          .status(400)
+          .json({ message: "WhatsApp field not configured (missing phoneField or template)" });
+      }
+
+      const phone = record.data[phoneField];
+      if (!phone) {
+        return res.status(400).json({ message: `Phone number not found in field: ${phoneField}` });
+      }
+
+      // Interpolate template
+      const body = DynamicEnrichmentService.interpolate(template, record.data);
+
+      if (body.includes("{{")) {
+        return res.status(400).json({ message: "Message template contains missing variables" });
+      }
+
+      const result = await whatsappService.sendMessage({ to: String(phone), body });
+
+      if (result.success) {
+        // Update record with status
+        const timestamp = new Date().toLocaleString();
+        await pgUpdateRecord(id, { [field.name]: `Sent at ${timestamp}` });
+        res.json(result);
+      } else {
+        res.status(500).json({ message: result.error || "WhatsApp send failed" });
+      }
+    } catch (error) {
+      logger.error("[dynamic-sis/whatsapp] Action error", { error: String(error) });
+      res.status(500).json({ message: "Failed to send WhatsApp" });
     }
-
-    const table = await pgFindTableById(record.tableId);
-    const base = table ? await pgFindBaseById(table.baseId) : null;
-    if (!base || !(await requireWorkspacePermission(req, res, base.workspaceId, "edit"))) return;
-
-    const phoneField = field.config?.phoneField as string;
-    const template = field.config?.template as string;
-
-    if (!phoneField || !template) {
-      return res.status(400).json({ message: "WhatsApp field not configured (missing phoneField or template)" });
-    }
-
-    const phone = record.data[phoneField];
-    if (!phone) {
-      return res.status(400).json({ message: `Phone number not found in field: ${phoneField}` });
-    }
-
-    // Interpolate template
-    const body = DynamicEnrichmentService.interpolate(template, record.data);
-
-    if (body.includes("{{")) {
-      return res.status(400).json({ message: "Message template contains missing variables" });
-    }
-
-    const result = await whatsappService.sendMessage({ to: String(phone), body });
-
-    if (result.success) {
-      // Update record with status
-      const timestamp = new Date().toLocaleString();
-      await pgUpdateRecord(id, { [field.name]: `Sent at ${timestamp}` });
-      res.json(result);
-    } else {
-      res.status(500).json({ message: result.error || "WhatsApp send failed" });
-    }
-  } catch (error) {
-    logger.error("[dynamic-sis/whatsapp] Action error", { error: String(error) });
-    res.status(500).json({ message: "Failed to send WhatsApp" });
   }
-});
+);
 
 // ─── Views ───────────────────────────────────────────────────────────────────
 

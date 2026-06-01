@@ -8,7 +8,7 @@ import {
   pgFindFirstWorkspaceMembership,
   pgUpsertWorkspaceMembership,
 } from "../lib/pg-queries";
-import { authenticateToken } from "../routes";
+import { authenticateToken } from "../middleware";
 import {
   getAuthUrl,
   exchangeCode,
@@ -98,98 +98,106 @@ router.get("/google/courses", authenticateToken, async (req: Request, res: Respo
 });
 
 // ─── Preview a course roster (no writes) ───────────────────────────────────
-router.get("/google/courses/:courseId/students", authenticateToken, async (req: Request, res: Response) => {
-  const user = (req as any).user;
-  try {
-    const students = await listStudents(user.id, req.params.courseId);
-    res.json({ students });
-  } catch (err) {
-    return handleClassroomError(err, res);
+router.get(
+  "/google/courses/:courseId/students",
+  authenticateToken,
+  async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    try {
+      const students = await listStudents(user.id, req.params.courseId);
+      res.json({ students });
+    } catch (err) {
+      return handleClassroomError(err, res);
+    }
   }
-});
+);
 
 // ─── Import a course's roster into the caller's active workspace ───────────
 // Killer feature: pull every student from a Classroom course → create User +
 // WorkspaceMembership rows so they show up in Class Mode immediately.
-router.post("/google/courses/:courseId/import", authenticateToken, async (req: Request, res: Response) => {
-  const user = (req as any).user;
+router.post(
+  "/google/courses/:courseId/import",
+  authenticateToken,
+  async (req: Request, res: Response) => {
+    const user = (req as any).user;
 
-  // The importing user must already belong to a workspace (their own, as the
-  // owner of the workspace created at signup, in the common case).
-  const wsContext = await pgFindFirstWorkspaceMembership(user.id);
-  if (!wsContext) {
-    return res.status(409).json({ message: "No active workspace for this user." });
-  }
-  const workspaceId = wsContext.workspace.id;
-
-  let students;
-  try {
-    students = await listStudents(user.id, req.params.courseId);
-  } catch (err) {
-    return handleClassroomError(err, res);
-  }
-
-  let created = 0;
-  let existing = 0;
-  let skipped = 0;
-  const failures: Array<{ email: string | null; reason: string }> = [];
-
-  for (const s of students) {
-    if (!s.email) {
-      skipped++;
-      failures.push({ email: null, reason: "no_email" });
-      continue;
+    // The importing user must already belong to a workspace (their own, as the
+    // owner of the workspace created at signup, in the common case).
+    const wsContext = await pgFindFirstWorkspaceMembership(user.id);
+    if (!wsContext) {
+      return res.status(409).json({ message: "No active workspace for this user." });
     }
+    const workspaceId = wsContext.workspace.id;
+
+    let students;
     try {
-      let pgUser = await pgFindUserByEmail(s.email);
-      if (!pgUser) {
-        pgUser = await pgCreateUser({
-          authProvider: "google_classroom",
-          authSubject: s.userId,
-          email: s.email,
-          username: `${s.email.split("@")[0]}_${Date.now()}`,
-          // Imported users sign in via Google. Placeholder hash blocks
-          // local password login until they reset their password.
-          passwordHash: `gclassroom_imported_${s.userId}`,
-          name: s.fullName,
-          displayName: s.fullName,
-          avatar: s.photoUrl ?? null,
-          emailVerified: true, // Google vouched for the email
-          role: "student",
-          status: "active",
-        });
-        created++;
-      } else {
-        // Guard: only import students. Skip existing admins/teachers/owners
-        // to prevent a teacher from silently adding privileged users to
-        // their workspace without those users' consent.
-        if (pgUser.role !== "student") {
-          skipped++;
-          failures.push({ email: s.email, reason: "existing_non_student" });
-          continue;
-        }
-        existing++;
-      }
-      await pgUpsertWorkspaceMembership({
-        workspaceId,
-        userId: pgUser.id,
-        role: "member",
-      });
+      students = await listStudents(user.id, req.params.courseId);
     } catch (err) {
-      failures.push({ email: s.email, reason: String(err) });
+      return handleClassroomError(err, res);
     }
-  }
 
-  res.json({
-    courseId: req.params.courseId,
-    workspaceId,
-    totalStudents: students.length,
-    created,
-    existing,
-    skipped,
-    failures,
-  });
-});
+    let created = 0;
+    let existing = 0;
+    let skipped = 0;
+    const failures: Array<{ email: string | null; reason: string }> = [];
+
+    for (const s of students) {
+      if (!s.email) {
+        skipped++;
+        failures.push({ email: null, reason: "no_email" });
+        continue;
+      }
+      try {
+        let pgUser = await pgFindUserByEmail(s.email);
+        if (!pgUser) {
+          pgUser = await pgCreateUser({
+            authProvider: "google_classroom",
+            authSubject: s.userId,
+            email: s.email,
+            username: `${s.email.split("@")[0]}_${Date.now()}`,
+            // Imported users sign in via Google. Placeholder hash blocks
+            // local password login until they reset their password.
+            passwordHash: `gclassroom_imported_${s.userId}`,
+            name: s.fullName,
+            displayName: s.fullName,
+            avatar: s.photoUrl ?? null,
+            emailVerified: true, // Google vouched for the email
+            role: "student",
+            status: "active",
+          });
+          created++;
+        } else {
+          // Guard: only import students. Skip existing admins/teachers/owners
+          // to prevent a teacher from silently adding privileged users to
+          // their workspace without those users' consent.
+          if (pgUser.role !== "student") {
+            skipped++;
+            failures.push({ email: s.email, reason: "existing_non_student" });
+            continue;
+          }
+          existing++;
+        }
+        await pgUpsertWorkspaceMembership({
+          workspaceId,
+          userId: pgUser.id,
+          role: "member",
+        });
+      } catch (err) {
+        failures.push({ email: s.email, reason: String(err) });
+      }
+    }
+
+    res.json({
+      courseId: req.params.courseId,
+      workspaceId,
+      totalStudents: students.length,
+      created,
+      existing,
+      skipped,
+      failures,
+    });
+  }
+);
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 function handleClassroomError(err: unknown, res: Response) {

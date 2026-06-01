@@ -368,12 +368,14 @@ graph TB
 ```
 
 **Diagram sources**
+
 - [playback-engine.ts](file://client/src/lib/playback-engine.ts#L1-L307)
 - [WhiteboardCanvas.tsx](file://client/src/components/ai-classroom/WhiteboardCanvas.tsx#L1-L376)
 - [ai-classroom.ts](file://server/routes/ai-classroom.ts#L1-L157)
 - [generator.ts](file://server/services/study-arena/generator.ts#L1-L395)
 
 **Section sources**
+
 - [OPENMAIC_CHEAT_SHEET.md](file://docs/OPENMAIC_CHEAT_SHEET.md#L1-L603)
 - [playback-engine.ts](file://client/src/lib/playback-engine.ts#L1-L307)
 - [WhiteboardCanvas.tsx](file://client/src/components/ai-classroom/WhiteboardCanvas.tsx#L1-L376)

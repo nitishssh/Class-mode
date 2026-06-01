@@ -37,6 +37,8 @@ CREATE TABLE IF NOT EXISTS users (
   UNIQUE (auth_provider, auth_subject)
 );
 
+ALTER TABLE users ADD COLUMN IF NOT EXISTS user_type TEXT;
+
 -- ─── Schools ─────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS schools (
   id                  bigserial    PRIMARY KEY,
@@ -51,6 +53,8 @@ CREATE TABLE IF NOT EXISTS schools (
   onboarding_complete boolean      NOT NULL DEFAULT false,
   created_at          timestamptz  NOT NULL DEFAULT now()
 );
+
+ALTER TABLE schools ADD COLUMN IF NOT EXISTS approximate_students TEXT;
 
 -- ─── RBAC ────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS roles (
@@ -461,6 +465,32 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   updated_at              timestamptz  NOT NULL DEFAULT now()
 );
 
+-- ─── AI Usage Logs ───────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS ai_usage_logs (
+  id            bigserial    PRIMARY KEY,
+  user_id       bigint       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  workspace_id  bigint       REFERENCES workspaces(id) ON DELETE CASCADE,
+  feature       text         NOT NULL CHECK (feature IN ('ai_classroom','ai_tutor','ocr')),
+  tokens_used   int,
+  metadata      jsonb        NOT NULL DEFAULT '{}',
+  created_at    timestamptz  NOT NULL DEFAULT now()
+);
+
+-- ─── Timetable Slots ─────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS timetable_slots (
+  id             bigserial    PRIMARY KEY,
+  workspace_id   bigint       NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  teacher_id     bigint       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  class_name     text         NOT NULL,
+  subject        text         NOT NULL,
+  day_of_week    int          NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),
+  period_number  int          NOT NULL CHECK (period_number BETWEEN 1 AND 12),
+  start_time     text         NOT NULL, -- "08:00"
+  end_time       text         NOT NULL, -- "08:45"
+  room           text,
+  created_at     timestamptz  NOT NULL DEFAULT now()
+);
+
 ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS workspace_id bigint REFERENCES workspaces(id) ON DELETE CASCADE;
 
 -- ─── Seed roles ──────────────────────────────────────────────────────────────
@@ -540,6 +570,16 @@ CREATE INDEX IF NOT EXISTS idx_focus_user          ON focus_sessions(user_id, co
 
 CREATE INDEX IF NOT EXISTS idx_ai_teacher          ON ai_classrooms(teacher_id, created_at DESC);
 
+-- ─── Onboarding Responses ────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS onboarding_responses (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  question_key TEXT NOT NULL,
+  response JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_onboarding_responses_user ON onboarding_responses(user_id);
+
 CREATE INDEX IF NOT EXISTS idx_grading_student     ON grading_results(student_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_grading_teacher     ON grading_results(teacher_id, status);
 CREATE INDEX IF NOT EXISTS idx_grading_status      ON grading_results(status, created_at DESC);
@@ -548,6 +588,13 @@ CREATE INDEX IF NOT EXISTS idx_lms_user            ON lms_connections(user_id);
 
 CREATE INDEX IF NOT EXISTS idx_subs_user           ON subscriptions(user_id, status);
 CREATE INDEX IF NOT EXISTS idx_subs_stripe         ON subscriptions(stripe_customer_id);
+
+CREATE INDEX IF NOT EXISTS idx_ai_usage_user       ON ai_usage_logs(user_id, feature, created_at);
+CREATE INDEX IF NOT EXISTS idx_ai_usage_workspace  ON ai_usage_logs(workspace_id);
+
+CREATE INDEX IF NOT EXISTS idx_timetable_workspace ON timetable_slots(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_timetable_teacher   ON timetable_slots(teacher_id, day_of_week);
+CREATE INDEX IF NOT EXISTS idx_timetable_class     ON timetable_slots(class_name, day_of_week);
 
 -- ─── Workspace v2 ──────────────────────────────────────────────────────────────
 ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS icon_url text;

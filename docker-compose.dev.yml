@@ -32,7 +32,7 @@ services:
       - "-c"
       - "wal_buffers=4MB"
       - "-c"
-      - "fsync=off"             # faster + safe to lose data in dev
+      - "fsync=off" # faster + safe to lose data in dev
       - "-c"
       - "synchronous_commit=off"
     ports:

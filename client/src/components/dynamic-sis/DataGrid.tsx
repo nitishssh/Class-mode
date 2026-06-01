@@ -1,37 +1,55 @@
 import React, { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { DynamicField, DynamicRecord, InsertDynamicField, InsertDynamicRecord } from "@shared/schema";
+import {
+  DynamicField,
+  DynamicRecord,
+  InsertDynamicField,
+  InsertDynamicRecord,
+} from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  Plus, 
-  MoreHorizontal, 
-  Loader2, 
-  Type, 
-  Hash, 
-  Calendar, 
-  CheckSquare, 
-  List, 
-  Cpu, 
-  MessageSquare, 
+import {
+  Plus,
+  MoreHorizontal,
+  Loader2,
+  Type,
+  Hash,
+  Calendar,
+  CheckSquare,
+  List,
+  Cpu,
+  MessageSquare,
   Globe,
   Calculator,
   Send,
   Upload,
-  FileSpreadsheet
+  FileSpreadsheet,
 } from "lucide-react";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
-  DropdownMenuLabel
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import Papa from "papaparse";
 
@@ -77,12 +95,14 @@ export default function DataGrid({ tableId }: DataGridProps) {
     refetchInterval: (query) => {
       const records = query.state.data as DynamicRecord[] | undefined;
       if (!records || !fields) return false;
-      
-      const enrichmentFields = fields.filter(f => ["ai_enrichment", "formula", "api_fetch"].includes(f.type));
-      const hasPending = records.some(r => enrichmentFields.some(f => !r.data[f.name]));
-      
+
+      const enrichmentFields = fields.filter((f) =>
+        ["ai_enrichment", "formula", "api_fetch"].includes(f.type)
+      );
+      const hasPending = records.some((r) => enrichmentFields.some((f) => !r.data[f.name]));
+
       return hasPending ? 3000 : false;
-    }
+    },
   });
 
   const createFieldMutation = useMutation({
@@ -113,7 +133,9 @@ export default function DataGrid({ tableId }: DataGridProps) {
 
   const bulkCreateMutation = useMutation({
     mutationFn: async (records: any[]) => {
-      const res = await apiRequest("POST", `/api/dynamic-sis/tables/${tableId}/bulk-records`, { records });
+      const res = await apiRequest("POST", `/api/dynamic-sis/tables/${tableId}/bulk-records`, {
+        records,
+      });
       return res.json();
     },
     onSuccess: (data) => {
@@ -125,11 +147,11 @@ export default function DataGrid({ tableId }: DataGridProps) {
     },
     onError: (err: any) => {
       toast.error(err.message || "Bulk import failed");
-    }
+    },
   });
 
   const updateRecordMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string, data: any }) => {
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
       const res = await apiRequest("PATCH", `/api/dynamic-sis/records/${id}`, data);
       return res.json();
     },
@@ -139,8 +161,11 @@ export default function DataGrid({ tableId }: DataGridProps) {
   });
 
   const sendWhatsAppMutation = useMutation({
-    mutationFn: async ({ recordId, fieldId }: { recordId: string, fieldId: number }) => {
-      const res = await apiRequest("POST", `/api/dynamic-sis/records/${recordId}/whatsapp/${fieldId}`);
+    mutationFn: async ({ recordId, fieldId }: { recordId: string; fieldId: number }) => {
+      const res = await apiRequest(
+        "POST",
+        `/api/dynamic-sis/records/${recordId}/whatsapp/${fieldId}`
+      );
       return res.json();
     },
     onSuccess: () => {
@@ -149,17 +174,18 @@ export default function DataGrid({ tableId }: DataGridProps) {
     },
     onError: (err: any) => {
       toast.error(err.message || "Failed to send WhatsApp");
-    }
+    },
   });
 
   const handleAddField = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newFieldName.trim()) return;
-    
+
     let config = {};
     if (newFieldType === "ai_enrichment") config = { prompt: aiPrompt };
     else if (newFieldType === "formula") config = { formula };
-    else if (newFieldType === "whatsapp_action") config = { phoneField: waPhoneField, template: waTemplate };
+    else if (newFieldType === "whatsapp_action")
+      config = { phoneField: waPhoneField, template: waTemplate };
 
     createFieldMutation.mutate({
       tableId,
@@ -199,18 +225,20 @@ export default function DataGrid({ tableId }: DataGridProps) {
           setCsvDataHeaders(results.meta.fields);
           // Auto-map based on name similarity
           const initialMapping: Record<string, string> = {};
-          fields?.forEach(f => {
-            const match = results.meta.fields?.find(h => h.toLowerCase() === f.name.toLowerCase());
+          fields?.forEach((f) => {
+            const match = results.meta.fields?.find(
+              (h) => h.toLowerCase() === f.name.toLowerCase()
+            );
             if (match) initialMapping[f.name] = match;
           });
           setMapping(initialMapping);
         }
-      }
+      },
     });
   };
 
   const handleImport = () => {
-    const recordsToImport = csvData.map(row => {
+    const recordsToImport = csvData.map((row) => {
       const data: Record<string, any> = {};
       Object.entries(mapping).forEach(([fieldName, csvHeader]) => {
         data[fieldName] = row[csvHeader];
@@ -232,12 +260,12 @@ export default function DataGrid({ tableId }: DataGridProps) {
   return (
     <div className="flex h-full flex-col overflow-hidden">
       {/* Toolbar */}
-      <div className="flex items-center gap-2 border-b px-4 py-2 bg-background">
+      <div className="flex items-center gap-2 border-b bg-background px-4 py-2">
         <Button variant="outline" size="sm" onClick={handleAddRecord}>
           <Plus className="mr-2 h-4 w-4" />
           Add Record
         </Button>
-        <div className="h-4 w-[1px] bg-border mx-2" />
+        <div className="mx-2 h-4 w-[1px] bg-border" />
         <Button variant="ghost" size="sm" onClick={() => setIsAddFieldOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Add Field
@@ -249,25 +277,32 @@ export default function DataGrid({ tableId }: DataGridProps) {
       </div>
 
       {/* Grid Container */}
-      <div className="flex-1 overflow-auto relative">
-        <table className="w-full border-collapse text-sm table-fixed min-w-[1000px]">
+      <div className="relative flex-1 overflow-auto">
+        <table className="w-full min-w-[1000px] table-fixed border-collapse text-sm">
           <thead>
             <tr className="bg-muted/50">
-              <th className="w-12 border-b border-r bg-muted/50 p-0 text-center sticky top-0 left-0 z-20">
-                <div className="h-10 flex items-center justify-center">#</div>
+              <th className="sticky left-0 top-0 z-20 w-12 border-b border-r bg-muted/50 p-0 text-center">
+                <div className="flex h-10 items-center justify-center">#</div>
               </th>
               {fields?.map((field) => {
                 const Icon = FIELD_ICONS[field.type] || Type;
                 return (
-                  <th key={field.id} className="h-10 border-b border-r bg-muted/50 p-0 text-left font-medium sticky top-0 z-10 w-48">
-                    <div className="flex items-center justify-between px-3 h-full group">
+                  <th
+                    key={field.id}
+                    className="sticky top-0 z-10 h-10 w-48 border-b border-r bg-muted/50 p-0 text-left font-medium"
+                  >
+                    <div className="group flex h-full items-center justify-between px-3">
                       <div className="flex items-center gap-2 truncate">
                         <Icon className="h-3.5 w-3.5 text-muted-foreground" />
                         <span className="truncate">{field.name}</span>
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                          >
                             <MoreHorizontal className="h-3.5 w-3.5" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -277,32 +312,38 @@ export default function DataGrid({ tableId }: DataGridProps) {
                           <DropdownMenuItem>Sort A-Z</DropdownMenuItem>
                           <DropdownMenuItem>Filter</DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive">Delete Field</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive">
+                            Delete Field
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
                   </th>
                 );
               })}
-              <th className="border-b bg-muted/50 sticky top-0 z-10"></th>
+              <th className="sticky top-0 z-10 border-b bg-muted/50"></th>
             </tr>
           </thead>
           <tbody>
             {records?.map((record, idx) => (
               <tr key={record.id} className="group hover:bg-muted/30">
-                <td className="border-b border-r p-0 text-center text-xs text-muted-foreground sticky left-0 bg-background group-hover:bg-muted/30 z-10">
-                  <div className="h-9 flex items-center justify-center">{idx + 1}</div>
+                <td className="sticky left-0 z-10 border-b border-r bg-background p-0 text-center text-xs text-muted-foreground group-hover:bg-muted/30">
+                  <div className="flex h-9 items-center justify-center">{idx + 1}</div>
                 </td>
                 {fields?.map((field) => (
-                  <td key={field.id} className="border-b border-r p-0 h-9">
+                  <td key={field.id} className="h-9 border-b border-r p-0">
                     {field.type === "whatsapp_action" ? (
-                      <div className="flex items-center justify-between h-full px-2 gap-2">
-                        <span className="text-xs text-muted-foreground truncate">{record.data[field.name] || "Ready to send"}</span>
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
-                          className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
-                          onClick={() => sendWhatsAppMutation.mutate({ recordId: record.id, fieldId: field.id })}
+                      <div className="flex h-full items-center justify-between gap-2 px-2">
+                        <span className="truncate text-xs text-muted-foreground">
+                          {record.data[field.name] || "Ready to send"}
+                        </span>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-green-600 hover:bg-green-50 hover:text-green-700"
+                          onClick={() =>
+                            sendWhatsAppMutation.mutate({ recordId: record.id, fieldId: field.id })
+                          }
                           disabled={sendWhatsAppMutation.isPending}
                         >
                           <Send className="h-3.5 w-3.5" />
@@ -310,7 +351,7 @@ export default function DataGrid({ tableId }: DataGridProps) {
                       </div>
                     ) : (
                       <input
-                        className="w-full h-full px-3 py-1 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset"
+                        className="h-full w-full border-none bg-transparent px-3 py-1 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
                         defaultValue={record.data[field.name] || ""}
                         onBlur={(e) => handleCellBlur(record.id, field.name, e.target.value)}
                         disabled={["ai_enrichment", "formula", "api_fetch"].includes(field.type)}
@@ -321,13 +362,13 @@ export default function DataGrid({ tableId }: DataGridProps) {
                 <td className="border-b"></td>
               </tr>
             ))}
-            
-            <tr className="hover:bg-muted/30 cursor-pointer" onClick={handleAddRecord}>
-              <td className="border-b border-r p-0 h-9 sticky left-0 bg-background group-hover:bg-muted/30 z-10"></td>
+
+            <tr className="cursor-pointer hover:bg-muted/30" onClick={handleAddRecord}>
+              <td className="sticky left-0 z-10 h-9 border-b border-r bg-background p-0 group-hover:bg-muted/30"></td>
               {fields?.map((field) => (
-                <td key={field.id} className="border-b border-r p-0 h-9 bg-muted/5"></td>
+                <td key={field.id} className="h-9 border-b border-r bg-muted/5 p-0"></td>
               ))}
-              <td className="border-b flex items-center px-4 h-9 text-muted-foreground italic text-xs">
+              <td className="flex h-9 items-center border-b px-4 text-xs italic text-muted-foreground">
                 Click to add a new record...
               </td>
             </tr>
@@ -345,10 +386,10 @@ export default function DataGrid({ tableId }: DataGridProps) {
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="fieldName">Field Name</Label>
-                <Input 
-                  id="fieldName" 
-                  placeholder="e.g. Total Fees" 
-                  value={newFieldName} 
+                <Input
+                  id="fieldName"
+                  placeholder="e.g. Total Fees"
+                  value={newFieldName}
                   onChange={(e) => setNewFieldName(e.target.value)}
                   required
                 />
@@ -377,10 +418,10 @@ export default function DataGrid({ tableId }: DataGridProps) {
               {newFieldType === "ai_enrichment" && (
                 <div className="space-y-2 animate-in slide-in-from-top-2">
                   <Label htmlFor="aiPrompt">AI Prompt Template</Label>
-                  <Input 
-                    id="aiPrompt" 
-                    placeholder="e.g. Summarize the progress for {{Name}}" 
-                    value={aiPrompt} 
+                  <Input
+                    id="aiPrompt"
+                    placeholder="e.g. Summarize the progress for {{Name}}"
+                    value={aiPrompt}
                     onChange={(e) => setAiPrompt(e.target.value)}
                     required
                   />
@@ -393,10 +434,10 @@ export default function DataGrid({ tableId }: DataGridProps) {
               {newFieldType === "formula" && (
                 <div className="space-y-2 animate-in slide-in-from-top-2">
                   <Label htmlFor="formula">Formula Template</Label>
-                  <Input 
-                    id="formula" 
-                    placeholder="e.g. {{Fees}} + {{Fine}}" 
-                    value={formula} 
+                  <Input
+                    id="formula"
+                    placeholder="e.g. {{Fees}} + {{Fine}}"
+                    value={formula}
                     onChange={(e) => setFormula(e.target.value)}
                     required
                   />
@@ -415,18 +456,22 @@ export default function DataGrid({ tableId }: DataGridProps) {
                         <SelectValue placeholder="Select column with phone number" />
                       </SelectTrigger>
                       <SelectContent>
-                        {fields?.filter(f => f.type === "text" || f.type === "number").map(f => (
-                          <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>
-                        ))}
+                        {fields
+                          ?.filter((f) => f.type === "text" || f.type === "number")
+                          .map((f) => (
+                            <SelectItem key={f.id} value={f.name}>
+                              {f.name}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="waTemplate">Message Template</Label>
-                    <Input 
-                      id="waTemplate" 
-                      placeholder="e.g. Dear parent, {{Name}} has a pending fee of {{Balance}}" 
-                      value={waTemplate} 
+                    <Input
+                      id="waTemplate"
+                      placeholder="e.g. Dear parent, {{Name}} has a pending fee of {{Balance}}"
+                      value={waTemplate}
                       onChange={(e) => setWaTemplate(e.target.value)}
                       required
                     />
@@ -439,7 +484,9 @@ export default function DataGrid({ tableId }: DataGridProps) {
             </div>
             <DialogFooter>
               <Button type="submit" disabled={createFieldMutation.isPending}>
-                {createFieldMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {createFieldMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
                 Add Field
               </Button>
             </DialogFooter>
@@ -456,69 +503,94 @@ export default function DataGrid({ tableId }: DataGridProps) {
               Upload a CSV file and map its columns to your table fields.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-6 py-4">
             {!csvData.length ? (
-              <div 
-                className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-xl p-12 hover:bg-muted/50 cursor-pointer transition-colors"
+              <div
+                className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border p-12 transition-colors hover:bg-muted/50"
                 onClick={() => fileInputRef.current?.click()}
               >
-                <FileSpreadsheet className="h-12 w-12 text-muted-foreground mb-4" />
+                <FileSpreadsheet className="mb-4 h-12 w-12 text-muted-foreground" />
                 <p className="text-sm font-medium">Click to upload or drag and drop</p>
-                <p className="text-xs text-muted-foreground mt-1">CSV files only</p>
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  className="hidden" 
-                  accept=".csv" 
-                  onChange={handleFileChange} 
+                <p className="mt-1 text-xs text-muted-foreground">CSV files only</p>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept=".csv"
+                  onChange={handleFileChange}
                 />
               </div>
             ) : (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-medium">{csvData.length} rows found in CSV</p>
-                  <Button variant="ghost" size="sm" onClick={() => { setCsvData([]); setMapping({}); }}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setCsvData([]);
+                      setMapping({});
+                    }}
+                  >
                     Change File
                   </Button>
                 </div>
-                
-                <div className="grid gap-4 max-h-[300px] overflow-y-auto pr-2">
-                  <div className="grid grid-cols-2 gap-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground px-2">
+
+                <div className="grid max-h-[300px] gap-4 overflow-y-auto pr-2">
+                  <div className="grid grid-cols-2 gap-4 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     <div>Table Field</div>
                     <div>CSV Column</div>
                   </div>
-                  {fields?.filter(f => !["ai_enrichment", "formula", "whatsapp_action", "api_fetch"].includes(f.type)).map(field => (
-                    <div key={field.id} className="grid grid-cols-2 gap-4 items-center bg-muted/30 p-2 rounded-lg">
-                      <Label className="text-sm">{field.name}</Label>
-                      <Select 
-                        value={mapping[field.name] || ""} 
-                        onValueChange={(val) => setMapping(prev => ({ ...prev, [field.name]: val }))}
+                  {fields
+                    ?.filter(
+                      (f) =>
+                        !["ai_enrichment", "formula", "whatsapp_action", "api_fetch"].includes(
+                          f.type
+                        )
+                    )
+                    .map((field) => (
+                      <div
+                        key={field.id}
+                        className="grid grid-cols-2 items-center gap-4 rounded-lg bg-muted/30 p-2"
                       >
-                        <SelectTrigger className="h-8">
-                          <SelectValue placeholder="Skip field" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="">Skip field</SelectItem>
-                          {csvHeaders.map(header => (
-                            <SelectItem key={header} value={header}>{header}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  ))}
+                        <Label className="text-sm">{field.name}</Label>
+                        <Select
+                          value={mapping[field.name] || ""}
+                          onValueChange={(val) =>
+                            setMapping((prev) => ({ ...prev, [field.name]: val }))
+                          }
+                        >
+                          <SelectTrigger className="h-8">
+                            <SelectValue placeholder="Skip field" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Skip field</SelectItem>
+                            {csvHeaders.map((header) => (
+                              <SelectItem key={header} value={header}>
+                                {header}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ))}
                 </div>
               </div>
             )}
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsImportOpen(false)}>Cancel</Button>
-            <Button 
-              disabled={!csvData.length || bulkCreateMutation.isPending} 
+            <Button variant="outline" onClick={() => setIsImportOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={!csvData.length || bulkCreateMutation.isPending}
               onClick={handleImport}
             >
-              {bulkCreateMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {bulkCreateMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
               Import Records
             </Button>
           </DialogFooter>

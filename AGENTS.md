@@ -29,7 +29,7 @@ CI order (`.github/workflows/ci.yml`): `check → lint → build → test`.
 Single `package.json` (no monorepo tool). Key directories:
 
 - `client/` — Vite + React 18 (`root: client/`, entry: `client/src/main.tsx`)
-- `server/` — Express (entry: `server/index.ts`, routes: `server/routes.ts`)
+- `server/` — Express (entry: `server/index.ts`, routes: `server/routes/*.ts`)
 - `shared/` — Zod schemas + Mongoose models, imported via `@shared/*`
 - `mobile/` — Expo Router (`cd mobile && npm start`)
 - `features/ai-classroom/` — Study Arena + IniClaw (separate Docker services)
@@ -46,7 +46,7 @@ Single `package.json` (no monorepo tool). Key directories:
 ## Architecture
 
 - **Auth**: Self-hosted PostgreSQL-backed identity. Dual fallback: JWT verify → session lookup. Google OAuth 2.0 server-side flow via `server/lib/google-signin.ts` (`/api/auth/google/start` → `/api/auth/google/callback`). Firebase token-exchange endpoint kept for backward compat (`ENABLE_FIREBASE_AUTH_COMPAT`).
-- **DB**: PostgreSQL primary (all transactional data — users, workspaces, sessions, tests, SIS). MongoDB optional (legacy content). Cassandra (MessagePal only, optional — falls back to MongoDB).
+- **DB**: PostgreSQL primary (all transactional data — users, workspaces, sessions, tests, SIS, billing). MongoDB optional (legacy content). Cassandra (MessagePal only, optional — falls back to MongoDB). Redis (BullMQ for AI Job persistence).
 - **AI**: Google Gemini 2.0 Flash (`server/lib/gemini.ts`) primary; OpenAI GPT-4o (`server/lib/openai.ts`) optional fallback.
 - **Real-time**: Two WebSocket servers (chat + MessagePal) attached to HTTP server after `registerRoutes()`.
 - **Routing**: `wouter` (not react-router). Pages in `client/src/pages/`.
@@ -55,57 +55,62 @@ Single `package.json` (no monorepo tool). Key directories:
 
 ## Server route files
 
-| File                          | Responsibility                                      |
-| ----------------------------- | --------------------------------------------------- |
-| `server/routes/auth.ts`       | Signup, login, logout, refresh, Google OAuth, OTPs  |
-| `server/routes/workspace.ts`  | Workspace CRUD, membership, invites                 |
-| `server/routes/onboarding.ts` | Teacher/student invite flows                        |
-| `server/routes/lms.ts`        | Google Classroom OAuth + course/student import      |
-| `server/routes/dynamic-sis.ts`| Dynamic SIS bases, tables, fields, records, views   |
-| `server/routes/ai-classroom.ts`| Study Arena classroom generation + job management  |
-| `server/routes/grading.ts`    | AI-powered answer grading                           |
-| `server/routes/live.ts`       | Daily.co room creation + participant tokens         |
-| `server/routes/educator.ts`   | Educator-specific endpoints                         |
-| `server/routes/parent.ts`     | Parent-specific endpoints                           |
-| `server/routes/billing.ts`    | Stripe billing (disabled until `STRIPE_SECRET_KEY`) |
-| `server/routes/gdpr.ts`       | GDPR data export                                    |
-| `server/routes/health.ts`     | Health check + readiness probe                      |
-| `server/message/routes.ts`    | MessagePal WebSocket + REST                         |
+| File                            | Responsibility                                     |
+| ------------------------------- | -------------------------------------------------- |
+| `server/routes/auth.ts`         | Signup, login, logout, refresh, Google OAuth, OTPs |
+| `server/routes/workspace.ts`    | Workspace CRUD, membership, invites                |
+| `server/routes/onboarding.ts`   | Teacher/student invite flows                       |
+| `server/routes/lms.ts`          | Google Classroom OAuth + course/student import     |
+| `server/routes/dynamic-sis.ts`  | Dynamic SIS bases, tables, fields, records, views  |
+| `server/routes/ai-classroom.ts` | Study Arena classroom generation + job management  |
+| `server/routes/grading.ts`      | AI-powered answer grading                          |
+| `server/routes/live.ts`         | Daily.co room creation + participant tokens        |
+| `server/routes/educator.ts`     | Educator-specific endpoints                        |
+| `server/routes/parent.ts`       | Parent-specific endpoints                          |
+| `server/routes/billing.ts`      | Stripe billing lifecycle and Customer Portal       |
+| `server/routes/gdpr.ts`         | GDPR data export                                   |
+| `server/routes/health.ts`       | Health check + readiness probe                     |
+| `server/routes/analytics.ts`    | Domain router for analytics                        |
+| `server/routes/tests.ts`        | Domain router for test generation/management       |
+| `server/routes/users.ts`        | Domain router for user management                  |
+| `server/routes/chat.ts`         | Domain router for chat endpoints                   |
+| `server/routes/timetable.ts`    | Native period-based timetable                      |
+| `server/message/routes.ts`      | MessagePal WebSocket + REST                        |
 
 ## Key lib files
 
-| File                              | Responsibility                                    |
-| --------------------------------- | ------------------------------------------------- |
-| `server/lib/pg-queries.ts`        | All PostgreSQL queries (primary data access layer)|
-| `server/lib/pg-dynamic-sis.ts`    | Dynamic SIS PostgreSQL queries                    |
-| `server/lib/auth-workspace.ts`    | JWT helpers, workspace permission checks          |
-| `server/lib/google-signin.ts`     | Server-side Google OAuth 2.0 flow                 |
-| `server/lib/gemini.ts`            | Gemini 2.0 Flash wrapper                          |
-| `server/lib/openai.ts`            | OpenAI GPT-4o wrapper (fallback)                  |
-| `server/lib/mailer.ts`            | Nodemailer SMTP (invites, verification, reset)    |
-| `server/lib/cassandra.ts`         | Cassandra/Astra DB client                         |
-| `server/lib/cassandra-message-store.ts` | Message persistence (Cassandra → MongoDB fallback)|
-| `server/lib/audit.ts`             | Audit event recording                             |
-| `server/lib/upload.ts`            | Multer file upload handler                        |
-| `server/lib/tesseract.ts`         | OCR processing                                    |
-| `server/lib/rubricParser.ts`      | Grading rubric parsing                            |
-| `server/lib/lms/googleClassroom.ts`| Google Classroom API integration                 |
+| File                                    | Responsibility                                     |
+| --------------------------------------- | -------------------------------------------------- |
+| `server/lib/pg-queries.ts`              | All PostgreSQL queries (primary data access layer) |
+| `server/lib/pg-dynamic-sis.ts`          | Dynamic SIS PostgreSQL queries                     |
+| `server/lib/auth-workspace.ts`          | JWT helpers, workspace permission checks           |
+| `server/lib/google-signin.ts`           | Server-side Google OAuth 2.0 flow                  |
+| `server/lib/gemini.ts`                  | Gemini 2.0 Flash wrapper                           |
+| `server/lib/openai.ts`                  | OpenAI GPT-4o wrapper (fallback)                   |
+| `server/lib/mailer.ts`                  | Nodemailer SMTP (invites, verification, reset)     |
+| `server/lib/cassandra.ts`               | Cassandra/Astra DB client                          |
+| `server/lib/cassandra-message-store.ts` | Message persistence (Cassandra → MongoDB fallback) |
+| `server/lib/audit.ts`                   | Audit event recording                              |
+| `server/lib/upload.ts`                  | Multer file upload handler                         |
+| `server/lib/tesseract.ts`               | OCR processing                                     |
+| `server/lib/rubricParser.ts`            | Grading rubric parsing                             |
+| `server/lib/lms/googleClassroom.ts`     | Google Classroom API integration                   |
 
 ## Services
 
-| File                                    | Responsibility                              |
-| --------------------------------------- | ------------------------------------------- |
-| `server/services/dynamic-enrichment.ts`| AI enrichment for SIS records               |
-| `server/services/whatsapp.ts`           | WhatsApp outbound notifications             |
-| `server/services/gradingService.ts`     | Gemini-powered grading engine               |
-| `server/services/daily.ts`              | Daily.co room/token management              |
-| `server/services/study-arena/`          | Study Arena orchestration + job management  |
+| File                                    | Responsibility                             |
+| --------------------------------------- | ------------------------------------------ |
+| `server/services/dynamic-enrichment.ts` | AI enrichment for SIS records              |
+| `server/services/whatsapp.ts`           | WhatsApp outbound notifications            |
+| `server/services/gradingService.ts`     | Gemini-powered grading engine              |
+| `server/services/daily.ts`              | Daily.co room/token management             |
+| `server/services/study-arena/`          | Study Arena orchestration + job management |
 
 ## Repo conventions
 
 - Commit format: `<type>: <subject>` — types: `feat|fix|docs|style|refactor|test|chore` (see `.gitmessage`).
 - ESLint uses `unused-imports` plugin (not the built-in TS rule). Use `npm run lint:fix` for auto-fix.
-- Server uses singleton `storage` object (`server/storage.ts`). Mount new routes in `server/routes.ts` `registerRoutes()`.
+- Server uses singleton `storage` object (`server/storage.ts`). Mount new routes in `server/routes/*.ts` and register in `server/index.ts`.
 - Use `@shared/schema` Zod schemas for API input validation; `@shared/mongo-schema` for DB operations.
 
 ## Deployment

@@ -4,11 +4,7 @@ import { Check, ChevronsUpDown, Loader2, Plus, LogIn } from "lucide-react";
 
 import { cn, getInitials } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Command,
   CommandEmpty,
@@ -18,7 +14,6 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
-import { Badge } from "@/components/ui/badge";
 
 import { useWorkspace, type WorkspaceWithRole } from "@/contexts/workspace-context";
 
@@ -53,7 +48,7 @@ function WorkspaceAvatar({
       <img
         src={workspace.iconUrl}
         alt={workspace.name}
-        className={cn("rounded-md object-cover flex-shrink-0", dim)}
+        className={cn("flex-shrink-0 rounded-md object-cover", dim)}
       />
     );
   }
@@ -117,9 +112,7 @@ export function WorkspaceSwitcher({ isCollapsed = false }: { isCollapsed?: boole
           </div>
           {!isCollapsed && (
             <>
-              <span className="flex-1 truncate text-left text-muted-foreground">
-                No workspace
-              </span>
+              <span className="flex-1 truncate text-left text-muted-foreground">No workspace</span>
               <ChevronsUpDown className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
             </>
           )}
@@ -131,12 +124,7 @@ export function WorkspaceSwitcher({ isCollapsed = false }: { isCollapsed?: boole
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
-      <PopoverContent
-        className="w-64 p-0"
-        align="start"
-        side="right"
-        sideOffset={8}
-      >
+      <PopoverContent className="w-64 p-0" align="start" side="right" sideOffset={8}>
         <Command>
           <CommandInput placeholder="Search workspace..." className="h-9" />
           <CommandList>

@@ -7,7 +7,7 @@ import {
   regradeSubmission,
 } from "../services/gradingService";
 import { pgFindGradingResultBySubmissionId } from "../lib/pg-queries";
-import { authenticateToken } from "../routes";
+import { authenticateToken } from "../middleware";
 import { logger } from "../lib/logger";
 
 const router = Router();

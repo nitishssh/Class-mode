@@ -4,6 +4,7 @@ import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { useQuery } from "@tanstack/react-query";
 
 const ONBOARDING_PATHS = [
+  "/onboarding",
   "/onboarding/school",
   "/onboarding/invite-teachers",
   "/onboarding/teacher",
@@ -16,12 +17,6 @@ export function useOnboardingGuard() {
   } = useFirebaseAuth();
   const [location, setLocation] = useLocation();
 
-  const { data: school } = useQuery<any>({
-    queryKey: ["/api/school/me"],
-    enabled: profile?.role === "school_admin",
-    retry: false,
-  });
-
   const { data: mongoUser } = useQuery<any>({
     queryKey: ["/api/auth/me"],
     enabled: !!profile,
@@ -30,16 +25,16 @@ export function useOnboardingGuard() {
 
   useEffect(() => {
     // Don't redirect if already on an onboarding page (prevents redirect loops)
-    if (!profile || ONBOARDING_PATHS.includes(location)) return;
+    if (!profile || ONBOARDING_PATHS.includes(location) || !mongoUser) return;
 
-    if (profile.role === "school_admin" && school && !school.onboardingComplete) {
-      setLocation("/onboarding/school");
-      return;
+    // Roles that skip onboarding
+    if (["student", "parent", "admin"].includes(profile.role)) {
+      return; // let them through
     }
 
-    if (profile.role === "teacher" && mongoUser && !mongoUser.onboardingComplete) {
-      setLocation("/onboarding/teacher");
+    if (!mongoUser.onboardingComplete) {
+      setLocation("/onboarding");
       return;
     }
-  }, [profile, school, mongoUser, location, setLocation]);
+  }, [profile, mongoUser, location, setLocation]);
 }

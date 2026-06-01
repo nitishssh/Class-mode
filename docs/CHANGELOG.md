@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-05-31
+
+### Added
+
+- **Domain-Driven Modular Routing** — Refactored the monolithic 92KB `server/routes.ts` into 10 domain-specific routers (ocr, analytics, tests, users, chat, tasks, notifications, upload, timetable, ai).
+- **Persistent AI Job Queue** — Migrated core AI operations (Tutor, WHITEBOARD orchestration) to Redis/BullMQ to prevent state loss on server restarts via `server/services/study-arena/job-queue.ts`.
+- **Stripe Billing Integration** — Implemented end-to-end billing flow with customer portal, checkout sessions, and secure webhook handling via `server/lib/stripe.ts` and `server/routes/billing.ts`.
+- **AI Quota Middleware** — New `checkAIQuota` guard enforces feature-specific monthly usage limits based on subscription tiers (Free/Pro/Enterprise).
+- **Period-Based Timetable Engine** — Dynamic scheduling system for Period 1-8 logic with conflict detection in `server/routes/timetable.ts`.
+- **Parent WhatsApp Automation** — Background worker for automated parent nudges triggered by student inactivity or low scores in `server/services/whatsapp-automation.ts`.
+- **Principal "Demo Mode"** — High-fidelity simulated data toggle in `client/src/pages/principal-dashboard.tsx` for investor presentations and sales demos.
+
+### Changed
+
+- **Centralized Auth Middleware** — Migrated `authenticateToken` to `server/middleware.ts` with improved cross-test resilience and session/cookie dual-path extraction.
+- **Enhanced Indian EdTech Logic** — Deep alignment with CBSE/ICSE contexts, LKG-12 grade mapping, and Lakhs/Crores currency formatting.
+
+### Fixed
+
+- **JWT Verification in Tests** — Standardized `JWT_SECRET` across middleware and vitest configuration to resolve multi-suite auth failures.
+- **Router Mounting Order** — Unified `/api/auth` and `/api` root mounts to support legacy and mobile compatibility paths.
+
 ## [1.5.0] - 2026-05-30
 
 ### Added

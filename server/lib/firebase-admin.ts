@@ -57,7 +57,10 @@ function ensureInitialised() {
       console.log("[firebase-admin] Initialised with service account, project:", projectId);
     } else {
       initializeApp({ projectId });
-      console.log("[firebase-admin] Initialised (no service account / ADC fallback) project:", projectId);
+      console.log(
+        "[firebase-admin] Initialised (no service account / ADC fallback) project:",
+        projectId
+      );
     }
     initialised = true;
   } catch (err) {

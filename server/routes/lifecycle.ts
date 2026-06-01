@@ -4,7 +4,6 @@ import {
   insertDoubtSchema,
   insertMilestoneSchema,
   insertStudentAchievementSchema,
-  insertCompetitionSchema
 } from "@shared/schema";
 import { requireRole } from "../middleware";
 import { getSocraticNudge } from "../services/nudge";

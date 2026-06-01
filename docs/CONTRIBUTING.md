@@ -138,12 +138,11 @@ If you are using an AI coding agent (like Gemini CLI, Cursor, or Aider) to contr
 
 ## 🏛️ Architecture Notes
 
-- **📦 Monolith server** — Express serves both the API and the Vite-powered React frontend on **port 5001** 🖥️
-- **💾 Hybrid storage** — Uses MongoDB for structured data and Cassandra for message history 📊
+- **📦 Modular Server** — Express serves the API via domain-driven routers (analytics, billing, chat, ai, etc.) and the Vite-powered React frontend on **port 5001** 🖥️
+- **💾 Hybrid storage** — PostgreSQL (relational), Redis/BullMQ (queues), MongoDB (legacy), and Cassandra (chat) 📊
 - **📱 Mobile app** — React Native + Expo with full offline support and push notifications 📲
-- **🔥 Firebase (optional)** — Used for authentication; the app runs without it (auth features disabled) 🔐
-- **🤖 OpenAI (optional)** — Powers AI features; the app runs without it 🧠💡
-- **⚡ Cassandra (optional)** — Powers MessagePal chat history; the app runs without it (chat history disabled) 💬
+- **🔥 Firebase (optional)** — Used for legacy auth compatibility; the platform primarily uses local PostgreSQL auth 🔐
+- **🤖 AI Engine** — Powered by Google Gemini 2.0 Flash with OpenAI fallback 🧠💡
 
 ## 🎨 Coding Style
 

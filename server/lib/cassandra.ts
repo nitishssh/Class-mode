@@ -107,7 +107,9 @@ export async function initCassandra() {
         inner.includes("401") ||
         inner.includes("Unauthorized")
       ) {
-        console.warn("[Cassandra] Astra DB hibernated (HTTP 401). Falling back to in-memory store.");
+        console.warn(
+          "[Cassandra] Astra DB hibernated (HTTP 401). Falling back to in-memory store."
+        );
         console.warn("[Cassandra] Wake your Astra DB at https://astra.datastax.com");
         hibernationDetected = true;
         isConnected = false;

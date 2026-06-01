@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { authenticateToken } from "../routes";
+import { authenticateToken } from "../middleware";
 import { requireRole } from "../middleware";
 import { requireSubscription } from "../middleware/requireSubscription";
 import { Router, Request, Response } from "express";

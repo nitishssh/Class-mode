@@ -203,7 +203,8 @@ export interface ICareerStorage {
 }
 
 export interface IStorage
-  extends IUserStorage,
+  extends
+    IUserStorage,
     IAuthStorage,
     IEducationStorage,
     IChatStorage,
@@ -1696,7 +1697,15 @@ export class PgStorage implements IStorage {
     const { rows } = await this.pool.query(
       `INSERT INTO doubts (id, student_id, classroom_id, test_id, question, answer, status)
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [d.id ?? crypto.randomUUID(), d.studentId, d.classroomId ?? null, d.testId ?? null, d.question, d.answer ?? null, d.status]
+      [
+        d.id ?? crypto.randomUUID(),
+        d.studentId,
+        d.classroomId ?? null,
+        d.testId ?? null,
+        d.question,
+        d.answer ?? null,
+        d.status,
+      ]
     );
     return mapDoubt(rows[0]);
   }
@@ -1724,7 +1733,14 @@ export class PgStorage implements IStorage {
        ON CONFLICT (student_id, competency_id, phase) 
        DO UPDATE SET reflection = EXCLUDED.reflection, score = GREATEST(milestones.score, EXCLUDED.score)
        RETURNING *`,
-      [m.id ?? crypto.randomUUID(), m.studentId, m.competencyId, m.phase, m.reflection ?? null, m.score]
+      [
+        m.id ?? crypto.randomUUID(),
+        m.studentId,
+        m.competencyId,
+        m.phase,
+        m.reflection ?? null,
+        m.score,
+      ]
     );
     return mapMilestone(rows[0]);
   }
@@ -1747,7 +1763,9 @@ export class PgStorage implements IStorage {
   }
 
   async getCompetitions(): Promise<Competition[]> {
-    const { rows } = await this.pool.query("SELECT * FROM competitions ORDER BY competition_date DESC");
+    const { rows } = await this.pool.query(
+      "SELECT * FROM competitions ORDER BY competition_date DESC"
+    );
     return rows.map(mapCompetition);
   }
 

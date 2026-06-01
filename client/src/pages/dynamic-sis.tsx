@@ -5,8 +5,15 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { DynamicBase, InsertDynamicBase } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Plus, Database, Settings, ArrowRight, Loader2 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Plus, Database, ArrowRight, Loader2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Link } from "wouter";
@@ -27,11 +34,17 @@ export default function DynamicSISPage() {
 
   const createBaseMutation = useMutation({
     mutationFn: async (newBase: InsertDynamicBase) => {
-      const res = await apiRequest("POST", `/api/dynamic-sis/workspaces/${workspaceId}/bases`, newBase);
+      const res = await apiRequest(
+        "POST",
+        `/api/dynamic-sis/workspaces/${workspaceId}/bases`,
+        newBase
+      );
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/dynamic-sis/workspaces/${workspaceId}/bases`] });
+      queryClient.invalidateQueries({
+        queryKey: [`/api/dynamic-sis/workspaces/${workspaceId}/bases`],
+      });
       setIsCreateOpen(false);
       setNewBaseName("");
     },
@@ -64,7 +77,7 @@ export default function DynamicSISPage() {
             {t("sis.description", "Build custom databases, fee trackers, and dynamic gradebooks.")}
           </p>
         </div>
-        
+
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2">
@@ -80,10 +93,10 @@ export default function DynamicSISPage() {
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">{t("sis.baseName", "Base Name")}</Label>
-                  <Input 
-                    id="name" 
-                    placeholder="e.g. Fee Tracker 2026" 
-                    value={newBaseName} 
+                  <Input
+                    id="name"
+                    placeholder="e.g. Fee Tracker 2026"
+                    value={newBaseName}
                     onChange={(e) => setNewBaseName(e.target.value)}
                     required
                   />
@@ -91,7 +104,9 @@ export default function DynamicSISPage() {
               </div>
               <DialogFooter>
                 <Button type="submit" disabled={createBaseMutation.isPending}>
-                  {createBaseMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  {createBaseMutation.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
                   {t("common.create", "Create")}
                 </Button>
               </DialogFooter>
@@ -132,11 +147,7 @@ export default function DynamicSISPage() {
             <p className="mt-2 text-muted-foreground">
               {t("sis.noBasesDesc", "Create your first custom database to start tracking data.")}
             </p>
-            <Button 
-              variant="outline" 
-              className="mt-6"
-              onClick={() => setIsCreateOpen(true)}
-            >
+            <Button variant="outline" className="mt-6" onClick={() => setIsCreateOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               {t("sis.createFirstBase", "Create First Base")}
             </Button>

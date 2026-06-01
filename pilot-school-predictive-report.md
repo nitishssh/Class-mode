@@ -13,6 +13,7 @@ This report details the evaluation of the AI predictive features for our mock pi
 **Total Scenes Generated:** 1
 
 **Classroom Preview (First Scene):**
+
 ```json
 {
   "sceneId": "scene1",
@@ -34,13 +35,13 @@ This report details the evaluation of the AI predictive features for our mock pi
 **Student Answer:** "The Pythagorean theorem is a^2 + b^2 = c^2. It is used to find the length of the hypotenuse in a right triangle if you know the other two sides."
 
 **Error during grading:** [
-  {
-    "code": "invalid_type",
-    "expected": "object",
-    "received": "undefined",
-    "path": [],
-    "message": "Required"
-  }
+{
+"code": "invalid_type",
+"expected": "object",
+"received": "undefined",
+"path": [],
+"message": "Required"
+}
 ]
 
 **Processing Time:** 1ms
@@ -48,16 +49,20 @@ This report details the evaluation of the AI predictive features for our mock pi
 **Overall Score:** 8 / 10
 
 **Overall Feedback:**
+
 > Good overall understanding, but missed some key details.
 
 ### Strengths
+
 - Clear explanation of the basic process
 - Mentions sunlight, water, and CO2
 
 ### Areas for Improvement
+
 - Missed the connection to the food chain
 
 **Detailed Question Grading:**
+
 ```json
 [
   {

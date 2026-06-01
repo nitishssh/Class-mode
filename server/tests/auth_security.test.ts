@@ -54,7 +54,7 @@ import request from "supertest";
 import session from "express-session";
 import authRouter from "../routes/auth";
 import onboardingRouter from "../routes/onboarding";
-import { authenticateToken } from "../routes";
+import { authenticateToken } from "../middleware";
 import {
   pgFindUserByAuthSubject,
   pgFindUserByEmail,

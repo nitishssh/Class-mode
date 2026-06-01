@@ -2,11 +2,11 @@
 
 ## Architecture
 
-| Store | Role | Required? |
-|---|---|---|
-| **PostgreSQL** | Primary — users, workspaces, sessions, tests, SIS, audit | ✅ Required |
-| **MongoDB** | Legacy content fallback | ❌ Optional |
-| **Cassandra (Astra DB)** | MessagePal chat history | ❌ Optional (falls back to MongoDB) |
+| Store                    | Role                                                     | Required?                           |
+| ------------------------ | -------------------------------------------------------- | ----------------------------------- |
+| **PostgreSQL**           | Primary — users, workspaces, sessions, tests, SIS, audit | ✅ Required                         |
+| **MongoDB**              | Legacy content fallback                                  | ❌ Optional                         |
+| **Cassandra (Astra DB)** | MessagePal chat history                                  | ❌ Optional (falls back to MongoDB) |
 
 ## PostgreSQL (Primary)
 

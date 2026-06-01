@@ -192,8 +192,14 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   return new Promise<T>((resolve, reject) => {
     const t = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
     promise.then(
-      (v) => { clearTimeout(t); resolve(v); },
-      (e) => { clearTimeout(t); reject(e); }
+      (v) => {
+        clearTimeout(t);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(t);
+        reject(e);
+      }
     );
   });
 }
@@ -247,10 +253,9 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   useEffect(() => {
-    Promise.all([
-      fetchAuthConfig().then(setAuthConfig),
-      refreshSession(),
-    ]).finally(() => setIsLoading(false));
+    Promise.all([fetchAuthConfig().then(setAuthConfig), refreshSession()]).finally(() =>
+      setIsLoading(false)
+    );
   }, []);
 
   const login = async (email: string, password: string): Promise<UserProfile> => {

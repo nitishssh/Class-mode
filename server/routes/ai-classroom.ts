@@ -12,7 +12,8 @@ import { StatelessChatRequest } from "../services/study-arena/types";
 import { generatePPTX } from "../services/study-arena/pptx-export";
 import { generateClassroomHTML } from "../services/study-arena/html-export";
 import { logger } from "../lib/logger";
-import { authenticateToken } from "../routes";
+import { authenticateToken } from "../middleware";
+import { checkAIQuota } from "../middleware/aiQuota";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 
@@ -62,17 +63,22 @@ router.get("/providers", (_req, res) => {
 // Middleware to protect subsequent routes
 router.use(authenticateToken);
 
-router.post("/create", async (req: Request, res: Response) => {
+router.post("/create", await checkAIQuota("ai_classroom"), async (req: Request, res: Response) => {
   try {
     const data = createClassroomSchema.parse(req.body);
-    const user = req.user as { id: number } | undefined;
+    const user = (req as any).user;
+    const workspace = (req as any).workspace;
     const teacherId = user?.id || req.session?.userId;
     if (!teacherId) {
       return res.status(401).json({ error: "Authentication required" });
     }
 
     // Submit async generation job internally
-    const { jobId } = await studyArenaInternalService.createClassroom(data.topic, teacherId);
+    const { jobId } = await studyArenaInternalService.createClassroom(
+      data.topic,
+      teacherId,
+      workspace?.id
+    );
 
     res.status(202).json({
       jobId,

@@ -47,7 +47,6 @@ interface SidebarProps {
   className?: string;
 }
 
-
 export function Sidebar({ className }: SidebarProps) {
   const { t } = useTranslation();
   const [location] = useLocation();
@@ -305,7 +304,9 @@ export function Sidebar({ className }: SidebarProps) {
         <div className="flex items-center px-6 py-6">
           {!isCollapsed ? (
             <div className="flex flex-col">
-              <h1 className="font-display text-2xl leading-tight text-foreground">{t("sidebar.classMode", "Class Mode")}</h1>
+              <h1 className="font-display text-2xl leading-tight text-foreground">
+                {t("sidebar.classMode", "Class Mode")}
+              </h1>
               <p className="mt-0.5 font-body text-[10px] uppercase tracking-widest text-muted-foreground">
                 {t("sidebar.learningPlatform", "Learning Platform")}
               </p>

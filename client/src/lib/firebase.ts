@@ -191,7 +191,9 @@ async function resolveGoogleUser(user: User) {
       if (userDoc.exists()) {
         isNewUser = false;
         profile = userDoc.data() as UserProfile;
-        await updateDoc(doc(db, "users", user.uid), { lastLogin: serverTimestamp() }).catch(() => {});
+        await updateDoc(doc(db, "users", user.uid), { lastLogin: serverTimestamp() }).catch(
+          () => {}
+        );
       }
     }
   } catch {
@@ -213,8 +215,7 @@ async function resolveGoogleUser(user: User) {
 // boot by consumePendingGoogleRedirect() in the auth context.
 export const loginWithGoogle = async (): Promise<never> => {
   console.log("[google] loginWithGoogle called, firebaseEnabled=", firebaseEnabled);
-  if (!firebaseEnabled || !auth || !googleProvider)
-    throw new Error("Firebase is not configured");
+  if (!firebaseEnabled || !auth || !googleProvider) throw new Error("Firebase is not configured");
   console.log("[google] calling signInWithRedirect…");
   // signInWithRedirect navigates the entire page to Google. The returned
   // Promise never resolves in normal flow (the document is being torn down

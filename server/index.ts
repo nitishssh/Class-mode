@@ -206,6 +206,27 @@ app.use(
   await connectPostgres();
   await initCassandra();
 
+  // Start AI Job Workers (Study Arena)
+  import("./services/study-arena/job-queue")
+    .then(({ classroomWorker }) => {
+      logger.info("[StudyArena] Worker initialized");
+    })
+    .catch((err) => {
+      logger.error("[StudyArena] Failed to initialize worker:", err);
+    });
+
+  // Start SIS Automation Workers
+  import("./services/whatsapp-automation")
+    .then(({ automationWorker, scheduleAtRiskChecks }) => {
+      logger.info("[SIS Automation] Worker initialized");
+      // Run initial check and then every hour
+      scheduleAtRiskChecks();
+      setInterval(scheduleAtRiskChecks, 60 * 60 * 1000);
+    })
+    .catch((err) => {
+      logger.error("[SIS Automation] Failed to initialize worker:", err);
+    });
+
   const server = await registerRoutes(app);
 
   // Attach WebSocket servers

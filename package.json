@@ -1,6 +1,6 @@
 {
   "name": "rest-express",
-  "version": "1.1.0",
+  "version": "1.6.0",
   "type": "module",
   "license": "MIT",
   "scripts": {
@@ -53,6 +53,7 @@
     "archiver": "^8.0.0",
     "axios": "^1.16.0",
     "bcryptjs": "^3.0.3",
+    "bullmq": "^5.77.6",
     "canvas-confetti": "^1.9.4",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
@@ -72,6 +73,7 @@
     "framer-motion": "^11.18.2",
     "helmet": "^8.1.0",
     "input-otp": "^1.2.4",
+    "ioredis": "^5.11.0",
     "jotai": "^2.20.0",
     "jsonrepair": "^3.14.0",
     "jsonwebtoken": "^9.0.3",

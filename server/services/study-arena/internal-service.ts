@@ -10,12 +10,12 @@
 
 import { nanoid } from "nanoid";
 import { EventEmitter } from "events";
-import { generateFullClassroom } from "./generator";
+import { classroomQueue } from "./job-queue";
 import {
-  pgCreateAIClassroom, pgFindAIClassroomByJobId, pgFindAIClassroomById,
-  pgUpdateAIClassroom, pgDeleteAIClassroom, pgFindAIClassroomsByTeacher, pgCountAIClassrooms,
+  pgFindAIClassroomByJobId, pgFindAIClassroomById,
+  pgDeleteAIClassroom, pgFindAIClassroomsByTeacher, pgCountAIClassrooms,
 } from "../../lib/pg-queries";
-import type { ClassroomData, ClassroomGenerationProgress } from "./types";
+import type { ClassroomData } from "./types";
 import { logger } from "../../lib/logger";
 
 // ── Job Types ────────────────────────────────────────────────────────────────
@@ -35,35 +35,6 @@ export interface JobStatus {
   error?: string;
 }
 
-// ── In-Memory Job Store ──────────────────────────────────────────────────────
-// Phase 1: simple Map-based store. Phase 2 could move to Redis.
-
-const jobs = new Map<string, JobStatus & { updatedAt: number }>();
-const jobAbortControllers = new Map<string, AbortController>();
-
-const STALE_JOB_TIMEOUT_MS = 30 * 60 * 1000;
-const MAX_COMPLETED_JOBS = 500;
-
-function markStaleIfNeeded(job: JobStatus & { updatedAt: number }): JobStatus {
-  if (job.status === "running" && Date.now() - job.updatedAt > STALE_JOB_TIMEOUT_MS) {
-    return { ...job, status: "failed", done: true, error: "Job timed out" };
-  }
-  return job;
-}
-
-function evictCompletedJobs() {
-  if (jobs.size <= MAX_COMPLETED_JOBS) return;
-  const completed: Array<[string, JobStatus & { updatedAt: number }]> = [];
-  jobs.forEach((v, k) => {
-    if (v.done) completed.push([k, v]);
-  });
-  completed.sort((a, b) => a[1].updatedAt - b[1].updatedAt);
-  const removeCount = completed.length - MAX_COMPLETED_JOBS;
-  for (let i = 0; i < removeCount && i < completed.length; i++) {
-    jobs.delete(completed[i][0]);
-  }
-}
-
 // ── Service Class ────────────────────────────────────────────────────────────
 
 export class StudyArenaService extends EventEmitter {
@@ -71,118 +42,26 @@ export class StudyArenaService extends EventEmitter {
    * Submit a new classroom generation job (async, returns immediately).
    * The frontend should poll /job/:jobId for status.
    */
-  async createClassroom(requirement: string, teacherId: number): Promise<{ jobId: string }> {
+  async createClassroom(requirement: string, teacherId: number, workspaceId?: number | null): Promise<{ jobId: string }> {
     const jobId = nanoid(10);
 
-    jobs.set(jobId, {
-      jobId,
-      status: "pending",
-      step: "queued",
-      progress: 0,
-      message: "Classroom generation queued...",
-      done: false,
-      updatedAt: Date.now(),
-    });
+    await classroomQueue.add(
+      "generate",
+      { requirement, teacherId, workspaceId },
+      { jobId }
+    );
 
-    const abortController = new AbortController();
-    jobAbortControllers.set(jobId, abortController);
-
-    this.runGenerationJob(jobId, requirement, teacherId, abortController.signal).catch((err) => {
-      logger.error(`[StudyArena] Job ${jobId} uncaught error:`, err);
-    });
+    logger.info(`[StudyArena] Persistent job ${jobId} added to queue for teacher ${teacherId}`);
 
     return { jobId };
   }
 
   /**
-   * Internal worker — runs the full generation pipeline asynchronously.
-   * Ported from features/ai-classroom/studyArena/lib/server/classroom-job-runner.ts
-   */
-  private async runGenerationJob(
-    jobId: string,
-    requirement: string,
-    teacherId: number,
-    signal: AbortSignal
-  ): Promise<void> {
-    const updateJob = (updates: Partial<JobStatus>) => {
-      const current = jobs.get(jobId);
-      if (current) {
-        const updated = { ...current, ...updates, updatedAt: Date.now() };
-        jobs.set(jobId, updated);
-        this.emit(`job:${jobId}`, updated);
-      }
-    };
-
-    try {
-      updateJob({ status: "running" });
-
-      // Run the full generation pipeline with progress reporting
-      const classroomData = await generateFullClassroom(
-        requirement,
-        (progress: ClassroomGenerationProgress) => {
-          updateJob({
-            step: progress.step,
-            progress: progress.progress,
-            message: progress.message,
-            scenesGenerated: progress.scenesGenerated,
-            totalScenes: progress.totalScenes,
-          });
-        },
-        signal
-      );
-
-      // Persist to PostgreSQL
-      const classroom = await pgCreateAIClassroom({
-        teacherId,
-        topic: requirement,
-        studyArenaJobId: jobId,
-        status: "pending",
-      });
-      await pgUpdateAIClassroom(classroom.id, { status: "ready", data: classroomData });
-
-      logger.info(
-        `[StudyArena] Job ${jobId} completed. ClassroomId: ${classroom.id}, ${classroomData.scenes.length} scenes`
-      );
-
-      updateJob({
-        status: "succeeded",
-        step: "completed",
-        progress: 100,
-        message: `Classroom generated with ${classroomData.scenes.length} scenes`,
-        done: true,
-        scenesGenerated: classroomData.scenes.length,
-        totalScenes: classroomData.scenes.length,
-        result: { classroomId: classroom.id },
-      });
-
-      jobAbortControllers.delete(jobId);
-      evictCompletedJobs();
-    } catch (error: any) {
-      jobAbortControllers.delete(jobId);
-      const errorMsg = error?.message || String(error);
-      logger.error(`[StudyArena] Job ${jobId} failed: ${errorMsg}`);
-
-      updateJob({
-        status: "failed",
-        step: "error",
-        done: true,
-        error: errorMsg,
-        message: `Generation failed: ${errorMsg}`,
-      });
-
-      try {
-        const rec = await pgFindAIClassroomByJobId(jobId);
-        if (rec) await pgUpdateAIClassroom(rec.id, { status: "error" });
-      } catch { /* ignore — record might not exist yet */ }
-    }
-  }
-
-  /**
-   * Poll job status.
-   * Ported from features/ai-classroom/studyArena/lib/server/classroom-job-store.ts
+   * Poll job status from BullMQ.
    */
   async pollJob(jobId: string): Promise<JobStatus> {
-    const job = jobs.get(jobId);
+    const job = await classroomQueue.getJob(jobId);
+
     if (!job) {
       const dbClassroom = await pgFindAIClassroomByJobId(jobId);
       if (dbClassroom) {
@@ -198,7 +77,22 @@ export class StudyArenaService extends EventEmitter {
       }
       throw new Error(`Job ${jobId} not found`);
     }
-    return markStaleIfNeeded(job);
+
+    const state = await job.getState();
+    const progress = job.progress as any;
+
+    return {
+      jobId,
+      status: state === "completed" ? "succeeded" : (state === "failed" ? "failed" : (state === "active" ? "running" : "pending")),
+      step: progress?.step || (state === "completed" ? "completed" : (state === "failed" ? "error" : "queued")),
+      progress: typeof progress === "number" ? progress : (progress?.progress || 0),
+      message: progress?.message || (state === "completed" ? "Completed" : (state === "failed" ? "Failed" : "In Queue")),
+      done: state === "completed" || state === "failed",
+      scenesGenerated: progress?.scenesGenerated,
+      totalScenes: progress?.totalScenes,
+      result: job.returnvalue,
+      error: job.failedReason,
+    };
   }
 
   /**
@@ -209,11 +103,10 @@ export class StudyArenaService extends EventEmitter {
     return (classroom?.data as ClassroomData) || null;
   }
 
-  cancelJob(jobId: string): boolean {
-    const controller = jobAbortControllers.get(jobId);
-    if (!controller) return false;
-    controller.abort();
-    jobAbortControllers.delete(jobId);
+  async cancelJob(jobId: string): Promise<boolean> {
+    const job = await classroomQueue.getJob(jobId);
+    if (!job) return false;
+    await job.remove();
     return true;
   }
 

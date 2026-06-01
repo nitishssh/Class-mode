@@ -58,7 +58,9 @@ const passwordSchema = z
 // brute-forceable surfaces like 4-digit OTP verification. Keyed on email+IP so
 // a single attacker can't fan out across user accounts from one IP.
 const emailIpKey = (req: Request) => {
-  const email = String(req.body?.email ?? "").toLowerCase().trim();
+  const email = String(req.body?.email ?? "")
+    .toLowerCase()
+    .trim();
   return `${email}|${ipKeyGenerator(req.ip ?? "")}`;
 };
 
@@ -214,6 +216,7 @@ function createDevUser(data: {
   const now = new Date();
   const user: PgUser = {
     id,
+    userType: "educator",
     authProvider: "local-dev",
     authSubject: data.email,
     email: data.email,
@@ -423,7 +426,9 @@ router.get("/dev/last-otp", (req: Request, res: Response) => {
   if (!isDevAuthWithoutDbEnabled()) {
     return res.status(404).json({ message: "Not found" });
   }
-  const email = String(req.query.email || "").toLowerCase().trim();
+  const email = String(req.query.email || "")
+    .toLowerCase()
+    .trim();
   if (!email) return res.status(400).json({ message: "email query param required" });
   const user = devUsersByEmail.get(email);
   if (!user) return res.status(404).json({ message: "No dev user for this email" });
@@ -524,8 +529,7 @@ router.get("/google/callback", async (req: Request, res: Response) => {
         status: "active",
       });
       const fallbackWsName =
-        workspaceNameHint ||
-        `${info.name || info.email.split("@")[0]}'s Workspace`;
+        workspaceNameHint || `${info.name || info.email.split("@")[0]}'s Workspace`;
       const workspace = await pgCreateWorkspace({
         name: fallbackWsName,
         slug: await makeUniqueSlug(fallbackWsName),
@@ -581,8 +585,7 @@ router.post("/signup", signupLimiter, async (req: Request, res: Response) => {
   }
 
   const parsed = signupSchema.safeParse(req.body);
-  if (!parsed.success)
-    return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+  if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
 
   const email = parsed.data.email.toLowerCase().trim();
   if (isDevAuthWithoutDbEnabled()) {
@@ -892,7 +895,9 @@ router.post("/email/verify", verifyLimiter, async (req: Request, res: Response) 
     otp.attempts += 1;
     if (otp.attempts > OTP_MAX_ATTEMPTS) {
       otp.used = true;
-      return res.status(429).json({ message: "Too many attempts. Request a new verification code." });
+      return res
+        .status(429)
+        .json({ message: "Too many attempts. Request a new verification code." });
     }
     if (otp.otpHash !== tokenHash(parsed.data.token)) {
       return res.status(400).json({ message: "Invalid verification code" });
@@ -916,7 +921,8 @@ router.post("/email/verify", verifyLimiter, async (req: Request, res: Response) 
     [userId]
   );
   const otp = rows[0];
-  if (!otp) return res.status(400).json({ message: "No active verification code. Request a new one." });
+  if (!otp)
+    return res.status(400).json({ message: "No active verification code. Request a new one." });
 
   if (otp.attempts > OTP_MAX_ATTEMPTS) {
     await pool.query("UPDATE otps SET used = true WHERE id = $1", [otp.id]);
@@ -1088,8 +1094,7 @@ router.post("/firebase", async (req: Request, res: Response) => {
 
   const email = decoded.email.toLowerCase().trim();
   let user =
-    (await pgFindUserByAuthSubject("firebase", decoded.uid)) ||
-    (await pgFindUserByEmail(email));
+    (await pgFindUserByAuthSubject("firebase", decoded.uid)) || (await pgFindUserByEmail(email));
   if (!user) {
     const requestedWorkspaceName =
       typeof workspaceName === "string" && workspaceName.trim().length >= 2

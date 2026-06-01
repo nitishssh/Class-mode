@@ -58,10 +58,16 @@ const ALLOWED_MIME = new Set([
 // express.static infers Content-Type from extension, so .html with a spoofed
 // MIME would be served as text/html and execute as XSS.
 const ALLOWED_EXTENSIONS = new Set([
-  ".jpg", ".jpeg", ".png", ".gif", ".webp",
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".gif",
+  ".webp",
   ".pdf",
-  ".doc", ".docx",
-  ".xls", ".xlsx",
+  ".doc",
+  ".docx",
+  ".xls",
+  ".xlsx",
   ".txt",
 ]);
 

@@ -107,10 +107,7 @@ type ChartTooltipContentProps = React.ComponentProps<"div"> & {
   active?: boolean;
   payload?: TooltipPayloadItem[];
   label?: string | number;
-  labelFormatter?: (
-    value: string | number,
-    payload: TooltipPayloadItem[]
-  ) => React.ReactNode;
+  labelFormatter?: (value: string | number, payload: TooltipPayloadItem[]) => React.ReactNode;
   formatter?: (
     value: string | number | (string | number)[],
     name: string | number | undefined,
@@ -163,7 +160,9 @@ const ChartTooltipContent = React.forwardRef<HTMLDivElement, ChartTooltipContent
 
       if (labelFormatter) {
         return (
-          <div className={cn("font-medium", labelClassName)}>{labelFormatter(value as string | number, payload)}</div>
+          <div className={cn("font-medium", labelClassName)}>
+            {labelFormatter(value as string | number, payload)}
+          </div>
         );
       }
 
@@ -193,7 +192,8 @@ const ChartTooltipContent = React.forwardRef<HTMLDivElement, ChartTooltipContent
           {payload.map((item, index) => {
             const key = `${nameKey || item.name || item.dataKey || "value"}`;
             const itemConfig = getPayloadConfigFromPayload(config, item, key);
-            const indicatorColor = color || (item.payload?.fill as string | undefined) || item.color;
+            const indicatorColor =
+              color || (item.payload?.fill as string | undefined) || item.color;
 
             return (
               <div

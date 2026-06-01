@@ -4,15 +4,12 @@ import {
   pgFindUserById,
   pgUpdateUser,
   pgFindWorkspaceById,
-  pgCreateWorkspace,
   pgFindWorkspaceBySlug,
   pgFindWorkspaceMembership,
-  pgFindFirstWorkspaceMembership,
   pgUpsertWorkspaceMembership,
   pgCreateWorkspaceInvite,
   pgFindWorkspaceInviteByTokenHash,
   pgAcceptWorkspaceInvite,
-  pgFindUserByEmail,
   pgListUserWorkspaces,
   pgListWorkspaceMembers,
   pgListWorkspaceInvites,
@@ -30,7 +27,7 @@ import {
 } from "../lib/auth-workspace";
 import { sendWorkspaceInvite } from "../lib/mailer";
 import { logger } from "../lib/logger";
-import { authenticateToken } from "../routes";
+import { authenticateToken } from "../middleware";
 
 const router = Router();
 
@@ -143,7 +140,7 @@ router.post("/workspaces", authenticateToken, async (req: Request, res: Response
     }
 
     const template = templateId
-      ? WORKSPACE_TEMPLATES.find((t) => t.id === templateId) ?? null
+      ? (WORKSPACE_TEMPLATES.find((t) => t.id === templateId) ?? null)
       : null;
 
     const pool = getPgPool();
@@ -182,10 +179,11 @@ router.post("/workspaces", authenticateToken, async (req: Request, res: Response
       // Create template channels if applicable
       if (template && template.channels.length > 0) {
         for (const ch of template.channels) {
-          await client.query(
-            `INSERT INTO channels (workspace_id, name, type) VALUES ($1,$2,$3)`,
-            [workspaceId, ch.name, ch.type]
-          );
+          await client.query(`INSERT INTO channels (workspace_id, name, type) VALUES ($1,$2,$3)`, [
+            workspaceId,
+            ch.name,
+            ch.type,
+          ]);
         }
       }
 
@@ -227,15 +225,17 @@ router.get("/workspaces/join/:token", authenticateToken, async (req: Request, re
 
     const now = new Date();
     const status =
-      invite.status !== "pending"
-        ? invite.status
-        : invite.expiresAt < now
-        ? "expired"
-        : "pending";
+      invite.status !== "pending" ? invite.status : invite.expiresAt < now ? "expired" : "pending";
 
     return res.json({
       workspace: workspace
-        ? { id: workspace.id, name: workspace.name, type: workspace.type, description: workspace.description, iconUrl: workspace.iconUrl }
+        ? {
+            id: workspace.id,
+            name: workspace.name,
+            type: workspace.type,
+            description: workspace.description,
+            iconUrl: workspace.iconUrl,
+          }
         : null,
       inviterName: inviter?.displayName || inviter?.name || null,
       role: invite.role,
@@ -521,8 +521,14 @@ router.post("/workspaces/:id/invites", authenticateToken, async (req: Request, r
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     });
 
-    sendWorkspaceInvite(email, name ?? "", workspace.name, rawToken, kind ?? "business_member").catch(
-      (e) => logger.warn("[workspace/invites] Failed to send invite email", { error: String(e) })
+    sendWorkspaceInvite(
+      email,
+      name ?? "",
+      workspace.name,
+      rawToken,
+      kind ?? "business_member"
+    ).catch((e) =>
+      logger.warn("[workspace/invites] Failed to send invite email", { error: String(e) })
     );
 
     return res.status(201).json({ id: invite.id, status: invite.status, token: rawToken });
@@ -583,29 +589,25 @@ router.delete(
 
 // ─── GET /workspaces/:id/onboarding — onboarding progress ───────────────────
 
-router.get(
-  "/workspaces/:id/onboarding",
-  authenticateToken,
-  async (req: Request, res: Response) => {
-    try {
-      const user = (req as any).user;
-      if (!user?.id) return res.status(401).json({ message: "Authentication required" });
+router.get("/workspaces/:id/onboarding", authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    if (!user?.id) return res.status(401).json({ message: "Authentication required" });
 
-      const workspaceId = parseInt(req.params.id, 10);
-      if (Number.isNaN(workspaceId)) return res.status(400).json({ message: "Invalid workspace id" });
+    const workspaceId = parseInt(req.params.id, 10);
+    if (Number.isNaN(workspaceId)) return res.status(400).json({ message: "Invalid workspace id" });
 
-      const membership = await pgFindWorkspaceMembership(workspaceId, user.id);
-      if (!membership) return res.status(403).json({ message: "Not a member of this workspace" });
+    const membership = await pgFindWorkspaceMembership(workspaceId, user.id);
+    if (!membership) return res.status(403).json({ message: "Not a member of this workspace" });
 
-      const progress = await pgGetWorkspaceOnboardingProgress(workspaceId);
-      const isComplete = progress.hasMembers && progress.hasChannels && progress.hasClasses;
-      return res.json({ ...progress, isComplete });
-    } catch (err) {
-      logger.error("[workspace] GET /workspaces/:id/onboarding failed", { err: String(err) });
-      return res.status(500).json({ message: "Failed to fetch onboarding progress" });
-    }
+    const progress = await pgGetWorkspaceOnboardingProgress(workspaceId);
+    const isComplete = progress.hasMembers && progress.hasChannels && progress.hasClasses;
+    return res.json({ ...progress, isComplete });
+  } catch (err) {
+    logger.error("[workspace] GET /workspaces/:id/onboarding failed", { err: String(err) });
+    return res.status(500).json({ message: "Failed to fetch onboarding progress" });
   }
-);
+});
 
 // ─── POST /workspaces/join/:token — join via invite token ────────────────────
 
@@ -699,7 +701,10 @@ router.post("/workspaces/:id/transfer", authenticateToken, async (req: Request, 
         [workspaceId, newOwnerId]
       );
       // Update workspace owner_id
-      await client.query("UPDATE workspaces SET owner_id = $1 WHERE id = $2", [newOwnerId, workspaceId]);
+      await client.query("UPDATE workspaces SET owner_id = $1 WHERE id = $2", [
+        newOwnerId,
+        workspaceId,
+      ]);
       await client.query("COMMIT");
     } catch (txErr) {
       await client.query("ROLLBACK");

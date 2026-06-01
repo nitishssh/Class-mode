@@ -4,7 +4,6 @@ import { Loader2, Building2, UserCheck, AlertTriangle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { useWorkspace } from "@/contexts/workspace-context";
@@ -127,7 +126,9 @@ export default function JoinWorkspace() {
         </div>
         <div className="text-center">
           <h2 className="text-xl font-bold">Invalid invite</h2>
-          <p className="mt-2 text-sm text-muted-foreground">{fetchError ?? "This invite link is invalid or has expired."}</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {fetchError ?? "This invite link is invalid or has expired."}
+          </p>
         </div>
         <Button variant="outline" onClick={() => navigate("/dashboard")}>
           Go to dashboard
