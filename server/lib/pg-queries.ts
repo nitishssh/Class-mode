@@ -20,6 +20,7 @@ export interface PgUser {
   emailVerified: boolean;
   role: string;
   status: string;
+  userType: string | null;
   schoolCode: string | null;
   schoolId: number | null;
   parentId: number | null;
@@ -46,6 +47,7 @@ export interface PgSchool {
   board: string | null;
   logo: string | null;
   gradesOffered: string[];
+  approximateStudents: string | null;
   createdByUid: string | null;
   onboardingComplete: boolean;
   createdAt: Date;
@@ -63,6 +65,14 @@ export interface PgInvite {
   status: string;
   invitedBy: string | null;
   expiresAt: Date;
+  createdAt: Date;
+}
+
+export interface PgOnboardingResponse {
+  id: number;
+  userId: number;
+  questionKey: string;
+  response: any;
   createdAt: Date;
 }
 
@@ -191,6 +201,7 @@ function mapUser(r: any): PgUser {
     district: r.district ?? null,
     class: r.class_name ?? null,
     subject: r.subject ?? null,
+    userType: r.user_type ?? null,
     onboardingComplete: r.onboarding_complete ?? false,
     studyPlan: r.study_plan ?? {},
     createdAt: r.created_at,
@@ -209,8 +220,19 @@ function mapSchool(r: any): PgSchool {
     board: r.board ?? null,
     logo: r.logo ?? null,
     gradesOffered: r.grades_offered ?? [],
+    approximateStudents: r.approximate_students ?? null,
     createdByUid: r.created_by_uid ?? null,
     onboardingComplete: r.onboarding_complete ?? false,
+    createdAt: r.created_at,
+  };
+}
+
+function mapOnboardingResponse(r: any): PgOnboardingResponse {
+  return {
+    id: n(r.id)!,
+    userId: n(r.user_id)!,
+    questionKey: r.question_key,
+    response: r.response,
     createdAt: r.created_at,
   };
 }
@@ -619,6 +641,26 @@ export async function pgUpsertMembership(params: {
   }
 }
 
+export async function pgUpdateUserSubjects(userId: number, subjects: string[]): Promise<PgUser | null> {
+  return pgUpdateUser(userId, { subjects });
+}
+
+export async function pgSaveOnboardingResponse(userId: number, questionKey: string, response: any): Promise<PgOnboardingResponse | null> {
+  if (!isPgReady()) return null;
+  try {
+    const { rows } = await getPgPool().query(
+      `INSERT INTO onboarding_responses (user_id, question_key, response)
+       VALUES ($1, $2, $3)
+       RETURNING *`,
+      [userId, questionKey, JSON.stringify(response)]
+    );
+    return rows[0] ? mapOnboardingResponse(rows[0]) : null;
+  } catch (err) {
+    logger.error("[pg] pgSaveOnboardingResponse failed", { err: String(err) });
+    return null;
+  }
+}
+
 // ─── School queries ───────────────────────────────────────────────────────────
 
 export async function pgFindSchoolByCreatedByUid(uid: string): Promise<PgSchool | null> {
@@ -664,6 +706,7 @@ export async function pgUpsertSchool(data: {
   board?: string;
   gradesOffered?: string[];
   logo?: string | null;
+  approximateStudents?: string | null;
   onboardingComplete?: boolean;
 }): Promise<PgSchool> {
   const pool = getPgPool();
@@ -675,23 +718,24 @@ export async function pgUpsertSchool(data: {
   const existing = await pgFindSchoolByCreatedByUid(data.uid);
   if (existing) {
     const { rows } = await pool.query(
-      `UPDATE schools SET name=$1, city=$2, board=$3, grades_offered=$4, logo=$5, onboarding_complete=$6
-       WHERE id=$7 RETURNING *`,
+      `UPDATE schools SET name=$1, city=$2, board=$3, grades_offered=$4, logo=$5, approximate_students=$6, onboarding_complete=$7
+       WHERE id=$8 RETURNING *`,
       [
         data.name,
         data.city ?? null,
         data.board ?? null,
         data.gradesOffered ?? [],
         data.logo ?? null,
+        data.approximateStudents ?? null,
         data.onboardingComplete ?? false,
         existing.id,
       ]
     );
     return mapSchool(rows[0]);
   }
-  const { rows } = await pool.query(
-    `INSERT INTO schools (code, name, city, board, grades_offered, logo, created_by_uid, onboarding_complete)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+    const { rows } = await pool.query(
+    `INSERT INTO schools (code, name, city, board, grades_offered, logo, approximate_students, created_by_uid, onboarding_complete)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
      ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name
      RETURNING *`,
     [
@@ -701,11 +745,26 @@ export async function pgUpsertSchool(data: {
       data.board ?? null,
       data.gradesOffered ?? [],
       data.logo ?? null,
+      data.approximateStudents ?? null,
       data.uid,
       data.onboardingComplete ?? false,
     ]
   );
   return mapSchool(rows[0]);
+}
+
+export async function pgUpdateSchoolSize(schoolId: number, gradesOffered: string[], approximateStudents: string): Promise<PgSchool | null> {
+  if (!isPgReady()) return null;
+  try {
+    const { rows } = await getPgPool().query(
+      `UPDATE schools SET grades_offered=$1, approximate_students=$2 WHERE id=$3 RETURNING *`,
+      [gradesOffered, approximateStudents, schoolId]
+    );
+    return rows[0] ? mapSchool(rows[0]) : null;
+  } catch (err) {
+    logger.error("[pg] pgUpdateSchoolSize failed", { err: String(err) });
+    return null;
+  }
 }
 
 // ─── Invite queries ───────────────────────────────────────────────────────────

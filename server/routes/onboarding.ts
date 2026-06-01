@@ -34,7 +34,11 @@ import {
   pgUpdateUser,
   pgUpsertMembership,
   pgUpdateUserOnboardingComplete,
+  pgSaveOnboardingResponse,
+  pgUpdateSchoolSize,
+  pgUpdateUserSubjects,
 } from "../lib/pg-queries";
+import { getPgPool } from "../db-pg";
 
 const router = Router();
 
@@ -105,6 +109,110 @@ router.get("/school/me", authenticateToken, async (req: Request, res: Response) 
   const school = await pgFindSchoolByCreatedByUid(uid);
   if (!school) return res.status(404).json({ message: "School not found" });
   return res.json(school);
+});
+
+// ─── STAGE 1b: Full Onboarding Completion (V2) ───────────────────────────────
+
+const onboardingCompleteSchema = z.object({
+  role: z.enum(["principal", "teacher", "school_admin"]),
+  userType: z.string().optional(),
+  school: z.object({
+    name: z.string().min(2),
+    city: z.string().min(2),
+    board: z.enum(["CBSE", "ICSE", "State", "IB", "Other"]),
+    gradesOffered: z.array(z.string()).min(1),
+    approximateStudents: z.enum(["1-50", "50-200", "200-500", "500+"]),
+  }),
+  user: z.object({
+    subjects: z.array(z.string()).min(1),
+  }),
+  businessIntel: z.object({
+    currentTools: z.array(z.string()).optional(),
+    discoverySource: z.string().optional(),
+  }).optional(),
+});
+
+// POST /api/onboarding/complete
+router.post("/complete", authenticateToken, async (req: Request, res: Response) => {
+  const uid = firebaseUid(req);
+  const parsed = onboardingCompleteSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+
+  const { role, userType, school, user, businessIntel } = parsed.data;
+
+  // 1. Resolve PG User
+  const pgUser = await pgFindUserByAuthSubject("firebase", uid);
+  if (!pgUser) return res.status(404).json({ message: "User not found" });
+
+  if (pgUser.onboardingComplete) {
+    return res.status(409).json({ message: "Onboarding already complete" });
+  }
+
+  // 2. Validate role constraints strictly
+  // A student/parent cannot escalate to a principal/school_admin randomly,
+  // but if this is their first onboarding, they might be choosing their role.
+  // For safety, only allow role updates if they are currently a 'student' (default new user role)
+  // or if they are already the requested role.
+  if (pgUser.role !== role && pgUser.role !== "student") {
+    return res.status(403).json({ message: "Cannot change role during onboarding" });
+  }
+
+  // Update user role and type
+  await pgUpdateUser(pgUser.id, { role, userType: userType ?? role });
+
+  // 3. Update or Create School
+  const pgSchool = await pgUpsertSchool({
+    uid,
+    name: school.name,
+    city: school.city,
+    board: school.board,
+    gradesOffered: school.gradesOffered,
+    approximateStudents: school.approximateStudents,
+    onboardingComplete: true,
+  });
+
+  // Link school to user
+  await pgUpdateUser(pgUser.id, { schoolId: pgSchool.id });
+
+  // 4. Update user subjects
+  await pgUpdateUserSubjects(pgUser.id, user.subjects);
+
+  // 5. Store Business Intel
+  if (businessIntel?.currentTools) {
+    await pgSaveOnboardingResponse(pgUser.id, "current_tools", businessIntel.currentTools);
+  }
+  if (businessIntel?.discoverySource) {
+    await pgSaveOnboardingResponse(pgUser.id, "discovery_source", businessIntel.discoverySource);
+  }
+
+  // 6. Complete onboarding flag
+  await pgUpdateUserOnboardingComplete(pgUser.id);
+
+  // 7. Create workspace
+  const workspaceName = pgSchool.name;
+  let workspaceId: number | null = null;
+  const pool = getPgPool();
+  
+  try {
+    const wsRes = await pool.query(
+      `INSERT INTO workspaces (name, type, owner_id) VALUES ($1, 'school', $2) RETURNING id`,
+      [workspaceName, pgUser.id]
+    );
+    workspaceId = parseInt(wsRes.rows[0].id, 10);
+    
+    // Add owner membership
+    await pool.query(
+      `INSERT INTO workspace_memberships (workspace_id, user_id, role, status) VALUES ($1, $2, 'owner', 'active')`,
+      [workspaceId, pgUser.id]
+    );
+
+    // Update user's last active workspace
+    await pgUpdateUser(pgUser.id, { lastActiveWorkspaceId: workspaceId });
+  } catch (err) {
+    logger.error("[onboarding] Failed to create workspace", { error: String(err) });
+  }
+
+  return res.status(200).json({ success: true, workspaceId, schoolId: pgSchool.id });
 });
 
 // ─── STAGE 2: Admin invites teachers ─────────────────────────────────────────
