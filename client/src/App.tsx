@@ -55,6 +55,7 @@ import GoogleClassroomIntegration from "@/pages/integrations/google-classroom";
 import WorkspaceSettings from "@/pages/workspace/settings";
 import WorkspaceCreate from "@/pages/workspace/create";
 import JoinWorkspace from "@/pages/workspace/join";
+import OnboardingV2 from "@/pages/onboarding-v2";
 import { useOnboardingGuard } from "@/hooks/use-onboarding-guard";
 import { WorkspaceProvider } from "@/contexts/workspace-context";
 
@@ -184,6 +185,7 @@ const OnboardingSchoolRoute = withLayout(protect(SchoolSetup, ["school_admin"]))
 const OnboardingInvTeachRoute = withLayout(protect(InviteTeachers, ["school_admin"]));
 const OnboardingTeacherRoute = withLayout(protect(TeacherClassSetup, ["teacher"]));
 const OnboardingInvStdRoute = withLayout(protect(InviteStudents, ["teacher"]));
+const OnboardingRoute = withLayout(protect(OnboardingV2));
 const GoogleClassroomRoute = withLayout(
   protect(GoogleClassroomIntegration, ["teacher", "school_admin", "admin", "principal"])
 );
@@ -350,6 +352,7 @@ function App() {
       <Route path="/dynamic-sis/base/:id" component={DynamicSISBaseRoute} />
 
       {/* ── Onboarding flows ──────────────────────────────────────── */}
+      <Route path="/onboarding" component={OnboardingRoute} />
       <Route path="/onboarding/school" component={OnboardingSchoolRoute} />
       <Route path="/onboarding/invite-teachers" component={OnboardingInvTeachRoute} />
       <Route path="/onboarding/teacher" component={OnboardingTeacherRoute} />
