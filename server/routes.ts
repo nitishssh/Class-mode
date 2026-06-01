@@ -1,6 +1,5 @@
 import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
-import { logger } from "./lib/logger";
 import { authenticateToken, requireVerifiedEmail } from "./middleware";
 
 // Route imports

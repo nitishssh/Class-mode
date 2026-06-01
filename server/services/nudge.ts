@@ -1,5 +1,5 @@
 import { getCachedJSON, setCachedJSON } from "../lib/redis";
-import { generateStudyPlan } from "../lib/openai"; // Or whatever AI tool is available
+// Or whatever AI tool is available
 
 // A generic nudge fallback if AI is unavailable or fails
 const FALLBACK_NUDGES = [

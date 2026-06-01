@@ -32,7 +32,7 @@ if (!useRealSmtp) {
     if (otpMatch) {
       const code = otpMatch[1];
       const banner = "═".repeat(46);
-      // eslint-disable-next-line no-console
+       
       console.log(
         `\n${banner}\n  [mailer:dev] ${mailOptions.subject}\n  to: ${mailOptions.to}\n  OTP CODE → ${code}\n${banner}\n`
       );

@@ -18,7 +18,6 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
-import { Badge } from "@/components/ui/badge";
 
 import { useWorkspace, type WorkspaceWithRole } from "@/contexts/workspace-context";
 

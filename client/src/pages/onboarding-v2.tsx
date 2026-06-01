@@ -4,7 +4,7 @@ import { AnimatePresence } from "framer-motion";
 import { StepCard } from "@/components/onboarding/StepCard";
 import { ProgressBar } from "@/components/onboarding/ProgressBar";
 import { ChipSelect } from "@/components/onboarding/ChipSelect";
-import { CelebrationScreen, SummaryData } from "@/components/onboarding/CelebrationScreen";
+import { CelebrationScreen } from "@/components/onboarding/CelebrationScreen";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

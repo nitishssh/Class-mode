@@ -1,5 +1,5 @@
 import { createClient } from "redis";
-import { log } from "../vite"; // Assuming there's a log utility, let's just use console for now if it doesn't exist
+// Assuming there's a log utility, let's just use console for now if it doesn't exist
 
 const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
 

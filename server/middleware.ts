@@ -7,11 +7,9 @@ import {
   pgFindUserById,
 } from "./lib/pg-queries";
 import { 
-  authMePayload, 
-  permissionsForWorkspaceRole,
+  authMePayload,
   ACCESS_COOKIE 
 } from "./lib/auth-workspace";
-import { logger } from "./lib/logger";
 
 declare module "express-session" {
   interface SessionData {

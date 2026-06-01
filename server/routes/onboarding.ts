@@ -35,7 +35,6 @@ import {
   pgUpsertMembership,
   pgUpdateUserOnboardingComplete,
   pgSaveOnboardingResponse,
-  pgUpdateSchoolSize,
   pgUpdateUserSubjects,
 } from "../lib/pg-queries";
 import { getPgPool } from "../db-pg";

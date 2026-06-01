@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { automationWorker, scheduleAtRiskChecks, automationQueue } from "../services/whatsapp-automation";
-import { pgFindUserById } from "../lib/pg-queries";
+import { scheduleAtRiskChecks, automationQueue } from "../services/whatsapp-automation";
 import { whatsappService } from "../services/whatsapp";
 import { isPgReady, getPgPool } from "../db-pg";
 

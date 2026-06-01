@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, Circle, Lock, Rocket, Target, Trophy, Briefcase } from "lucide-react";
+import { CheckCircle2, Rocket, Target, Trophy, Briefcase } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SmartCard } from "@/components/ui/smart-card";
 import { Button } from "@/components/ui/button";

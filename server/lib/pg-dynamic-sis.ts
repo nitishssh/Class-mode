@@ -1,5 +1,4 @@
 import { getPgPool } from "../db-pg";
-import { logger } from "./logger";
 import { 
   type DynamicBase, 
   type DynamicTable, 

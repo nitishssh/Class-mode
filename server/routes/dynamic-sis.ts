@@ -3,13 +3,13 @@ import { pgListBases, pgFindBaseById, pgCreateBase, pgUpdateBase, pgDeleteBase,
   pgListTables, pgFindTableById, pgCreateTable, pgUpdateTable, pgDeleteTable,
   pgListFields, pgFindFieldById, pgCreateField, pgUpdateField, pgDeleteField,
   pgListRecords, pgFindRecordById, pgCreateRecord, pgUpdateRecord, pgDeleteRecord, pgBulkCreateRecords,
-  pgListViews, pgCreateView, pgUpdateView, pgDeleteView
+  pgListViews, pgCreateView
 } from "../lib/pg-dynamic-sis";
 import { dynamicEnrichmentService, DynamicEnrichmentService } from "../services/dynamic-enrichment";
 import { whatsappService } from "../services/whatsapp";
 
 import { pgFindWorkspaceMembership } from "../lib/pg-queries";
-import { hasWorkspacePermission, type WorkspaceRole } from "../lib/auth-workspace";
+import { type WorkspaceRole } from "../lib/auth-workspace";
 import { 
   insertDynamicBaseSchema, 
   insertDynamicTableSchema, 

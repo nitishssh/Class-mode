@@ -4,7 +4,6 @@ import { Loader2, Building2, UserCheck, AlertTriangle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { useWorkspace } from "@/contexts/workspace-context";

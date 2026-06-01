@@ -14,7 +14,6 @@ import {
   Code2,
   Headphones,
   UserCheck,
-  BellRing,
   Sparkles,
   Video,
   Award,
