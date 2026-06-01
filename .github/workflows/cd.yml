@@ -6,7 +6,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/personallearningpro
+  IMAGE_NAME: nitishkumar-ai/class-mode/personallearningpro
   GCP_REGION: asia-south1
   GCP_SERVICE: personallearningpro
   GCP_REPO: plp-repo
