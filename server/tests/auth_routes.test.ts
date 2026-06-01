@@ -222,7 +222,12 @@ describe("custom auth routes", () => {
     (pgFindUserByEmail as any).mockResolvedValue(null);
     (pgFindWorkspaceBySlug as any).mockResolvedValue(null);
     (pgCreateUser as any).mockResolvedValue(user);
-    (pgCreateWorkspace as any).mockResolvedValue({ id: 11, name: "G", slug: "g", type: "business" });
+    (pgCreateWorkspace as any).mockResolvedValue({
+      id: 11,
+      name: "G",
+      slug: "g",
+      type: "business",
+    });
     (pgUpsertWorkspaceMembership as any).mockResolvedValue({ id: 6 });
     (pgFindUserById as any).mockResolvedValue(user);
     (pgFindFirstWorkspaceMembership as any).mockResolvedValue({

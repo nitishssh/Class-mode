@@ -151,11 +151,7 @@ export default function InviteStudents() {
                   {inv.status === "accepted" ? "Enrolled" : "Invited"}
                 </Badge>
                 {inv.status === "pending" && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => resendMutation.mutate(inv.id)}
-                  >
+                  <Button size="sm" variant="outline" onClick={() => resendMutation.mutate(inv.id)}>
                     Resend
                   </Button>
                 )}

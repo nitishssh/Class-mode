@@ -12,14 +12,14 @@
 
 ## Implementation Files
 
-| File | Responsibility |
-|---|---|
-| `server/routes/auth.ts` | All auth endpoints |
-| `server/routes/onboarding.ts` | Teacher/student invite flows |
-| `server/routes/workspace.ts` | Workspace CRUD + membership |
+| File                           | Responsibility                 |
+| ------------------------------ | ------------------------------ |
+| `server/routes/auth.ts`        | All auth endpoints             |
+| `server/routes/onboarding.ts`  | Teacher/student invite flows   |
+| `server/routes/workspace.ts`   | Workspace CRUD + membership    |
 | `server/lib/auth-workspace.ts` | JWT helpers, permission checks |
-| `server/lib/google-signin.ts` | Server-side Google OAuth 2.0 |
-| `server/lib/mailer.ts` | SMTP email sending |
+| `server/lib/google-signin.ts`  | Server-side Google OAuth 2.0   |
+| `server/lib/mailer.ts`         | SMTP email sending             |
 
 ## Test Coverage
 

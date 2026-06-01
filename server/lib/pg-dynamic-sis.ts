@@ -1,15 +1,15 @@
 import { getPgPool } from "../db-pg";
-import { 
-  type DynamicBase, 
-  type DynamicTable, 
-  type DynamicField, 
-  type DynamicRecord, 
+import {
+  type DynamicBase,
+  type DynamicTable,
+  type DynamicField,
+  type DynamicRecord,
   type DynamicView,
   type InsertDynamicBase,
   type InsertDynamicTable,
   type InsertDynamicField,
   type InsertDynamicRecord,
-  type InsertDynamicView
+  type InsertDynamicView,
 } from "@shared/schema";
 
 // ─── Row Mappers ──────────────────────────────────────────────────────────────
@@ -113,16 +113,31 @@ export async function pgCreateBase(base: InsertDynamicBase): Promise<DynamicBase
   return mapBase(res.rows[0]);
 }
 
-export async function pgUpdateBase(id: number, patch: Partial<InsertDynamicBase>): Promise<DynamicBase | null> {
+export async function pgUpdateBase(
+  id: number,
+  patch: Partial<InsertDynamicBase>
+): Promise<DynamicBase | null> {
   const pool = getPgPool();
   const sets: string[] = [];
   const vals: any[] = [];
   let i = 1;
 
-  if (patch.name !== undefined) { sets.push(`name = $${i++}`); vals.push(patch.name); }
-  if (patch.description !== undefined) { sets.push(`description = $${i++}`); vals.push(patch.description); }
-  if (patch.icon !== undefined) { sets.push(`icon = $${i++}`); vals.push(patch.icon); }
-  if (patch.color !== undefined) { sets.push(`color = $${i++}`); vals.push(patch.color); }
+  if (patch.name !== undefined) {
+    sets.push(`name = $${i++}`);
+    vals.push(patch.name);
+  }
+  if (patch.description !== undefined) {
+    sets.push(`description = $${i++}`);
+    vals.push(patch.description);
+  }
+  if (patch.icon !== undefined) {
+    sets.push(`icon = $${i++}`);
+    vals.push(patch.icon);
+  }
+  if (patch.color !== undefined) {
+    sets.push(`color = $${i++}`);
+    vals.push(patch.color);
+  }
 
   if (sets.length === 0) return pgFindBaseById(id);
 
@@ -167,16 +182,31 @@ export async function pgCreateTable(table: InsertDynamicTable): Promise<DynamicT
   return mapTable(res.rows[0]);
 }
 
-export async function pgUpdateTable(id: number, patch: Partial<InsertDynamicTable>): Promise<DynamicTable | null> {
+export async function pgUpdateTable(
+  id: number,
+  patch: Partial<InsertDynamicTable>
+): Promise<DynamicTable | null> {
   const pool = getPgPool();
   const sets: string[] = [];
   const vals: any[] = [];
   let i = 1;
 
-  if (patch.name !== undefined) { sets.push(`name = $${i++}`); vals.push(patch.name); }
-  if (patch.description !== undefined) { sets.push(`description = $${i++}`); vals.push(patch.description); }
-  if (patch.icon !== undefined) { sets.push(`icon = $${i++}`); vals.push(patch.icon); }
-  if (patch.ord !== undefined) { sets.push(`ord = $${i++}`); vals.push(patch.ord); }
+  if (patch.name !== undefined) {
+    sets.push(`name = $${i++}`);
+    vals.push(patch.name);
+  }
+  if (patch.description !== undefined) {
+    sets.push(`description = $${i++}`);
+    vals.push(patch.description);
+  }
+  if (patch.icon !== undefined) {
+    sets.push(`icon = $${i++}`);
+    vals.push(patch.icon);
+  }
+  if (patch.ord !== undefined) {
+    sets.push(`ord = $${i++}`);
+    vals.push(patch.ord);
+  }
 
   if (sets.length === 0) return pgFindTableById(id);
 
@@ -216,23 +246,52 @@ export async function pgCreateField(field: InsertDynamicField): Promise<DynamicF
     `INSERT INTO dynamic_fields (table_id, name, type, config, ord, is_primary, is_hidden)
      VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING *`,
-    [field.tableId, field.name, field.type, field.config, field.ord, field.isPrimary, field.isHidden]
+    [
+      field.tableId,
+      field.name,
+      field.type,
+      field.config,
+      field.ord,
+      field.isPrimary,
+      field.isHidden,
+    ]
   );
   return mapField(res.rows[0]);
 }
 
-export async function pgUpdateField(id: number, patch: Partial<InsertDynamicField>): Promise<DynamicField | null> {
+export async function pgUpdateField(
+  id: number,
+  patch: Partial<InsertDynamicField>
+): Promise<DynamicField | null> {
   const pool = getPgPool();
   const sets: string[] = [];
   const vals: any[] = [];
   let i = 1;
 
-  if (patch.name !== undefined) { sets.push(`name = $${i++}`); vals.push(patch.name); }
-  if (patch.type !== undefined) { sets.push(`type = $${i++}`); vals.push(patch.type); }
-  if (patch.config !== undefined) { sets.push(`config = $${i++}`); vals.push(patch.config); }
-  if (patch.ord !== undefined) { sets.push(`ord = $${i++}`); vals.push(patch.ord); }
-  if (patch.isPrimary !== undefined) { sets.push(`is_primary = $${i++}`); vals.push(patch.isPrimary); }
-  if (patch.isHidden !== undefined) { sets.push(`is_hidden = $${i++}`); vals.push(patch.isHidden); }
+  if (patch.name !== undefined) {
+    sets.push(`name = $${i++}`);
+    vals.push(patch.name);
+  }
+  if (patch.type !== undefined) {
+    sets.push(`type = $${i++}`);
+    vals.push(patch.type);
+  }
+  if (patch.config !== undefined) {
+    sets.push(`config = $${i++}`);
+    vals.push(patch.config);
+  }
+  if (patch.ord !== undefined) {
+    sets.push(`ord = $${i++}`);
+    vals.push(patch.ord);
+  }
+  if (patch.isPrimary !== undefined) {
+    sets.push(`is_primary = $${i++}`);
+    vals.push(patch.isPrimary);
+  }
+  if (patch.isHidden !== undefined) {
+    sets.push(`is_hidden = $${i++}`);
+    vals.push(patch.isHidden);
+  }
 
   if (sets.length === 0) return pgFindFieldById(id);
 
@@ -277,7 +336,10 @@ export async function pgCreateRecord(record: InsertDynamicRecord): Promise<Dynam
   return mapRecord(res.rows[0]);
 }
 
-export async function pgBulkCreateRecords(tableId: number, records: Record<string, any>[]): Promise<void> {
+export async function pgBulkCreateRecords(
+  tableId: number,
+  records: Record<string, any>[]
+): Promise<void> {
   const pool = getPgPool();
   if (records.length === 0) return;
 
@@ -287,10 +349,10 @@ export async function pgBulkCreateRecords(tableId: number, records: Record<strin
   try {
     await client.query("BEGIN");
     for (const data of records) {
-      await client.query(
-        "INSERT INTO dynamic_records (table_id, data) VALUES ($1, $2)",
-        [tableId, data]
-      );
+      await client.query("INSERT INTO dynamic_records (table_id, data) VALUES ($1, $2)", [
+        tableId,
+        data,
+      ]);
     }
     await client.query("COMMIT");
   } catch (error) {
@@ -301,7 +363,10 @@ export async function pgBulkCreateRecords(tableId: number, records: Record<strin
   }
 }
 
-export async function pgUpdateRecord(id: string, data: Record<string, any>): Promise<DynamicRecord | null> {
+export async function pgUpdateRecord(
+  id: string,
+  data: Record<string, any>
+): Promise<DynamicRecord | null> {
   const pool = getPgPool();
   const res = await pool.query(
     `UPDATE dynamic_records SET data = data || $1, updated_at = now() WHERE id = $2 RETURNING *`,
@@ -319,10 +384,9 @@ export async function pgDeleteRecord(id: string): Promise<void> {
 
 export async function pgListViews(tableId: number): Promise<DynamicView[]> {
   const pool = getPgPool();
-  const res = await pool.query(
-    "SELECT * FROM dynamic_views WHERE table_id = $1 ORDER BY ord ASC",
-    [tableId]
-  );
+  const res = await pool.query("SELECT * FROM dynamic_views WHERE table_id = $1 ORDER BY ord ASC", [
+    tableId,
+  ]);
   return res.rows.map(mapView);
 }
 
@@ -337,18 +401,39 @@ export async function pgCreateView(view: InsertDynamicView): Promise<DynamicView
   return mapView(res.rows[0]);
 }
 
-export async function pgUpdateView(id: number, patch: Partial<InsertDynamicView>): Promise<DynamicView | null> {
+export async function pgUpdateView(
+  id: number,
+  patch: Partial<InsertDynamicView>
+): Promise<DynamicView | null> {
   const pool = getPgPool();
   const sets: string[] = [];
   const vals: any[] = [];
   let i = 1;
 
-  if (patch.name !== undefined) { sets.push(`name = $${i++}`); vals.push(patch.name); }
-  if (patch.type !== undefined) { sets.push(`type = $${i++}`); vals.push(patch.type); }
-  if (patch.config !== undefined) { sets.push(`config = $${i++}`); vals.push(patch.config); }
-  if (patch.filter !== undefined) { sets.push(`filter = $${i++}`); vals.push(patch.filter); }
-  if (patch.sort !== undefined) { sets.push(`sort = $${i++}`); vals.push(patch.sort); }
-  if (patch.ord !== undefined) { sets.push(`ord = $${i++}`); vals.push(patch.ord); }
+  if (patch.name !== undefined) {
+    sets.push(`name = $${i++}`);
+    vals.push(patch.name);
+  }
+  if (patch.type !== undefined) {
+    sets.push(`type = $${i++}`);
+    vals.push(patch.type);
+  }
+  if (patch.config !== undefined) {
+    sets.push(`config = $${i++}`);
+    vals.push(patch.config);
+  }
+  if (patch.filter !== undefined) {
+    sets.push(`filter = $${i++}`);
+    vals.push(patch.filter);
+  }
+  if (patch.sort !== undefined) {
+    sets.push(`sort = $${i++}`);
+    vals.push(patch.sort);
+  }
+  if (patch.ord !== undefined) {
+    sets.push(`ord = $${i++}`);
+    vals.push(patch.ord);
+  }
 
   if (sets.length === 0) return null; // Or fetch existing
 

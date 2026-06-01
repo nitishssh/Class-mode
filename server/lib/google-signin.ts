@@ -29,9 +29,7 @@ import { logger } from "./logger";
 const GOOGLE_CLIENT_ID =
   process.env.GOOGLE_SIGNIN_CLIENT_ID || process.env.GOOGLE_CLASSROOM_CLIENT_ID || "";
 const GOOGLE_CLIENT_SECRET =
-  process.env.GOOGLE_SIGNIN_CLIENT_SECRET ||
-  process.env.GOOGLE_CLASSROOM_CLIENT_SECRET ||
-  "";
+  process.env.GOOGLE_SIGNIN_CLIENT_SECRET || process.env.GOOGLE_CLASSROOM_CLIENT_SECRET || "";
 const REDIRECT_URI =
   process.env.GOOGLE_SIGNIN_REDIRECT_URI ||
   `${process.env.APP_URL || "http://localhost:5001"}/api/auth/google/callback`;
@@ -74,7 +72,7 @@ export function getSignInAuthUrl(state: string): string {
 }
 
 export interface GoogleSignInUserInfo {
-  sub: string;             // Google user id (stable, unique)
+  sub: string; // Google user id (stable, unique)
   email: string;
   emailVerified: boolean;
   name: string | null;

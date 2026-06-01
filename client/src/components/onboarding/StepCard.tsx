@@ -8,12 +8,12 @@ export function StepCard({ children, onBack }: { children: ReactNode; onBack?: (
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -50 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
-      className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 sm:p-8 w-full max-w-md mx-auto"
+      className="mx-auto w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800 sm:p-8"
     >
       {onBack && (
         <button
           onClick={onBack}
-          className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-6 flex items-center"
+          className="mb-6 flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
         >
           ← Back
         </button>

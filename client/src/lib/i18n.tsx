@@ -16,12 +16,14 @@ const translations: Record<string, Record<string, string>> = {
     "app.goBack": "Go Back",
     "app.loading": "Loading...",
     "app.pendingTitle": "Account Pending Approval",
-    "app.pendingDesc": "Your account is awaiting administrator approval. You will receive access once activated.",
+    "app.pendingDesc":
+      "Your account is awaiting administrator approval. You will receive access once activated.",
     "app.signOut": "Sign Out",
     "app.suspendedTitle": "Account Suspended",
     "app.suspendedDesc": "Your account has been suspended. Please contact support for assistance.",
     "app.rejectedTitle": "Account Not Approved",
-    "app.rejectedDesc": "Your registration was not approved. Please contact your school administrator.",
+    "app.rejectedDesc":
+      "Your registration was not approved. Please contact your school administrator.",
     "widget.unavailable": "Widget content unavailable",
     "auth.easierOrganized": "Make your learning easier and organized",
     "auth.classMode": "Class Mode",
@@ -67,11 +69,14 @@ const translations: Record<string, Record<string, string>> = {
     "study.directMessages": "Direct Messages",
     "study.sharedFilesSoon": "Shared files view coming soon.",
     "study.welcomeTo": "Welcome to #",
-    "study.welcomeDesc": "This is the start of the channel. Collaborate on assignments and share notes here.",
+    "study.welcomeDesc":
+      "This is the start of the channel. Collaborate on assignments and share notes here.",
     "study.aliceSmith": "Alice Smith",
-    "study.aliceMessage": "Hey everyone! Just dropped the notes for chapter 4 in the files tab. Let me know if you have questions.",
+    "study.aliceMessage":
+      "Hey everyone! Just dropped the notes for chapter 4 in the files tab. Let me know if you have questions.",
     "study.bobJones": "Bob Jones",
-    "study.bobMessage": "Awesome, thanks Alice! I'll review them before our study session tomorrow.",
+    "study.bobMessage":
+      "Awesome, thanks Alice! I'll review them before our study session tomorrow.",
     "study.chapter4Pdf": "Chapter4_Notes.pdf",
     "landing.class": "Class ",
     "landing.mode": "Mode",
@@ -92,7 +97,7 @@ const translations: Record<string, Record<string, string>> = {
     "chat.tutorTitle": "Class Mode Tutor • ",
     "chat.activeLearning": "Active Learning Mode",
     "chat.aiInsights": "AI generated insights for faster learning",
-  }
+  },
 };
 
 const translationsMap = new Map<string, Map<string, string>>();
@@ -139,11 +144,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     return defaultValue;
   };
 
-  return (
-    <I18nContext.Provider value={{ locale, setLocale, t }}>
-      {children}
-    </I18nContext.Provider>
-  );
+  return <I18nContext.Provider value={{ locale, setLocale, t }}>{children}</I18nContext.Provider>;
 }
 
 export function useTranslation() {

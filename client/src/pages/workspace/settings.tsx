@@ -173,7 +173,9 @@ function GeneralTab({ workspaceId }: { workspaceId: number }) {
       <Card>
         <CardHeader>
           <CardTitle>Workspace Details</CardTitle>
-          <CardDescription>Update your workspace name, description, and appearance.</CardDescription>
+          <CardDescription>
+            Update your workspace name, description, and appearance.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="space-y-2">
@@ -199,10 +201,7 @@ function GeneralTab({ workspaceId }: { workspaceId: number }) {
 
           <div className="space-y-2">
             <Label htmlFor="ws-type">Workspace type</Label>
-            <Select
-              value={form.type}
-              onValueChange={(v) => setForm((f) => ({ ...f, type: v }))}
-            >
+            <Select value={form.type} onValueChange={(v) => setForm((f) => ({ ...f, type: v }))}>
               <SelectTrigger id="ws-type">
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
@@ -239,7 +238,11 @@ function GeneralTab({ workspaceId }: { workspaceId: number }) {
                 disabled={!activeWorkspace?.slug}
                 title="Copy slug"
               >
-                {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                {copied ? (
+                  <Check className="h-4 w-4 text-green-600" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
@@ -300,12 +303,14 @@ function MembersTab({ workspaceId }: { workspaceId: number }) {
         body: JSON.stringify({ role: newRole }),
       });
       if (!res.ok) throw new Error("Failed to update role");
-      setMembers((prev) =>
-        prev.map((m) => (m.userId === userId ? { ...m, role: newRole } : m))
-      );
+      setMembers((prev) => prev.map((m) => (m.userId === userId ? { ...m, role: newRole } : m)));
       toast({ title: "Role updated" });
     } catch (err) {
-      toast({ title: "Error", description: err instanceof Error ? err.message : "Unknown", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Unknown",
+        variant: "destructive",
+      });
     }
   };
 
@@ -320,7 +325,11 @@ function MembersTab({ workspaceId }: { workspaceId: number }) {
       setMembers((prev) => prev.filter((m) => m.userId !== member.userId));
       toast({ title: "Member removed", description: `${member.displayName} has been removed.` });
     } catch (err) {
-      toast({ title: "Error", description: err instanceof Error ? err.message : "Unknown", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Unknown",
+        variant: "destructive",
+      });
     } finally {
       setRemovingId(null);
       setConfirmRemove(null);
@@ -350,10 +359,7 @@ function MembersTab({ workspaceId }: { workspaceId: number }) {
               </p>
             )}
             {members.map((member) => (
-              <div
-                key={member.userId}
-                className="flex items-center gap-3 px-6 py-3"
-              >
+              <div key={member.userId} className="flex items-center gap-3 px-6 py-3">
                 <Avatar className="h-8 w-8 flex-shrink-0">
                   <AvatarImage src={member.avatarUrl ?? undefined} />
                   <AvatarFallback className="text-xs">
@@ -376,21 +382,27 @@ function MembersTab({ workspaceId }: { workspaceId: number }) {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      {(["admin", "co-teacher", "teaching-assistant", "member", "auditor"] as MemberRole[]).map(
-                        (role) => (
-                          <DropdownMenuItem
-                            key={role}
-                            onSelect={() => handleChangeRole(member.userId, role)}
-                            className="text-sm"
-                          >
-                            {member.role === role && <Check className="mr-2 h-3.5 w-3.5" />}
-                            {!member.role || member.role !== role ? (
-                              <span className="mr-2 inline-block w-3.5" />
-                            ) : null}
-                            Set as {ROLE_LABELS[role]}
-                          </DropdownMenuItem>
-                        )
-                      )}
+                      {(
+                        [
+                          "admin",
+                          "co-teacher",
+                          "teaching-assistant",
+                          "member",
+                          "auditor",
+                        ] as MemberRole[]
+                      ).map((role) => (
+                        <DropdownMenuItem
+                          key={role}
+                          onSelect={() => handleChangeRole(member.userId, role)}
+                          className="text-sm"
+                        >
+                          {member.role === role && <Check className="mr-2 h-3.5 w-3.5" />}
+                          {!member.role || member.role !== role ? (
+                            <span className="mr-2 inline-block w-3.5" />
+                          ) : null}
+                          Set as {ROLE_LABELS[role]}
+                        </DropdownMenuItem>
+                      ))}
                       <Separator className="my-1" />
                       <DropdownMenuItem
                         onSelect={() => setConfirmRemove(member)}
@@ -493,7 +505,11 @@ function InvitesTab({ workspaceId }: { workspaceId: number }) {
       setNewEmail("");
       toast({ title: "Invite sent", description: `Invite sent to ${newEmail.trim()}` });
     } catch (err) {
-      toast({ title: "Error", description: err instanceof Error ? err.message : "Unknown", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Unknown",
+        variant: "destructive",
+      });
     } finally {
       setSending(false);
     }
@@ -509,7 +525,11 @@ function InvitesTab({ workspaceId }: { workspaceId: number }) {
       setInvites((prev) => prev.filter((i) => i.id !== inviteId));
       toast({ title: "Invite revoked" });
     } catch (err) {
-      toast({ title: "Error", description: err instanceof Error ? err.message : "Unknown", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Unknown",
+        variant: "destructive",
+      });
     }
   };
 
@@ -581,10 +601,7 @@ function InvitesTab({ workspaceId }: { workspaceId: number }) {
           ) : (
             <div className="divide-y divide-border">
               {invites.map((invite) => (
-                <div
-                  key={invite.id}
-                  className="flex items-center gap-3 px-6 py-3"
-                >
+                <div key={invite.id} className="flex items-center gap-3 px-6 py-3">
                   <div className="flex-1 overflow-hidden">
                     <p className="truncate text-sm font-medium">{invite.email}</p>
                     <p className="text-xs text-muted-foreground">
@@ -597,8 +614,8 @@ function InvitesTab({ workspaceId }: { workspaceId: number }) {
                       invite.status === "pending"
                         ? "bg-amber-50 text-amber-700"
                         : invite.status === "accepted"
-                        ? "bg-green-50 text-green-700"
-                        : "bg-muted text-muted-foreground"
+                          ? "bg-green-50 text-green-700"
+                          : "bg-muted text-muted-foreground"
                     }`}
                   >
                     {invite.status}
@@ -607,7 +624,9 @@ function InvitesTab({ workspaceId }: { workspaceId: number }) {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 flex-shrink-0"
-                    title={invite.token ? "Copy magic link" : "Link only available right after sending"}
+                    title={
+                      invite.token ? "Copy magic link" : "Link only available right after sending"
+                    }
                     disabled={!invite.token}
                     onClick={() => invite.token && handleCopyLink(invite.token)}
                   >
@@ -719,9 +738,7 @@ function DangerZoneTab({ workspaceId }: { workspaceId: number }) {
             <Shield className="h-5 w-5 text-muted-foreground" />
             Transfer Ownership
           </CardTitle>
-          <CardDescription>
-            Transfer ownership of this workspace to another member.
-          </CardDescription>
+          <CardDescription>Transfer ownership of this workspace to another member.</CardDescription>
         </CardHeader>
         <CardContent>
           <Button disabled variant="outline">
@@ -822,7 +839,8 @@ export default function WorkspaceSettings() {
       <div>
         <h1 className="font-display text-3xl font-bold tracking-tight">Workspace Settings</h1>
         <p className="mt-2 text-muted-foreground">
-          Manage settings for <span className="font-medium text-foreground">{activeWorkspace.name}</span>
+          Manage settings for{" "}
+          <span className="font-medium text-foreground">{activeWorkspace.name}</span>
         </p>
       </div>
 

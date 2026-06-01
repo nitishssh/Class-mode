@@ -55,12 +55,12 @@ export function CelebrationScreen({
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center w-full min-h-[400px]">
+    <div className="flex min-h-[400px] w-full flex-col items-center justify-center">
       <motion.h1
         initial={{ scale: 0.5, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", bounce: 0.5 }}
-        className="text-4xl font-bold mb-6 text-gray-900 dark:text-white text-center"
+        className="mb-6 text-center text-4xl font-bold text-gray-900 dark:text-white"
       >
         You're all set!
       </motion.h1>
@@ -70,33 +70,33 @@ export function CelebrationScreen({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
-          className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg w-full max-w-md mx-auto border border-gray-100 dark:border-gray-700"
+          className="mx-auto w-full max-w-md rounded-xl border border-gray-100 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-800"
         >
-          <div className="space-y-4 mb-8 text-left">
-            <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+          <div className="mb-8 space-y-4 text-left">
+            <h3 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
               {summary.name}
             </h3>
             <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 dark:text-gray-300">
               <div>
-                <span className="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">
+                <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-gray-400">
                   City
                 </span>
                 {summary.city || "-"}
               </div>
               <div>
-                <span className="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">
+                <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-gray-400">
                   Size
                 </span>
                 {summary.approximateStudents} students
               </div>
               <div>
-                <span className="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">
+                <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-gray-400">
                   Board
                 </span>
                 {summary.board}
               </div>
               <div>
-                <span className="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">
+                <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-gray-400">
                   Grades
                 </span>
                 {summary.grades.length > 0 ? summary.grades.join(", ") : "-"}
@@ -104,14 +104,14 @@ export function CelebrationScreen({
             </div>
             {summary.subjects.length > 0 && (
               <div>
-                <span className="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">
+                <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-gray-400">
                   Subjects
                 </span>
                 <div className="flex flex-wrap gap-2">
                   {summary.subjects.map((s) => (
                     <span
                       key={s}
-                      className="px-2 py-1 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded text-xs font-medium"
+                      className="rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
                     >
                       {s}
                     </span>
@@ -121,7 +121,7 @@ export function CelebrationScreen({
             )}
           </div>
 
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 rounded-lg mb-6 border border-blue-100 dark:border-blue-800/50">
+          <div className="mb-6 rounded-lg border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 p-4 dark:border-blue-800/50 dark:from-blue-900/20 dark:to-indigo-900/20">
             <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
               Your first AI-generated test is free — upload any chapter PDF and get 20 MCQs in 30
               seconds.

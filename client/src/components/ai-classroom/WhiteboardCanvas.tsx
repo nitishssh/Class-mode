@@ -242,10 +242,10 @@ function domToReact(node: Node, key: number | string): React.ReactNode {
     if (!allowedTags.includes(tagName)) {
       return null;
     }
-    
+
     // Parse attributes
     const props: any = { key };
-    
+
     // Style parsing
     const styleAttr = element.getAttribute("style");
     if (styleAttr) {
@@ -259,7 +259,7 @@ function domToReact(node: Node, key: number | string): React.ReactNode {
       });
       props.style = styleObj;
     }
-    
+
     // Class name mapping
     const className = element.getAttribute("class");
     if (className) {
@@ -339,9 +339,7 @@ function CodeElement({ el }: { el: WbElement }) {
           {lang}
         </div>
         {html ? (
-          <div
-            style={{ fontSize: 13, overflow: "auto", height: "calc(100% - 22px)" }}
-          >
+          <div style={{ fontSize: 13, overflow: "auto", height: "calc(100% - 22px)" }}>
             <SafeHtmlRenderer html={html} />
           </div>
         ) : (
@@ -628,7 +626,9 @@ export function WhiteboardCanvas({ isOpen, action, onClose, className }: Whitebo
       )}
     >
       <div className="flex items-center justify-between border-b border-slate-700 bg-slate-800 px-3 py-1.5">
-        <span className="text-xs font-medium text-slate-300">{t("whiteboard.title", "Whiteboard")}</span>
+        <span className="text-xs font-medium text-slate-300">
+          {t("whiteboard.title", "Whiteboard")}
+        </span>
         <div className="flex gap-1">
           <button
             onClick={() => setElements([])}

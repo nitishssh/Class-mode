@@ -47,7 +47,8 @@ export default function PrincipalDashboard() {
 
   const { data: dashboardData, isLoading: isLoadingStats } = useQuery<any>({
     queryKey: ["/api/admin/stats", { demo: isDemoMode }],
-    queryFn: () => apiRequest("GET", `/api/admin/stats${isDemoMode ? "?demo=true" : ""}`).then((r) => r.json()),
+    queryFn: () =>
+      apiRequest("GET", `/api/admin/stats${isDemoMode ? "?demo=true" : ""}`).then((r) => r.json()),
   });
 
   const stats = [
@@ -89,10 +90,16 @@ export default function PrincipalDashboard() {
 
   const gradeDistribution = (dashboardData?.gradeDistribution || []).map((g: any) => ({
     ...g,
-    color: g.grade === "A+" ? "from-emerald-500 to-teal-500" :
-           g.grade === "A" ? "from-blue-500 to-indigo-500" :
-           g.grade === "B" ? "from-amber-500 to-orange-500" :
-           g.grade === "C" ? "from-rose-400 to-red-500" : "from-gray-400 to-gray-500"
+    color:
+      g.grade === "A+"
+        ? "from-emerald-500 to-teal-500"
+        : g.grade === "A"
+          ? "from-blue-500 to-indigo-500"
+          : g.grade === "B"
+            ? "from-amber-500 to-orange-500"
+            : g.grade === "C"
+              ? "from-rose-400 to-red-500"
+              : "from-gray-400 to-gray-500",
   }));
 
   const staffDistribution = [
@@ -146,11 +153,7 @@ export default function PrincipalDashboard() {
         breadcrumbs={[{ label: "Dashboard", href: "/" }, { label: "Principal Dashboard" }]}
       >
         <div className="mr-4 flex items-center space-x-2">
-          <Switch
-            id="demo-mode"
-            checked={isDemoMode}
-            onCheckedChange={setIsDemoMode}
-          />
+          <Switch id="demo-mode" checked={isDemoMode} onCheckedChange={setIsDemoMode} />
           <Label htmlFor="demo-mode" className="text-xs font-semibold text-muted-foreground">
             Demo Data
           </Label>
@@ -305,7 +308,9 @@ export default function PrincipalDashboard() {
                         innerRadius={45}
                         fill="#8884d8"
                         dataKey="value"
-                        label={({ name, percent }) => `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`}
+                        label={({ name, percent }) =>
+                          `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`
+                        }
                         labelLine={false}
                       >
                         {staffDistribution.map((entry, index) => (

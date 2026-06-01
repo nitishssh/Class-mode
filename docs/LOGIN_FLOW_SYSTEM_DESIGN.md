@@ -128,6 +128,7 @@ The Google sign-in flow is handled entirely server-side to avoid browser popup/r
 **Routes**: `GET /api/auth/google/start`, `GET /api/auth/google/callback`
 
 > The same OAuth Web client is reused for Google Classroom. Both redirect URIs must be registered in GCP Console:
+>
 > - `http://localhost:5001/api/auth/google/callback`
 > - `https://<prod-host>/api/auth/google/callback`
 
@@ -238,22 +239,22 @@ The system uses a hybrid Cookie + JWT approach for maximum security.
 
 ## 🔄 API Methods Reference
 
-| Action               | Endpoint                         | Method |
-| -------------------- | -------------------------------- | ------ |
-| Signup               | `/api/auth/signup`               | POST   |
-| Login                | `/api/auth/login`                | POST   |
-| Logout               | `/api/auth/logout`               | POST   |
-| Refresh Token        | `/api/auth/refresh`              | POST   |
-| Current User         | `/api/auth/me`                   | GET    |
-| Forgot Password      | `/api/auth/password/forgot`      | POST   |
-| Reset Password       | `/api/auth/password/reset`       | POST   |
-| Verify Email Request | `/api/auth/email/verify/request` | POST   |
-| Verify Email Confirm | `/api/auth/email/verify`         | POST   |
-| Google OAuth Start   | `/api/auth/google/start`         | GET    |
-| Google OAuth Callback| `/api/auth/google/callback`      | GET    |
-| Invite Member        | `/api/workspaces/:id/invites`    | POST   |
-| Validate Invite      | `/api/invite/validate/:token`    | GET    |
-| Accept Invite        | `/api/invite/accept`             | POST   |
+| Action                | Endpoint                         | Method |
+| --------------------- | -------------------------------- | ------ |
+| Signup                | `/api/auth/signup`               | POST   |
+| Login                 | `/api/auth/login`                | POST   |
+| Logout                | `/api/auth/logout`               | POST   |
+| Refresh Token         | `/api/auth/refresh`              | POST   |
+| Current User          | `/api/auth/me`                   | GET    |
+| Forgot Password       | `/api/auth/password/forgot`      | POST   |
+| Reset Password        | `/api/auth/password/reset`       | POST   |
+| Verify Email Request  | `/api/auth/email/verify/request` | POST   |
+| Verify Email Confirm  | `/api/auth/email/verify`         | POST   |
+| Google OAuth Start    | `/api/auth/google/start`         | GET    |
+| Google OAuth Callback | `/api/auth/google/callback`      | GET    |
+| Invite Member         | `/api/workspaces/:id/invites`    | POST   |
+| Validate Invite       | `/api/invite/validate/:token`    | GET    |
+| Accept Invite         | `/api/invite/accept`             | POST   |
 
 ---
 

@@ -10,7 +10,9 @@ vi.mock("../middleware", () => ({
       return res.status(401).json({ message: "Unauthorized" });
     }
     req.user = { id: 1 };
-    req.workspace = req.headers["x-workspace-id"] ? { id: parseInt(req.headers["x-workspace-id"]) } : null;
+    req.workspace = req.headers["x-workspace-id"]
+      ? { id: parseInt(req.headers["x-workspace-id"]) }
+      : null;
     next();
   },
 }));
@@ -86,7 +88,12 @@ describe("Timetable Routes", () => {
 
     it("creates slot on success", async () => {
       const res = await request(app).post("/api/timetable").set("x-workspace-id", "1").send({
-        className: "10A", subject: "History", dayOfWeek: 1, periodNumber: 1, startTime: "10:00", endTime: "11:00"
+        className: "10A",
+        subject: "History",
+        dayOfWeek: 1,
+        periodNumber: 1,
+        startTime: "10:00",
+        endTime: "11:00",
       });
       expect(res.status).toBe(201);
       expect(res.body).toEqual({ id: 3, subject: "History" });
@@ -94,7 +101,12 @@ describe("Timetable Routes", () => {
 
     it("returns 400 if workspace not found", async () => {
       const res = await request(app).post("/api/timetable").send({
-        className: "10A", subject: "History", dayOfWeek: 1, periodNumber: 1, startTime: "10:00", endTime: "11:00"
+        className: "10A",
+        subject: "History",
+        dayOfWeek: 1,
+        periodNumber: 1,
+        startTime: "10:00",
+        endTime: "11:00",
       });
       expect(res.status).toBe(400);
     });
@@ -103,7 +115,12 @@ describe("Timetable Routes", () => {
       const { pgCreateTimetableSlot } = await import("../lib/pg-queries");
       (pgCreateTimetableSlot as any).mockRejectedValueOnce(new Error("DB Error"));
       const res = await request(app).post("/api/timetable").set("x-workspace-id", "1").send({
-        className: "10A", subject: "History", dayOfWeek: 1, periodNumber: 1, startTime: "10:00", endTime: "11:00"
+        className: "10A",
+        subject: "History",
+        dayOfWeek: 1,
+        periodNumber: 1,
+        startTime: "10:00",
+        endTime: "11:00",
       });
       expect(res.status).toBe(400);
     });

@@ -32,7 +32,8 @@ const Navbar = () => {
     <nav className="fixed left-0 right-0 top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
       <div className="container flex h-16 items-center justify-between">
         <a href="#" className="font-heading text-xl font-bold tracking-tight">
-          {t("landing.class", "Class ")}<span className="text-primary">{t("landing.mode", "Mode")}</span> ✨
+          {t("landing.class", "Class ")}
+          <span className="text-primary">{t("landing.mode", "Mode")}</span> ✨
         </a>
 
         {/* Desktop */}
@@ -109,7 +110,8 @@ const Footer = () => {
         <div className="grid gap-8 text-sm sm:grid-cols-3">
           <div>
             <p className="mb-2 font-heading text-lg font-bold">
-              {t("landing.class", "Class ")}<span className="text-primary">{t("landing.mode", "Mode")}</span> ✨
+              {t("landing.class", "Class ")}
+              <span className="text-primary">{t("landing.mode", "Mode")}</span> ✨
             </p>
             <p className="text-muted-foreground">
               {t("landing.tagline", "AI-powered personalised learning for every student.")}
@@ -155,7 +157,9 @@ const Footer = () => {
         </div>
 
         <div className="mt-10 border-t border-border pt-6 text-center text-xs text-muted-foreground">
-          © 2026 {t("landing.class", "Class ")}{t("landing.mode", "Mode")}. {t("landing.copyright", "All rights reserved. Built with 💛 for learners everywhere.")}
+          © 2026 {t("landing.class", "Class ")}
+          {t("landing.mode", "Mode")}.{" "}
+          {t("landing.copyright", "All rights reserved. Built with 💛 for learners everywhere.")}
         </div>
       </div>
     </footer>

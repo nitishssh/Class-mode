@@ -3,7 +3,7 @@ import { storage } from "../storage";
 import {
   insertDoubtSchema,
   insertMilestoneSchema,
-  insertStudentAchievementSchema
+  insertStudentAchievementSchema,
 } from "@shared/schema";
 import { requireRole } from "../middleware";
 import { getSocraticNudge } from "../services/nudge";

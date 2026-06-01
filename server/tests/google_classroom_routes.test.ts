@@ -147,9 +147,7 @@ describe("LMS Google Classroom routes", () => {
   it("GET /google/callback rejects mismatched OAuth state", async () => {
     // We can't easily set the session state externally without a real
     // browser. Send a request with no session state at all — server should 403.
-    const res = await request(app)
-      .get("/api/lms/google/callback?code=abc&state=foo")
-      .redirects(0);
+    const res = await request(app).get("/api/lms/google/callback?code=abc&state=foo").redirects(0);
     expect(res.status).toBe(403);
   });
 

@@ -88,9 +88,7 @@ const withLayout = <P extends object>(
   options?: { fullWidth?: boolean }
 ) => {
   const Wrapped = (props: P) => (
-    <Layout fullWidth={options?.fullWidth}>
-      {React.createElement(Component, props)}
-    </Layout>
+    <Layout fullWidth={options?.fullWidth}>{React.createElement(Component, props)}</Layout>
   );
   Wrapped.displayName = `WithLayout(${Component.displayName || Component.name || "Component"})`;
   return Wrapped;
@@ -128,8 +126,12 @@ const withProtection = <P extends object>(
       return (
         <Layout>
           <div className="mt-20 flex flex-col items-center justify-center space-y-4 p-8 text-center">
-            <h2 className="text-2xl font-bold text-destructive">{t("app.accessDenied", "Access Denied")}</h2>
-            <p className="text-muted-foreground">{t("app.noPermission", "You do not have permission to view this page.")}</p>
+            <h2 className="text-2xl font-bold text-destructive">
+              {t("app.accessDenied", "Access Denied")}
+            </h2>
+            <p className="text-muted-foreground">
+              {t("app.noPermission", "You do not have permission to view this page.")}
+            </p>
             <Button onClick={() => window.history.back()}>{t("app.goBack", "Go Back")}</Button>
           </div>
         </Layout>
@@ -179,8 +181,13 @@ const MyProgressRoute = withLayout(protect(MyProgress, ["student", "parent"]), {
 const SettingsRoute = withLayout(protect(Settings));
 const AiStudyPlansRoute = withLayout(protect(AiStudyPlans, ["student"]));
 const AIClassroomRoute = withLayout(protect(AIClassroom, ["student", "teacher"]));
-const DynamicSISRoute = withLayout(protect(DynamicSIS, ["admin", "school_admin", "principal", "teacher"]));
-const DynamicSISBaseRoute = withLayout(protect(DynamicSISBase, ["admin", "school_admin", "principal", "teacher"]), { fullWidth: true });
+const DynamicSISRoute = withLayout(
+  protect(DynamicSIS, ["admin", "school_admin", "principal", "teacher"])
+);
+const DynamicSISBaseRoute = withLayout(
+  protect(DynamicSISBase, ["admin", "school_admin", "principal", "teacher"]),
+  { fullWidth: true }
+);
 const OnboardingSchoolRoute = withLayout(protect(SchoolSetup, ["school_admin"]));
 const OnboardingInvTeachRoute = withLayout(protect(InviteTeachers, ["school_admin"]));
 const OnboardingTeacherRoute = withLayout(protect(TeacherClassSetup, ["teacher"]));
@@ -238,9 +245,14 @@ function App() {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4 text-center">
         <div className="max-w-md rounded-xl border border-border bg-card p-8 shadow-sm">
-          <h2 className="mb-3 text-2xl font-bold text-foreground">{t("app.pendingTitle", "Account Pending Approval")}</h2>
+          <h2 className="mb-3 text-2xl font-bold text-foreground">
+            {t("app.pendingTitle", "Account Pending Approval")}
+          </h2>
           <p className="mb-6 text-muted-foreground">
-            {t("app.pendingDesc", "Your account is awaiting administrator approval. You will receive access once activated.")}
+            {t(
+              "app.pendingDesc",
+              "Your account is awaiting administrator approval. You will receive access once activated."
+            )}
           </p>
           <Button onClick={() => logout()} variant="default" className="w-full">
             {t("app.signOut", "Sign Out")}
@@ -254,9 +266,14 @@ function App() {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4 text-center">
         <div className="max-w-md rounded-xl border border-destructive/30 bg-card p-8 shadow-sm">
-          <h2 className="mb-3 text-2xl font-bold text-destructive">{t("app.suspendedTitle", "Account Suspended")}</h2>
+          <h2 className="mb-3 text-2xl font-bold text-destructive">
+            {t("app.suspendedTitle", "Account Suspended")}
+          </h2>
           <p className="mb-6 text-muted-foreground">
-            {t("app.suspendedDesc", "Your account has been suspended. Please contact support for assistance.")}
+            {t(
+              "app.suspendedDesc",
+              "Your account has been suspended. Please contact support for assistance."
+            )}
           </p>
           <Button onClick={() => logout()} variant="destructive" className="w-full">
             {t("app.signOut", "Sign Out")}
@@ -270,9 +287,14 @@ function App() {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4 text-center">
         <div className="max-w-md rounded-xl border border-destructive/30 bg-card p-8 shadow-sm">
-          <h2 className="mb-3 text-2xl font-bold text-destructive">{t("app.rejectedTitle", "Account Not Approved")}</h2>
+          <h2 className="mb-3 text-2xl font-bold text-destructive">
+            {t("app.rejectedTitle", "Account Not Approved")}
+          </h2>
           <p className="mb-6 text-muted-foreground">
-            {t("app.rejectedDesc", "Your registration was not approved. Please contact your school administrator.")}
+            {t(
+              "app.rejectedDesc",
+              "Your registration was not approved. Please contact your school administrator."
+            )}
           </p>
           <Button onClick={() => logout()} variant="destructive" className="w-full">
             {t("app.signOut", "Sign Out")}
@@ -285,17 +307,19 @@ function App() {
   return (
     <Switch>
       {/* ── Public routes — no auth required ─────────────────────── */}
-      <Route path="/">
-        {profile ? <Redirect to="/dashboard" /> : <Landing />}
-      </Route>
+      <Route path="/">{profile ? <Redirect to="/dashboard" /> : <Landing />}</Route>
 
       {/* /login: show login page; if already authenticated go to dashboard (or verify-email if unverified) */}
       <Route path="/login">
-        {profile
-          ? profile.emailVerified === false
-            ? <Redirect to="/verify-email" />
-            : <Redirect to={getDashboardPath(profile.role)} />
-          : <LoginPage />}
+        {profile ? (
+          profile.emailVerified === false ? (
+            <Redirect to="/verify-email" />
+          ) : (
+            <Redirect to={getDashboardPath(profile.role)} />
+          )
+        ) : (
+          <LoginPage />
+        )}
       </Route>
 
       {/* Email verification — must be accessible right after signup */}
@@ -309,11 +333,13 @@ function App() {
 
       {/* ── /dashboard — redirects to the role-specific dashboard ─── */}
       <Route path="/dashboard">
-        {!profile
-          ? <Redirect to="/login" />
-          : profile.emailVerified === false
-            ? <Redirect to="/verify-email" />
-            : <Redirect to={getDashboardPath(profile.role)} />}
+        {!profile ? (
+          <Redirect to="/login" />
+        ) : profile.emailVerified === false ? (
+          <Redirect to="/verify-email" />
+        ) : (
+          <Redirect to={getDashboardPath(profile.role)} />
+        )}
       </Route>
 
       {/* ── Role-specific dashboards ──────────────────────────────── */}

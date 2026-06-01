@@ -7,7 +7,14 @@ import { DynamicBase, DynamicTable, InsertDynamicTable } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Database, ChevronLeft, Loader2, Table as TableIcon } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import DataGrid from "@/components/dynamic-sis/DataGrid";
@@ -16,7 +23,7 @@ export default function DynamicSISBasePage() {
   const { t } = useTranslation();
   const [, params] = useRoute("/dynamic-sis/base/:id");
   const baseId = parseInt(params?.id || "0");
-  
+
   const [isCreateTableOpen, setIsCreateTableOpen] = useState(false);
   const [newTableName, setNewTableName] = useState("");
   const [activeTableId, setActiveTableId] = useState<string | null>(null);
@@ -85,7 +92,7 @@ export default function DynamicSISBasePage() {
       </div>
 
       <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-        <div className="flex items-center justify-between border-b px-4 py-2 bg-muted/30">
+        <div className="flex items-center justify-between border-b bg-muted/30 px-4 py-2">
           <Tabs value={activeTableId || ""} onValueChange={setActiveTableId} className="w-full">
             <div className="flex items-center gap-2">
               <TabsList className="h-9">
@@ -96,7 +103,7 @@ export default function DynamicSISBasePage() {
                   </TabsTrigger>
                 ))}
               </TabsList>
-              
+
               <Dialog open={isCreateTableOpen} onOpenChange={setIsCreateTableOpen}>
                 <DialogTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -111,10 +118,10 @@ export default function DynamicSISBasePage() {
                     <div className="space-y-4 py-4">
                       <div className="space-y-2">
                         <Label htmlFor="tableName">{t("sis.tableName", "Table Name")}</Label>
-                        <Input 
-                          id="tableName" 
-                          placeholder="e.g. Student Fees" 
-                          value={newTableName} 
+                        <Input
+                          id="tableName"
+                          placeholder="e.g. Student Fees"
+                          value={newTableName}
                           onChange={(e) => setNewTableName(e.target.value)}
                           required
                         />
@@ -122,7 +129,9 @@ export default function DynamicSISBasePage() {
                     </div>
                     <DialogFooter>
                       <Button type="submit" disabled={createTableMutation.isPending}>
-                        {createTableMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        {createTableMutation.isPending ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : null}
                         {t("common.add", "Add")}
                       </Button>
                     </DialogFooter>
@@ -140,8 +149,12 @@ export default function DynamicSISBasePage() {
             <div className="flex h-full flex-col items-center justify-center space-y-4 p-12 text-center">
               <TableIcon className="h-12 w-12 text-muted-foreground/50" />
               <div className="space-y-1">
-                <h3 className="text-lg font-medium">{t("sis.noTables", "No tables in this base")}</h3>
-                <p className="text-sm text-muted-foreground">{t("sis.noTablesDesc", "Start by adding a table to manage your data.")}</p>
+                <h3 className="text-lg font-medium">
+                  {t("sis.noTables", "No tables in this base")}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {t("sis.noTablesDesc", "Start by adding a table to manage your data.")}
+                </p>
               </div>
               <Button onClick={() => setIsCreateTableOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />

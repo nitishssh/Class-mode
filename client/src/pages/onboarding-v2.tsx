@@ -143,9 +143,9 @@ export default function OnboardingV2() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col items-center pt-16 px-4">
+    <div className="flex min-h-screen flex-col items-center bg-gray-50 px-4 pt-16 dark:bg-gray-950">
       {step < 7 && (
-        <div className="w-full max-w-md mb-8">
+        <div className="mb-8 w-full max-w-md">
           <ProgressBar currentStep={step} totalSteps={6} />
         </div>
       )}
@@ -153,14 +153,14 @@ export default function OnboardingV2() {
       <AnimatePresence mode="wait">
         {step === 1 && (
           <StepCard key="step1">
-            <h2 className="text-2xl font-bold mb-2">Welcome! What describes you best?</h2>
-            <p className="text-sm text-gray-500 mb-6">We will customize the experience for you.</p>
+            <h2 className="mb-2 text-2xl font-bold">Welcome! What describes you best?</h2>
+            <p className="mb-6 text-sm text-gray-500">We will customize the experience for you.</p>
             <div className="flex flex-col gap-3">
               {ROLES.map((r) => (
                 <Button
                   key={r.label}
                   variant={data.userType === r.userType ? "default" : "outline"}
-                  className="w-full justify-start text-left h-auto py-3 px-4"
+                  className="h-auto w-full justify-start px-4 py-3 text-left"
                   onClick={() => {
                     updateData({ role: r.value as any, userType: r.userType });
                     nextStep();
@@ -175,8 +175,8 @@ export default function OnboardingV2() {
 
         {step === 2 && (
           <StepCard key="step2" onBack={prevStep}>
-            <h2 className="text-2xl font-bold mb-6">What's your institution called?</h2>
-            <div className="space-y-4 mb-6">
+            <h2 className="mb-6 text-2xl font-bold">What's your institution called?</h2>
+            <div className="mb-6 space-y-4">
               <div>
                 <Label htmlFor="name">Institution Name</Label>
                 <Input
@@ -198,11 +198,7 @@ export default function OnboardingV2() {
                 />
               </div>
             </div>
-            <Button
-              className="w-full"
-              disabled={!data.name || !data.city}
-              onClick={nextStep}
-            >
+            <Button className="w-full" disabled={!data.name || !data.city} onClick={nextStep}>
               Continue
             </Button>
           </StepCard>
@@ -210,9 +206,11 @@ export default function OnboardingV2() {
 
         {step === 3 && (
           <StepCard key="step3" onBack={prevStep}>
-            <h2 className="text-2xl font-bold mb-2">Board & subjects</h2>
-            <p className="text-sm text-gray-500 mb-6">We'll personalize your AI tools based on this.</p>
-            
+            <h2 className="mb-2 text-2xl font-bold">Board & subjects</h2>
+            <p className="mb-6 text-sm text-gray-500">
+              We'll personalize your AI tools based on this.
+            </p>
+
             <div className="mb-6">
               <Label className="mb-2 block">Select Board</Label>
               <ChipSelect
@@ -246,8 +244,10 @@ export default function OnboardingV2() {
 
         {step === 4 && (
           <StepCard key="step4" onBack={prevStep}>
-            <h2 className="text-2xl font-bold mb-2">How big is your institution?</h2>
-            <p className="text-sm text-gray-500 mb-6">This helps us recommend the right plan for you.</p>
+            <h2 className="mb-2 text-2xl font-bold">How big is your institution?</h2>
+            <p className="mb-6 text-sm text-gray-500">
+              This helps us recommend the right plan for you.
+            </p>
 
             <div className="mb-6">
               <Label className="mb-2 block">Grades Offered</Label>
@@ -282,9 +282,9 @@ export default function OnboardingV2() {
 
         {step === 5 && (
           <StepCard key="step5" onBack={prevStep}>
-            <h2 className="text-2xl font-bold mb-2">What do you use today?</h2>
-            <p className="text-sm text-gray-500 mb-6">So we can show you what EduAI replaces.</p>
-            
+            <h2 className="mb-2 text-2xl font-bold">What do you use today?</h2>
+            <p className="mb-6 text-sm text-gray-500">So we can show you what EduAI replaces.</p>
+
             <div className="mb-8">
               <ChipSelect
                 options={TOOLS}
@@ -307,8 +307,8 @@ export default function OnboardingV2() {
 
         {step === 6 && (
           <StepCard key="step6" onBack={prevStep}>
-            <h2 className="text-2xl font-bold mb-2">How did you find us?</h2>
-            <p className="text-sm text-gray-500 mb-6">Helps us reach more educators like you.</p>
+            <h2 className="mb-2 text-2xl font-bold">How did you find us?</h2>
+            <p className="mb-6 text-sm text-gray-500">Helps us reach more educators like you.</p>
 
             <div className="mb-8">
               <ChipSelect
@@ -319,16 +319,12 @@ export default function OnboardingV2() {
             </div>
 
             <div className="flex flex-col gap-3">
-              <Button 
-                className="w-full" 
-                onClick={submitOnboarding}
-                disabled={isSubmitting}
-              >
+              <Button className="w-full" onClick={submitOnboarding} disabled={isSubmitting}>
                 {isSubmitting ? "Completing setup..." : "Finish"}
               </Button>
-              <Button 
-                variant="ghost" 
-                className="w-full text-xs text-gray-500" 
+              <Button
+                variant="ghost"
+                className="w-full text-xs text-gray-500"
                 onClick={submitOnboarding}
                 disabled={isSubmitting}
               >
@@ -343,9 +339,9 @@ export default function OnboardingV2() {
             key="step7"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="w-full max-w-2xl mt-10"
+            className="mt-10 w-full max-w-2xl"
           >
-            <CelebrationScreen 
+            <CelebrationScreen
               summary={{
                 name: data.name,
                 city: data.city,

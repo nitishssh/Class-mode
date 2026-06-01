@@ -2,14 +2,8 @@ import { type Request, type Response, type NextFunction } from "express";
 import { isPgReady } from "./db-pg";
 import jwt from "jsonwebtoken";
 import "express-session";
-import {
-  pgFindFirstWorkspaceMembership,
-  pgFindUserById,
-} from "./lib/pg-queries";
-import { 
-  authMePayload,
-  ACCESS_COOKIE 
-} from "./lib/auth-workspace";
+import { pgFindFirstWorkspaceMembership, pgFindUserById } from "./lib/pg-queries";
+import { authMePayload, ACCESS_COOKIE } from "./lib/auth-workspace";
 
 declare module "express-session" {
   interface SessionData {
@@ -48,12 +42,13 @@ function isDevAuthWithoutDbEnabled(req: Request): boolean {
 export async function authenticateToken(req: Request, res: Response, next: NextFunction) {
   // Extract token from cookie or Authorization header
   let token = req.cookies?.[ACCESS_COOKIE];
-  
+
   if (!token) {
-    const authHeader = req.headers?.authorization || 
-                       req.headers?.Authorization || 
-                       (typeof req.get === 'function' ? req.get('Authorization') : null);
-    
+    const authHeader =
+      req.headers?.authorization ||
+      req.headers?.Authorization ||
+      (typeof req.get === "function" ? req.get("Authorization") : null);
+
     if (typeof authHeader === "string") {
       const parts = authHeader.split(" ");
       token = parts.length === 2 ? parts[1] : parts[0];
@@ -149,11 +144,11 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
   // 4. Exempt routes
   const path = req.path || req.url || "";
   const EXEMPT = [
-    "/api/auth/", 
-    "/api/health", 
-    "/api/invite/validate", 
-    "/api/invites/", 
-    "/api/messagepal", 
+    "/api/auth/",
+    "/api/health",
+    "/api/invite/validate",
+    "/api/invites/",
+    "/api/messagepal",
     "/api/ai-classroom/providers",
     "/api/onboarding",
   ];

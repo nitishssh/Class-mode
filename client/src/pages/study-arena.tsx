@@ -186,7 +186,8 @@ export default function StudyArenaPage() {
                 {user?.displayName || "Student"}
               </span>
               <span className="flex items-center gap-1 text-[10px] text-emerald-400">
-                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> {t("study.online", "Online")}
+                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />{" "}
+                {t("study.online", "Online")}
               </span>
             </div>
           </div>
@@ -242,7 +243,10 @@ export default function StudyArenaPage() {
                       {CHANNELS.find((c) => c.id === activeChannel)?.name || "the channel"}
                     </h2>
                     <p className="max-w-md text-center text-sm text-zinc-500">
-                      {t("study.welcomeDesc", "This is the start of the channel. Collaborate on assignments and share notes here.")}
+                      {t(
+                        "study.welcomeDesc",
+                        "This is the start of the channel. Collaborate on assignments and share notes here."
+                      )}
                     </p>
                   </div>
 
@@ -254,11 +258,16 @@ export default function StudyArenaPage() {
                     </Avatar>
                     <div className="flex flex-col">
                       <div className="mb-1 flex items-baseline gap-2">
-                        <span className="text-[15px] font-medium text-zinc-100">{t("study.aliceSmith", "Alice Smith")}</span>
+                        <span className="text-[15px] font-medium text-zinc-100">
+                          {t("study.aliceSmith", "Alice Smith")}
+                        </span>
                         <span className="text-xs text-zinc-500">10:42 AM</span>
                       </div>
                       <p className="text-[15px] leading-relaxed text-zinc-300">
-                        {t("study.aliceMessage", "Hey everyone! Just dropped the notes for chapter 4 in the files tab. Let me know if you have questions.")}
+                        {t(
+                          "study.aliceMessage",
+                          "Hey everyone! Just dropped the notes for chapter 4 in the files tab. Let me know if you have questions."
+                        )}
                       </p>
                     </div>
                   </div>
@@ -270,11 +279,16 @@ export default function StudyArenaPage() {
                     </Avatar>
                     <div className="flex flex-col">
                       <div className="mb-1 flex items-baseline gap-2">
-                        <span className="text-[15px] font-medium text-zinc-100">{t("study.bobJones", "Bob Jones")}</span>
+                        <span className="text-[15px] font-medium text-zinc-100">
+                          {t("study.bobJones", "Bob Jones")}
+                        </span>
                         <span className="text-xs text-zinc-500">10:45 AM</span>
                       </div>
                       <p className="text-[15px] leading-relaxed text-zinc-300">
-                        {t("study.bobMessage", "Awesome, thanks Alice! I'll review them before our study session tomorrow.")}
+                        {t(
+                          "study.bobMessage",
+                          "Awesome, thanks Alice! I'll review them before our study session tomorrow."
+                        )}
                       </p>
 
                       {/* Embedded File Mock */}
@@ -286,7 +300,9 @@ export default function StudyArenaPage() {
                           <span className="truncate text-sm font-medium text-zinc-200">
                             {t("study.chapter4Pdf", "Chapter4_Notes.pdf")}
                           </span>
-                          <span className="text-xs text-zinc-500">{t("study.pdfSize", "2.4 MB PDF")}</span>
+                          <span className="text-xs text-zinc-500">
+                            {t("study.pdfSize", "2.4 MB PDF")}
+                          </span>
                         </div>
                       </div>
                     </div>

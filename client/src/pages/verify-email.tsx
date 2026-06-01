@@ -227,16 +227,16 @@ export default function VerifyEmailPage() {
       const timer = setTimeout(() => submitOtp(urlToken), 350);
       return () => clearTimeout(timer);
     }
-  // submitOtp is stable within the render; only re-run when loading finishes
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // submitOtp is stable within the render; only re-run when loading finishes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading]);
 
   const userEmail = currentUser.profile?.email || "your email";
 
   return (
-    <div className="relative flex min-h-screen w-full items-center justify-center bg-background p-4 text-foreground selection:bg-primary/20 overflow-hidden">
+    <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-background p-4 text-foreground selection:bg-primary/20">
       {/* Background runway illustration to match the landing page perfectly */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
+      <div className="pointer-events-none absolute inset-0 z-0">
         <img
           src={heroImg}
           alt="Illustrated airport runway background"
@@ -257,9 +257,9 @@ export default function VerifyEmailPage() {
         transition={{ duration: 0.5, ease: "easeOut" }}
       >
         {/* Card */}
-        <div className="relative overflow-hidden sketch-border sketch-shadow-yellow bg-card px-8 pb-10 pt-8 text-card-foreground">
+        <div className="sketch-border sketch-shadow-yellow relative overflow-hidden bg-card px-8 pb-10 pt-8 text-card-foreground">
           {/* Top accent bar matching primary theme color */}
-          <div className="absolute top-0 left-0 right-0 h-1.5 bg-primary" />
+          <div className="absolute left-0 right-0 top-0 h-1.5 bg-primary" />
 
           <div>
             {/* Icon */}
@@ -271,7 +271,7 @@ export default function VerifyEmailPage() {
             >
               <div className="relative">
                 <div className="absolute inset-0 animate-ping rounded-full bg-primary/20" />
-                <div className="relative flex h-16 w-16 items-center justify-center rounded-full border-2 border-foreground bg-background shadow-[4px_4px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_hsl(var(--primary))] text-foreground">
+                <div className="relative flex h-16 w-16 items-center justify-center rounded-full border-2 border-foreground bg-background text-foreground shadow-[4px_4px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_hsl(var(--primary))]">
                   <Mail className="h-7 w-7" />
                 </div>
               </div>
@@ -286,7 +286,10 @@ export default function VerifyEmailPage() {
                 {t("verify.dispatched", "We've dispatched a")}{" "}
                 <span className="font-bold text-primary">4-digit secure code</span> to
               </p>
-              <p className="mt-1 truncate text-sm font-bold text-foreground" data-testid="verify-email-target">
+              <p
+                className="mt-1 truncate text-sm font-bold text-foreground"
+                data-testid="verify-email-target"
+              >
                 {userEmail}
               </p>
               <p className="mt-2 text-xs text-muted-foreground">
@@ -295,10 +298,7 @@ export default function VerifyEmailPage() {
             </div>
 
             {/* OTP Digit Inputs */}
-            <div
-              className="my-8 flex justify-center gap-3"
-              onPaste={handlePaste}
-            >
+            <div className="my-8 flex justify-center gap-3" onPaste={handlePaste}>
               {otp.map((digit, i) => (
                 <motion.input
                   key={i}
@@ -317,7 +317,9 @@ export default function VerifyEmailPage() {
                   className={[
                     "h-16 w-14 rounded-2xl border-2 bg-background text-center text-2xl font-black text-foreground outline-none transition-all duration-150",
                     "focus:border-primary focus:ring-2 focus:ring-primary/20",
-                    digit ? "border-primary shadow-[3px_3px_0px_hsl(var(--primary))]" : "border-border shadow-sm",
+                    digit
+                      ? "border-primary shadow-[3px_3px_0px_hsl(var(--primary))]"
+                      : "border-border shadow-sm",
                     error ? "border-destructive focus:border-destructive" : "",
                     "disabled:opacity-50",
                   ].join(" ")}
@@ -340,7 +342,7 @@ export default function VerifyEmailPage() {
             <button
               onClick={handleManualSubmit}
               disabled={otp.join("").length !== 4 || isVerifying}
-              className="sketch-border sketch-shadow-yellow hover-tilt flex w-full items-center justify-center gap-2 rounded-full bg-primary py-4 font-heading text-base font-bold text-primary-foreground hover:bg-primary/90 disabled:bg-primary/30 disabled:text-primary-foreground/70 disabled:cursor-not-allowed"
+              className="sketch-border sketch-shadow-yellow hover-tilt flex w-full items-center justify-center gap-2 rounded-full bg-primary py-4 font-heading text-base font-bold text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-primary/30 disabled:text-primary-foreground/70"
             >
               {isVerifying ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
@@ -353,7 +355,9 @@ export default function VerifyEmailPage() {
             {/* Divider */}
             <div className="my-6 flex items-center gap-4">
               <div className="h-px flex-1 bg-border" />
-              <span className="text-xs text-muted-foreground">{t("verify.didNotReceive", "didn't receive it?")}</span>
+              <span className="text-xs text-muted-foreground">
+                {t("verify.didNotReceive", "didn't receive it?")}
+              </span>
               <div className="h-px flex-1 bg-border" />
             </div>
 
@@ -361,14 +365,14 @@ export default function VerifyEmailPage() {
             <button
               onClick={handleResend}
               disabled={isResending || resendCooldown > 0}
-              className="sketch-border sketch-shadow hover-tilt flex w-full items-center justify-center gap-2 rounded-full bg-card py-3 font-heading text-sm font-semibold text-foreground hover:bg-muted/50 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="sketch-border sketch-shadow hover-tilt flex w-full items-center justify-center gap-2 rounded-full bg-card py-3 font-heading text-sm font-semibold text-foreground hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <RefreshCw className={`h-4 w-4 ${isResending ? "animate-spin" : ""}`} />
               {resendCooldown > 0
                 ? `Resend code in ${resendCooldown}s`
                 : isResending
-                ? "Sending..."
-                : "Resend Code"}
+                  ? "Sending..."
+                  : "Resend Code"}
             </button>
 
             {/* Escape hatches: wrong email + already have account */}
@@ -388,7 +392,8 @@ export default function VerifyEmailPage() {
                 Wrong email? Sign out and start over
               </button>
               <span className="text-xs text-muted-foreground/70">
-                Already verified on another device? <button
+                Already verified on another device?{" "}
+                <button
                   type="button"
                   onClick={handleStartOver}
                   disabled={isStartingOver || isVerifying}
@@ -400,10 +405,10 @@ export default function VerifyEmailPage() {
             </div>
 
             {/* Quote footer */}
-            <p className="mt-8 text-center text-xs italic text-muted-foreground font-body">
+            <p className="mt-8 text-center font-body text-xs italic text-muted-foreground">
               "Education is not the filling of a pail, but the lighting of a fire."
             </p>
-            <p className="mt-1 text-center text-[10px] font-semibold tracking-widest text-muted-foreground/70 uppercase font-sans">
+            <p className="mt-1 text-center font-sans text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">
               — William Butler Yeats
             </p>
           </div>

@@ -1,10 +1,6 @@
 import { OAuth2Client } from "google-auth-library";
 import { logger } from "../logger";
-import {
-  pgCreateLmsConnection,
-  pgFindLmsConnection,
-  type PgLmsConnection,
-} from "../pg-queries";
+import { pgCreateLmsConnection, pgFindLmsConnection, type PgLmsConnection } from "../pg-queries";
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLASSROOM_CLIENT_ID || "";
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLASSROOM_CLIENT_SECRET || "";
@@ -23,9 +19,7 @@ export const GOOGLE_CLASSROOM_SCOPES = [
 ];
 
 if (!GOOGLE_CLIENT_ID && process.env.NODE_ENV !== "test") {
-  logger.warn(
-    "Google Classroom OAuth not configured. Set GOOGLE_CLASSROOM_CLIENT_ID/SECRET."
-  );
+  logger.warn("Google Classroom OAuth not configured. Set GOOGLE_CLASSROOM_CLIENT_ID/SECRET.");
 }
 
 export function isGoogleClassroomConfigured(): boolean {
@@ -82,8 +76,7 @@ async function getAuthedClient(userId: number): Promise<OAuth2Client> {
   });
 
   const needsRefresh =
-    !conn.tokenExpiry ||
-    conn.tokenExpiry.getTime() - Date.now() < REFRESH_SKEW_MS;
+    !conn.tokenExpiry || conn.tokenExpiry.getTime() - Date.now() < REFRESH_SKEW_MS;
 
   if (needsRefresh) {
     if (!conn.refreshToken) {
@@ -140,8 +133,8 @@ export interface ClassroomCourse {
 }
 
 export interface ClassroomStudent {
-  userId: string;            // Google user ID
-  email: string | null;      // requires classroom.profile.emails scope
+  userId: string; // Google user ID
+  email: string | null; // requires classroom.profile.emails scope
   fullName: string;
   givenName?: string;
   familyName?: string;
@@ -166,10 +159,7 @@ export async function listCourses(userId: number): Promise<ClassroomCourse[]> {
   return courses;
 }
 
-export async function listStudents(
-  userId: number,
-  courseId: string
-): Promise<ClassroomStudent[]> {
+export async function listStudents(userId: number, courseId: string): Promise<ClassroomStudent[]> {
   const client = await getAuthedClient(userId);
   const students: ClassroomStudent[] = [];
   let pageToken: string | undefined;
@@ -226,8 +216,7 @@ export async function pushGrade(
 // ── Backwards-compatible aliases ───────────────────────────────────────────
 // `syncAssignments` was the original misnamed export. Keep it pointing at
 // listCourses so any callers still compile, but new code should use listCourses.
-export const syncAssignments = (userId: number, _accessToken?: string) =>
-  listCourses(userId);
+export const syncAssignments = (userId: number, _accessToken?: string) => listCourses(userId);
 
 export { pgFindLmsConnection };
 export type { PgLmsConnection };

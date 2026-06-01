@@ -32,7 +32,7 @@ if (!useRealSmtp) {
     if (otpMatch) {
       const code = otpMatch[1];
       const banner = "═".repeat(46);
-       
+
       console.log(
         `\n${banner}\n  [mailer:dev] ${mailOptions.subject}\n  to: ${mailOptions.to}\n  OTP CODE → ${code}\n${banner}\n`
       );
@@ -70,25 +70,44 @@ function escapeUrl(url: string): string {
 }
 
 // A Masterpiece "God-Like" Premium HTML email styling wrapper
-function brandEmailHtml(title: string, bodyContent: string, actionUrl?: string, actionText?: string, otpCode?: string): string {
-  const otpSection = otpCode ? `
+function brandEmailHtml(
+  title: string,
+  bodyContent: string,
+  actionUrl?: string,
+  actionText?: string,
+  otpCode?: string
+): string {
+  const otpSection = otpCode
+    ? `
     <div style="text-align: center; margin: 36px 0;">
       <p style="font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; font-size: 13px; text-transform: uppercase; letter-spacing: 3px; color: #6366f1; margin-bottom: 14px; font-weight: 800;">Secure Gatekeeper Code</p>
       <div style="display: inline-block; padding: 12px 16px; background-color: #fafbfd; border: 1px solid #eef2f6; border-radius: 24px; box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.03);">
-        ${otpCode.split("").map((char) => `
+        ${otpCode
+          .split("")
+          .map(
+            (char) => `
           <div style="display: inline-block; width: 56px; height: 64px; line-height: 64px; font-size: 34px; font-weight: 900; color: #4f46e5; background: #ffffff; border: 2px solid #e0e7ff; border-radius: 16px; margin: 0 5px; text-align: center; box-shadow: 0 8px 16px -4px rgba(79, 70, 229, 0.1); font-family: 'Plus Jakarta Sans', 'Inter', monospace;">
             ${escapeHtml(char)}
           </div>
-        `).join("")}
+        `
+          )
+          .join("")}
       </div>
       <p style="font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; font-size: 12px; color: #94a3b8; margin-top: 14px; font-style: italic;">This high-clearance signature key will expire in 15 minutes.</p>
     </div>
-  ` : "";
+  `
+    : "";
 
-  const actionButton = actionUrl && actionText ?
-    '<div style="margin: 36px 0; text-align: center;">\n' +
-    '  <a href="' + escapeUrl(actionUrl) + '" style="font-family: \'Plus Jakarta Sans\', \'Inter\', sans-serif; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: #ffffff; padding: 16px 36px; text-decoration: none; font-size: 16px; font-weight: 800; border-radius: 12px; display: inline-block; box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.4); letter-spacing: 0.5px;">' + escapeHtml(actionText) + '</a>\n' +
-    '</div>' : "";
+  const actionButton =
+    actionUrl && actionText
+      ? '<div style="margin: 36px 0; text-align: center;">\n' +
+        '  <a href="' +
+        escapeUrl(actionUrl) +
+        "\" style=\"font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: #ffffff; padding: 16px 36px; text-decoration: none; font-size: 16px; font-weight: 800; border-radius: 12px; display: inline-block; box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.4); letter-spacing: 0.5px;\">" +
+        escapeHtml(actionText) +
+        "</a>\n" +
+        "</div>"
+      : "";
 
   return `
 <!DOCTYPE html>
@@ -165,7 +184,11 @@ export async function sendTeacherInvite(
     subject: `You've been invited to join ${schoolName} on Class Mode`,
     html: brandEmailHtml(
       "Claim Your Pedagogical Arena",
-      "Hi " + safeName + ",<br><br>Your reputation as an exceptional educator precedes you. You have been formally invited to join the distinguished academic cohort at <strong>" + safeSchoolName + "</strong> on the Class Mode platform.<br><br>Class Mode is your new command center—a workspace designed to coordinate high-engagement live classes, leverage automated student insights, and scale your pedagogical impact to unprecedented levels.<br><br>Set up your master workspace profile and step onto the frontier of modern teaching (this invitation expires in 7 days):",
+      "Hi " +
+        safeName +
+        ",<br><br>Your reputation as an exceptional educator precedes you. You have been formally invited to join the distinguished academic cohort at <strong>" +
+        safeSchoolName +
+        "</strong> on the Class Mode platform.<br><br>Class Mode is your new command center—a workspace designed to coordinate high-engagement live classes, leverage automated student insights, and scale your pedagogical impact to unprecedented levels.<br><br>Set up your master workspace profile and step onto the frontier of modern teaching (this invitation expires in 7 days):",
       safeLink,
       "Activate Educator Dashboard"
     ),
@@ -192,7 +215,13 @@ export async function sendStudentInvite(
     subject: `${studentName} has been invited to join ${className} on Class Mode`,
     html: brandEmailHtml(
       "Your Academic Gate is Open",
-      "Hello,<br><br>We are pleased to inform you that your student, <strong>" + safeStudentName + "</strong>, has been granted official admission to the classroom cohort <strong>\"" + safeClassName + "\"</strong> at <strong>" + safeSchoolName + "</strong> on the Class Mode platform.<br><br>Class Mode provides students with a state-of-the-art interactive study arena, tailored real-time feedback loops, and a gamified quest-like path to mastery designed to unlock their ultimate cognitive potential.<br><br>Configure their secure access profile below and witness their capabilities soar (this link expires in 7 days):",
+      "Hello,<br><br>We are pleased to inform you that your student, <strong>" +
+        safeStudentName +
+        '</strong>, has been granted official admission to the classroom cohort <strong>"' +
+        safeClassName +
+        '"</strong> at <strong>' +
+        safeSchoolName +
+        "</strong> on the Class Mode platform.<br><br>Class Mode provides students with a state-of-the-art interactive study arena, tailored real-time feedback loops, and a gamified quest-like path to mastery designed to unlock their ultimate cognitive potential.<br><br>Configure their secure access profile below and witness their capabilities soar (this link expires in 7 days):",
       safeLink,
       "Initialize Student Access"
     ),
@@ -217,7 +246,11 @@ export async function sendPrincipalInvite(
     subject: `You've been invited as Principal of ${schoolName} on Class Mode`,
     html: brandEmailHtml(
       "Nomination to Academic Leadership",
-      "Hi " + safeName + ",<br><br>You have been nominated to direct the academic vision and school culture for <strong>" + safeSchoolName + "</strong> as Principal on Class Mode.<br><br>This administrative role grants you high-clearance institutional control—empowering you to govern class structures, review school-wide performance metrics, authorize educator rosters, and direct the trajectory of your school's success.<br><br>Claim your academic leadership portal below and shape the future of your school (link expires in 7 days):",
+      "Hi " +
+        safeName +
+        ",<br><br>You have been nominated to direct the academic vision and school culture for <strong>" +
+        safeSchoolName +
+        "</strong> as Principal on Class Mode.<br><br>This administrative role grants you high-clearance institutional control—empowering you to govern class structures, review school-wide performance metrics, authorize educator rosters, and direct the trajectory of your school's success.<br><br>Claim your academic leadership portal below and shape the future of your school (link expires in 7 days):",
       safeLink,
       "Command Academic Leadership"
     ),
@@ -242,7 +275,11 @@ export async function sendSchoolAdminInvite(
     subject: `You've been invited as School Administrator of ${schoolName} on Class Mode`,
     html: brandEmailHtml(
       "Institutional Workspace Authorized",
-      "Hi " + safeName + ",<br><br>You have been designated as the School Administrator for <strong>" + safeSchoolName + "</strong> on the Class Mode platform.<br><br>This root-level access empowers you to govern the entire school infrastructure, manage rosters, provision secure credentials, and coordinate global parameters for both students and staff.<br><br>Activate your administration command console below to initialize the environment (link expires in 7 days):",
+      "Hi " +
+        safeName +
+        ",<br><br>You have been designated as the School Administrator for <strong>" +
+        safeSchoolName +
+        "</strong> on the Class Mode platform.<br><br>This root-level access empowers you to govern the entire school infrastructure, manage rosters, provision secure credentials, and coordinate global parameters for both students and staff.<br><br>Activate your administration command console below to initialize the environment (link expires in 7 days):",
       safeLink,
       "Initialize Command Console"
     ),
@@ -262,7 +299,7 @@ export async function sendWorkspaceInvite(
     kind === "student"
       ? `You've been invited to join ${workspaceName} on Class Mode`
       : `Join ${workspaceName} on Class Mode`;
-  
+
   const safeName = escapeHtml(name);
   const safeWorkspaceName = escapeHtml(workspaceName);
   const safeLink = escapeUrl(link);
@@ -273,7 +310,11 @@ export async function sendWorkspaceInvite(
     subject,
     html: brandEmailHtml(
       "Invitation to Co-Create",
-      "Hi " + (safeName || "there") + ",<br><br>You have been selected to join the premium <strong>" + safeWorkspaceName + "</strong> workspace on Class Mode.<br><br>Collaborate in real-time, share intellectual assets, and push the boundaries of achievement alongside an elite cohort of peers.<br><br>Configure your profile and claim your access below (link expires in 7 days):",
+      "Hi " +
+        (safeName || "there") +
+        ",<br><br>You have been selected to join the premium <strong>" +
+        safeWorkspaceName +
+        "</strong> workspace on Class Mode.<br><br>Collaborate in real-time, share intellectual assets, and push the boundaries of achievement alongside an elite cohort of peers.<br><br>Configure your profile and claim your access below (link expires in 7 days):",
       safeLink,
       "Enter Workspace"
     ),
@@ -293,7 +334,9 @@ export async function sendEmailVerification(email: string, name: string, token: 
     subject: "Unlock Your Intellectual Frontier - Verify Your Email",
     html: brandEmailHtml(
       "Awaken Your Mind",
-      "Hello " + (safeName || "Seeker of Knowledge") + ",<br><br>Your quest for intellectual mastery starts here. You are one step away from launching your AI-powered personalized learning command center on <strong>Class Mode</strong>.<br><br>Every epic journey of self-discovery and high-end creation begins with a single bold spark. Enter the secure 4-digit gatekeeper code below directly on your screen to authorize your credentials, or click the high-clearance verification link to activate your digital environment:",
+      "Hello " +
+        (safeName || "Seeker of Knowledge") +
+        ",<br><br>Your quest for intellectual mastery starts here. You are one step away from launching your AI-powered personalized learning command center on <strong>Class Mode</strong>.<br><br>Every epic journey of self-discovery and high-end creation begins with a single bold spark. Enter the secure 4-digit gatekeeper code below directly on your screen to authorize your credentials, or click the high-clearance verification link to activate your digital environment:",
       safeLink,
       "Authorize Workspace Access",
       safeToken
@@ -313,7 +356,9 @@ export async function sendPasswordReset(email: string, name: string, token: stri
     subject: "Reset your Class Mode password",
     html: brandEmailHtml(
       "Restore Your Command Console",
-      "Hi " + (safeName || "there") + ",<br><br>We received a request to restore access to your Class Mode account. If you misplaced your credentials, click the button below to secure a new password and resume your learning path:",
+      "Hi " +
+        (safeName || "there") +
+        ",<br><br>We received a request to restore access to your Class Mode account. If you misplaced your credentials, click the button below to secure a new password and resume your learning path:",
       safeLink,
       "Secure New Password"
     ),
@@ -329,17 +374,19 @@ export async function sendWelcomeEmail(email: string, name: string) {
     subject: "Welcome to Class Mode! 🚀",
     html: brandEmailHtml(
       "Your Intellectual Journey Begins Now",
-      "Hi " + safeName + ",<br><br>The boundaries of your potential have just been redefined. We're thrilled to welcome you to the frontier of AI-powered personalized learning.<br><br>Whether you are an administrator directing your institution, an educator lighting the fire of curiosity, or a student expanding your boundaries, Class Mode stands ready as your cognitive multiplier.<br><br>\n" +
-      "      <div style=\"background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); border-radius: 16px; padding: 24px; margin-top: 10px; margin-bottom: 10px; border: 1px solid #e0e7ff;\">\n" +
-      "        <h3 style=\"margin-top: 0; color: #1e1b4b; font-size: 17px; font-weight: 700; margin-bottom: 12px; font-family: 'Plus Jakarta Sans', sans-serif;\">Your Access Console is Primed:</h3>\n" +
-      "        <ul style=\"padding-left: 20px; margin-bottom: 0; line-height: 1.8; color: #475569; font-size: 15px;\">\n" +
-      "          <li>🚀 <strong>School Onboarding</strong>: Create custom classes, link grade cohorts, and launch administrative panels.</li>\n" +
-      "          <li>💬 <strong>MessagePal Connection</strong>: Sync in real-time with class thread discussion workspaces.</li>\n" +
-      "          <li>🧠 <strong>AI Study Arena & Evaluations</strong>: Unlock instant grading feedback and personalized question flows.</li>\n" +
-      "        </ul>\n" +
-      "      </div><br>\n" +
-      "      Let's push the limits of what is possible in education. We are here to support you at every milestone."
+      "Hi " +
+        safeName +
+        ",<br><br>The boundaries of your potential have just been redefined. We're thrilled to welcome you to the frontier of AI-powered personalized learning.<br><br>Whether you are an administrator directing your institution, an educator lighting the fire of curiosity, or a student expanding your boundaries, Class Mode stands ready as your cognitive multiplier.<br><br>\n" +
+        '      <div style="background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); border-radius: 16px; padding: 24px; margin-top: 10px; margin-bottom: 10px; border: 1px solid #e0e7ff;">\n' +
+        "        <h3 style=\"margin-top: 0; color: #1e1b4b; font-size: 17px; font-weight: 700; margin-bottom: 12px; font-family: 'Plus Jakarta Sans', sans-serif;\">Your Access Console is Primed:</h3>\n" +
+        '        <ul style="padding-left: 20px; margin-bottom: 0; line-height: 1.8; color: #475569; font-size: 15px;">\n' +
+        "          <li>🚀 <strong>School Onboarding</strong>: Create custom classes, link grade cohorts, and launch administrative panels.</li>\n" +
+        "          <li>💬 <strong>MessagePal Connection</strong>: Sync in real-time with class thread discussion workspaces.</li>\n" +
+        "          <li>🧠 <strong>AI Study Arena & Evaluations</strong>: Unlock instant grading feedback and personalized question flows.</li>\n" +
+        "        </ul>\n" +
+        "      </div><br>\n" +
+        "      Let's push the limits of what is possible in education. We are here to support you at every milestone."
     ),
-    text: `Hi ${name},\n\nWelcome to Class Mode!\n\nThe boundaries of your potential have just been redefined.\n\nGet started by logging in and setting up your workspace profile.\n\n— The Class Mode Team`
+    text: `Hi ${name},\n\nWelcome to Class Mode!\n\nThe boundaries of your potential have just been redefined.\n\nGet started by logging in and setting up your workspace profile.\n\n— The Class Mode Team`,
   });
 }

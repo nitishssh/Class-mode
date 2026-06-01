@@ -319,7 +319,11 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
     const agentConfigs: AgentConfig[] =
       classroomAgents.length > 0
         ? classroomAgents.map((a: ClassroomAgent, i: number) => {
-            const role = (a.role === "teacher" || a.role === "assistant" || a.role === "student" ? a.role : "student") as "teacher" | "assistant" | "student";
+            const role = (
+              a.role === "teacher" || a.role === "assistant" || a.role === "student"
+                ? a.role
+                : "student"
+            ) as "teacher" | "assistant" | "student";
             return {
               id: a.id,
               name: a.name,
@@ -446,7 +450,10 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
           <div>
             <h1 className="text-xl font-bold tracking-tight text-gray-900">{data.topic}</h1>
             <p className="text-sm text-muted-foreground">
-              {t("classroom.scene", "Scene ")}{currentSceneIndex + 1}{t("classroom.of", " of ")}{data.scenes.length}
+              {t("classroom.scene", "Scene ")}
+              {currentSceneIndex + 1}
+              {t("classroom.of", " of ")}
+              {data.scenes.length}
             </p>
           </div>
         </div>
@@ -490,7 +497,10 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
             title={
               serverTTS
                 ? t("classroom.usingServerTTS", "Using server TTS — click to switch to browser TTS")
-                : t("classroom.usingBrowserTTS", "Using browser TTS — click to switch to server TTS")
+                : t(
+                    "classroom.usingBrowserTTS",
+                    "Using browser TTS — click to switch to server TTS"
+                  )
             }
           >
             {serverTTS ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
@@ -639,10 +649,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
           <ScrollArea className="flex-1 overflow-hidden rounded-3xl border bg-white shadow-2xl">
             <div ref={slideAreaRef} className="relative h-full min-h-[500px] w-full">
               {/* Spotlight overlay for spotlight/laser actions */}
-              <SpotlightOverlay
-                containerRef={slideAreaRef}
-                action={activeAction}
-              />
+              <SpotlightOverlay containerRef={slideAreaRef} action={activeAction} />
               {/* Scene Content */}
               <div className="p-8">
                 {currentScene.type === "slides" && (
@@ -749,7 +756,9 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                         animate={{ opacity: 1, y: 0 }}
                         className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-blue-900"
                       >
-                        <p className="mb-1 font-semibold">{t("classroom.explanation", "Explanation")}</p>
+                        <p className="mb-1 font-semibold">
+                          {t("classroom.explanation", "Explanation")}
+                        </p>
                         <p className="text-sm">{currentScene.content.explanation}</p>
                       </motion.div>
                     )}
@@ -815,7 +824,9 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                     )}
                     {currentScene.content.issues && (
                       <div className="space-y-4">
-                        <h3 className="text-lg font-bold">{t("classroom.projectTasks", "Project Tasks")}</h3>
+                        <h3 className="text-lg font-bold">
+                          {t("classroom.projectTasks", "Project Tasks")}
+                        </h3>
                         {(Array.isArray(currentScene.content.issues)
                           ? currentScene.content.issues
                           : []
@@ -837,7 +848,9 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                     )}
                     {currentScene.content.milestones && (
                       <div className="space-y-3">
-                        <h3 className="text-lg font-bold">{t("classroom.milestones", "Milestones")}</h3>
+                        <h3 className="text-lg font-bold">
+                          {t("classroom.milestones", "Milestones")}
+                        </h3>
                         {(Array.isArray(currentScene.content.milestones)
                           ? currentScene.content.milestones
                           : []
@@ -851,7 +864,7 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
                             </div>
                             <div>
                               <p className="font-medium">
-                                {typeof m === "string" ? m : (m.title || "")}
+                                {typeof m === "string" ? m : m.title || ""}
                               </p>
                               {typeof m !== "string" && m.description && (
                                 <p className="mt-1 text-sm text-muted-foreground">
@@ -889,11 +902,14 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
             <div className="flex items-center gap-4 text-sm font-medium text-gray-500">
               <div className="flex items-center gap-1">
                 <Users className="h-4 w-4" />
-                <span>{data.agents?.length || 3} {t("classroom.aiAgentsOnline", "AI Agents Online")}</span>
+                <span>
+                  {data.agents?.length || 3} {t("classroom.aiAgentsOnline", "AI Agents Online")}
+                </span>
               </div>
               <Separator orientation="vertical" className="h-4" />
               <span>
-                {t("classroom.scene", "Scene ")}{currentSceneIndex + 1} / {data.scenes.length}
+                {t("classroom.scene", "Scene ")}
+                {currentSceneIndex + 1} / {data.scenes.length}
               </span>
             </div>
           </div>
@@ -1220,7 +1236,9 @@ export default function StudyArenaPage() {
             <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-purple-100">
               <Brain className="h-10 w-10 animate-pulse text-purple-600" />
             </div>
-            <CardTitle className="text-3xl font-extrabold tracking-tight">{t("classroom.aiClassroom", "AI Classroom")}</CardTitle>
+            <CardTitle className="text-3xl font-extrabold tracking-tight">
+              {t("classroom.aiClassroom", "AI Classroom")}
+            </CardTitle>
             <CardDescription className="text-lg">
               {t("classroom.initializing", "Initializing your interactive learning sanctuary...")}
             </CardDescription>
@@ -1253,9 +1271,14 @@ export default function StudyArenaPage() {
             <ArrowLeft className="h-6 w-6" />
           </Button>
           <div>
-            <h1 className="text-4xl font-extrabold tracking-tight text-gray-900">{t("classroom.studyArena", "Study Arena")}</h1>
+            <h1 className="text-4xl font-extrabold tracking-tight text-gray-900">
+              {t("classroom.studyArena", "Study Arena")}
+            </h1>
             <p className="text-lg text-muted-foreground">
-              {t("classroom.interactiveExperiences", "Interactive multi-agent classroom experiences")}
+              {t(
+                "classroom.interactiveExperiences",
+                "Interactive multi-agent classroom experiences"
+              )}
             </p>
           </div>
         </div>
@@ -1280,14 +1303,19 @@ export default function StudyArenaPage() {
               <Sparkles className="h-5 w-5 text-purple-500" />
               {t("classroom.newLearningJourney", "New Learning Journey")}
             </CardTitle>
-            <CardDescription>{t("classroom.whatToMaster", "What would you like to master today?")}</CardDescription>
+            <CardDescription>
+              {t("classroom.whatToMaster", "What would you like to master today?")}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6 pt-6">
             <div className="space-y-4">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder={t("classroom.topicPlaceholder", "e.g. Quantum Mechanics for Beginners")}
+                  placeholder={t(
+                    "classroom.topicPlaceholder",
+                    "e.g. Quantum Mechanics for Beginners"
+                  )}
                   className="h-12 rounded-xl border-slate-200 pl-10 focus:ring-purple-500"
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
@@ -1319,7 +1347,9 @@ export default function StudyArenaPage() {
                       {type === "pbl" && <FileText className="h-5 w-5" />}
                     </div>
                     <span className="text-sm font-semibold capitalize">
-                      {type === "pbl" ? t("classroom.pblShort", "Problem Based") : t("classroom.type." + type, type)}
+                      {type === "pbl"
+                        ? t("classroom.pblShort", "Problem Based")
+                        : t("classroom.type." + type, type)}
                     </span>
                   </button>
                 ))}
@@ -1331,7 +1361,9 @@ export default function StudyArenaPage() {
               <div className="w-full space-y-2">
                 <Progress value={jobProgress} className="h-2" />
                 <div className="flex items-center justify-between">
-                  <p className="text-xs text-muted-foreground">{jobMessage || t("classroom.starting", "Starting...")}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {jobMessage || t("classroom.starting", "Starting...")}
+                  </p>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -1363,7 +1395,9 @@ export default function StudyArenaPage() {
               {createClassroomMutation.isPending || activeJobId ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  {activeJobId ? `${t("classroom.generating", "Generating")} (${jobProgress}%)...` : t("classroom.starting", "Starting...")}
+                  {activeJobId
+                    ? `${t("classroom.generating", "Generating")} (${jobProgress}%)...`
+                    : t("classroom.starting", "Starting...")}
                 </>
               ) : (
                 <>
@@ -1406,9 +1440,14 @@ export default function StudyArenaPage() {
                   <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-50">
                     <Clock className="h-8 w-8 text-slate-300" />
                   </div>
-                  <h3 className="font-semibold text-slate-900">{t("classroom.noSessions", "No sessions yet")}</h3>
+                  <h3 className="font-semibold text-slate-900">
+                    {t("classroom.noSessions", "No sessions yet")}
+                  </h3>
                   <p className="mt-1 max-w-[200px] text-sm text-muted-foreground">
-                    {t("classroom.historyAppear", "Your learning history will appear here once you start a classroom.")}
+                    {t(
+                      "classroom.historyAppear",
+                      "Your learning history will appear here once you start a classroom."
+                    )}
                   </p>
                 </div>
               ) : (

@@ -187,9 +187,9 @@ export default function StudentDashboard() {
         </Button>
       </PageHeader>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
         {/* Primary & Secondary Tiers: Learning Stage */}
-        <div className="lg:col-span-8 space-y-10">
+        <div className="space-y-10 lg:col-span-8">
           <section className="animate-fade-in-up grid grid-cols-1 gap-6 md:grid-cols-2">
             <StreakWidget
               streak={profile?.streak || 0}
@@ -247,7 +247,7 @@ export default function StudentDashboard() {
               <h2 className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
                 <Sparkles className="h-4 w-4" /> Quick Actions
               </h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 {quickActions.map((action, i) => (
                   <Link key={i} href={action.href}>
                     <Card
@@ -312,7 +312,7 @@ export default function StudentDashboard() {
         </div>
 
         {/* Secondary Tier: The Ladder */}
-        <div className="lg:col-span-4 space-y-8 lg:sticky lg:top-8">
+        <div className="space-y-8 lg:sticky lg:top-8 lg:col-span-4">
           <section className="animate-fade-in-up">
             <h2 className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
               <Sparkles className="h-4 w-4" /> Doubts
@@ -365,7 +365,7 @@ export default function StudentDashboard() {
       {!showBadge && (
         <Button
           onClick={triggerBadge}
-          className="fixed bottom-8 right-8 h-14 w-14 animate-bounce rounded-full border-2 border-white/20 bg-energy shadow-modal hover:bg-energy-dark z-50 lg:hidden"
+          className="fixed bottom-8 right-8 z-50 h-14 w-14 animate-bounce rounded-full border-2 border-white/20 bg-energy shadow-modal hover:bg-energy-dark lg:hidden"
         >
           <Award className="h-7 w-7 text-white" />
         </Button>

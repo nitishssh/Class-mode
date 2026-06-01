@@ -4,7 +4,12 @@ import session from "express-session";
 import request from "supertest";
 import authRouter from "../routes/auth";
 import { verifyFirebaseToken } from "../lib/firebase-admin";
-import { pgCreateUser, pgFindUserByAuthSubject, pgFindUserByEmail, pgFindUserById } from "../lib/pg-queries";
+import {
+  pgCreateUser,
+  pgFindUserByAuthSubject,
+  pgFindUserByEmail,
+  pgFindUserById,
+} from "../lib/pg-queries";
 
 // Mock the dependencies
 vi.mock("../lib/firebase-admin", () => ({

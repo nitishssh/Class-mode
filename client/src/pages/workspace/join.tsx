@@ -126,7 +126,9 @@ export default function JoinWorkspace() {
         </div>
         <div className="text-center">
           <h2 className="text-xl font-bold">Invalid invite</h2>
-          <p className="mt-2 text-sm text-muted-foreground">{fetchError ?? "This invite link is invalid or has expired."}</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {fetchError ?? "This invite link is invalid or has expired."}
+          </p>
         </div>
         <Button variant="outline" onClick={() => navigate("/dashboard")}>
           Go to dashboard

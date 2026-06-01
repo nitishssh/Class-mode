@@ -33,7 +33,7 @@ router.post("/extract", async (req: Request, res: Response) => {
     }
 
     const result = await processOCRImage(image);
-    
+
     return res.status(200).json({
       text: result.text,
       confidence: result.confidence,

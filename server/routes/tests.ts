@@ -193,7 +193,8 @@ router.post("/test-attempts", authenticateToken, async (req: Request, res: Respo
 
     const test = await storage.getTest(attemptData.testId);
     if (!test) return res.status(404).json({ message: "Test not found" });
-    if (test.status !== "published") return res.status(400).json({ message: "Test is not published yet" });
+    if (test.status !== "published")
+      return res.status(400).json({ message: "Test is not published yet" });
 
     const student = await storage.getUser(req.session.userId);
     if (!student || student.class !== test.class) {
@@ -206,7 +207,9 @@ router.post("/test-attempts", authenticateToken, async (req: Request, res: Respo
     );
 
     if (hasAttempt) {
-      return res.status(400).json({ message: "You already have an in-progress attempt for this test" });
+      return res
+        .status(400)
+        .json({ message: "You already have an in-progress attempt for this test" });
     }
 
     const attempt = await storage.createTestAttempt(attemptData);
@@ -265,8 +268,10 @@ router.post("/answers", authenticateToken, async (req: Request, res: Response) =
     const attempt = await storage.getTestAttempt(answerData.attemptId);
 
     if (!attempt) return res.status(404).json({ message: "Test attempt not found" });
-    if (attempt.studentId !== req.session.userId) return res.status(403).json({ message: "Forbidden: Not your test attempt" });
-    if (attempt.status === "completed") return res.status(400).json({ message: "Test attempt is already completed" });
+    if (attempt.studentId !== req.session.userId)
+      return res.status(403).json({ message: "Forbidden: Not your test attempt" });
+    if (attempt.status === "completed")
+      return res.status(400).json({ message: "Test attempt is already completed" });
 
     const question = await storage.getQuestion(answerData.questionId);
     if (!question) return res.status(404).json({ message: "Question not found" });
@@ -288,104 +293,116 @@ router.post("/answers", authenticateToken, async (req: Request, res: Response) =
 });
 
 // POST /api/evaluate
-router.post("/evaluate", authenticateToken, await checkAIQuota("ai_tutor"), async (req: Request, res: Response) => {
-  try {
-    if (!req.session?.userId || (req.session.role || "") !== "teacher") {
-      return res.status(401).json({ message: "Unauthorized: Only teachers can evaluate answers" });
+router.post(
+  "/evaluate",
+  authenticateToken,
+  await checkAIQuota("ai_tutor"),
+  async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId || (req.session.role || "") !== "teacher") {
+        return res
+          .status(401)
+          .json({ message: "Unauthorized: Only teachers can evaluate answers" });
+      }
+      const userId = req.session.userId;
+      const workspace = (req as any).workspace;
+
+      const { answerId } = req.body;
+      if (!answerId) return res.status(400).json({ message: "Answer ID is required" });
+
+      const answer = await storage.getAnswer(answerId);
+      if (!answer) return res.status(404).json({ message: "Answer not found" });
+
+      const question = await storage.getQuestion(answer.questionId);
+      if (!question) return res.status(404).json({ message: "Question not found" });
+
+      const attempt = await storage.getTestAttempt(answer.attemptId);
+      if (!attempt) return res.status(404).json({ message: "Test attempt not found" });
+
+      const test = await storage.getTest(attempt.testId);
+      if (!test) return res.status(404).json({ message: "Test not found" });
+
+      if (test.teacherId !== req.session.userId) {
+        return res.status(403).json({ message: "Forbidden: Not your test" });
+      }
+
+      let text: string = answer.text ?? "";
+      if (answer.ocrText) {
+        text = answer.ocrText;
+      }
+
+      const evaluation = await evaluateSubjectiveAnswer(
+        text,
+        question.text,
+        question.aiRubric || "Score based on accuracy and completeness",
+        question.marks
+      );
+
+      const updatedAnswer = await storage.updateAnswer(answerId, {
+        score: evaluation.score,
+        aiConfidence: evaluation.confidence,
+        aiFeedback: evaluation.feedback,
+      });
+
+      await pgIncrementAIUsage({
+        userId,
+        workspaceId: workspace?.id,
+        feature: "ai_tutor",
+        metadata: { type: "answer_evaluation", answerId },
+      });
+
+      res.status(200).json(updatedAnswer);
+    } catch {
+      res.status(500).json({ message: "Failed to evaluate answer" });
     }
-    const userId = req.session.userId;
-    const workspace = (req as any).workspace;
-
-    const { answerId } = req.body;
-    if (!answerId) return res.status(400).json({ message: "Answer ID is required" });
-
-    const answer = await storage.getAnswer(answerId);
-    if (!answer) return res.status(404).json({ message: "Answer not found" });
-
-    const question = await storage.getQuestion(answer.questionId);
-    if (!question) return res.status(404).json({ message: "Question not found" });
-
-    const attempt = await storage.getTestAttempt(answer.attemptId);
-    if (!attempt) return res.status(404).json({ message: "Test attempt not found" });
-
-    const test = await storage.getTest(attempt.testId);
-    if (!test) return res.status(404).json({ message: "Test not found" });
-
-    if (test.teacherId !== req.session.userId) {
-      return res.status(403).json({ message: "Forbidden: Not your test" });
-    }
-
-    let text: string = answer.text ?? "";
-    if (answer.ocrText) {
-      text = answer.ocrText;
-    }
-
-    const evaluation = await evaluateSubjectiveAnswer(
-      text,
-      question.text,
-      question.aiRubric || "Score based on accuracy and completeness",
-      question.marks
-    );
-
-    const updatedAnswer = await storage.updateAnswer(answerId, {
-      score: evaluation.score,
-      aiConfidence: evaluation.confidence,
-      aiFeedback: evaluation.feedback,
-    });
-
-    await pgIncrementAIUsage({
-      userId,
-      workspaceId: workspace?.id,
-      feature: "ai_tutor",
-      metadata: { type: "answer_evaluation", answerId }
-    });
-
-    res.status(200).json(updatedAnswer);
-  } catch {
-    res.status(500).json({ message: "Failed to evaluate answer" });
   }
-});
+);
 
 // POST /api/ai/generate-test
-router.post("/ai/generate-test", authenticateToken, await checkAIQuota("ai_tutor"), async (req: Request, res: Response) => {
-  try {
-    const { subject, numQuestions, difficulty, grade } = req.body;
-    const userId = req.user!.id;
-    const workspace = (req as any).workspace;
+router.post(
+  "/ai/generate-test",
+  authenticateToken,
+  await checkAIQuota("ai_tutor"),
+  async (req: Request, res: Response) => {
+    try {
+      const { subject, numQuestions, difficulty, grade } = req.body;
+      const userId = req.user!.id;
+      const workspace = (req as any).workspace;
 
-    const prompt = `Generate ${numQuestions} ${difficulty} questions for a ${grade} student on the topic: ${subject}.
+      const prompt = `Generate ${numQuestions} ${difficulty} questions for a ${grade} student on the topic: ${subject}.
 Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answer": "correct option", "explanation": "why" }]`;
 
-    let attempt = 0;
-    let questions = null;
+      let attempt = 0;
+      let questions = null;
 
-    while (attempt < 2 && !questions) {
-      try {
-        const response = await aiChat(
-          [{ role: "user", content: prompt }],
-          "You are a professional test creator. Respond only with valid JSON."
-        );
-        questions = JSON.parse(response.content);
-        if (!Array.isArray(questions)) throw new Error("Not an array");
-      } catch (e) {
-        attempt++;
-        if (attempt === 2) throw e;
+      while (attempt < 2 && !questions) {
+        try {
+          const response = await aiChat(
+            [{ role: "user", content: prompt }],
+            "You are a professional test creator. Respond only with valid JSON."
+          );
+          questions = JSON.parse(response.content);
+          if (!Array.isArray(questions)) throw new Error("Not an array");
+        } catch (e) {
+          attempt++;
+          if (attempt === 2) throw e;
+        }
       }
+
+      await pgIncrementAIUsage({
+        userId,
+        workspaceId: workspace?.id,
+        feature: "ai_tutor",
+        metadata: { type: "test_generation", subject },
+      });
+
+      res.json(questions);
+    } catch (error) {
+      logger.error("Test generation error:", error);
+      res.status(500).json({ message: "Failed to generate test questions" });
     }
-
-    await pgIncrementAIUsage({
-      userId,
-      workspaceId: workspace?.id,
-      feature: "ai_tutor",
-      metadata: { type: "test_generation", subject }
-    });
-
-    res.json(questions);
-  } catch (error) {
-    logger.error("Test generation error:", error);
-    res.status(500).json({ message: "Failed to generate test questions" });
   }
-});
+);
 
 // GET /api/teacher/subjects
 router.get("/teacher/subjects", authenticateToken, async (req: Request, res: Response) => {

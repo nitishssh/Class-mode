@@ -1,6 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { Building2, BriefcaseBusiness, User, CheckCircle2, Loader2, ArrowRight, ArrowLeft, X, Plus } from "lucide-react";
+import {
+  Building2,
+  BriefcaseBusiness,
+  User,
+  CheckCircle2,
+  Loader2,
+  ArrowRight,
+  ArrowLeft,
+  X,
+  Plus,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,8 +81,8 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
               i + 1 < current
                 ? "bg-accent text-white"
                 : i + 1 === current
-                ? "bg-accent text-white ring-4 ring-accent/20"
-                : "bg-muted text-muted-foreground"
+                  ? "bg-accent text-white ring-4 ring-accent/20"
+                  : "bg-muted text-muted-foreground"
             )}
           >
             {i + 1 < current ? <CheckCircle2 className="h-4 w-4" /> : i + 1}
@@ -107,7 +117,17 @@ interface Step1Props {
   onNext: () => void;
 }
 
-function Step1({ name, setName, type, setType, templateId, setTemplateId, templates, templatesLoading, onNext }: Step1Props) {
+function Step1({
+  name,
+  setName,
+  type,
+  setType,
+  templateId,
+  setTemplateId,
+  templates,
+  templatesLoading,
+  onNext,
+}: Step1Props) {
   const filteredTemplates = templates.filter((t) => t.type === type || !t.type);
 
   return (
@@ -158,9 +178,7 @@ function Step1({ name, setName, type, setType, templateId, setTemplateId, templa
                 onClick={() => setTemplateId(templateId === t.id ? null : t.id)}
                 className={cn(
                   "rounded-xl border p-3 text-left text-sm transition-all hover:border-accent/50",
-                  templateId === t.id
-                    ? "border-accent bg-accent-soft"
-                    : "border-border"
+                  templateId === t.id ? "border-accent bg-accent-soft" : "border-border"
                 )}
               >
                 <p className="font-medium">{t.name}</p>
@@ -256,7 +274,7 @@ function Step2({ invites, setInvites, onBack, onNext, onSkip }: Step2Props) {
       </div>
 
       {invites.length > 0 && (
-        <div className="rounded-xl border border-border divide-y">
+        <div className="divide-y rounded-xl border border-border">
           {invites.map((inv, i) => (
             <div key={i} className="flex items-center gap-2 px-3 py-2">
               <span className="flex-1 truncate text-sm">{inv.email}</span>
@@ -280,11 +298,7 @@ function Step2({ invites, setInvites, onBack, onNext, onSkip }: Step2Props) {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
-        <Button
-          onClick={invites.length > 0 ? onNext : onSkip}
-          className="flex-1"
-          type="button"
-        >
+        <Button onClick={invites.length > 0 ? onNext : onSkip} className="flex-1" type="button">
           {invites.length > 0 ? (
             <>
               Send invites & continue
@@ -349,7 +363,7 @@ export default function WorkspaceCreate() {
 
   useEffect(() => {
     fetch("/api/workspaces/templates", { credentials: "include" })
-      .then((r) => r.ok ? r.json() : [])
+      .then((r) => (r.ok ? r.json() : []))
       .then((data) => setTemplates(Array.isArray(data) ? data : (data.templates ?? [])))
       .catch(() => setTemplates([]))
       .finally(() => setTemplatesLoading(false));

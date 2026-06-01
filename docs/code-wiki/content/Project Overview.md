@@ -148,17 +148,17 @@ The platform employs a layered architecture:
 
 ### Technology Stack
 
-| Layer | Technology |
-|---|---|
-| Frontend | React 18, Vite, TypeScript, Tailwind CSS, shadcn/ui, wouter, React Query |
-| Backend | Node.js 18+, Express, TypeScript, tsx |
-| Primary DB | PostgreSQL (pg pool, raw queries in `server/lib/pg-queries.ts`) |
-| Message Store | Cassandra (Astra DB) → MongoDB fallback |
-| AI | Google Gemini 2.0 Flash (`@google/generative-ai`) + OpenAI GPT-4o (`openai`) |
-| Auth | Local JWT + HttpOnly cookies + Google OAuth 2.0 (server-side) |
-| Real-time | WebSockets (`ws`) + Daily.co (`@daily-co/daily-react`) |
-| LMS | Google Classroom API (`googleapis`) |
-| Infrastructure | Docker, GCP Cloud Run, Cloud Build, Terraform, Secret Manager |
+| Layer          | Technology                                                                   |
+| -------------- | ---------------------------------------------------------------------------- |
+| Frontend       | React 18, Vite, TypeScript, Tailwind CSS, shadcn/ui, wouter, React Query     |
+| Backend        | Node.js 18+, Express, TypeScript, tsx                                        |
+| Primary DB     | PostgreSQL (pg pool, raw queries in `server/lib/pg-queries.ts`)              |
+| Message Store  | Cassandra (Astra DB) → MongoDB fallback                                      |
+| AI             | Google Gemini 2.0 Flash (`@google/generative-ai`) + OpenAI GPT-4o (`openai`) |
+| Auth           | Local JWT + HttpOnly cookies + Google OAuth 2.0 (server-side)                |
+| Real-time      | WebSockets (`ws`) + Daily.co (`@daily-co/daily-react`)                       |
+| LMS            | Google Classroom API (`googleapis`)                                          |
+| Infrastructure | Docker, GCP Cloud Run, Cloud Build, Terraform, Secret Manager                |
 
 ### AI Integration
 
@@ -238,24 +238,24 @@ Key entities: `users`, `workspaces`, `workspace_memberships`, `workspace_invites
 
 Key production dependencies:
 
-| Package | Purpose |
-|---|---|
-| `express` | HTTP server |
-| `pg` | PostgreSQL client |
-| `@google/generative-ai` | Gemini 2.0 Flash |
-| `openai` | OpenAI GPT-4o fallback |
-| `jsonwebtoken` | JWT signing/verification |
-| `bcryptjs` | Password hashing |
-| `nodemailer` | SMTP email |
-| `ws` | WebSocket server |
-| `cassandra-driver` | Astra DB client |
-| `react` + `vite` | Frontend |
-| `wouter` | Client-side routing |
-| `@tanstack/react-query` | Server state management |
-| `zod` | Schema validation |
-| `stripe` | Billing (disabled until configured) |
-| `tesseract.js` | OCR |
-| `@daily-co/daily-react` | Video calls |
+| Package                 | Purpose                             |
+| ----------------------- | ----------------------------------- |
+| `express`               | HTTP server                         |
+| `pg`                    | PostgreSQL client                   |
+| `@google/generative-ai` | Gemini 2.0 Flash                    |
+| `openai`                | OpenAI GPT-4o fallback              |
+| `jsonwebtoken`          | JWT signing/verification            |
+| `bcryptjs`              | Password hashing                    |
+| `nodemailer`            | SMTP email                          |
+| `ws`                    | WebSocket server                    |
+| `cassandra-driver`      | Astra DB client                     |
+| `react` + `vite`        | Frontend                            |
+| `wouter`                | Client-side routing                 |
+| `@tanstack/react-query` | Server state management             |
+| `zod`                   | Schema validation                   |
+| `stripe`                | Billing (disabled until configured) |
+| `tesseract.js`          | OCR                                 |
+| `@daily-co/daily-react` | Video calls                         |
 
 ## Performance Considerations
 
@@ -267,15 +267,15 @@ Key production dependencies:
 
 ## Troubleshooting Guide
 
-| Issue | Resolution |
-|---|---|
+| Issue                       | Resolution                                                                      |
+| --------------------------- | ------------------------------------------------------------------------------- |
 | PostgreSQL connection error | Check `POSTGRESQL_URL` and that PostgreSQL is running. Run `psql -l` to verify. |
-| AI features not working | Set `GOOGLE_API_KEY` with a valid Gemini key from aistudio.google.com. |
-| Emails not sending | Check SMTP settings. Gmail requires an App Password. |
-| Google OAuth broken | Verify redirect URIs are registered in GCP Console for the OAuth Web client. |
-| Cookies not setting | Use `localhost:5001` not `127.0.0.1`. |
-| Stripe routes returning 503 | Expected until `STRIPE_SECRET_KEY` is set to a real `sk_live_`/`sk_test_` key. |
-| MongoDB errors on startup | Non-fatal. Set `MONGODB_URL` to enable, or leave unset to skip. |
+| AI features not working     | Set `GOOGLE_API_KEY` with a valid Gemini key from aistudio.google.com.          |
+| Emails not sending          | Check SMTP settings. Gmail requires an App Password.                            |
+| Google OAuth broken         | Verify redirect URIs are registered in GCP Console for the OAuth Web client.    |
+| Cookies not setting         | Use `localhost:5001` not `127.0.0.1`.                                           |
+| Stripe routes returning 503 | Expected until `STRIPE_SECRET_KEY` is set to a real `sk_live_`/`sk_test_` key.  |
+| MongoDB errors on startup   | Non-fatal. Set `MONGODB_URL` to enable, or leave unset to skip.                 |
 
 ## Conclusion
 

@@ -1,12 +1,18 @@
 import { Router, type Request, type Response } from "express";
 import { authenticateToken } from "../middleware";
-import { stripe, PLANS, createCheckoutSession, createPortalSession, createStripeCustomer } from "../lib/stripe";
-import { 
-  pgFindSubscriptionByUser, 
-  pgUpsertSubscription, 
+import {
+  stripe,
+  PLANS,
+  createCheckoutSession,
+  createPortalSession,
+  createStripeCustomer,
+} from "../lib/stripe";
+import {
+  pgFindSubscriptionByUser,
+  pgUpsertSubscription,
   pgUpdateSubscriptionByStripeCustomer,
   pgGetAIUsage,
-  pgFindUserById
+  pgFindUserById,
 } from "../lib/pg-queries";
 import { logger } from "../lib/logger";
 
@@ -22,11 +28,11 @@ router.get("/subscription", authenticateToken, async (req: Request, res: Respons
   try {
     const userId = req.user!.id;
     const sub = await pgFindSubscriptionByUser(userId);
-    
+
     if (!sub) {
       return res.json({ tier: "free", status: "active" });
     }
-    
+
     res.json(sub);
   } catch (error) {
     logger.error("[billing/subscription] Error", { error: String(error) });
@@ -54,7 +60,11 @@ router.post("/checkout", authenticateToken, async (req: Request, res: Response) 
       const customer = await createStripeCustomer(user.email, user.name, { userId });
       customerId = customer.id;
       // Store customerId immediately
-      await pgUpsertSubscription(userId, { stripeCustomerId: customerId, tier: "free", status: "active" });
+      await pgUpsertSubscription(userId, {
+        stripeCustomerId: customerId,
+        tier: "free",
+        status: "active",
+      });
     }
 
     const origin = req.headers.origin || "http://localhost:5001";
@@ -103,19 +113,19 @@ router.get("/usage", authenticateToken, async (req: Request, res: Response) => {
 
     const [classroomUsage, tutorUsage] = await Promise.all([
       pgGetAIUsage(userId, "ai_classroom"),
-      pgGetAIUsage(userId, "ai_tutor")
+      pgGetAIUsage(userId, "ai_tutor"),
     ]);
 
     res.json({
       tier,
       limits: {
         aiClassroom: limits.aiClassroomLimit,
-        aiTutor: limits.aiTutorLimit
+        aiTutor: limits.aiTutorLimit,
       },
       usage: {
         aiClassroom: classroomUsage,
-        aiTutor: tutorUsage
-      }
+        aiTutor: tutorUsage,
+      },
     });
   } catch (error) {
     logger.error("[billing/usage] Error", { error: String(error) });
@@ -151,7 +161,7 @@ router.post("/webhook", async (req: Request, res: Response) => {
         const stripeSubscriptionId = session.subscription as string;
 
         if (userId) {
-          const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId) as any;
+          const subscription = (await stripe.subscriptions.retrieve(stripeSubscriptionId)) as any;
           await pgUpsertSubscription(userId, {
             tier,
             stripeCustomerId,
@@ -168,9 +178,13 @@ router.post("/webhook", async (req: Request, res: Response) => {
       case "customer.subscription.deleted": {
         const subscription = event.data.object as any;
         const stripeCustomerId = subscription.customer as string;
-        const status = subscription.status === "active" ? "active" : 
-                       subscription.status === "canceled" ? "canceled" : "past_due";
-        
+        const status =
+          subscription.status === "active"
+            ? "active"
+            : subscription.status === "canceled"
+              ? "canceled"
+              : "past_due";
+
         await pgUpdateSubscriptionByStripeCustomer(stripeCustomerId, {
           status,
           currentPeriodStart: new Date(subscription.current_period_start * 1000),
@@ -184,7 +198,10 @@ router.post("/webhook", async (req: Request, res: Response) => {
 
     res.json({ received: true });
   } catch (error) {
-    logger.error("[Stripe Webhook] Error processing event", { error: String(error), type: event.type });
+    logger.error("[Stripe Webhook] Error processing event", {
+      error: String(error),
+      type: event.type,
+    });
     res.status(500).json({ message: "Webhook processing failed" });
   }
 });

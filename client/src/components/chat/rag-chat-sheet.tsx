@@ -45,7 +45,10 @@ export function RagChatSheet({ isOpen, onClose, subjectName, initialPrompt }: Ra
           {
             id: "welcome",
             role: "assistant",
-            content: t("chat.welcomeMessage", "Hi! I'm your **{subjectName}** AI Tutor. How can I help you today? You can ask me to explain concepts, generate quizzes, or help with problem solving.").replace("{subjectName}", subjectName),
+            content: t(
+              "chat.welcomeMessage",
+              "Hi! I'm your **{subjectName}** AI Tutor. How can I help you today? You can ask me to explain concepts, generate quizzes, or help with problem solving."
+            ).replace("{subjectName}", subjectName),
           },
         ]);
       }
@@ -129,7 +132,8 @@ export function RagChatSheet({ isOpen, onClose, subjectName, initialPrompt }: Ra
             </div>
             <div>
               <h3 className="font-display text-sm text-foreground">
-                {t("chat.tutorTitle", "Class Mode Tutor • ")}{subjectName}
+                {t("chat.tutorTitle", "Class Mode Tutor • ")}
+                {subjectName}
               </h3>
               <div className="mt-0.5 flex items-center gap-1.5">
                 <span className="relative flex h-1.5 w-1.5">

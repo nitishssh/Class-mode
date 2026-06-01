@@ -13,128 +13,138 @@ const router = Router();
 /**
  * Student Dashboard Data Aggregation
  */
-router.get("/dashboards/student", authenticateToken, requireVerifiedEmail, async (req: Request, res: Response) => {
-  const studentId = req.session.userId;
-  if (!studentId) return res.status(401).json({ message: "Unauthorized" });
+router.get(
+  "/dashboards/student",
+  authenticateToken,
+  requireVerifiedEmail,
+  async (req: Request, res: Response) => {
+    const studentId = req.session.userId;
+    if (!studentId) return res.status(401).json({ message: "Unauthorized" });
 
-  try {
-    const user = await pgFindUserById(studentId);
-    if (!user) return res.status(404).json({ message: "User not found" });
+    try {
+      const user = await pgFindUserById(studentId);
+      if (!user) return res.status(404).json({ message: "User not found" });
 
-    const subjects = user.subjects || [];
-    const pool = isPgReady() ? getPgPool() : null;
+      const subjects = user.subjects || [];
+      const pool = isPgReady() ? getPgPool() : null;
 
-    const [upcomingAssignments, recentResults, tasks] = await Promise.all([
-      pool
-        ? pool
-            .query(
-              `
+      const [upcomingAssignments, recentResults, tasks] = await Promise.all([
+        pool
+          ? pool
+              .query(
+                `
         SELECT ta.*, t.title as "testTitle", t.subject, t.description as topic
         FROM test_assignments ta
         JOIN tests t ON t.id = ta.test_id
         WHERE ta.student_id = $1 AND ta.status IN ('pending','started')
         ORDER BY ta.due_date ASC LIMIT 5`,
-              [studentId]
-            )
-            .then((r) => r.rows)
-        : [],
-      pool
-        ? pool
-            .query(
-              `
+                [studentId]
+              )
+              .then((r) => r.rows)
+          : [],
+        pool
+          ? pool
+              .query(
+                `
         SELECT * FROM test_attempts WHERE student_id = $1 AND status = 'evaluated'
         ORDER BY end_time DESC LIMIT 5`,
-              [studentId]
-            )
-            .then((r) => r.rows)
-        : [],
-      storage.getTasksByUser(studentId),
-    ]);
+                [studentId]
+              )
+              .then((r) => r.rows)
+          : [],
+        storage.getTasksByUser(studentId),
+      ]);
 
-    res.json({
-      profile: {
-        name: user.name,
-        displayName: user.displayName,
-        grade: user.grade,
-        xp: 450,
-        level: 12,
-        streak: 6,
-      },
-      subjects,
-      upcomingTests: upcomingAssignments,
-      recentResults,
-      tasks,
-    });
-  } catch (error) {
-    logger.error("Error fetching student dashboard data:", error);
-    res.status(500).json({ message: "Internal server error" });
+      res.json({
+        profile: {
+          name: user.name,
+          displayName: user.displayName,
+          grade: user.grade,
+          xp: 450,
+          level: 12,
+          streak: 6,
+        },
+        subjects,
+        upcomingTests: upcomingAssignments,
+        recentResults,
+        tasks,
+      });
+    } catch (error) {
+      logger.error("Error fetching student dashboard data:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
   }
-});
+);
 
 /**
  * Teacher Dashboard Data Aggregation
  */
-router.get("/dashboards/teacher", authenticateToken, requireVerifiedEmail, async (req: Request, res: Response) => {
-  const teacherId = req.session.userId;
-  if (!teacherId) return res.status(401).json({ message: "Unauthorized" });
+router.get(
+  "/dashboards/teacher",
+  authenticateToken,
+  requireVerifiedEmail,
+  async (req: Request, res: Response) => {
+    const teacherId = req.session.userId;
+    if (!teacherId) return res.status(401).json({ message: "Unauthorized" });
 
-  try {
-    const user = await pgFindUserById(teacherId);
-    if (!user) return res.status(404).json({ message: "User not found" });
+    try {
+      const user = await pgFindUserById(teacherId);
+      if (!user) return res.status(404).json({ message: "User not found" });
 
-    const pool = isPgReady() ? getPgPool() : null;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+      const pool = isPgReady() ? getPgPool() : null;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const [myTests, pendingSubmissions, liveClasses] = await Promise.all([
-      pool
-        ? pool
-            .query(
-              `SELECT * FROM tests WHERE teacher_id = $1 ORDER BY created_at DESC LIMIT 10`,
-              [teacherId]
-            )
-            .then((r) => r.rows)
-        : [],
-      pool
-        ? pool
-            .query(
-              `
+      const [myTests, pendingSubmissions, liveClasses] = await Promise.all([
+        pool
+          ? pool
+              .query(
+                `SELECT * FROM tests WHERE teacher_id = $1 ORDER BY created_at DESC LIMIT 10`,
+                [teacherId]
+              )
+              .then((r) => r.rows)
+          : [],
+        pool
+          ? pool
+              .query(
+                `
         SELECT ta.* FROM test_attempts ta
         JOIN tests t ON t.id = ta.test_id
         WHERE t.teacher_id = $1 AND ta.status = 'completed'
         ORDER BY ta.end_time DESC LIMIT 5`,
-              [teacherId]
-            )
-            .then((r) => r.rows)
-        : [],
-      pool
-        ? pool
-            .query(
-              `SELECT * FROM live_classes WHERE teacher_id = $1 AND scheduled_time >= $2 AND scheduled_time < $3`,
-              [teacherId, today, tomorrow]
-            )
-            .then((r) => r.rows)
-        : [],
-    ]);
+                [teacherId]
+              )
+              .then((r) => r.rows)
+          : [],
+        pool
+          ? pool
+              .query(
+                `SELECT * FROM live_classes WHERE teacher_id = $1 AND scheduled_time >= $2 AND scheduled_time < $3`,
+                [teacherId, today, tomorrow]
+              )
+              .then((r) => r.rows)
+          : [],
+      ]);
 
-    res.json({
-      stats: {
-        activeTests: myTests.length,
-        totalStudents: 0,
-        avgScore: 0,
-        classesCount: liveClasses.length,
-      },
-      tests: myTests,
-      pendingSubmissions,
-      liveClasses,
-    });
-  } catch (error) {
-    logger.error("Error fetching teacher dashboard data:", error);
-    res.status(500).json({ message: "Internal server error" });
+      res.json({
+        stats: {
+          activeTests: myTests.length,
+          totalStudents: 0,
+          avgScore: 0,
+          classesCount: liveClasses.length,
+        },
+        tests: myTests,
+        pendingSubmissions,
+        liveClasses,
+      });
+    } catch (error) {
+      logger.error("Error fetching teacher dashboard data:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
   }
-});
+);
 
 // GET /api/student/weak-subjects
 router.get("/student/weak-subjects", authenticateToken, async (req: Request, res: Response) => {
@@ -165,41 +175,45 @@ router.get("/student/weak-subjects", authenticateToken, async (req: Request, res
 });
 
 // POST /api/ai/study-plan
-router.post("/ai/study-plan", await checkAIQuota("ai_tutor"), async (req: Request, res: Response) => {
-  try {
-    const { weakSubjects } = req.body;
-    const userId = (req.user?.id || req.session?.userId) as number;
-    const workspace = (req as any).workspace;
+router.post(
+  "/ai/study-plan",
+  await checkAIQuota("ai_tutor"),
+  async (req: Request, res: Response) => {
+    try {
+      const { weakSubjects } = req.body;
+      const userId = (req.user?.id || req.session?.userId) as number;
+      const workspace = (req as any).workspace;
 
-    let context = "";
-    if (weakSubjects && weakSubjects.length > 0) {
-      context = `This student's weak subjects based on recent test performance are:\n${weakSubjects.map((s: { subject: string; avgScore: number }) => `${s.subject}: ${Math.round(s.avgScore)}%`).join("\n")}\nCreate a focused 7-day study plan that prioritises these weak areas. Be specific: include what to study each day, for how long, and in what order. Do not include subjects they are already performing well in unless as brief revision.`;
-    } else {
-      context =
-        "The student is doing well across all subjects (all scores above 60%). Create a maintenance plan. Pass top subjects as light revision targets.";
+      let context = "";
+      if (weakSubjects && weakSubjects.length > 0) {
+        context = `This student's weak subjects based on recent test performance are:\n${weakSubjects.map((s: { subject: string; avgScore: number }) => `${s.subject}: ${Math.round(s.avgScore)}%`).join("\n")}\nCreate a focused 7-day study plan that prioritises these weak areas. Be specific: include what to study each day, for how long, and in what order. Do not include subjects they are already performing well in unless as brief revision.`;
+      } else {
+        context =
+          "The student is doing well across all subjects (all scores above 60%). Create a maintenance plan. Pass top subjects as light revision targets.";
+      }
+
+      const prompt = `You are a study coach. ${context}\nReturn the plan as a JSON object with a "days" array, where each element is { "day": number, "title": "Day Title", "tasks": [{ "task": "string", "duration": "string" }] }`;
+
+      const response = await aiChat(
+        [{ role: "user", content: prompt }],
+        "You are an expert study coach. Respond only with valid JSON."
+      );
+      const plan = JSON.parse(response.content);
+
+      await pgIncrementAIUsage({
+        userId,
+        workspaceId: workspace?.id,
+        feature: "ai_tutor",
+        metadata: { type: "study_plan" },
+      });
+
+      res.json(plan);
+    } catch (error) {
+      logger.error("Study plan generation error:", error);
+      res.status(500).json({ message: "Failed to generate study plan" });
     }
-
-    const prompt = `You are a study coach. ${context}\nReturn the plan as a JSON object with a "days" array, where each element is { "day": number, "title": "Day Title", "tasks": [{ "task": "string", "duration": "string" }] }`;
-
-    const response = await aiChat(
-      [{ role: "user", content: prompt }],
-      "You are an expert study coach. Respond only with valid JSON."
-    );
-    const plan = JSON.parse(response.content);
-
-    await pgIncrementAIUsage({
-      userId,
-      workspaceId: workspace?.id,
-      feature: "ai_tutor",
-      metadata: { type: "study_plan" }
-    });
-
-    res.json(plan);
-  } catch (error) {
-    logger.error("Study plan generation error:", error);
-    res.status(500).json({ message: "Failed to generate study plan" });
   }
-});
+);
 
 // POST /api/ai/performance-analysis
 router.post(
@@ -252,7 +266,7 @@ router.post(
         userId: studentId,
         workspaceId: workspace?.id,
         feature: "ai_tutor",
-        metadata: { type: "performance_analysis" }
+        metadata: { type: "performance_analysis" },
       });
 
       res.json(analysis);
@@ -401,7 +415,7 @@ router.get("/admin/stats", authenticateToken, async (req: Request, res: Response
           { grade: "B", count: 312, pct: 25 },
           { grade: "C", count: 124, pct: 10 },
           { grade: "Below C", count: 61, pct: 5 },
-        ]
+        ],
       });
     }
 
@@ -463,8 +477,7 @@ router.get("/analytics/students", authenticateToken, async (req: Request, res: R
               completedAttempts.length
             : 0;
 
-        const completionRate =
-          attempts.length > 0 ? completedAttempts.length / attempts.length : 0;
+        const completionRate = attempts.length > 0 ? completedAttempts.length / attempts.length : 0;
 
         const subjectScores: Record<string, { total: number; count: number }> = Object.create(null);
         for (const attempt of completedAttempts) {

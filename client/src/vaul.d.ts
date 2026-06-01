@@ -1,1 +1,1 @@
-declare module 'vaul';
+declare module "vaul";

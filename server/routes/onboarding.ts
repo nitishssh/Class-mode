@@ -125,10 +125,12 @@ const onboardingCompleteSchema = z.object({
   user: z.object({
     subjects: z.array(z.string()).min(1),
   }),
-  businessIntel: z.object({
-    currentTools: z.array(z.string()).optional(),
-    discoverySource: z.string().optional(),
-  }).optional(),
+  businessIntel: z
+    .object({
+      currentTools: z.array(z.string()).optional(),
+      discoverySource: z.string().optional(),
+    })
+    .optional(),
 });
 
 // POST /api/onboarding/complete
@@ -191,14 +193,14 @@ router.post("/complete", authenticateToken, async (req: Request, res: Response) 
   const workspaceName = pgSchool.name;
   let workspaceId: number | null = null;
   const pool = getPgPool();
-  
+
   try {
     const wsRes = await pool.query(
       `INSERT INTO workspaces (name, type, owner_id) VALUES ($1, 'school', $2) RETURNING id`,
       [workspaceName, pgUser.id]
     );
     workspaceId = parseInt(wsRes.rows[0].id, 10);
-    
+
     // Add owner membership
     await pool.query(
       `INSERT INTO workspace_memberships (workspace_id, user_id, role, status) VALUES ($1, $2, 'owner', 'active')`,

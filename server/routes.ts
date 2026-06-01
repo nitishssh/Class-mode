@@ -67,7 +67,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount newly extracted domain routers at /api root
   app.use("/api/auth", authRouter); // Supports /api/auth/*
-  app.use("/api", authRouter);      // Supports /api/* (login, signup, etc.)
+  app.use("/api", authRouter); // Supports /api/* (login, signup, etc.)
   app.use("/api", usersRouter);
   app.use("/api", analyticsRouter);
   app.use("/api", testsRouter);
@@ -78,7 +78,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api", notificationsRouter);
   app.use("/api/ocr", ocrRouter);
   app.use("/api/upload", uploadRouter);
-  
+
   // Legacy Workspace v2 (must be last)
   app.use("/api", workspaceRouter);
 

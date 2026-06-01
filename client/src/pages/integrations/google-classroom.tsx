@@ -4,7 +4,15 @@ import { useLocation } from "wouter";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Users, Download, RefreshCw, ExternalLink, CheckCircle2, AlertCircle } from "lucide-react";
+import {
+  Loader2,
+  Users,
+  Download,
+  RefreshCw,
+  ExternalLink,
+  CheckCircle2,
+  AlertCircle,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -117,8 +125,8 @@ export default function GoogleClassroomIntegration() {
           <p className="mt-2 text-sm">
             The server doesn't have Google Classroom OAuth credentials. Set{" "}
             <code className="rounded bg-amber-100 px-1">GOOGLE_CLASSROOM_CLIENT_ID</code> and{" "}
-            <code className="rounded bg-amber-100 px-1">GOOGLE_CLASSROOM_CLIENT_SECRET</code> in
-            the server environment and restart.
+            <code className="rounded bg-amber-100 px-1">GOOGLE_CLASSROOM_CLIENT_SECRET</code> in the
+            server environment and restart.
           </p>
         </div>
       </div>
@@ -192,9 +200,7 @@ export default function GoogleClassroomIntegration() {
               >
                 <div>
                   <div className="font-medium">{c.name}</div>
-                  {c.section && (
-                    <div className="text-xs text-muted-foreground">{c.section}</div>
-                  )}
+                  {c.section && <div className="text-xs text-muted-foreground">{c.section}</div>}
                 </div>
                 <div className="flex items-center gap-2">
                   {c.courseState && <Badge variant="outline">{c.courseState}</Badge>}
@@ -228,9 +234,7 @@ export default function GoogleClassroomIntegration() {
                 {lastImport.skipped > 0 && (
                   <li>Skipped (no email on profile): {lastImport.skipped}</li>
                 )}
-                {lastImport.failures.length > 0 && (
-                  <li>Failed: {lastImport.failures.length}</li>
-                )}
+                {lastImport.failures.length > 0 && <li>Failed: {lastImport.failures.length}</li>}
               </ul>
             </div>
           )}

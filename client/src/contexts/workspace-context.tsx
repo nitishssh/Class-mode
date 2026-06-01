@@ -75,7 +75,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         if (target) setActiveWorkspace(target);
         // Refresh to get any server-side changes
         await refreshWorkspaces();
-        toast({ title: "Workspace switched", description: `Now in ${target?.name ?? "workspace"}` });
+        toast({
+          title: "Workspace switched",
+          description: `Now in ${target?.name ?? "workspace"}`,
+        });
       } catch (err) {
         toast({
           title: "Switch failed",

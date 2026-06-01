@@ -31,10 +31,10 @@ export function ChipSelect({ options, selected, onChange, multi = false }: ChipS
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.2, delay: i * 0.05 }}
             onClick={() => toggle(opt.value)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border ${
+            className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
               isSelected
-                ? "bg-blue-600 text-white border-blue-600 dark:bg-blue-500 dark:border-blue-500"
-                : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-750"
+                ? "border-blue-600 bg-blue-600 text-white dark:border-blue-500 dark:bg-blue-500"
+                : "dark:hover:bg-gray-750 border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
             }`}
           >
             {opt.label}

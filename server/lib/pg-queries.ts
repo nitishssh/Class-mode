@@ -641,11 +641,18 @@ export async function pgUpsertMembership(params: {
   }
 }
 
-export async function pgUpdateUserSubjects(userId: number, subjects: string[]): Promise<PgUser | null> {
+export async function pgUpdateUserSubjects(
+  userId: number,
+  subjects: string[]
+): Promise<PgUser | null> {
   return pgUpdateUser(userId, { subjects });
 }
 
-export async function pgSaveOnboardingResponse(userId: number, questionKey: string, response: any): Promise<PgOnboardingResponse | null> {
+export async function pgSaveOnboardingResponse(
+  userId: number,
+  questionKey: string,
+  response: any
+): Promise<PgOnboardingResponse | null> {
   if (!isPgReady()) return null;
   try {
     const { rows } = await getPgPool().query(
@@ -733,7 +740,7 @@ export async function pgUpsertSchool(data: {
     );
     return mapSchool(rows[0]);
   }
-    const { rows } = await pool.query(
+  const { rows } = await pool.query(
     `INSERT INTO schools (code, name, city, board, grades_offered, logo, approximate_students, created_by_uid, onboarding_complete)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
      ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name
@@ -753,7 +760,11 @@ export async function pgUpsertSchool(data: {
   return mapSchool(rows[0]);
 }
 
-export async function pgUpdateSchoolSize(schoolId: number, gradesOffered: string[], approximateStudents: string): Promise<PgSchool | null> {
+export async function pgUpdateSchoolSize(
+  schoolId: number,
+  gradesOffered: string[],
+  approximateStudents: string
+): Promise<PgSchool | null> {
   if (!isPgReady()) return null;
   try {
     const { rows } = await getPgPool().query(
@@ -1246,7 +1257,9 @@ export async function pgListWorkspaceInvites(workspaceId: number): Promise<any[]
       role: r.role,
       kind: r.kind,
       status: r.status,
-      invitedBy: r.invited_by ? { id: n(r.invited_by), email: r.inviter_email, name: r.inviter_name } : null,
+      invitedBy: r.invited_by
+        ? { id: n(r.invited_by), email: r.inviter_email, name: r.inviter_name }
+        : null,
       expiresAt: r.expires_at,
       createdAt: r.created_at,
     }));
@@ -1256,7 +1269,10 @@ export async function pgListWorkspaceInvites(workspaceId: number): Promise<any[]
   }
 }
 
-export async function pgRevokeWorkspaceInvite(inviteId: number, workspaceId: number): Promise<void> {
+export async function pgRevokeWorkspaceInvite(
+  inviteId: number,
+  workspaceId: number
+): Promise<void> {
   if (!isPgReady()) return;
   try {
     await getPgPool().query(
@@ -1914,7 +1930,10 @@ export async function pgGetTimetableByWorkspace(workspaceId: number): Promise<an
   }
 }
 
-export async function pgGetTimetableByClass(workspaceId: number, className: string): Promise<any[]> {
+export async function pgGetTimetableByClass(
+  workspaceId: number,
+  className: string
+): Promise<any[]> {
   if (!isPgReady()) return [];
   try {
     const { rows } = await getPgPool().query(

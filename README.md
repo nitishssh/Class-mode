@@ -69,18 +69,18 @@ EduAI is a robust multi-tenant platform. Whether you're a school, a coaching cen
 
 ## 🛠️ Tech Stack
 
-| Layer                          | Technology                                                    |
-| ------------------------------ | ------------------------------------------------------------- |
-| **Frontend**                   | React 18, Vite, TypeScript, Tailwind CSS, shadcn/ui           |
-| **Backend**                    | Node.js 18+, Express, TypeScript                              |
+| Layer                          | Technology                                                        |
+| ------------------------------ | ----------------------------------------------------------------- |
+| **Frontend**                   | React 18, Vite, TypeScript, Tailwind CSS, shadcn/ui               |
+| **Backend**                    | Node.js 18+, Express, TypeScript                                  |
 | **Primary DB (Transactional)** | **PostgreSQL** (Users, Workspaces, Sessions, Tests, SIS, Billing) |
-| **Message Store**              | **Apache Cassandra** (Astra DB) · MongoDB fallback            |
-| **Job Queue**                  | **Redis** (BullMQ) · AI Job persistence                       |
-| **AI Engine**                  | **Google Gemini 2.0 Flash** · OpenAI GPT-4o (fallback)        |
-| **Auth**                       | Local JWT + Cookies · Google OAuth 2.0 (server-side)          |
-| **Real-time**                  | WebSockets (ws) · Daily.co (video)                            |
-| **LMS**                        | Google Classroom API                                          |
-| **Infrastructure**             | Docker, GCP Cloud Run, Cloud Build, Terraform, Secret Manager |
+| **Message Store**              | **Apache Cassandra** (Astra DB) · MongoDB fallback                |
+| **Job Queue**                  | **Redis** (BullMQ) · AI Job persistence                           |
+| **AI Engine**                  | **Google Gemini 2.0 Flash** · OpenAI GPT-4o (fallback)            |
+| **Auth**                       | Local JWT + Cookies · Google OAuth 2.0 (server-side)              |
+| **Real-time**                  | WebSockets (ws) · Daily.co (video)                                |
+| **LMS**                        | Google Classroom API                                              |
+| **Infrastructure**             | Docker, GCP Cloud Run, Cloud Build, Terraform, Secret Manager     |
 
 ---
 

@@ -85,6 +85,7 @@ GOOGLE_CLIENT_SECRET=your-oauth-client-secret
 ```
 
 Register redirect URIs in GCP Console:
+
 - `http://localhost:5001/api/auth/google/callback` (local)
 - `https://<your-prod-host>/api/auth/google/callback` (production)
 
@@ -135,15 +136,15 @@ The application will be available at: **[http://localhost:5001](http://localhost
 
 ## Project Structure
 
-| Directory                     | Description                              |
-| ----------------------------- | ---------------------------------------- |
-| `client/src/`                 | React frontend (Vite)                    |
-| `server/routes/auth.ts`       | Auth routes (login, signup, Google OAuth)|
-| `server/routes/workspace.ts`  | Workspace CRUD and membership            |
-| `server/lib/pg-queries.ts`    | PostgreSQL data access layer             |
-| `server/lib/google-signin.ts` | Server-side Google OAuth 2.0 flow        |
-| `server/storage.ts`           | Legacy/MongoDB storage abstraction       |
-| `scripts/pg-schema.sql`       | PostgreSQL database schema               |
+| Directory                     | Description                               |
+| ----------------------------- | ----------------------------------------- |
+| `client/src/`                 | React frontend (Vite)                     |
+| `server/routes/auth.ts`       | Auth routes (login, signup, Google OAuth) |
+| `server/routes/workspace.ts`  | Workspace CRUD and membership             |
+| `server/lib/pg-queries.ts`    | PostgreSQL data access layer              |
+| `server/lib/google-signin.ts` | Server-side Google OAuth 2.0 flow         |
+| `server/storage.ts`           | Legacy/MongoDB storage abstraction        |
+| `scripts/pg-schema.sql`       | PostgreSQL database schema                |
 
 ## Useful Commands
 

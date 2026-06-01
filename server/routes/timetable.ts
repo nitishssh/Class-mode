@@ -1,10 +1,10 @@
 import { Router, Request, Response } from "express";
 import { authenticateToken } from "../middleware";
-import { 
-  pgGetTimetableByWorkspace, 
-  pgGetTimetableByClass, 
-  pgCreateTimetableSlot, 
-  pgDeleteTimetableSlot 
+import {
+  pgGetTimetableByWorkspace,
+  pgGetTimetableByClass,
+  pgCreateTimetableSlot,
+  pgDeleteTimetableSlot,
 } from "../lib/pg-queries";
 import { insertTimetableSlotSchema } from "@shared/schema";
 import { logger } from "../lib/logger";
