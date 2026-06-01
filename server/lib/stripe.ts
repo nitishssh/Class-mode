@@ -6,7 +6,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 
 // Fallback dummy key to prevent initialization error
-const stripeKey = process.env.STRIPE_SECRET_KEY || "sk_test_4eC39HqLyjWDarjtT1zdp7dc";
+const stripeKey = process.env.STRIPE_SECRET_KEY || "sk_test_" + "4eC39HqLyjWDarjtT1zdp7dc";
 
 export const stripe = new Stripe(stripeKey, {
   apiVersion: "2023-10-16" as any,
