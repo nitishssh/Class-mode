@@ -1,0 +1,5 @@
+# .gitleaksignore
+# Ignore the dummy stripe key in the commit history
+[allowlist]
+description = "Ignore the dummy stripe key"
+regex = '''sk_test_4eC39HqLyjWDarjtT1zdp7dc'''
