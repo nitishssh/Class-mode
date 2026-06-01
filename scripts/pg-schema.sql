@@ -37,6 +37,8 @@ CREATE TABLE IF NOT EXISTS users (
   UNIQUE (auth_provider, auth_subject)
 );
 
+ALTER TABLE users ADD COLUMN IF NOT EXISTS user_type TEXT;
+
 -- ─── Schools ─────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS schools (
   id                  bigserial    PRIMARY KEY,
@@ -51,6 +53,8 @@ CREATE TABLE IF NOT EXISTS schools (
   onboarding_complete boolean      NOT NULL DEFAULT false,
   created_at          timestamptz  NOT NULL DEFAULT now()
 );
+
+ALTER TABLE schools ADD COLUMN IF NOT EXISTS approximate_students TEXT;
 
 -- ─── RBAC ────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS roles (
@@ -565,6 +569,16 @@ CREATE INDEX IF NOT EXISTS idx_notifs_user         ON notifications(user_id, cre
 CREATE INDEX IF NOT EXISTS idx_focus_user          ON focus_sessions(user_id, completed_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_ai_teacher          ON ai_classrooms(teacher_id, created_at DESC);
+
+-- ─── Onboarding Responses ────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS onboarding_responses (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  question_key TEXT NOT NULL,
+  response JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_onboarding_responses_user ON onboarding_responses(user_id);
 
 CREATE INDEX IF NOT EXISTS idx_grading_student     ON grading_results(student_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_grading_teacher     ON grading_results(teacher_id, status);
