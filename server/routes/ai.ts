@@ -26,7 +26,7 @@ router.post("/ai-chat", authenticateToken, await checkAIQuota("ai_tutor"), async
     }
 
     const { messages } = parseResult.data;
-    const userId = req.session!.userId;
+    const userId = (req.user?.id || req.session?.userId) as number;
     const workspace = (req as any).workspace;
 
     const response = await aiChat(messages);

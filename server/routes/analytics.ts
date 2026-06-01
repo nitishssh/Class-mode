@@ -168,7 +168,7 @@ router.get("/student/weak-subjects", authenticateToken, async (req: Request, res
 router.post("/ai/study-plan", await checkAIQuota("ai_tutor"), async (req: Request, res: Response) => {
   try {
     const { weakSubjects } = req.body;
-    const userId = req.session!.userId;
+    const userId = (req.user?.id || req.session?.userId) as number;
     const workspace = (req as any).workspace;
 
     let context = "";

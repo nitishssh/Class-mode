@@ -214,6 +214,7 @@ function createDevUser(data: {
   const now = new Date();
   const user: PgUser = {
     id,
+    userType: "educator",
     authProvider: "local-dev",
     authSubject: data.email,
     email: data.email,

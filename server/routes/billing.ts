@@ -20,7 +20,7 @@ router.get("/plans", (req: Request, res: Response) => {
 // GET /api/billing/subscription — Get current user's subscription
 router.get("/subscription", authenticateToken, async (req: Request, res: Response) => {
   try {
-    const userId = req.session!.userId;
+    const userId = req.user!.id;
     const sub = await pgFindSubscriptionByUser(userId);
     
     if (!sub) {
@@ -37,7 +37,7 @@ router.get("/subscription", authenticateToken, async (req: Request, res: Respons
 // POST /api/billing/checkout — Create a Stripe checkout session
 router.post("/checkout", authenticateToken, async (req: Request, res: Response) => {
   try {
-    const userId = req.session!.userId;
+    const userId = req.user!.id;
     const { priceId, tier } = req.body;
 
     if (!priceId) {
@@ -76,7 +76,7 @@ router.post("/checkout", authenticateToken, async (req: Request, res: Response) 
 // POST /api/billing/portal — Create a Stripe customer portal session
 router.post("/portal", authenticateToken, async (req: Request, res: Response) => {
   try {
-    const userId = req.session!.userId;
+    const userId = req.user!.id;
     const sub = await pgFindSubscriptionByUser(userId);
 
     if (!sub?.stripeCustomerId) {
@@ -96,7 +96,7 @@ router.post("/portal", authenticateToken, async (req: Request, res: Response) =>
 // GET /api/billing/usage — Get AI usage stats
 router.get("/usage", authenticateToken, async (req: Request, res: Response) => {
   try {
-    const userId = req.session!.userId;
+    const userId = req.user!.id;
     const sub = await pgFindSubscriptionByUser(userId);
     const tier = sub?.tier || "free";
     const limits = PLANS[tier as keyof typeof PLANS] || PLANS.free;
@@ -151,7 +151,7 @@ router.post("/webhook", async (req: Request, res: Response) => {
         const stripeSubscriptionId = session.subscription as string;
 
         if (userId) {
-          const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+          const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId) as any;
           await pgUpsertSubscription(userId, {
             tier,
             stripeCustomerId,

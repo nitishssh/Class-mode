@@ -14,7 +14,7 @@ const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
 const connection = new Redis(REDIS_URL, { maxRetriesPerRequest: null });
 
 export const classroomQueue = new Queue("classroom-generation", {
-  connection,
+  connection: connection as any,
   defaultJobOptions: {
     attempts: 3,
     backoff: {
@@ -77,7 +77,7 @@ export const classroomWorker = new Worker(
       throw error;
     }
   },
-  { connection, concurrency: 5 }
+  { connection: connection as any, concurrency: 5 }
 );
 
 classroomWorker.on("completed", (job) => {

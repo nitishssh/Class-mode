@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { StepCard } from "@/components/onboarding/StepCard";
 import { ProgressBar } from "@/components/onboarding/ProgressBar";
 import { ChipSelect } from "@/components/onboarding/ChipSelect";

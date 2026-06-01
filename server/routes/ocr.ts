@@ -37,7 +37,7 @@ router.post("/extract", async (req: Request, res: Response) => {
     return res.status(200).json({
       text: result.text,
       confidence: result.confidence,
-      language: result.language || "en",
+      language: (result as any).language || "en",
     });
   } catch (error) {
     console.error("OCR processing error:", error);

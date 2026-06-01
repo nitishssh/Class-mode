@@ -11,7 +11,7 @@ const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
 const connection = new Redis(REDIS_URL, { maxRetriesPerRequest: null });
 
 export const automationQueue = new Queue("sis-automation", {
-  connection,
+  connection: connection as any,
   defaultJobOptions: {
     removeOnComplete: true,
     removeOnFail: false,
@@ -51,7 +51,7 @@ export const automationWorker = new Worker(
       throw error;
     }
   },
-  { connection }
+  { connection: connection as any }
 );
 
 // Scheduler to check for at-risk students every hour
