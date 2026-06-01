@@ -29,7 +29,7 @@ CI order (`.github/workflows/ci.yml`): `check → lint → build → test`.
 Single `package.json` (no monorepo tool). Key directories:
 
 - `client/` — Vite + React 18 (`root: client/`, entry: `client/src/main.tsx`)
-- `server/` — Express (entry: `server/index.ts`, routes: `server/routes.ts`)
+- `server/` — Express (entry: `server/index.ts`, routes: `server/routes/*.ts`)
 - `shared/` — Zod schemas + Mongoose models, imported via `@shared/*`
 - `mobile/` — Expo Router (`cd mobile && npm start`)
 - `features/ai-classroom/` — Study Arena + IniClaw (separate Docker services)
@@ -46,7 +46,7 @@ Single `package.json` (no monorepo tool). Key directories:
 ## Architecture
 
 - **Auth**: Self-hosted PostgreSQL-backed identity. Dual fallback: JWT verify → session lookup. Google OAuth 2.0 server-side flow via `server/lib/google-signin.ts` (`/api/auth/google/start` → `/api/auth/google/callback`). Firebase token-exchange endpoint kept for backward compat (`ENABLE_FIREBASE_AUTH_COMPAT`).
-- **DB**: PostgreSQL primary (all transactional data — users, workspaces, sessions, tests, SIS). MongoDB optional (legacy content). Cassandra (MessagePal only, optional — falls back to MongoDB).
+- **DB**: PostgreSQL primary (all transactional data — users, workspaces, sessions, tests, SIS, billing). MongoDB optional (legacy content). Cassandra (MessagePal only, optional — falls back to MongoDB). Redis (BullMQ for AI Job persistence).
 - **AI**: Google Gemini 2.0 Flash (`server/lib/gemini.ts`) primary; OpenAI GPT-4o (`server/lib/openai.ts`) optional fallback.
 - **Real-time**: Two WebSocket servers (chat + MessagePal) attached to HTTP server after `registerRoutes()`.
 - **Routing**: `wouter` (not react-router). Pages in `client/src/pages/`.
@@ -67,9 +67,14 @@ Single `package.json` (no monorepo tool). Key directories:
 | `server/routes/live.ts`       | Daily.co room creation + participant tokens         |
 | `server/routes/educator.ts`   | Educator-specific endpoints                         |
 | `server/routes/parent.ts`     | Parent-specific endpoints                           |
-| `server/routes/billing.ts`    | Stripe billing (disabled until `STRIPE_SECRET_KEY`) |
+| `server/routes/billing.ts`    | Stripe billing lifecycle and Customer Portal        |
 | `server/routes/gdpr.ts`       | GDPR data export                                    |
 | `server/routes/health.ts`     | Health check + readiness probe                      |
+| `server/routes/analytics.ts`  | Domain router for analytics                         |
+| `server/routes/tests.ts`      | Domain router for test generation/management        |
+| `server/routes/users.ts`      | Domain router for user management                   |
+| `server/routes/chat.ts`       | Domain router for chat endpoints                    |
+| `server/routes/timetable.ts`  | Native period-based timetable                       |
 | `server/message/routes.ts`    | MessagePal WebSocket + REST                         |
 
 ## Key lib files
@@ -105,7 +110,7 @@ Single `package.json` (no monorepo tool). Key directories:
 
 - Commit format: `<type>: <subject>` — types: `feat|fix|docs|style|refactor|test|chore` (see `.gitmessage`).
 - ESLint uses `unused-imports` plugin (not the built-in TS rule). Use `npm run lint:fix` for auto-fix.
-- Server uses singleton `storage` object (`server/storage.ts`). Mount new routes in `server/routes.ts` `registerRoutes()`.
+- Server uses singleton `storage` object (`server/storage.ts`). Mount new routes in `server/routes/*.ts` and register in `server/index.ts`.
 - Use `@shared/schema` Zod schemas for API input validation; `@shared/mongo-schema` for DB operations.
 
 ## Deployment
