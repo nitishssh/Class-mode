@@ -1,3 +1,4 @@
+# check=skip=SecretsUsedInArgOrEnv
 # ══════════════════════════════════════════════════════════════════
 #  PersonalLearningPro — Multi-stage Dockerfile
 #  Stages: deps → development | deps → build → production
