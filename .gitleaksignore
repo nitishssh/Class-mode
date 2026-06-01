@@ -1,6 +1,0 @@
-[allowlist]
-description = "Ignore dummy stripe key"
-fingerprints = [
-  "10ae87a338b983ade9560c473039da20f07a86e7:server/lib/stripe.ts:stripe-access-token:9",
-  "3237fef7075b84c04c2a5635f14207a2cab10ab0:.gitleaksignore:stripe-access-token:5"
-]
