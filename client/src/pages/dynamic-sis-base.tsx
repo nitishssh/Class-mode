@@ -33,7 +33,7 @@ export default function DynamicSISBasePage() {
 
   useEffect(() => {
     if (tables && tables.length > 0 && !activeTableId) {
-      setActiveTableId(tables[0].id.toString());
+      setTimeout(() => setActiveTableId(tables[0].id.toString()), 0);
     }
   }, [tables, activeTableId]);
 

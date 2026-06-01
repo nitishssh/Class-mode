@@ -31,7 +31,7 @@ export function SocraticAssistant() {
       }, 5000);
     } else {
       if (timerRef.current) clearTimeout(timerRef.current);
-      setShowNudge(false);
+      setTimeout(() => setShowNudge(false), 0);
     }
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [isLoading, query]);

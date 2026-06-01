@@ -141,7 +141,9 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
         }
         return next();
       }
-    } catch (e) { }
+    } catch (e) {
+      // ignore parsing errors
+    }
   }
 
   // 4. Exempt routes
