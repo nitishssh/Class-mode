@@ -146,7 +146,7 @@
     "eslint-plugin-unused-imports": "^4.4.1",
     "globals": "^15.15.0",
     "playwright": "^1.58.2",
-    "postcss": "^8.5.14",
+    "postcss": "^8.5.15",
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "supertest": "^7.2.2",
