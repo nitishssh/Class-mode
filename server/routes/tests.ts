@@ -22,11 +22,10 @@ router.post("/tests", authenticateToken, async (req: Request, res: Response) => 
       return res.status(401).json({ message: "Unauthorized: Only teachers can create tests" });
     }
 
-    const testData = insertTestSchema.parse(req.body);
-
-    if (testData.teacherId !== req.session.userId) {
-      return res.status(403).json({ message: "Forbidden: Can only create tests for yourself" });
-    }
+    const testData = insertTestSchema.parse({
+      ...req.body,
+      teacherId: req.session.userId, // always derive from session, never trust client
+    });
 
     const test = await storage.createTest(testData);
     res.status(201).json(test);

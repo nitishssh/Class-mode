@@ -174,21 +174,27 @@ describe("Test Lifecycle — Teacher creates, Student attempts and answers", () 
       expect(res.status).toBe(401);
     });
 
-    it("should return 403 when teacher tries to create a test for another teacher", async () => {
+    it("should ignore client-sent teacherId and use session userId instead", async () => {
+      // teacherId is now always derived server-side from the session —
+      // a client sending a different ID cannot create tests for another teacher.
+      mockStorage.createTest.mockImplementation((data: any) =>
+        Promise.resolve({ id: 1, ...data, status: "draft" })
+      );
+
       const res = await request(app)
         .post("/api/tests")
         .set("Authorization", `Bearer ${makeToken(TEACHER_ID, "teacher")}`)
         .send({
           title: "Physics Quiz",
           class: "10A",
-          teacherId: 999,
+          teacherId: 999, // ignored — server overwrites with TEACHER_ID
           subject: "Physics",
           testDate: "2026-03-09",
           questionTypes: ["mcq"],
         });
 
-      expect(res.status).toBe(403);
-      expect(res.body.message).toMatch(/only create tests for yourself/i);
+      expect(res.status).toBe(201);
+      expect(res.body.teacherId).toBe(TEACHER_ID); // server-derived, not client-sent 999
     });
   });
 
