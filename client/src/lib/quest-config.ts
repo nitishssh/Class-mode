@@ -5,7 +5,7 @@ export interface Quest {
   description: string;
   ctaLabel: string;
   ctaPath: string;
-  xpReward: number;
+  xpReward: number; // v0: unused; v1: sent to PATCH /api/auth/me/quests for XP calculation
 }
 
 export const QUESTS: Quest[] = [

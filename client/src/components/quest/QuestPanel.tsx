@@ -24,7 +24,8 @@ export function QuestPanel() {
     if (role === "teacher" && !progress.firstSeenAt) {
       setFirstSeenAt(new Date().toISOString());
     }
-  }, [role]); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role]); // progress.firstSeenAt omitted intentionally: setFirstSeenAt is idempotent, re-reading on every render would be wasteful
 
   // Fire confetti once when all quests complete
   useEffect(() => {
@@ -34,9 +35,10 @@ export function QuestPanel() {
     ) {
       markConfettiFired();
       confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
-      setTimeout(() => {
+      const t = setTimeout(() => {
         confetti({ particleCount: 60, spread: 50, origin: { y: 0.7 } });
       }, 250);
+      return () => clearTimeout(t);
     }
   }, [progress.completedIds.length]);
 

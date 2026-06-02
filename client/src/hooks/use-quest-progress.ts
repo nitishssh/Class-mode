@@ -79,10 +79,5 @@ export function useQuestProgress() {
   const progress = readProgressFromStorage();
   const expired = isExpired(progress);
 
-  return {
-    progress,
-    expired,
-    markQuestComplete,
-    setPanelDismissed,
-  };
+  return { progress, expired };
 }

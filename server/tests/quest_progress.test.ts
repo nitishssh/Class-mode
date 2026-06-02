@@ -37,8 +37,9 @@ let isExpired: any;
 beforeEach(async () => {
   localStorageShim.clear();
   vi.clearAllMocks();
+  vi.resetModules(); // ensure fresh module state between tests
 
-  // Re-import to pick up cleared state (vitest caches modules, but globals are reset)
+  // Re-import after resetModules to pick up cleared state
   const mod = await import("@/hooks/use-quest-progress");
   QUEST_STORAGE_KEY = mod.QUEST_STORAGE_KEY;
   readProgressFromStorage = mod.readProgressFromStorage;
@@ -172,5 +173,11 @@ describe("isExpired", () => {
   it("returns true when past 7 days", () => {
     const old = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString();
     expect(isExpired({ completedIds: [], panelDismissed: false, firstSeenAt: old })).toBe(true);
+  });
+
+  it("returns true at exactly the 7-day boundary (>= comparison)", () => {
+    // exactly 7 days ago should be expired
+    const boundary = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 - 1).toISOString();
+    expect(isExpired({ completedIds: [], panelDismissed: false, firstSeenAt: boundary })).toBe(true);
   });
 });
