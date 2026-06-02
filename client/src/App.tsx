@@ -7,6 +7,8 @@ import { ThemeProvider } from "@/contexts/theme-context";
 import { FirebaseAuthProvider, useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/layout/sidebar";
+import { QuestPanel } from "@/components/quest/QuestPanel";
+import { QuestButton } from "@/components/quest/QuestButton";
 import { Loader2 } from "lucide-react";
 import { I18nProvider, useTranslation } from "@/lib/i18n";
 
@@ -69,6 +71,8 @@ function Layout({
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
+      <QuestPanel />
+      <QuestButton />
       <main
         className="flex-1 transition-all duration-300 ease-in-out"
         style={{ marginLeft: "var(--sidebar-width, 16rem)" }}
