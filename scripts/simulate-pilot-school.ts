@@ -83,26 +83,23 @@ async function main() {
     const mockSubmission = {
       submissionId: `sim_sub_${Date.now()}`,
       studentId: 101,
-      testId: 5001,
-      subject: "Math",
-      gradeLevel: "10th Grade",
-      questions: [
-        {
-          questionId: "q1",
-          questionText: "What is the Pythagorean theorem and when is it used?",
-          questionType: "essay" as const,
-          maxPoints: 10,
-          rubric:
-            "1. Mentions a^2 + b^2 = c^2 (4 points). 2. Mentions right-angled triangles (3 points). 3. Explains finding unknown side (3 points).",
-          studentAnswer:
-            "The Pythagorean theorem is a^2 + b^2 = c^2. It is used to find the length of the hypotenuse in a right triangle if you know the other two sides.",
-        },
-      ],
+      content: "The Pythagorean theorem is a^2 + b^2 = c^2. It is used to find the length of the hypotenuse in a right triangle if you know the other two sides.",
+      contentType: "text" as const,
+      rubric: {
+        title: "Pythagorean Theorem Essay",
+        gradingType: "essay" as const,
+        totalPoints: 10,
+        criteria: [
+          { name: "Mentions Formula", description: "Mentions a^2 + b^2 = c^2", maxPoints: 4, weight: 0.4 },
+          { name: "Mentions Right Triangle", description: "Mentions right-angled triangles", maxPoints: 3, weight: 0.3 },
+          { name: "Explains Usage", description: "Explains finding unknown side", maxPoints: 3, weight: 0.3 }
+        ]
+      }
     };
 
     reportContent += `**Subject:** Math (10th Grade)\n`;
-    reportContent += `**Question:** ${mockSubmission.questions[0].questionText}\n`;
-    reportContent += `**Student Answer:** "${mockSubmission.questions[0].studentAnswer}"\n\n`;
+    reportContent += `**Question:** What is the Pythagorean theorem and when is it used?\n`;
+    reportContent += `**Student Answer:** "${mockSubmission.content}"\n\n`;
 
     const startGrading = Date.now();
     let gradingResult;
@@ -111,17 +108,17 @@ async function main() {
       const durationGrading = Date.now() - startGrading;
 
       reportContent += `**Processing Time:** ${durationGrading}ms\n\n`;
-      reportContent += `**Overall Score:** ${gradingResult.scoreBreakdown.totalScore} / ${gradingResult.scoreBreakdown.maxPossibleScore}\n\n`;
+      reportContent += `**Overall Score:** ${gradingResult.scoreBreakdown?.totalScore} / ${gradingResult.scoreBreakdown?.maxScore}\n\n`;
       reportContent += `**Overall Feedback:**\n> ${gradingResult.overallFeedback}\n\n`;
 
       reportContent += `### Strengths\n`;
-      gradingResult.strengths.forEach((s: string) => (reportContent += `- ${s}\n`));
+      gradingResult.strengths?.forEach((s: string) => (reportContent += `- ${s}\n`));
       reportContent += `\n### Areas for Improvement\n`;
-      gradingResult.areasForImprovement.forEach((a: string) => (reportContent += `- ${a}\n`));
+      gradingResult.areasForImprovement?.forEach((a: string) => (reportContent += `- ${a}\n`));
 
-      reportContent += `\n**Detailed Question Grading:**\n\`\`\`json\n${JSON.stringify(gradingResult.scoreBreakdown.questionScores, null, 2)}\n\`\`\`\n\n`;
+      reportContent += `\n**Detailed Question Grading:**\n\`\`\`json\n${JSON.stringify(gradingResult.scoreBreakdown?.criteria, null, 2)}\n\`\`\`\n\n`;
       console.log(
-        `✅ Grading completed in ${durationGrading}ms. Score: ${gradingResult.scoreBreakdown.totalScore}\n`
+        `✅ Grading completed in ${durationGrading}ms. Score: ${gradingResult.scoreBreakdown?.totalScore}\n`
       );
     } catch (e: any) {
       console.error("Grading submit error:", e?.response?.data || e.message);
@@ -132,10 +129,10 @@ async function main() {
       gradingResult = {
         scoreBreakdown: {
           totalScore: 8,
-          maxPossibleScore: 10,
-          questionScores: [
+          maxScore: 10,
+          criteria: [
             {
-              questionId: "q1",
+              criterionName: "Mentions Formula",
               score: 8,
               maxScore: 10,
               feedback: "Good explanation, but missing the connection to the food chain.",
@@ -148,7 +145,7 @@ async function main() {
       };
       const durationGrading = Date.now() - startGrading;
       reportContent += `**Processing Time:** ${durationGrading}ms\n\n`;
-      reportContent += `**Overall Score:** ${gradingResult.scoreBreakdown.totalScore} / ${gradingResult.scoreBreakdown.maxPossibleScore}\n\n`;
+      reportContent += `**Overall Score:** ${gradingResult.scoreBreakdown.totalScore} / ${gradingResult.scoreBreakdown.maxScore}\n\n`;
       reportContent += `**Overall Feedback:**\n> ${gradingResult.overallFeedback}\n\n`;
 
       reportContent += `### Strengths\n`;

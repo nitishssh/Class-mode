@@ -963,6 +963,58 @@ export async function pgFindSchoolClassesByTeacher(uid: string): Promise<PgSchoo
   }
 }
 
+
+export async function pgFindSchoolClassesBySchoolId(schoolId: number): Promise<PgSchoolClass[]> {
+  if (!isPgReady()) return [];
+  try {
+    const { rows } = await getPgPool().query(
+      "SELECT * FROM school_classes WHERE school_id = $1 ORDER BY created_at DESC",
+      [schoolId]
+    );
+    return rows.map(mapSchoolClass);
+  } catch (err) {
+    logger.error("[pg] pgFindSchoolClassesBySchoolId failed", { err: String(err) });
+    return [];
+  }
+}
+
+export async function pgDeleteSchoolClass(id: number): Promise<boolean> {
+  if (!isPgReady()) return false;
+  try {
+    const { rowCount } = await getPgPool().query("DELETE FROM school_classes WHERE id = $1", [id]);
+    return (rowCount ?? 0) > 0;
+  } catch (err) {
+    logger.error("[pg] pgDeleteSchoolClass failed", { err: String(err) });
+    return false;
+  }
+}
+
+export async function pgUpdateSchoolClass(id: number, data: { name?: string, grade?: string }): Promise<PgSchoolClass | null> {
+  if (!isPgReady()) return null;
+  try {
+    const updates = [];
+    const params: any[] = [id];
+    let idx = 2;
+    if (data.name) {
+      updates.push(`name = $${idx++}`);
+      params.push(data.name);
+    }
+    if (data.grade) {
+      updates.push(`grade = $${idx++}`);
+      params.push(data.grade);
+    }
+    if (updates.length === 0) return pgFindSchoolClassById(id);
+    
+    const { rows } = await getPgPool().query(
+      `UPDATE school_classes SET ${updates.join(", ")} WHERE id = $1 RETURNING *`,
+      params
+    );
+    return rows.length ? mapSchoolClass(rows[0]) : null;
+  } catch (err) {
+    logger.error("[pg] pgUpdateSchoolClass failed", { err: String(err) });
+    return null;
+  }
+}
 export async function pgFindSchoolClassById(id: number): Promise<PgSchoolClass | null> {
   if (!isPgReady()) return null;
   try {
