@@ -27,22 +27,20 @@ export function QuestItem({ quest, completed }: QuestItemProps) {
           <span className="text-base">{quest.emoji}</span>
           <p
             className={`text-sm font-medium leading-tight ${
-              completed ? "line-through text-muted-foreground" : "text-foreground"
+              completed ? "text-muted-foreground line-through" : "text-foreground"
             }`}
           >
             {quest.title}
           </p>
         </div>
         {!completed && (
-          <p className="mt-0.5 text-xs text-muted-foreground leading-snug">
-            {quest.description}
-          </p>
+          <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{quest.description}</p>
         )}
       </div>
 
       {!completed && (
         <Link href={quest.ctaPath}>
-          <button className="shrink-0 flex items-center gap-0.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors">
+          <button className="flex shrink-0 items-center gap-0.5 text-xs font-medium text-primary transition-colors hover:text-primary/80">
             {quest.ctaLabel}
             <ChevronRight className="h-3 w-3" />
           </button>

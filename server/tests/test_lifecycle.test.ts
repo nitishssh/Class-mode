@@ -107,7 +107,8 @@ describe("Test Lifecycle — Teacher creates, Student attempts and answers", () 
 
     (pgFindUserById as Mock).mockImplementation((id: number) => {
       if (id === TEACHER_ID) return Promise.resolve(teacherUser);
-      if (id === TEACHER_ID_2) return Promise.resolve({ id: TEACHER_ID_2, role: "teacher", class: "11B" });
+      if (id === TEACHER_ID_2)
+        return Promise.resolve({ id: TEACHER_ID_2, role: "teacher", class: "11B" });
       if (id === STUDENT_ID) return Promise.resolve(studentUser);
       return Promise.resolve(null);
     });

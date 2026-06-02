@@ -12,9 +12,15 @@ const store: Record<string, string> = {};
 
 const localStorageShim = {
   getItem: (key: string) => store[key] ?? null,
-  setItem: (key: string, val: string) => { store[key] = val; },
-  removeItem: (key: string) => { delete store[key]; },
-  clear: () => { Object.keys(store).forEach(k => delete store[k]); },
+  setItem: (key: string, val: string) => {
+    store[key] = val;
+  },
+  removeItem: (key: string) => {
+    delete store[key];
+  },
+  clear: () => {
+    Object.keys(store).forEach((k) => delete store[k]);
+  },
 };
 
 // @ts-ignore — inject browser globals into Node test environment
@@ -91,7 +97,9 @@ describe("markQuestComplete", () => {
   it("is idempotent — does not add duplicate ids", () => {
     markQuestComplete("quest:create-test");
     markQuestComplete("quest:create-test");
-    const ids = readProgressFromStorage().completedIds.filter((id: string) => id === "quest:create-test");
+    const ids = readProgressFromStorage().completedIds.filter(
+      (id: string) => id === "quest:create-test"
+    );
     expect(ids).toHaveLength(1);
   });
 
@@ -114,14 +122,20 @@ describe("markQuestComplete", () => {
 
 describe("setFirstSeenAt", () => {
   it("writes firstSeenAt when empty", () => {
-    localStorage.setItem(QUEST_STORAGE_KEY, JSON.stringify({ completedIds: [], panelDismissed: false, firstSeenAt: "" }));
+    localStorage.setItem(
+      QUEST_STORAGE_KEY,
+      JSON.stringify({ completedIds: [], panelDismissed: false, firstSeenAt: "" })
+    );
     setFirstSeenAt("2026-06-01T00:00:00.000Z");
     expect(readProgressFromStorage().firstSeenAt).toBe("2026-06-01T00:00:00.000Z");
   });
 
   it("is a no-op when firstSeenAt is already set", () => {
     const original = "2026-01-01T00:00:00.000Z";
-    localStorage.setItem(QUEST_STORAGE_KEY, JSON.stringify({ completedIds: [], panelDismissed: false, firstSeenAt: original }));
+    localStorage.setItem(
+      QUEST_STORAGE_KEY,
+      JSON.stringify({ completedIds: [], panelDismissed: false, firstSeenAt: original })
+    );
     setFirstSeenAt("2026-06-01T00:00:00.000Z");
     expect(readProgressFromStorage().firstSeenAt).toBe(original);
   });
@@ -178,6 +192,8 @@ describe("isExpired", () => {
   it("returns true at exactly the 7-day boundary (>= comparison)", () => {
     // exactly 7 days ago should be expired
     const boundary = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 - 1).toISOString();
-    expect(isExpired({ completedIds: [], panelDismissed: false, firstSeenAt: boundary })).toBe(true);
+    expect(isExpired({ completedIds: [], panelDismissed: false, firstSeenAt: boundary })).toBe(
+      true
+    );
   });
 });

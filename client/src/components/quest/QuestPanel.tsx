@@ -24,15 +24,12 @@ export function QuestPanel() {
     if (role === "teacher" && !progress.firstSeenAt) {
       setFirstSeenAt(new Date().toISOString());
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role]); // progress.firstSeenAt omitted intentionally: setFirstSeenAt is idempotent, re-reading on every render would be wasteful
 
   // Fire confetti once when all quests complete
   useEffect(() => {
-    if (
-      progress.completedIds.length === QUESTS.length &&
-      !hasConfettiFired()
-    ) {
+    if (progress.completedIds.length === QUESTS.length && !hasConfettiFired()) {
       markConfettiFired();
       confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
       const t = setTimeout(() => {
@@ -45,62 +42,60 @@ export function QuestPanel() {
   if (role !== "teacher") return null;
 
   const visible =
-    !expired &&
-    !progress.panelDismissed &&
-    progress.completedIds.length < QUESTS.length;
+    !expired && !progress.panelDismissed && progress.completedIds.length < QUESTS.length;
 
   return (
     // AnimatePresence must wrap the conditional so it can play exit animations
     <AnimatePresence>
       {visible && (
-      <motion.div
-        key="quest-panel"
-        initial={{ x: 340, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        exit={{ x: 340, opacity: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="fixed right-4 bottom-20 z-[72] w-80 rounded-xl border border-border bg-background shadow-xl"
-        role="complementary"
-        aria-label="Quest checklist"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <div>
-            <p className="text-sm font-semibold text-foreground">Get started</p>
-            <p className="text-xs text-muted-foreground">
-              {progress.completedIds.length}/{QUESTS.length} complete
-            </p>
+        <motion.div
+          key="quest-panel"
+          initial={{ x: 340, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          exit={{ x: 340, opacity: 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          className="fixed bottom-20 right-4 z-[72] w-80 rounded-xl border border-border bg-background shadow-xl"
+          role="complementary"
+          aria-label="Quest checklist"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <div>
+              <p className="text-sm font-semibold text-foreground">Get started</p>
+              <p className="text-xs text-muted-foreground">
+                {progress.completedIds.length}/{QUESTS.length} complete
+              </p>
+            </div>
+            <button
+              onClick={() => setPanelDismissed(true)}
+              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              aria-label="Dismiss quest panel"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
-          <button
-            onClick={() => setPanelDismissed(true)}
-            className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-            aria-label="Dismiss quest panel"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
 
-        {/* Progress bar */}
-        <div className="h-1 bg-muted">
-          <div
-            className="h-1 bg-primary transition-all duration-500"
-            style={{
-              width: `${(progress.completedIds.length / QUESTS.length) * 100}%`,
-            }}
-          />
-        </div>
-
-        {/* Quest list */}
-        <div className="overflow-y-auto max-h-[60vh] p-2">
-          {QUESTS.map((quest) => (
-            <QuestItem
-              key={quest.id}
-              quest={quest}
-              completed={progress.completedIds.includes(quest.id)}
+          {/* Progress bar */}
+          <div className="h-1 bg-muted">
+            <div
+              className="h-1 bg-primary transition-all duration-500"
+              style={{
+                width: `${(progress.completedIds.length / QUESTS.length) * 100}%`,
+              }}
             />
-          ))}
-        </div>
-      </motion.div>
+          </div>
+
+          {/* Quest list */}
+          <div className="max-h-[60vh] overflow-y-auto p-2">
+            {QUESTS.map((quest) => (
+              <QuestItem
+                key={quest.id}
+                quest={quest}
+                completed={progress.completedIds.includes(quest.id)}
+              />
+            ))}
+          </div>
+        </motion.div>
       )}
     </AnimatePresence>
   );
