@@ -77,6 +77,16 @@ Single `package.json` (no monorepo tool). Key directories:
 | `server/routes/timetable.ts`    | Native period-based timetable                      |
 | `server/message/routes.ts`      | MessagePal WebSocket + REST                        |
 
+## Key client files
+
+| File                                        | Responsibility                                                 |
+| ------------------------------------------- | -------------------------------------------------------------- |
+| `client/src/lib/quest-config.ts`            | Quest definitions (ids, labels, CTA paths, XP rewards)        |
+| `client/src/hooks/use-quest-progress.ts`    | Quest state hook — localStorage read/write, expiry, confetti   |
+| `client/src/components/quest/QuestPanel.tsx`| Slide-in quest panel (shown to new teachers)                   |
+| `client/src/components/quest/QuestButton.tsx`| Floating "Get Started" trigger button                         |
+| `client/src/components/quest/QuestItem.tsx` | Individual quest row with completion state                     |
+
 ## Key lib files
 
 | File                                    | Responsibility                                     |
