@@ -21,7 +21,13 @@ function defaultProgress(): QuestProgress {
 export function readProgressFromStorage(): QuestProgress {
   try {
     const raw = localStorage.getItem(QUEST_STORAGE_KEY);
-    if (!raw) return defaultProgress();
+    if (!raw) {
+      const initial = defaultProgress();
+      // Persist immediately so firstSeenAt is anchored to first page load,
+      // not to the first action (markQuestComplete/setPanelDismissed).
+      localStorage.setItem(QUEST_STORAGE_KEY, JSON.stringify(initial));
+      return initial;
+    }
     return JSON.parse(raw) as QuestProgress;
   } catch {
     return defaultProgress();
@@ -34,7 +40,9 @@ function writeProgress(progress: QuestProgress): void {
 
 export function isExpired(progress: QuestProgress): boolean {
   if (!progress.firstSeenAt) return false;
-  return Date.now() > new Date(progress.firstSeenAt).getTime() + SEVEN_DAYS_MS;
+  const ts = new Date(progress.firstSeenAt).getTime();
+  if (isNaN(ts)) return false; // corrupted timestamp → treat as unexpired (safe default)
+  return Date.now() > ts + SEVEN_DAYS_MS;
 }
 
 export function hasConfettiFired(): boolean {

@@ -114,7 +114,9 @@ router.patch("/tests/:id", authenticateToken, async (req: Request, res: Response
       return res.status(403).json({ message: "Forbidden: Not your test" });
     }
 
-    const updateData = insertTestSchema.partial().parse(req.body);
+    // Strip teacherId from body — ownership is established by the session, not the client
+    const { teacherId: _ignored, ...bodyWithoutTeacherId } = req.body;
+    const updateData = insertTestSchema.partial().parse(bodyWithoutTeacherId);
     const updatedTest = await storage.updateTest(testId, updateData);
     res.status(200).json(updatedTest);
   } catch (error) {

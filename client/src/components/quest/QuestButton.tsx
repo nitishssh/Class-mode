@@ -22,13 +22,15 @@ export function QuestButton() {
   }, [allDone]);
 
   if (role !== "teacher") return null;
-  if (expired && !allDone) return null;
-  if (!visible) return null;
-  // Panel is open (not dismissed) — button shown only when panel is dismissed or all done
-  if (!progress.panelDismissed && !allDone) return null;
+
+  const shouldShow =
+    visible &&
+    !expired &&
+    (progress.panelDismissed || allDone);
 
   return (
     <AnimatePresence>
+      {shouldShow && (
       <motion.button
         key="quest-button"
         initial={{ scale: 0, opacity: 0 }}
@@ -51,6 +53,7 @@ export function QuestButton() {
           </span>
         )}
       </motion.button>
+      )}
     </AnimatePresence>
   );
 }

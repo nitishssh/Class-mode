@@ -43,12 +43,16 @@ export function QuestPanel() {
   }, [progress.completedIds.length]);
 
   if (role !== "teacher") return null;
-  if (expired && progress.completedIds.length < QUESTS.length) return null;
-  if (progress.panelDismissed) return null;
-  if (progress.completedIds.length === QUESTS.length) return null;
+
+  const visible =
+    !expired &&
+    !progress.panelDismissed &&
+    progress.completedIds.length < QUESTS.length;
 
   return (
+    // AnimatePresence must wrap the conditional so it can play exit animations
     <AnimatePresence>
+      {visible && (
       <motion.div
         key="quest-panel"
         initial={{ x: 340, opacity: 0 }}
@@ -97,6 +101,7 @@ export function QuestPanel() {
           ))}
         </div>
       </motion.div>
+      )}
     </AnimatePresence>
   );
 }
