@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -86,7 +87,9 @@ export default function StudyPlanPage() {
             <div className="space-y-4">
               <div>
                 <h3 className="text-lg font-semibold">Study Plan</h3>
-                <div dangerouslySetInnerHTML={{ __html: studyPlan.plan }} />
+                <div className="prose prose-sm dark:prose-invert">
+                  <ReactMarkdown>{studyPlan.plan}</ReactMarkdown>
+                </div>
               </div>
               <div>
                 <h3 className="text-lg font-semibold">Recommended Resources</h3>
