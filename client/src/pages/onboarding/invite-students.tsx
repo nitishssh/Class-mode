@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { markQuestComplete } from "@/hooks/use-quest-progress";
 
 export default function InviteStudents() {
   const [form, setForm] = useState({ studentName: "", parentEmail: "", grade: "", classId: "" });
@@ -26,6 +27,7 @@ export default function InviteStudents() {
   const sendMutation = useMutation({
     mutationFn: () => apiRequest("POST", "/api/invite/student", form),
     onSuccess: () => {
+      markQuestComplete("quest:invite-student");
       toast({ title: "Invite sent!" });
       setForm((f) => ({ ...f, studentName: "", parentEmail: "" }));
       qc.invalidateQueries({ queryKey: ["/api/invite/student/list"] });

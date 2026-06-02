@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { markQuestComplete } from "@/hooks/use-quest-progress";
 
 const GRADES = ["Nursery", "LKG", "UKG", ...Array.from({ length: 12 }, (_, i) => `Grade ${i + 1}`)];
 
@@ -20,6 +21,7 @@ export default function TeacherClassSetup() {
   const createMutation = useMutation({
     mutationFn: () => apiRequest("POST", "/api/classes", form),
     onSuccess: () => {
+      markQuestComplete("quest:create-class");
       toast({ title: "Class created!" });
       setForm({ name: "", grade: "" });
       qc.invalidateQueries({ queryKey: ["/api/classes/mine"] });

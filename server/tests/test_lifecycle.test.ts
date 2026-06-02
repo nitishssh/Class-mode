@@ -64,6 +64,7 @@ import jwt from "jsonwebtoken";
 const JWT_SECRET = "super_secret_jwt_key_learning_pro_123";
 
 const TEACHER_ID = 50;
+const TEACHER_ID_2 = 51; // second teacher — must not be able to create tests under TEACHER_ID
 const STUDENT_ID = 10;
 
 function makeToken(userId: number, role: "teacher" | "student") {
@@ -106,6 +107,8 @@ describe("Test Lifecycle — Teacher creates, Student attempts and answers", () 
 
     (pgFindUserById as Mock).mockImplementation((id: number) => {
       if (id === TEACHER_ID) return Promise.resolve(teacherUser);
+      if (id === TEACHER_ID_2)
+        return Promise.resolve({ id: TEACHER_ID_2, role: "teacher", class: "11B" });
       if (id === STUDENT_ID) return Promise.resolve(studentUser);
       return Promise.resolve(null);
     });
@@ -174,21 +177,51 @@ describe("Test Lifecycle — Teacher creates, Student attempts and answers", () 
       expect(res.status).toBe(401);
     });
 
-    it("should return 403 when teacher tries to create a test for another teacher", async () => {
+    it("should ignore client-sent teacherId and use session userId instead", async () => {
+      // teacherId is now always derived server-side from the session —
+      // a client sending a different ID cannot create tests for another teacher.
+      mockStorage.createTest.mockImplementation((data: any) =>
+        Promise.resolve({ id: 1, ...data, status: "draft" })
+      );
+
       const res = await request(app)
         .post("/api/tests")
         .set("Authorization", `Bearer ${makeToken(TEACHER_ID, "teacher")}`)
         .send({
           title: "Physics Quiz",
           class: "10A",
-          teacherId: 999,
+          teacherId: 999, // ignored — server overwrites with TEACHER_ID
           subject: "Physics",
           testDate: "2026-03-09",
           questionTypes: ["mcq"],
         });
 
-      expect(res.status).toBe(403);
-      expect(res.body.message).toMatch(/only create tests for yourself/i);
+      expect(res.status).toBe(201);
+      expect(res.body.teacherId).toBe(TEACHER_ID); // server-derived, not client-sent 999
+    });
+
+    it("should not allow a teacher to create a test attributed to a different teacher", async () => {
+      // TEACHER_ID_2 sends their own valid token but tries to claim teacherId = TEACHER_ID
+      mockStorage.createTest.mockImplementation((data: any) =>
+        Promise.resolve({ id: 2, ...data, status: "draft" })
+      );
+
+      const res = await request(app)
+        .post("/api/tests")
+        .set("Authorization", `Bearer ${makeToken(TEACHER_ID_2, "teacher")}`)
+        .send({
+          title: "Hijacked Test",
+          class: "10A",
+          teacherId: TEACHER_ID, // attempt to claim another teacher's identity
+          subject: "Math",
+          testDate: "2026-03-09",
+          questionTypes: ["mcq"],
+        });
+
+      expect(res.status).toBe(201);
+      // The test must be attributed to TEACHER_ID_2 (the authenticated user), not TEACHER_ID
+      expect(res.body.teacherId).toBe(TEACHER_ID_2);
+      expect(res.body.teacherId).not.toBe(TEACHER_ID);
     });
   });
 

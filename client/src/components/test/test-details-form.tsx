@@ -7,6 +7,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
+import { markQuestComplete } from "@/hooks/use-quest-progress";
 
 import {
   Form,
@@ -87,6 +88,7 @@ export function TestDetailsForm() {
       });
     },
     onSuccess: async (response) => {
+      markQuestComplete("quest:create-test");
       const test = await response.json();
       toast({
         title: "Test Created",
