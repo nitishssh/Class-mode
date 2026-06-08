@@ -68,7 +68,7 @@
     "express": "^4.22.2",
     "express-rate-limit": "^8.5.1",
     "express-session": "^1.18.1",
-    "firebase": "^12.13.0",
+    "firebase": "^12.14.0",
     "firebase-admin": "^13.10.0",
     "framer-motion": "^11.18.2",
     "helmet": "^8.1.0",
