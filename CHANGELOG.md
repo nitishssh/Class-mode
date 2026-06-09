@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.1.0] - 2026-06-10
+
+### Added
+
+- **Complete Admin Dashboard** — Teachers and admins now have a unified control center for user management, class organization, and system settings. Supports bulk actions and academic calendar setup.
+- **Pilot School Seeding** — New script `server/scripts/seed-pilot.ts` allows developers to instantly seed a full institutional environment with an admin user, classes, and sample tests for testing and demos.
+- **AI Predictive Reporting** — Initial support for generating predictive learning outcome reports in the analytics dashboard.
+
 ## [1.7.0.0] - 2026-06-02
 
 ### Added

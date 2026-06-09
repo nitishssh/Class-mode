@@ -24,6 +24,14 @@ CI order (`.github/workflows/ci.yml`): `check → lint → build → test`.
 - Excluded from root test glob: `e2e/`, `features/`, `mobile/`.
 - MongoDB required for meaningful tests (`MONGODB_URL` env var).
 
+## Pilot School & Testing
+
+```bash
+npx tsx server/scripts/seed-pilot.ts       # Seed complete pilot school environment
+npx tsx scripts/simulate-pilot-school.ts   # Run pilot school AI simulation
+npx tsx scripts/test-db.ts                 # Test database connectivity
+```
+
 ## Monorepo layout
 
 Single `package.json` (no monorepo tool). Key directories:

@@ -1,6 +1,6 @@
 {
   "name": "rest-express",
-  "version": "1.7.0.0",
+  "version": "1.7.1.0",
   "type": "module",
   "license": "MIT",
   "scripts": {
@@ -77,6 +77,7 @@
     "jotai": "^2.20.0",
     "jsonrepair": "^3.14.0",
     "jsonwebtoken": "^9.0.3",
+    "jspdf": "^4.2.1",
     "katex": "^0.16.46",
     "lucide-react": "^0.453.0",
     "memorystore": "^1.6.7",

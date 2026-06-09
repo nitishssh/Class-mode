@@ -94,6 +94,8 @@ Requires **Node.js v18+** and **npm**.
     npm run dev
     ```
 
+> 💡 **Pro Tip:** Want to test with a full environment immediately? Run `npx tsx server/scripts/seed-pilot.ts` to seed a complete "Pilot School" with an admin user, classes, and tests.
+
 5.  🌐 Open **[http://localhost:5001](http://localhost:5001)** in your browser. Both the frontend and API are served from the same port.
 
 > 📖 For a more detailed manual setup guide, see [LOCAL_SETUP.md](LOCAL_SETUP.md).
