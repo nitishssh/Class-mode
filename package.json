@@ -80,7 +80,7 @@
     "jspdf": "^4.2.1",
     "katex": "^0.16.46",
     "lucide-react": "^0.453.0",
-    "memorystore": "^1.6.7",
+    "memorystore": "^1.6.8",
     "mitt": "^3.0.1",
     "multer": "^2.1.1",
     "nanoid": "^5.1.11",
