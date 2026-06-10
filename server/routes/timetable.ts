@@ -11,6 +11,22 @@ import { logger } from "../lib/logger";
 
 const router = Router();
 
+const mapSlotToResponse = (slot: any) => {
+  if (!slot) return slot;
+  return {
+    id: slot.id,
+    subject: slot.subject,
+    room: slot.room ?? null,
+    dayOfWeek: slot.day_of_week,
+    periodNumber: slot.period_number,
+    className: slot.class_name,
+    teacherId: slot.teacher_id,
+    startTime: slot.start_time,
+    endTime: slot.end_time,
+    workspaceId: slot.workspace_id,
+  };
+};
+
 // GET /api/timetable — Get full workspace timetable (Admin/Teacher)
 router.get("/", authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -18,7 +34,7 @@ router.get("/", authenticateToken, async (req: Request, res: Response) => {
     if (!workspace?.id) return res.status(400).json({ message: "Workspace not found" });
 
     const timetable = await pgGetTimetableByWorkspace(workspace.id);
-    res.json(timetable);
+    res.json(timetable.map(mapSlotToResponse));
   } catch (error) {
     logger.error("[timetable/list] Error", { error: String(error) });
     res.status(500).json({ message: "Failed to fetch timetable" });
@@ -33,7 +49,7 @@ router.get("/class/:className", authenticateToken, async (req: Request, res: Res
     if (!workspace?.id) return res.status(400).json({ message: "Workspace not found" });
 
     const timetable = await pgGetTimetableByClass(workspace.id, className);
-    res.json(timetable);
+    res.json(timetable.map(mapSlotToResponse));
   } catch (error) {
     logger.error("[timetable/class] Error", { error: String(error) });
     res.status(500).json({ message: "Failed to fetch class timetable" });
@@ -60,7 +76,7 @@ router.post("/", authenticateToken, async (req: Request, res: Response) => {
     });
 
     const slot = await pgCreateTimetableSlot(data);
-    res.status(201).json(slot);
+    res.status(201).json(mapSlotToResponse(slot));
   } catch (error: any) {
     logger.error("[timetable/create] Error", { error: String(error) });
     res.status(400).json({ message: error.message || "Failed to create timetable slot" });
