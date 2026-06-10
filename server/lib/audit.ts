@@ -13,6 +13,9 @@ export const AUDIT_EVENTS = {
   INVITE_RESENT: "invite.resent",
   ROLE_CLAIM_REJECTED: "role_claim.rejected",
   CUSTOM_CLAIMS_SYNCED: "custom_claims.synced",
+  TENANT_ACCESS_DENIED: "security.tenant_access_denied",
+  VALIDATION_FAILED: "security.validation_failed",
+  API_KEY_ISSUED: "security.api_key_issued",
 } as const;
 
 export type AuditEventType = (typeof AUDIT_EVENTS)[keyof typeof AUDIT_EVENTS];

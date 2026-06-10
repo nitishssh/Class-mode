@@ -1,7 +1,14 @@
 import { Router, Request, Response } from "express";
+import jwt from "jsonwebtoken";
 import { authenticateToken } from "../middleware";
 import { storage } from "../storage";
-import { pgFindUsers, pgFindUserById, pgUpdateUser, pgDeleteUser, pgFindSchoolClassesBySchoolId, pgCreateSchoolClass, pgUpdateSchoolClass, pgDeleteSchoolClass, pgFindSchoolById, pgUpsertSchool } from "../lib/pg-queries";
+import {
+  insertSchoolClassSchema,
+  updateSchoolClassSchema,
+  updateSchoolSchema,
+  updateUserSchema,
+} from "../../shared/schema";
+import { pgFindUsers, pgFindUserById, pgUpdateUser, pgDeleteUser, pgFindSchoolClassesBySchoolId, pgFindSchoolClassById, pgCreateSchoolClass, pgUpdateSchoolClass, pgDeleteSchoolClass, pgFindSchoolById, pgUpsertSchool } from "../lib/pg-queries";
 import { setCustomUserClaims } from "../lib/firebase-admin";
 import { recordAuditEvent, AUDIT_EVENTS } from "../lib/audit";
 import { logger } from "../lib/logger";
@@ -23,8 +30,7 @@ router.get("/users/me", authenticateToken, async (req: Request, res: Response) =
       return res.status(404).json({ message: "User not found" });
     }
 
-    const userWithoutPassword = { ...user };
-    delete (userWithoutPassword as any).password;
+    const { password, ...userWithoutPassword } = user;
 
     res.status(200).json(userWithoutPassword);
   } catch {
@@ -88,6 +94,13 @@ router.post(
       }
 
       if (teacher.schoolCode !== admin.schoolCode) {
+        recordAuditEvent({
+          actorUserId: admin.id,
+          targetUserId: teacher.id,
+          schoolCode: admin.schoolCode,
+          eventType: AUDIT_EVENTS.TENANT_ACCESS_DENIED,
+          payload: { route: "POST /school/teachers/:id/approve", targetId: teacher.id, targetType: "teacher" },
+        });
         return res
           .status(403)
           .json({ message: "Forbidden: Teacher belongs to a different school" });
@@ -134,7 +147,7 @@ router.get("/users", authenticateToken, async (req: Request, res: Response) => {
     }
 
     const role = req.query.role as string | undefined;
-    const filters: any = {};
+    const filters: { role?: string; schoolCode?: string } = {};
     if (role) {
       filters.role = role;
     }
@@ -185,13 +198,37 @@ router.put("/users/:id", authenticateToken, async (req: Request, res: Response) 
       return res.status(403).json({ message: "Forbidden" });
     }
 
+    const admin = await pgFindUserById(req.session.userId);
     const userId = parseInt(req.params.id);
-    const updatedUser = await pgUpdateUser(userId, req.body);
-    
+    const targetUser = await pgFindUserById(userId);
+
+    if (!targetUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Tenant isolation: school_admin and principal can only update users in their own school
+    if (admin?.role !== "admin" && admin?.schoolCode !== targetUser.schoolCode) {
+      recordAuditEvent({
+        actorUserId: admin?.id,
+        targetUserId: targetUser.id,
+        schoolCode: admin?.schoolCode,
+        eventType: AUDIT_EVENTS.TENANT_ACCESS_DENIED,
+        payload: { route: "PUT /api/users/:id", targetId: targetUser.id, targetType: "user" },
+      });
+      return res.status(403).json({ message: "Forbidden: You can only manage users in your own school" });
+    }
+
+    const parsed = updateUserSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Invalid request data", errors: parsed.error.format() });
+    }
+
+    const updatedUser = await pgUpdateUser(userId, parsed.data);
+
     if (!updatedUser) {
       return res.status(404).json({ message: "User not found" });
     }
-    
+
     res.status(200).json(updatedUser);
   } catch (error) {
     console.error("[api/users] PUT Error:", error);
@@ -206,7 +243,26 @@ router.delete("/users/:id", authenticateToken, async (req: Request, res: Respons
       return res.status(403).json({ message: "Forbidden" });
     }
 
+    const admin = await pgFindUserById(req.session.userId);
     const userId = parseInt(req.params.id);
+    const targetUser = await pgFindUserById(userId);
+
+    if (!targetUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Tenant isolation: school_admin and principal can only delete users in their own school
+    if (admin?.role !== "admin" && admin?.schoolCode !== targetUser.schoolCode) {
+      recordAuditEvent({
+        actorUserId: admin?.id,
+        targetUserId: targetUser.id,
+        schoolCode: admin?.schoolCode,
+        eventType: AUDIT_EVENTS.TENANT_ACCESS_DENIED,
+        payload: { route: "DELETE /api/users/:id", targetId: targetUser.id, targetType: "user" },
+      });
+      return res.status(403).json({ message: "Forbidden: You can only manage users in your own school" });
+    }
+
     const success = await pgDeleteUser(userId);
     
     if (!success) {
@@ -253,10 +309,21 @@ router.post("/admin/classes", authenticateToken, async (req: Request, res: Respo
       return res.status(400).json({ message: "Admin school not found" });
     }
 
+    const parsed = insertSchoolClassSchema.safeParse(req.body);
+    if (!parsed.success) {
+      recordAuditEvent({
+        actorUserId: admin.id,
+        schoolCode: admin.schoolCode,
+        eventType: AUDIT_EVENTS.VALIDATION_FAILED,
+        payload: { route: "POST /admin/classes", errors: parsed.error.format() },
+      });
+      return res.status(400).json({ message: "Invalid request data", errors: parsed.error.format() });
+    }
+
     const cls = await pgCreateSchoolClass({
-      name: req.body.name,
-      grade: req.body.grade,
-      teacherFirebaseUid: req.body.teacherFirebaseUid || admin.authSubject || "admin",
+      name: parsed.data.name,
+      grade: parsed.data.grade,
+      teacherFirebaseUid: parsed.data.teacherFirebaseUid || admin.authSubject || "admin",
       schoolId: admin.schoolId,
     });
     
@@ -274,8 +341,37 @@ router.put("/admin/classes/:id", authenticateToken, async (req: Request, res: Re
       return res.status(403).json({ message: "Forbidden" });
     }
 
+    const admin = await pgFindUserById(req.session.userId);
     const classId = parseInt(req.params.id);
-    const updatedClass = await pgUpdateSchoolClass(classId, req.body);
+    const targetClass = await pgFindSchoolClassById(classId);
+
+    if (!targetClass) {
+      return res.status(404).json({ message: "Class not found" });
+    }
+
+    // Tenant isolation: school_admin and principal can only update classes in their own school
+    if (admin?.role !== "admin" && admin?.schoolId !== targetClass.schoolId) {
+      recordAuditEvent({
+        actorUserId: admin?.id,
+        schoolCode: admin?.schoolCode,
+        eventType: AUDIT_EVENTS.TENANT_ACCESS_DENIED,
+        payload: { route: "PUT /api/admin/classes/:id", targetId: classId, targetType: "class" },
+      });
+      return res.status(403).json({ message: "Forbidden: You can only manage classes in your own school" });
+    }
+
+    const parsed = updateSchoolClassSchema.safeParse(req.body);
+    if (!parsed.success) {
+      recordAuditEvent({
+        actorUserId: admin?.id,
+        schoolCode: admin?.schoolCode,
+        eventType: AUDIT_EVENTS.VALIDATION_FAILED,
+        payload: { route: "PUT /api/admin/classes/:id", targetId: classId, errors: parsed.error.format() },
+      });
+      return res.status(400).json({ message: "Invalid request data", errors: parsed.error.format() });
+    }
+
+    const updatedClass = await pgUpdateSchoolClass(classId, parsed.data);
     
     if (!updatedClass) {
       return res.status(404).json({ message: "Class not found" });
@@ -295,7 +391,25 @@ router.delete("/admin/classes/:id", authenticateToken, async (req: Request, res:
       return res.status(403).json({ message: "Forbidden" });
     }
 
+    const admin = await pgFindUserById(req.session.userId);
     const classId = parseInt(req.params.id);
+    const targetClass = await pgFindSchoolClassById(classId);
+
+    if (!targetClass) {
+      return res.status(404).json({ message: "Class not found" });
+    }
+
+    // Tenant isolation: school_admin and principal can only delete classes in their own school
+    if (admin?.role !== "admin" && admin?.schoolId !== targetClass.schoolId) {
+      recordAuditEvent({
+        actorUserId: admin?.id,
+        schoolCode: admin?.schoolCode,
+        eventType: AUDIT_EVENTS.TENANT_ACCESS_DENIED,
+        payload: { route: "DELETE /api/admin/classes/:id", targetId: classId, targetType: "class" },
+      });
+      return res.status(403).json({ message: "Forbidden: You can only manage classes in your own school" });
+    }
+
     const success = await pgDeleteSchoolClass(classId);
     
     if (!success) {
@@ -321,7 +435,7 @@ router.get("/admin/school", authenticateToken, async (req: Request, res: Respons
 
     const school = await pgFindSchoolById(admin.schoolId);
     res.json(school);
-  } catch (error) {
+  } catch {
     res.status(500).json({ message: "Failed to fetch school profile" });
   }
 });
@@ -335,18 +449,110 @@ router.put("/admin/school", authenticateToken, async (req: Request, res: Respons
     const admin = await pgFindUserById(req.session.userId);
     if (!admin || !admin.schoolId) return res.status(400).json({ message: "School not found" });
 
-    const school = await pgUpsertSchool({
+    const parsed = updateSchoolSchema.safeParse(req.body);
+    if (!parsed.success) {
+      recordAuditEvent({
+        actorUserId: admin?.id,
+        schoolCode: admin?.schoolCode,
+        eventType: AUDIT_EVENTS.VALIDATION_FAILED,
+        payload: { route: "PUT /api/admin/school", errors: parsed.error.format() },
+      });
+      return res.status(400).json({ message: "Invalid request data", errors: parsed.error.format() });
+    }
+
+    await pgUpsertSchool({
       uid: admin.authSubject || "admin",
-      name: req.body.name,
-      city: req.body.city,
-      board: req.body.board,
+      name: parsed.data.name,
+      city: parsed.data.city ?? undefined,
+      board: parsed.data.board ?? undefined,
     });
     
     // the upsert might return the school or null, let's just refetch
     const updated = await pgFindSchoolById(admin.schoolId);
     res.json(updated);
-  } catch (error) {
+  } catch {
     res.status(500).json({ message: "Failed to update school profile" });
+  }
+});
+
+// GET /api/admin/logs
+router.get("/admin/logs", authenticateToken, async (req: Request, res: Response) => {
+  try {
+    if (!req.session?.userId || (req.session.role !== "school_admin" && req.session.role !== "admin" && req.session.role !== "principal")) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    const admin = await pgFindUserById(req.session.userId);
+    if (!admin) return res.status(400).json({ message: "Admin not found" });
+
+    if (!isPgReady()) {
+      return res.status(200).json([]);
+    }
+
+    let queryText = `
+      SELECT 
+        ae.id,
+        ae.event_type as "eventType",
+        ae.created_at as "createdAt",
+        ae.payload,
+        actor.name as "actorName",
+        actor.role as "actorRole",
+        target.name as "targetName",
+        target.role as "targetRole"
+      FROM audit_events ae
+      LEFT JOIN users actor ON ae.actor_user_id = actor.id
+      LEFT JOIN users target ON ae.target_user_id = target.id
+    `;
+    const queryParams: (string | number)[] = [];
+
+    if (admin.role !== "admin" && admin.schoolCode) {
+      queryText += ` WHERE ae.school_code = $1 `;
+      queryParams.push(admin.schoolCode);
+    }
+
+    queryText += ` ORDER BY ae.created_at DESC LIMIT 50 `;
+
+    const result = await getPgPool().query(queryText, queryParams);
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error("[api/admin/logs] Error:", error);
+    res.status(500).json({ message: "Failed to fetch audit logs" });
+  }
+});
+
+// POST /api/admin/keys
+router.post("/admin/keys", authenticateToken, async (req: Request, res: Response) => {
+  try {
+    if (!req.session?.userId || (req.session.role !== "school_admin" && req.session.role !== "admin" && req.session.role !== "principal")) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    const admin = await pgFindUserById(req.session.userId);
+    if (!admin) return res.status(400).json({ message: "Admin not found" });
+
+    // Generate a long-lived API key token (e.g. 1 year)
+    const apiKey = jwt.sign(
+      {
+        userId: admin.id,
+        role: admin.role,
+        email: admin.email,
+        emailVerified: admin.emailVerified,
+      },
+      process.env.JWT_SECRET!,
+      { expiresIn: "365d" }
+    );
+
+    recordAuditEvent({
+      actorUserId: admin.id,
+      schoolCode: admin.schoolCode,
+      eventType: AUDIT_EVENTS.API_KEY_ISSUED,
+      payload: { route: "POST /api/admin/keys", userId: admin.id, role: admin.role },
+    });
+
+    res.status(201).json({ apiKey });
+  } catch (error) {
+    console.error("[api/admin/keys] Error:", error);
+    res.status(500).json({ message: "Failed to generate API Key" });
   }
 });
 
