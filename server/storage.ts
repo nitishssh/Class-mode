@@ -46,6 +46,7 @@ import {
   type StudentAchievement,
   type InsertStudentAchievement,
 } from "@shared/schema";
+import { type UserRole, type UserStatus } from "@shared/authz";
 import { getPgPool } from "./db-pg";
 import { getCassandraClient } from "./lib/cassandra";
 import {
@@ -59,6 +60,17 @@ import {
 } from "./lib/cassandra-message-store";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
+
+export type StorageRow = Record<string, unknown>;
+export type QueryParam =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | Date
+  | object
+  | (string | number | boolean | null | undefined | Date | object)[];
 
 export interface IUserStorage {
   getUser(id: number | string): Promise<User | undefined>;
@@ -213,323 +225,324 @@ export interface IStorage
 
 // ─── Row mappers ──────────────────────────────────────────────────────────────
 
-function n(v: any): number | null {
+function n(v: unknown): number | null {
   if (v == null) return null;
-  const x = parseInt(v, 10);
+  if (typeof v === "number") return v;
+  const x = parseInt(String(v), 10);
   return isNaN(x) ? null : x;
 }
 
-function mapUser(r: any): User {
+function mapUser(r: StorageRow): User {
   return {
     id: n(r.id)!,
-    username: r.username ?? "",
-    password: r.password_hash ?? "",
-    name: r.name ?? "",
-    email: r.email,
-    emailVerified: r.email_verified ?? false,
-    role: r.role as any,
-    status: r.status as any,
-    avatar: r.avatar ?? null,
-    class: r.class_name ?? null,
-    subject: r.subject ?? null,
-    school_code: r.school_code ?? null,
-    grade: r.grade ?? null,
-    board: r.board ?? null,
-    subjects: r.subjects ?? [],
-    district: r.district ?? null,
-    createdAt: r.created_at,
-    lastLoginAt: r.last_login_at ?? null,
+    username: (r.username as string) ?? "",
+    password: (r.password_hash as string) ?? "",
+    name: (r.name as string) ?? "",
+    email: r.email as string,
+    emailVerified: (r.email_verified as boolean) ?? false,
+    role: r.role as UserRole,
+    status: r.status as UserStatus,
+    avatar: (r.avatar as string) ?? null,
+    class: (r.class_name as string) ?? null,
+    subject: (r.subject as string) ?? null,
+    school_code: (r.school_code as string) ?? null,
+    grade: (r.grade as string) ?? null,
+    board: (r.board as string) ?? null,
+    subjects: (r.subjects as string[]) ?? [],
+    district: (r.district as string) ?? null,
+    createdAt: r.created_at as Date,
+    lastLoginAt: (r.last_login_at as Date) ?? null,
   };
 }
 
-function mapSession(r: any): Session {
+function mapSession(r: StorageRow): Session {
   return {
     id: n(r.id)!,
     userId: n(r.user_id)!,
-    refreshTokenHash: r.refresh_token_hash,
-    deviceInfo: r.device_info ?? null,
-    ipAddress: r.ip_address ?? null,
-    expiresAt: r.expires_at,
-    createdAt: r.created_at,
+    refreshTokenHash: r.refresh_token_hash as string,
+    deviceInfo: (r.device_info as string) ?? null,
+    ipAddress: (r.ip_address as string) ?? null,
+    expiresAt: r.expires_at as Date,
+    createdAt: r.created_at as Date,
   };
 }
 
-function mapOtp(r: any): Otp {
+function mapOtp(r: StorageRow): Otp {
   return {
     id: n(r.id)!,
     userId: n(r.user_id)!,
-    otpHash: r.otp_hash,
-    type: r.type as any,
-    expiresAt: r.expires_at,
-    used: r.used ?? false,
+    otpHash: r.otp_hash as string,
+    type: r.type as InsertOtp["type"],
+    expiresAt: r.expires_at as Date,
+    used: (r.used as boolean) ?? false,
   };
 }
 
-function mapTest(r: any): Test {
+function mapTest(r: StorageRow): Test {
   return {
     id: n(r.id)!,
-    title: r.title,
-    description: r.description ?? null,
-    subject: r.subject,
-    class: r.class_name,
+    title: r.title as string,
+    description: (r.description as string) ?? null,
+    subject: r.subject as string,
+    class: r.class_name as string,
     teacherId: n(r.teacher_id)!,
     totalMarks: n(r.total_marks) ?? 100,
     duration: n(r.duration) ?? 60,
-    testDate: r.test_date,
-    questionTypes: r.question_types ?? [],
-    status: r.status as any,
-    createdAt: r.created_at,
+    testDate: r.test_date as Date,
+    questionTypes: (r.question_types as string[]) ?? [],
+    status: r.status as InsertTest["status"],
+    createdAt: r.created_at as Date,
   };
 }
 
-function mapQuestion(r: any): Question {
+function mapQuestion(r: StorageRow): Question {
   return {
     id: n(r.id)!,
     testId: n(r.test_id)!,
-    type: r.type as any,
-    text: r.text,
+    type: r.type as InsertQuestion["type"],
+    text: r.text as string,
     options: r.options ?? null,
-    correctAnswer: r.correct_answer ?? null,
+    correctAnswer: (r.correct_answer as string) ?? null,
     marks: n(r.marks) ?? 1,
     order: n(r.ord) ?? 0,
-    aiRubric: r.ai_rubric ?? null,
+    aiRubric: (r.ai_rubric as string) ?? null,
   };
 }
 
-function mapAttempt(r: any): TestAttempt {
+function mapAttempt(r: StorageRow): TestAttempt {
   return {
     id: n(r.id)!,
     testId: n(r.test_id)!,
     studentId: n(r.student_id)!,
-    startTime: r.start_time,
-    endTime: r.end_time ?? null,
-    score: r.score != null ? parseFloat(r.score) : null,
-    status: r.status as any,
+    startTime: r.start_time as Date,
+    endTime: (r.end_time as Date) ?? null,
+    score: r.score != null ? parseFloat(String(r.score)) : null,
+    status: r.status as InsertTestAttempt["status"],
   };
 }
 
-function mapAnswer(r: any): Answer {
+function mapAnswer(r: StorageRow): Answer {
   return {
     id: n(r.id)!,
     attemptId: n(r.attempt_id)!,
     questionId: n(r.question_id)!,
-    text: r.text ?? null,
+    text: (r.text as string) ?? null,
     selectedOption: n(r.selected_option),
-    imageUrl: r.image_url ?? null,
-    ocrText: r.ocr_text ?? null,
-    score: r.score != null ? parseFloat(r.score) : null,
-    aiConfidence: r.ai_confidence != null ? parseFloat(r.ai_confidence) : null,
-    aiFeedback: r.ai_feedback ?? null,
-    isCorrect: r.is_correct ?? null,
+    imageUrl: (r.image_url as string) ?? null,
+    ocrText: (r.ocr_text as string) ?? null,
+    score: r.score != null ? parseFloat(String(r.score)) : null,
+    aiConfidence: r.ai_confidence != null ? parseFloat(String(r.ai_confidence)) : null,
+    aiFeedback: (r.ai_feedback as string) ?? null,
+    isCorrect: (r.is_correct as boolean) ?? null,
   };
 }
 
-function mapAnalytics(r: any): Analytics {
+function mapAnalytics(r: StorageRow): Analytics {
   return {
     id: n(r.id)!,
     userId: n(r.user_id)!,
     testId: n(r.test_id)!,
-    weakTopics: r.weak_topics ?? [],
-    strongTopics: r.strong_topics ?? [],
-    recommendedResources: r.recommended_resources ?? [],
-    insightDate: r.insight_date,
+    weakTopics: (r.weak_topics as string[]) ?? [],
+    strongTopics: (r.strong_topics as string[]) ?? [],
+    recommendedResources: (r.recommended_resources as string[]) ?? [],
+    insightDate: r.insight_date as Date,
   };
 }
 
-function mapAssignment(r: any): TestAssignment {
+function mapAssignment(r: StorageRow): TestAssignment {
   return {
     id: n(r.id)!,
     testId: n(r.test_id)!,
     studentId: n(r.student_id)!,
     assignedBy: n(r.assigned_by)!,
-    assignedDate: r.assigned_date,
-    dueDate: r.due_date,
-    status: r.status as any,
-    notificationSent: r.notification_sent ?? false,
+    assignedDate: r.assigned_date as Date,
+    dueDate: r.due_date as Date,
+    status: r.status as InsertTestAssignment["status"],
+    notificationSent: (r.notification_sent as boolean) ?? false,
   };
 }
 
-function mapWorkspace(r: any): Workspace {
+function mapWorkspace(r: StorageRow): Workspace {
   return {
     id: n(r.id)!,
-    name: r.name,
-    slug: r.slug ?? null,
-    type: r.type ?? "business",
-    description: r.description ?? null,
+    name: r.name as string,
+    slug: (r.slug as string) ?? null,
+    type: (r.type as InsertWorkspace["type"]) ?? "business",
+    description: (r.description as string) ?? null,
     ownerId: n(r.owner_id)!,
-    members: (r.members ?? []).map(Number),
-    createdAt: r.created_at,
+    members: ((r.members as unknown[]) ?? []).map(Number),
+    createdAt: r.created_at as Date,
   };
 }
 
-function mapChannel(r: any): Channel {
+function mapChannel(r: StorageRow): Channel {
   return {
     id: n(r.id)!,
     workspaceId: n(r.workspace_id),
-    name: r.name,
-    type: r.type as any,
-    class: r.class_name ?? null,
-    subject: r.subject ?? null,
-    pinnedMessages: (r.pinned_messages ?? []).map(Number),
-    createdAt: r.created_at,
+    name: r.name as string,
+    type: r.type as InsertChannel["type"],
+    class: (r.class_name as string) ?? null,
+    subject: (r.subject as string) ?? null,
+    pinnedMessages: ((r.pinned_messages as unknown[]) ?? []).map(Number),
+    createdAt: r.created_at as Date,
   };
 }
 
-function mapMessage(r: any): Message {
+function mapMessage(r: StorageRow): Message {
   return {
     id: n(r.id)!,
     channelId: n(r.channel_id)!,
     authorId: n(r.author_id)!,
-    content: r.content,
-    type: r.type as any,
-    fileUrl: r.file_url ?? null,
-    isPinned: r.is_pinned ?? false,
-    isHomework: r.is_homework ?? false,
-    gradingStatus: r.grading_status ?? null,
-    readBy: (r.read_by ?? []).map(Number),
-    createdAt: r.created_at,
+    content: r.content as string,
+    type: r.type as InsertMessage["type"],
+    fileUrl: (r.file_url as string) ?? null,
+    isPinned: (r.is_pinned as boolean) ?? false,
+    isHomework: (r.is_homework as boolean) ?? false,
+    gradingStatus: (r.grading_status as InsertMessage["gradingStatus"]) ?? null,
+    readBy: ((r.read_by as unknown[]) ?? []).map(Number),
+    createdAt: r.created_at as Date,
   };
 }
 
-function mapLiveClass(r: any): LiveClass {
+function mapLiveClass(r: StorageRow): LiveClass {
   return {
     id: n(r.id)!,
-    title: r.title,
-    description: r.description ?? null,
+    title: r.title as string,
+    description: (r.description as string) ?? null,
     teacherId: n(r.teacher_id)!,
-    class: r.class_name,
-    scheduledTime: r.scheduled_time,
+    class: r.class_name as string,
+    scheduledTime: r.scheduled_time as Date,
     durationMinutes: n(r.duration_minutes) ?? 60,
-    status: r.status as any,
-    dailyRoomName: r.daily_room_name ?? null,
-    dailyRoomUrl: r.daily_room_url ?? null,
-    startedAt: r.started_at ?? null,
-    endedAt: r.ended_at ?? null,
-    recordingUrl: r.recording_url ?? null,
-    createdAt: r.created_at,
+    status: r.status as InsertLiveClass["status"],
+    dailyRoomName: (r.daily_room_name as string) ?? null,
+    dailyRoomUrl: (r.daily_room_url as string) ?? null,
+    startedAt: (r.started_at as Date) ?? null,
+    endedAt: (r.ended_at as Date) ?? null,
+    recordingUrl: (r.recording_url as string) ?? null,
+    createdAt: r.created_at as Date,
   };
 }
 
-function mapAttendance(r: any): LiveSessionAttendance {
+function mapAttendance(r: StorageRow): LiveSessionAttendance {
   return {
     id: n(r.id)!,
     sessionId: n(r.session_id)!,
     studentId: n(r.student_id)!,
-    joinedAt: r.joined_at,
-    leftAt: r.left_at ?? null,
+    joinedAt: r.joined_at as Date,
+    leftAt: (r.left_at as Date) ?? null,
     durationMinutes: n(r.duration_minutes) ?? 0,
   };
 }
 
-function mapFcmToken(r: any): FcmToken {
+function mapFcmToken(r: StorageRow): FcmToken {
   return {
     id: n(r.id)!,
     userId: n(r.user_id)!,
-    token: r.token,
-    deviceType: r.device_type ?? null,
-    updatedAt: r.updated_at,
+    token: r.token as string,
+    deviceType: (r.device_type as string) ?? null,
+    updatedAt: r.updated_at as Date,
   };
 }
 
-function mapTask(r: any): Task {
+function mapTask(r: StorageRow): Task {
   return {
     id: n(r.id)!,
     userId: n(r.user_id)!,
-    title: r.title,
-    status: r.status as any,
-    priority: r.priority as any,
-    tags: r.tags ?? [],
-    dueDate: r.due_date ?? null,
+    title: r.title as string,
+    status: r.status as InsertTask["status"],
+    priority: r.priority as InsertTask["priority"],
+    tags: (r.tags as string[]) ?? [],
+    dueDate: (r.due_date as string) ?? null,
     comments: n(r.comments) ?? 0,
     attachments: n(r.attachments) ?? 0,
-    createdAt: r.created_at,
+    createdAt: r.created_at as Date,
   };
 }
 
-function mapNotification(r: any): AppNotification {
+function mapNotification(r: StorageRow): AppNotification {
   return {
     id: n(r.id)!,
     userId: n(r.user_id)!,
-    type: r.type as any,
-    title: r.title,
-    body: r.body,
-    isRead: r.is_read ?? false,
-    meta: r.meta ?? null,
-    createdAt: r.created_at,
+    type: r.type as InsertNotification["type"],
+    title: r.title as string,
+    body: r.body as string,
+    isRead: (r.is_read as boolean) ?? false,
+    meta: (r.meta as string) ?? null,
+    createdAt: r.created_at as Date,
   };
 }
 
-function mapFocusSession(r: any): FocusSession {
+function mapFocusSession(r: StorageRow): FocusSession {
   return {
     id: n(r.id)!,
     userId: n(r.user_id)!,
-    subject: r.subject,
-    mode: r.mode as any,
+    subject: r.subject as string,
+    mode: r.mode as InsertFocusSession["mode"],
     durationSeconds: n(r.duration_seconds)!,
-    completedAt: r.completed_at,
+    completedAt: r.completed_at as Date,
   };
 }
 
-function mapCompetency(r: any): Competency {
+function mapCompetency(r: StorageRow): Competency {
   return {
     id: n(r.id)!,
-    name: r.name,
-    description: r.description ?? null,
-    createdAt: r.created_at,
+    name: r.name as string,
+    description: (r.description as string) ?? null,
+    createdAt: r.created_at as Date,
   };
 }
 
-function mapDoubt(r: any): Doubt {
+function mapDoubt(r: StorageRow): Doubt {
   return {
-    id: r.id, // uuid
+    id: r.id as string, // uuid
     studentId: n(r.student_id)!,
     classroomId: n(r.classroom_id),
     testId: n(r.test_id),
-    question: r.question,
-    answer: r.answer ?? null,
-    status: r.status as any,
-    createdAt: r.created_at,
-    resolvedAt: r.resolved_at ?? null,
+    question: r.question as string,
+    answer: (r.answer as string) ?? null,
+    status: r.status as InsertDoubt["status"],
+    createdAt: r.created_at as Date,
+    resolvedAt: (r.resolved_at as Date) ?? null,
   };
 }
 
-function mapMilestone(r: any): Milestone {
+function mapMilestone(r: StorageRow): Milestone {
   return {
-    id: r.id, // uuid
+    id: r.id as string, // uuid
     studentId: n(r.student_id)!,
     competencyId: n(r.competency_id)!,
-    phase: r.phase as any,
-    reflection: r.reflection ?? null,
+    phase: r.phase as InsertMilestone["phase"],
+    reflection: (r.reflection as string) ?? null,
     score: n(r.score) ?? 0,
-    createdAt: r.created_at,
+    createdAt: r.created_at as Date,
   };
 }
 
-function mapCompetition(r: any): Competition {
+function mapCompetition(r: StorageRow): Competition {
   return {
     id: n(r.id)!,
-    name: r.name,
-    organizer: r.organizer ?? null,
-    level: r.level as any,
-    category: r.category ?? null,
-    competitionDate: r.competition_date,
-    createdAt: r.created_at,
+    name: r.name as string,
+    organizer: (r.organizer as string) ?? null,
+    level: r.level as InsertCompetition["level"],
+    category: (r.category as string) ?? null,
+    competitionDate: r.competition_date as Date,
+    createdAt: r.created_at as Date,
   };
 }
 
-function mapAchievement(r: any): StudentAchievement {
+function mapAchievement(r: StorageRow): StudentAchievement {
   return {
-    id: r.id, // uuid
+    id: r.id as string, // uuid
     studentId: n(r.student_id)!,
     competitionId: n(r.competition_id)!,
-    awardType: r.award_type,
-    score: r.score != null ? parseFloat(r.score) : null,
+    awardType: r.award_type as string,
+    score: r.score != null ? parseFloat(String(r.score)) : null,
     rank: n(r.rank),
-    certificateUrl: r.certificate_url ?? null,
-    verified: r.verified ?? false,
+    certificateUrl: (r.certificate_url as string) ?? null,
+    verified: (r.verified as boolean) ?? false,
     verifiedBy: n(r.verified_by),
-    verificationMetadata: r.verification_metadata ?? {},
-    createdAt: r.created_at,
+    verificationMetadata: (r.verification_metadata as Record<string, unknown>) ?? {},
+    createdAt: r.created_at as Date,
   };
 }
 
@@ -643,7 +656,7 @@ export class PgStorage implements IStorage {
       district: "district",
     };
     const sets: string[] = [];
-    const params: any[] = [];
+    const params: QueryParam[] = [];
     let i = 1;
     for (const [k, col] of Object.entries(colMap)) {
       if (k in userUpdate) {
@@ -767,7 +780,7 @@ export class PgStorage implements IStorage {
 
   async getTests(teacherId?: number, status?: string): Promise<Test[]> {
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: QueryParam[] = [];
     let i = 1;
     if (teacherId) {
       conditions.push(`teacher_id = $${i++}`);
@@ -803,7 +816,7 @@ export class PgStorage implements IStorage {
       status: "status",
     };
     const sets: string[] = [];
-    const params: any[] = [];
+    const params: QueryParam[] = [];
     let i = 1;
     for (const [k, col] of Object.entries(colMap)) {
       if (k in testUpdate) {
@@ -867,7 +880,7 @@ export class PgStorage implements IStorage {
       aiRubric: "ai_rubric",
     };
     const sets: string[] = [];
-    const params: any[] = [];
+    const params: QueryParam[] = [];
     let i = 1;
     for (const [k, col] of Object.entries(colMap)) {
       if (k in questionUpdate) {
@@ -933,7 +946,7 @@ export class PgStorage implements IStorage {
       status: "status",
     };
     const sets: string[] = [];
-    const params: any[] = [];
+    const params: QueryParam[] = [];
     let i = 1;
     for (const [k, col] of Object.entries(colMap)) {
       if (k in attemptUpdate) {
@@ -997,7 +1010,7 @@ export class PgStorage implements IStorage {
       isCorrect: "is_correct",
     };
     const sets: string[] = [];
-    const params: any[] = [];
+    const params: QueryParam[] = [];
     let i = 1;
     for (const [k, col] of Object.entries(colMap)) {
       if (k in answerUpdate) {
@@ -1075,7 +1088,7 @@ export class PgStorage implements IStorage {
     status?: string;
   }): Promise<TestAssignment[]> {
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: QueryParam[] = [];
     let i = 1;
     if (filters.studentId != null) {
       conditions.push(`student_id = $${i++}`);
@@ -1104,7 +1117,7 @@ export class PgStorage implements IStorage {
       notificationSent: "notification_sent",
     };
     const sets: string[] = [];
-    const params: any[] = [];
+    const params: QueryParam[] = [];
     let i = 1;
     for (const [k, col] of Object.entries(colMap)) {
       if (k in update) {
@@ -1275,7 +1288,7 @@ export class PgStorage implements IStorage {
 
   async getMessagesByChannel(channelId: number, limit = 50, before?: number): Promise<Message[]> {
     if (getCassandraClient()) return cassandraGetMessagesByChannel(channelId, limit, before);
-    const params: any[] = [channelId, limit];
+    const params: QueryParam[] = [channelId, limit];
     const beforeClause = before != null ? ` AND id < $3` : "";
     if (before != null) params.push(before);
     const { rows } = await this.pool.query(
@@ -1433,7 +1446,7 @@ export class PgStorage implements IStorage {
       recordingUrl: "recording_url",
     };
     const sets: string[] = [];
-    const params: any[] = [];
+    const params: QueryParam[] = [];
     let i = 1;
     for (const [k, col] of Object.entries(colMap)) {
       if (k in update) {
@@ -1482,7 +1495,7 @@ export class PgStorage implements IStorage {
     update: Partial<InsertLiveSessionAttendance>
   ): Promise<LiveSessionAttendance | undefined> {
     const sets: string[] = [];
-    const params: any[] = [];
+    const params: QueryParam[] = [];
     let i = 1;
     if ("leftAt" in update) {
       sets.push(`left_at = $${i++}`);
@@ -1585,7 +1598,7 @@ export class PgStorage implements IStorage {
       attachments: "attachments",
     };
     const sets: string[] = [];
-    const params: any[] = [];
+    const params: QueryParam[] = [];
     let i = 1;
     for (const [k, col] of Object.entries(colMap)) {
       if (k in update) {

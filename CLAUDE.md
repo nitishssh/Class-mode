@@ -1,3 +1,18 @@
+## Useful Commands
+
+### Development
+- `npm run dev` - Start dev server (port 5001)
+- `npm run check` - Type check
+- `npm run lint` - Lint
+- `npm run format` - Format code
+- `npm test` - Run unit/integration tests
+- `npx playwright test` - Run E2E tests
+
+### Pilot School & Testing
+- `npx tsx server/scripts/seed-pilot.ts` - Seed pilot school data
+- `npx tsx scripts/simulate-pilot-school.ts` - Run pilot school AI simulation
+- `npx tsx scripts/test-db.ts` - Test database connectivity
+
 ## Skill routing
 
 When the user's request matches an available skill, invoke it via the Skill tool. When in doubt, invoke the skill.

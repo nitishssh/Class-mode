@@ -43,6 +43,8 @@ Key highlights:
 - Multi-provider AI features (Gemini, Anthropic, DeepSeek, Qwen, OpenRouter, OpenAI, etc.)
 - Mandatory local PostgreSQL-backed multi-tenant workspace authentication system
 - Hybrid data storage using PostgreSQL (auth/tenancy), MongoDB (content/assessments), and optional Cassandra/Astra DB for messaging
+- **Gamified Onboarding**: Integrated quest system to guide new teachers through workspace activation.
+- **Pilot Seeding**: Instant environment setup for demonstrations and testing via `server/scripts/seed-pilot.ts`.
 
 ## Project Structure
 
@@ -220,6 +222,11 @@ After starting the app:
 
 - **Local Self-Hosted Identity**: Authentication is backed by PostgreSQL, using bcrypt for password hashing and JWT cookies for session security.
 - **Tenant Workspace Creation**: First-time users register (e.g., as a Teacher) and automatically initialize a new Workspace of which they become the Owner.
+- **Gamified Onboarding (Quests)**: Upon first login, new teachers are presented with a "Get Started" quest panel. This system tracks key activation milestones:
+  1. **Create a Test**: Guides the user through the AI test generation or manual creation flow.
+  2. **Set up a Class**: Encourages organizing students into classes.
+  3. **Invite a Student**: Onboards the first member to the workspace.
+  Completion of these quests triggers a celebratory confetti effect and ensures the workspace is fully functional.
 - **Invite-Only Students**: Students are onboarded via workspace-specific invite links (`/api/workspaces/:id/invites`) which generate unique tokenized signup links.
 
 ```mermaid

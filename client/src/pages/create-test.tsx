@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useParams } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TestDetailsForm } from "@/components/test/test-details-form";
 import { QuestionForm } from "@/components/test/question-form";
@@ -13,9 +14,26 @@ import { FileQuestion, CircleCheck, Settings2, Brain, Rocket } from "lucide-reac
  * 3. Settings & Review (Coming Soon)
  */
 export default function CreateTest() {
+  const { id } = useParams();
   const [activeTab, setActiveTab] = useState("test-details");
   const [testId, setTestId] = useState<number | null>(null);
   const [questionOrder, setQuestionOrder] = useState(1);
+
+  // Sync test ID and active tab if ID is in the URL using prevId render pattern to avoid setState in useEffect warning
+  const [prevId, setPrevId] = useState<string | undefined>(undefined);
+  if (id !== prevId) {
+    setPrevId(id);
+    if (id) {
+      const parsedId = parseInt(id);
+      if (!isNaN(parsedId)) {
+        setTestId(parsedId);
+        setActiveTab("add-questions");
+      }
+    } else {
+      setTestId(null);
+      setActiveTab("test-details");
+    }
+  }
 
   const handleQuestionAdded = () => {
     setQuestionOrder((prev) => prev + 1);

@@ -71,7 +71,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api", usersRouter);
   app.use("/api", analyticsRouter);
   app.use("/api", testsRouter);
-  app.use("/api", timetableRouter);
+  app.use("/api/timetable", timetableRouter);
   app.use("/api", aiRouter); // Handles /api/ai-chat
   app.use("/api", chatRouter); // Handles /api/workspaces, /api/channels, /api/messages
   app.use("/api", tasksRouter);

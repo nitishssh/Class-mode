@@ -134,6 +134,21 @@ The application will be available at: **[http://localhost:5001](http://localhost
 
 > Access and Refresh tokens are delivered via HttpOnly cookies. Use `localhost:5001` (not `127.0.0.1`) to avoid cookie issues.
 
+## 6. Seeding Pilot Data (Optional)
+
+For demonstration or testing, you can seed a complete institutional environment:
+
+```bash
+npx tsx server/scripts/seed-pilot.ts
+```
+
+This creates:
+- An admin user (`nitish_admin` / `PilotPassword123!`)
+- A workspace ("Pilot Headquarters")
+- A general chat channel
+- Sample tests, tasks, and notifications
+- Scheduled live classes and focus sessions
+
 ## Project Structure
 
 | Directory                     | Description                               |

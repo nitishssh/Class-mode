@@ -21,9 +21,7 @@ import {
   BookOpen,
   Brain,
   Trophy,
-  School,
   GraduationCap,
-  UserCog,
   CalendarDays,
   Award,
   Database,
@@ -31,7 +29,6 @@ import {
   ChevronRight,
   ClipboardCheck,
   UserCheck,
-  FileText,
   Link2,
 } from "lucide-react";
 
@@ -87,19 +84,6 @@ export function Sidebar({ className }: SidebarProps) {
     { title: "Calendar", href: "/calendar", icon: <CalendarDays className="h-5 w-5" /> },
     { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
     {
-      title: "School Overview",
-      href: "/institution",
-      icon: <School className="h-5 w-5" />,
-      disabled: true,
-    },
-    {
-      title: "Staff Directory",
-      href: "/staff",
-      icon: <Users className="h-5 w-5" />,
-      disabled: true,
-    },
-    { title: "Reports", href: "/reports", icon: <FileText className="h-5 w-5" />, disabled: true },
-    {
       title: "Google Classroom",
       href: "/integrations/google-classroom",
       icon: <Link2 className="h-5 w-5" />,
@@ -122,13 +106,6 @@ export function Sidebar({ className }: SidebarProps) {
     { title: "No-Code SIS", href: "/dynamic-sis", icon: <Database className="h-5 w-5" /> },
     { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
     {
-      title: "Staff Management",
-      href: "/staff",
-      icon: <Users className="h-5 w-5" />,
-      disabled: true,
-    },
-    { title: "Reports", href: "/reports", icon: <FileText className="h-5 w-5" />, disabled: true },
-    {
       title: "Google Classroom",
       href: "/integrations/google-classroom",
       icon: <Link2 className="h-5 w-5" />,
@@ -146,14 +123,6 @@ export function Sidebar({ className }: SidebarProps) {
     { title: "Analytics", href: "/analytics", icon: <BarChart className="h-5 w-5" /> },
     { title: "No-Code SIS", href: "/dynamic-sis", icon: <Database className="h-5 w-5" /> },
     { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
-    {
-      title: "User Management",
-      href: "/users",
-      icon: <UserCog className="h-5 w-5" />,
-      disabled: true,
-    },
-    { title: "Classes", href: "/classes", icon: <School className="h-5 w-5" />, disabled: true },
-    { title: "Reports", href: "/reports", icon: <FileText className="h-5 w-5" />, disabled: true },
     {
       title: "Google Classroom",
       href: "/integrations/google-classroom",

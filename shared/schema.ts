@@ -20,6 +20,35 @@ export const insertUserSchema = z.object({
   district: z.string().optional().nullable(),
 });
 
+export const updateUserSchema = z.object({
+  name: z.string().min(1).optional(),
+  displayName: z.string().optional().nullable(),
+  avatar: z.string().optional().nullable(),
+  status: z.enum(USER_STATUSES).optional(),
+  class: z.string().optional().nullable(),
+  subject: z.string().optional().nullable(),
+  grade: z.string().optional().nullable(),
+  subjects: z.array(z.string()).optional().nullable(),
+});
+
+export const insertSchoolClassSchema = z.object({
+  name: z.string().min(1, "Class name is required"),
+  grade: z.string().min(1, "Grade is required"),
+  teacherFirebaseUid: z.string().optional().nullable(),
+});
+
+export const updateSchoolClassSchema = z.object({
+  name: z.string().min(1).optional(),
+  grade: z.string().min(1).optional(),
+  teacherFirebaseUid: z.string().optional().nullable(),
+});
+
+export const updateSchoolSchema = z.object({
+  name: z.string().min(1, "School name is required"),
+  city: z.string().optional().nullable(),
+  board: z.string().optional().nullable(),
+});
+
 export const insertTestSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional().nullable(),

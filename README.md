@@ -35,6 +35,12 @@ EduAI is a robust multi-tenant platform. Whether you're a school, a coaching cen
 - **RBAC**: Granular permissions (Owner, Admin, Member) per workspace.
 - **Gamified Onboarding**: New teachers see a floating "Get Started" quest panel with three activation quests (create a test, set up a class, invite a student). Confetti fires on completion. Panel auto-hides after 7 days or when all quests are done.
 
+### 👑 Admin & Workspace Management
+
+- **Admin Dashboard**: Comprehensive control center for User Management, Class Management, Reports & Analytics, and System Settings. Supports bulk actions, academic calendar setup, and granular permission tuning.
+- **Pilot School Seeding**: Built-in scripts to seed a complete "Pilot School" environment with users, workspaces, channels, tests, tasks, and live classes for rapid testing and demonstrations.
+- **SIS Integration**: Dynamic Student Information System (SIS) for managing student records, standards, and academic history.
+
 ### 🤖 AI-Powered Learning
 
 - **AI Tutor**: Subject-aware chat tutor with markdown & LaTeX rendering.

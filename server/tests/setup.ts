@@ -25,6 +25,37 @@ vi.mock("../db-pg", () => {
   };
 });
 
+// Mock Redis globally
+vi.mock("../lib/redis", () => ({
+  redisClient: {
+    on: vi.fn(),
+    isOpen: false,
+    connect: vi.fn().mockResolvedValue(undefined),
+    get: vi.fn().mockResolvedValue(null),
+    setEx: vi.fn().mockResolvedValue(undefined),
+    set: vi.fn().mockResolvedValue(undefined),
+    del: vi.fn().mockResolvedValue(undefined),
+    quit: vi.fn().mockResolvedValue(undefined),
+  },
+  connectRedis: vi.fn().mockResolvedValue(undefined),
+  getCachedJSON: vi.fn().mockResolvedValue(null),
+  setCachedJSON: vi.fn().mockResolvedValue(undefined),
+}));
+
+// Mock ioredis globally
+vi.mock("ioredis", () => {
+  return {
+    default: class Redis {
+      on = vi.fn();
+      get = vi.fn().mockResolvedValue(null);
+      set = vi.fn().mockResolvedValue("OK");
+      del = vi.fn().mockResolvedValue(1);
+      quit = vi.fn().mockResolvedValue("OK");
+      defineCommand = vi.fn();
+    },
+  };
+});
+
 // Mock all PostgreSQL query helpers globally for all tests
 vi.mock("../lib/pg-queries", () => {
   const mocks: Record<string | symbol, Mock> = {};

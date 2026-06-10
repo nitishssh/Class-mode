@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-06-10
+
+### Added
+
+- **Complete Admin Dashboard** — Teachers and admins now have a unified control center for user management, class organization, and system settings. Supports bulk actions, academic calendar setup, and granular institution profile management via `client/src/pages/admin-dashboard.tsx`.
+- **Pilot School Seeding** — New script `server/scripts/seed-pilot.ts` for instant institutional environment setup. Creates a pre-configured school with admin (`nitish_admin`), classes, tests, and mock engagement data.
+- **AI Predictive Reporting** — Initial implementation of predictive learning analytics for estimating student outcomes based on historical assessment performance in `pilot-school-predictive-report.md`.
+- **New Admin API Endpoints** — Enhanced routers for `users.ts` and `tests.ts` with bulk management capabilities and deep SIS integration.
+
+## [1.7.0] - 2026-06-02
+
+### Added
+
+- **Gamified Onboarding Quest Panel** — Slide-in quest interface for new teachers to guide them through activation (create test, set up class, invite student). Features celebratory confetti and persistence in localStorage.
+
 ## [1.6.0] - 2026-05-31
 
 ### Added

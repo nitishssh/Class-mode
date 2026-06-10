@@ -19,17 +19,20 @@ export async function geminiChat(
   systemPrompt: string,
   userPrompt: string,
   model: string = "gemini-2.0-flash",
-  options: { jsonMode?: boolean } = {}
+  options: { jsonMode?: boolean; signal?: AbortSignal } = {}
 ): Promise<string> {
   const ai = getGenAI();
   if (!ai) throw new Error("Gemini service not initialized — set GOOGLE_API_KEY");
 
   const generativeModel = ai.getGenerativeModel({ model });
-  const result = await generativeModel.generateContent({
-    systemInstruction: systemPrompt,
-    contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-    ...(options.jsonMode ? { generationConfig: { responseMimeType: "application/json" } } : {}),
-  });
+  const result = await generativeModel.generateContent(
+    {
+      systemInstruction: systemPrompt,
+      contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+      ...(options.jsonMode ? { generationConfig: { responseMimeType: "application/json" } } : {}),
+    },
+    options.signal ? { signal: options.signal } : undefined
+  );
 
   return result.response.text();
 }
@@ -37,19 +40,49 @@ export async function geminiChat(
 export async function* streamGeminiChat(
   systemPrompt: string,
   userPrompt: string,
-  model: string = "gemini-2.0-flash"
+  model: string = "gemini-2.0-flash",
+  options: { signal?: AbortSignal } = {}
 ): AsyncGenerator<string> {
   const ai = getGenAI();
   if (!ai) throw new Error("Gemini service not initialized — set GOOGLE_API_KEY");
 
   const generativeModel = ai.getGenerativeModel({ model });
-  const result = await generativeModel.generateContentStream({
-    systemInstruction: systemPrompt,
-    contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-  });
+  const result = await generativeModel.generateContentStream(
+    {
+      systemInstruction: systemPrompt,
+      contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+    },
+    options.signal ? { signal: options.signal } : undefined
+  );
 
   for await (const chunk of result.stream) {
     const text = chunk.text();
     if (text) yield text;
   }
+}
+
+export async function generateContentFromPdf(
+  pdfBuffer: Buffer,
+  prompt: string,
+  model: string = "gemini-2.0-flash",
+  options: { signal?: AbortSignal } = {}
+): Promise<string> {
+  const ai = getGenAI();
+  if (!ai) throw new Error("Gemini service not initialized — set GOOGLE_API_KEY");
+
+  const generativeModel = ai.getGenerativeModel({ model });
+  const result = await generativeModel.generateContent(
+    [
+      {
+        inlineData: {
+          data: pdfBuffer.toString("base64"),
+          mimeType: "application/pdf"
+        }
+      },
+      { text: prompt }
+    ],
+    options.signal ? { signal: options.signal } : undefined
+  );
+
+  return result.response.text();
 }

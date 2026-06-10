@@ -13,8 +13,9 @@
  */
 
 import { WebSocketServer, WebSocket, type RawData } from "ws";
-import type { Server } from "http";
+import type { Server, IncomingMessage } from "http";
 import type { Store } from "express-session";
+import { type User } from "@shared/schema";
 import { storage } from "./storage";
 import { aiChat } from "./lib/openai";
 import { verifyFirebaseToken } from "./lib/firebase-admin";
@@ -122,6 +123,11 @@ function cleanupClient(ws: WebSocket) {
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
+// Define a type for the session data we expect
+interface CustomSessionData {
+  userId?: number;
+}
+
 /**
  * Resolves the authenticated userId either from:
  *   1. ?token=<firebase_id_token> query param  (preferred, Phase 4)
@@ -129,9 +135,9 @@ function cleanupClient(ws: WebSocket) {
  */
 async function resolveUserId(
   sessionStore: Store,
-  req: any
+  req: IncomingMessage
 ): Promise<{ userId: number; firebaseUid: string; displayName: string; role: string } | null> {
-  const url = req.url as string;
+  const url = req.url || "";
   const params = new URLSearchParams(url.includes("?") ? url.split("?")[1] : "");
   const token = params.get("token");
 
@@ -150,7 +156,7 @@ async function resolveUserId(
     return {
       userId: pgUser.id,
       firebaseUid: uid,
-      displayName: pgUser.displayName || pgUser.name || name || email || "User",
+      displayName: (pgUser as User & { displayName?: string | null }).displayName || pgUser.name || name || email || "User",
       role: pgUser.role ?? "student",
     };
   }
@@ -164,16 +170,19 @@ async function resolveUserId(
     let sid = decodeURIComponent(match[1]);
     if (sid.startsWith("s:")) sid = sid.slice(2).split(".")[0];
 
-    sessionStore.get(sid, async (err: any, session: any) => {
-      if (err || !session?.userId) return resolve(null);
+    sessionStore.get(sid, async (err, session) => {
+      const customSession = session as (CustomSessionData | null | undefined);
+      if (err || !customSession?.userId) return resolve(null);
 
-      const user = await storage.getUser(session.userId);
+      const user = await storage.getUser(customSession.userId);
       if (!user) return resolve(null);
+
+      const extendedUser = user as User & { firebaseUid?: string | null; displayName?: string | null };
 
       resolve({
         userId: user.id,
-        firebaseUid: (user as any).firebaseUid ?? String(user.id),
-        displayName: (user as any).displayName || user.name || user.username,
+        firebaseUid: extendedUser.firebaseUid ?? String(user.id),
+        displayName: extendedUser.displayName || user.name || user.username,
         role: user.role ?? "student",
       });
     });
@@ -192,7 +201,7 @@ export function broadcastGlobal(data: object) {
 export function setupChatWebSocket(httpServer: Server, sessionStore: Store) {
   const wss = new WebSocketServer({ server: httpServer, path: "/ws/chat" });
 
-  wss.on("connection", async (ws: WebSocket, req: any) => {
+  wss.on("connection", async (ws: WebSocket, req: IncomingMessage) => {
     // Auth
     const authResult = await resolveUserId(sessionStore, req);
 
@@ -373,7 +382,7 @@ export function setupChatWebSocket(httpServer: Server, sessionStore: Store) {
               channelId,
               authorId: userId,
               content: content.trim(),
-              type: messageType as any,
+              type: (messageType === "text" || messageType === "file" || messageType === "image") ? messageType : "text",
               fileUrl: fileUrl ?? null,
               isHomework: messageType === "assignment",
               readBy: [],
@@ -645,7 +654,7 @@ export function setupChatWebSocket(httpServer: Server, sessionStore: Store) {
         }
 
         default:
-          send(ws, { type: "error", message: `Unknown event type: ${(event as any).type}` });
+          send(ws, { type: "error", message: `Unknown event type: ${event.type}` });
       }
     });
 

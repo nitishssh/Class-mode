@@ -11,7 +11,12 @@ import {
 import { evaluateSubjectiveAnswer, aiChat } from "../lib/openai";
 import { logger } from "../lib/logger";
 import { checkAIQuota } from "../middleware/aiQuota";
-import { pgIncrementAIUsage } from "../lib/pg-queries";
+import { pgIncrementAIUsage, pgFindFirstWorkspaceMembership, pgFindUserById } from "../lib/pg-queries";
+import { upload } from "../lib/upload";
+import { generateContentFromPdf } from "../lib/gemini";
+import fs from "fs";
+import jwt from "jsonwebtoken";
+import { ACCESS_COOKIE } from "../lib/auth-workspace";
 
 const router = Router();
 
@@ -377,14 +382,31 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
       let questions = null;
 
       while (attempt < 2 && !questions) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30-second timeout
+
         try {
-          const response = await aiChat(
+          const apiPromise = aiChat(
             [{ role: "user", content: prompt }],
-            "You are a professional test creator. Respond only with valid JSON."
+            "You are a professional test creator. Respond only with valid JSON.",
+            { signal: controller.signal }
           );
+
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            controller.signal.addEventListener("abort", () => reject(new Error("Request timed out")));
+          });
+
+          const response = await Promise.race([apiPromise, timeoutPromise]);
+          clearTimeout(timeoutId);
+
           questions = JSON.parse(response.content);
           if (!Array.isArray(questions)) throw new Error("Not an array");
-        } catch (e) {
+        } catch (e: any) {
+          clearTimeout(timeoutId);
+          controller.abort();
+          if (e.message === "Request timed out" || e.name === "AbortError") {
+            logger.warn(`Test generation attempt ${attempt + 1} timed out.`);
+          }
           attempt++;
           if (attempt === 2) throw e;
         }
@@ -398,9 +420,171 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
       });
 
       res.json(questions);
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Test generation error:", error);
+      if (error.message === "Request timed out" || error.name === "AbortError") {
+        return res.status(504).json({ message: "Test generation timed out" });
+      }
       res.status(500).json({ message: "Failed to generate test questions" });
+    }
+  }
+);
+
+// Helper for optional authentication, so widgets can embed anonymously
+const optionalAuthenticate = async (req: Request, res: Response, next: any) => {
+  try {
+    let token = req.cookies?.[ACCESS_COOKIE];
+    if (!token) {
+      const authHeader = req.headers?.authorization || req.headers?.Authorization;
+      if (typeof authHeader === "string") {
+        const parts = authHeader.split(" ");
+        token = parts.length === 2 ? parts[1] : parts[0];
+      }
+    }
+
+    if (token) {
+      const payload = jwt.verify(token, process.env.JWT_SECRET!) as any;
+      if (payload?.userId) {
+        const user = await pgFindUserById(payload.userId);
+        if (user && !["suspended", "rejected"].includes(user.status)) {
+          (req as any).user = {
+            id: user.id,
+            role: user.role,
+            email: user.email,
+            status: user.status,
+            emailVerified: user.emailVerified,
+          };
+          const workspaceContext = await pgFindFirstWorkspaceMembership(user.id);
+          (req as any).workspace = workspaceContext?.workspace ?? null;
+          return next();
+        }
+      }
+    }
+
+    if (req.session?.userId) {
+      const user = await pgFindUserById(req.session.userId);
+      if (user && !["suspended", "rejected"].includes(user.status)) {
+        (req as any).user = {
+          id: user.id,
+          role: user.role,
+          email: user.email,
+          status: user.status,
+          emailVerified: user.emailVerified,
+        };
+        const workspaceContext = await pgFindFirstWorkspaceMembership(user.id);
+        (req as any).workspace = workspaceContext?.workspace ?? null;
+        return next();
+      }
+    }
+  } catch (err: any) {
+    // Only swallow JWT-specific errors; let DB/network errors surface
+    if (err?.name !== "JsonWebTokenError" && err?.name !== "TokenExpiredError") {
+      logger.warn("[optionalAuthenticate] Unexpected error during auth:", err);
+    }
+  }
+  next();
+};
+
+// OPTIONS preflight for CORS on PDF generation
+router.options("/ai/generate-from-pdf", (req: Request, res: Response) => {
+  const origin = req.headers.origin;
+  res.header("Access-Control-Allow-Origin", origin || "*");
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+  res.sendStatus(200);
+});
+
+// POST /api/ai/generate-from-pdf
+router.post(
+  "/ai/generate-from-pdf",
+  (req: Request, res: Response, next) => {
+    const origin = req.headers.origin;
+    res.header("Access-Control-Allow-Origin", origin || "*");
+    res.header("Access-Control-Allow-Credentials", "true");
+    res.header("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+    next();
+  },
+  optionalAuthenticate,
+  upload.single("file"),
+  async (req: Request, res: Response) => {
+    try {
+      let pdfBuffer: Buffer | null = null;
+
+      if (req.file) {
+        pdfBuffer = await fs.promises.readFile(req.file.path);
+        try {
+          await fs.promises.unlink(req.file.path);
+        } catch (unlinkError) {
+          logger.error("Failed to delete temp file:", unlinkError);
+        }
+      } else if (req.body.pdfData) {
+        const base64Data = req.body.pdfData.includes("base64,")
+          ? req.body.pdfData.split("base64,")[1]
+          : req.body.pdfData;
+        pdfBuffer = Buffer.from(base64Data, "base64");
+      }
+
+      if (!pdfBuffer) {
+        return res.status(400).json({ message: "No PDF file or pdfData provided." });
+      }
+
+      const numQuestions = req.body.numQuestions ? parseInt(req.body.numQuestions) : 5;
+      const difficulty = req.body.difficulty || "medium";
+      const grade = req.body.grade || "high school";
+
+      const prompt = `Generate ${numQuestions} ${difficulty} MCQ questions for a ${grade} student based on the attached PDF.
+Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answer": "correct option", "explanation": "why" }]`;
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30-second timeout
+
+      try {
+        const apiPromise = generateContentFromPdf(pdfBuffer, prompt, "gemini-2.0-flash", {
+          signal: controller.signal,
+        });
+
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          controller.signal.addEventListener("abort", () => reject(new Error("Request timed out")));
+        });
+
+        const responseText = await Promise.race([apiPromise, timeoutPromise]);
+        clearTimeout(timeoutId);
+
+        // Parse JSON from response
+        const jsonMatch = responseText.match(/\[\s*\{[\s\S]*\}\s*\]/);
+        const jsonString = jsonMatch ? jsonMatch[0] : responseText;
+        const questions = JSON.parse(jsonString);
+
+        if (!Array.isArray(questions)) {
+          throw new Error("Generated content is not a valid questions array");
+        }
+
+        // Increment quota usage if authenticated
+        const userId = req.user?.id || req.session?.userId;
+        const workspace = (req as any).workspace;
+        if (userId) {
+          await pgIncrementAIUsage({
+            userId,
+            workspaceId: workspace?.id,
+            feature: "ai_tutor",
+            metadata: { type: "test_generation_from_pdf" },
+          });
+        }
+
+        res.json(questions);
+      } catch (e: any) {
+        clearTimeout(timeoutId);
+        controller.abort();
+        throw e;
+      }
+    } catch (error: any) {
+      logger.error("PDF test generation error:", error);
+      if (error.message === "Request timed out" || error.name === "AbortError") {
+        return res.status(504).json({ message: "PDF test generation timed out" });
+      }
+      res.status(500).json({ message: "Failed to generate test questions from PDF" });
     }
   }
 );

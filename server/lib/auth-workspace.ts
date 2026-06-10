@@ -132,6 +132,7 @@ export function authMePayload(args: {
       board: args.user.board,
       subjects: args.user.subjects,
       class: args.user.class,
+      onboardingComplete: args.user.onboardingComplete,
     },
     activeWorkspace: args.workspace
       ? {
@@ -143,5 +144,6 @@ export function authMePayload(args: {
       : null,
     workspaceRole,
     permissions: permissionsForWorkspaceRole(workspaceRole),
+    onboardingComplete: args.user.onboardingComplete,
   };
 }

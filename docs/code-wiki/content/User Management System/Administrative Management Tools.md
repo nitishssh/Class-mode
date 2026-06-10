@@ -33,11 +33,11 @@ This document describes the administrative management tools and features impleme
 The application provides:
 
 - A role-aware navigation and dashboards for administrators
-- User management UI scaffolding with placeholders for add/edit/delete operations
-- Analytics dashboards for performance insights
-- Student directory with filtering and grouping
+- Functional User Management interface for creating, editing, and managing institutional users
+- Analytics dashboards for performance insights and predictive learning reports
+- Student directory with advanced filtering, grouping, and SIS data integration
 - Backend routes for authentication and role-based access control
-- Firebase-based user profiles and role metadata
+- PostgreSQL-based user profiles and workspace-scoped role metadata
 
 ## Project Structure
 
@@ -104,14 +104,14 @@ RT --> CS
 
 ## Core Components
 
-- Admin Dashboard: Presents tabs for User Management, Classes, Reports, and System Settings. Includes summary cards and placeholders for actions like Add User, Send Notice, and Configure.
+- Admin Dashboard: Presents tabs for User Management, Classes, Reports, and System Settings. Includes summary cards and integrated actions for user lifecycle management.
 - Sidebar: Role-aware navigation that adapts menu items based on the current user’s role, including dedicated admin routes.
-- Authentication and Roles: Firebase-based authentication with user profiles containing role metadata. Registration supports role selection, and Google login supports a follow-up role selection for new users.
-- Analytics: Performance analytics dashboard with charts and tabs for class and individual insights.
-- Student Directory: Filtering and grouping of students by standard and state, with mock data and a disabled query hook indicating future API integration.
-- Backend Routes: Authentication endpoints and role-based access control for administrative features.
-- Middleware: Authentication and role enforcement helpers for protected routes.
-- Database Connectivity: Cassandra/Astra DB client initialization and connection handling.
+- Authentication and Roles: PostgreSQL-based authentication with workspace-scoped membership. Supports granular roles: `owner`, `admin`, `member`.
+- Analytics: Performance analytics dashboard with charts and predictive reporting for student learning outcomes.
+- Student Directory: SIS-integrated directory with filtering by standard, subject, and status. Supports real-time data from the PostgreSQL back-end.
+- Backend Routes: Domain-driven routers for `users`, `tests`, `timetable`, and `workspaces`.
+- Middleware: Workspace-aware authentication and role enforcement helpers for protected routes.
+- Database Connectivity: Hybrid storage management (PostgreSQL for tenancy, MongoDB for content, optional Cassandra for chat).
 
 **Section sources**
 

@@ -264,7 +264,7 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       let profile: UserProfile;
       // When the server is running dev-without-db, Firebase can't work
       // anyway (no Firestore project, no admin SDK). Go straight to local.
-      if (authConfig.devAuthWithoutDb && authConfig.localPasswordAuthEnabled) {
+      if ((authConfig.devAuthWithoutDb && authConfig.localPasswordAuthEnabled) || !authConfig.firebaseExchangeEnabled) {
         profile = await localPasswordLogin(email, password);
       } else {
         try {
@@ -308,7 +308,7 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
           ? additionalData.workspaceName
           : `${name}'s Workspace`;
       let profile: UserProfile;
-      if (authConfig.devAuthWithoutDb && authConfig.localPasswordAuthEnabled) {
+      if ((authConfig.devAuthWithoutDb && authConfig.localPasswordAuthEnabled) || !authConfig.firebaseExchangeEnabled) {
         profile = await localPasswordSignup({ email, password, name, workspaceName });
       } else {
         try {
