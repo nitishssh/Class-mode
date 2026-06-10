@@ -10,11 +10,13 @@ import {
   X,
   Home,
   ArrowRight,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { jsPDF } from "jspdf";
 
 import { TestProgress } from "@/components/test/test-progress";
 import { QuestionCard } from "@/components/test/question-card";
@@ -84,6 +86,126 @@ export default function TestPage() {
     queryKey: [`/api/tests/${id}/questions`],
     enabled: !!id,
   });
+
+  const handleDownloadPdf = () => {
+    if (!test || !questions || questions.length === 0) return;
+
+    try {
+      const doc = new jsPDF();
+      let yOffset = 20;
+
+      // Title
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(18);
+      doc.text(test.title, 20, yOffset);
+      yOffset += 10;
+
+      // Subtitle / Subject
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(12);
+      doc.text(`Subject: ${test.subject}  |  Duration: ${test.duration} minutes  |  Marks: ${test.totalMarks}`, 20, yOffset);
+      yOffset += 8;
+
+      if (test.description) {
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "italic");
+        const splitDesc = doc.splitTextToSize(test.description, 170);
+        doc.text(splitDesc, 20, yOffset);
+        yOffset += splitDesc.length * 5 + 5;
+      }
+
+      yOffset += 5;
+      doc.line(20, yOffset, 190, yOffset);
+      yOffset += 10;
+
+      // Questions
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
+
+      questions.forEach((q, idx) => {
+        // Page break check
+        if (yOffset > 270) {
+          doc.addPage();
+          yOffset = 20;
+        }
+
+        doc.setFont("helvetica", "bold");
+        const qText = `${idx + 1}. ${q.text} (${q.marks} Marks)`;
+        const splitQuestion = doc.splitTextToSize(qText, 170);
+        doc.text(splitQuestion, 20, yOffset);
+        yOffset += splitQuestion.length * 5 + 3;
+
+        doc.setFont("helvetica", "normal");
+        if (q.type === "mcq" && q.options) {
+          const optionsArray = Array.isArray(q.options) ? q.options : [];
+          optionsArray.forEach((opt: any, optIdx: number) => {
+            if (yOffset > 275) {
+              doc.addPage();
+              yOffset = 20;
+            }
+            const label = String.fromCharCode(65 + optIdx); // A, B, C, D
+            const optText = typeof opt === "string" ? opt : opt.text;
+            doc.text(`   ${label}. ${optText}`, 20, yOffset);
+            yOffset += 6;
+          });
+        }
+        yOffset += 4;
+      });
+
+      // Add Page Break for Answer Key
+      doc.addPage();
+      yOffset = 20;
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.text("Answer Key & Explanations", 20, yOffset);
+      yOffset += 12;
+
+      doc.setFontSize(11);
+      questions.forEach((q, idx) => {
+        if (yOffset > 260) {
+          doc.addPage();
+          yOffset = 20;
+        }
+
+        doc.setFont("helvetica", "bold");
+        let ansText = `Question ${idx + 1}: `;
+        if (q.type === "mcq" && q.options) {
+          const optionsArray = Array.isArray(q.options) ? q.options : [];
+          const correctIdx = optionsArray.findIndex((opt: any) => typeof opt === "object" && opt.isCorrect);
+          const correctLabel = correctIdx !== -1 ? String.fromCharCode(65 + correctIdx) : q.correctAnswer || "TBD";
+          ansText += correctLabel;
+        } else {
+          ansText += q.correctAnswer || "Subjective Evaluation";
+        }
+        doc.text(ansText, 20, yOffset);
+        yOffset += 6;
+
+        if (q.aiRubric) {
+          doc.setFont("helvetica", "italic");
+          const explanation = `Explanation: ${q.aiRubric}`;
+          const splitExplanation = doc.splitTextToSize(explanation, 170);
+          doc.text(splitExplanation, 20, yOffset);
+          yOffset += splitExplanation.length * 5 + 5;
+        }
+        yOffset += 4;
+      });
+
+      doc.save(`${test.title.replace(/\s+/g, "_")}_test.pdf`);
+      
+      toast({
+        title: "Success",
+        description: "PDF downloaded successfully",
+      });
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Download Failed",
+        description: "Could not generate PDF. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Mutations
   const initAttemptMutation = useMutation({
@@ -296,6 +418,13 @@ export default function TestPage() {
 
             <div className="flex flex-col justify-center gap-4 sm:flex-row">
               <Button
+                onClick={handleDownloadPdf}
+                className="h-14 rounded-full bg-accent text-white px-10 font-bold shadow-soft transition-all hover:bg-accent/90 animate-pulse"
+              >
+                <Download className="mr-3 h-5 w-5" />
+                Download PDF
+              </Button>
+              <Button
                 onClick={() => setLocation("/dashboard")}
                 className="h-14 rounded-full bg-primary px-10 font-bold text-primary-foreground shadow-soft transition-all hover:bg-primary/90"
               >
@@ -328,7 +457,15 @@ export default function TestPage() {
         />
 
         <div className="relative flex-1 overflow-y-auto bg-background/50 px-6 pb-24 md:px-12">
-          <div className="absolute right-8 top-8 hidden md:block">
+          <div className="absolute right-8 top-8 hidden md:flex items-center gap-3">
+            <Button
+              variant="outline"
+              onClick={handleDownloadPdf}
+              className="h-11 rounded-xl border-border bg-card px-5 text-xs font-bold uppercase tracking-widest text-muted-foreground shadow-soft hover:border-accent/40 hover:text-accent transition-all"
+            >
+              <Download className="mr-2 h-4 w-4 text-accent" />
+              Download PDF
+            </Button>
             <Button
               variant="outline"
               onClick={() => setIsBookOpen(!isBookOpen)}

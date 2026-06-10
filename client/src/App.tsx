@@ -356,6 +356,7 @@ function App() {
 
       {/* ── Protected app routes ──────────────────────────────────── */}
       <Route path="/create-test" component={CreateTestRoute} />
+      <Route path="/tests/:id/questions" component={CreateTestRoute} />
       <Route path="/grading" component={GradingRoute} />
       <Route path="/my-students" component={MyStudentsRoute} />
       <Route path="/ocr-scan" component={OcrScanRoute} />
