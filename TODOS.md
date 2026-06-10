@@ -39,3 +39,7 @@
 - [x] **AbortSignal SDK support** — Verified and implemented AbortSignal forwarding in Gemini/OpenAI wrappers. **Completed:** v1.7.0 (2026-06-02)
 - [x] **CORS for coaching centers** — Implemented `ALLOWED_PROD_DOMAINS` whitelist for cross-origin embedding. **Completed:** v1.7.0 (2026-06-02)
 - [x] **PDF download output** — Added jsPDF-based test download functionality for MCQs and answer keys. **Completed:** v1.7.1 (2026-06-10)
+- [x] **PDF → Test Generator** — Upload a PDF to auto-generate MCQ questions via Gemini AI. **Completed:** v1.7.1 (2026-06-10)
+- [x] **Mass assignment protection** — `PUT /api/users/:id` blocked from role/password escalation via Zod schema. **Completed:** v1.7.1 (2026-06-10)
+- [x] **Timetable camelCase API** — Timetable responses now use consistent camelCase field names. **Completed:** v1.7.1 (2026-06-10)
+- [x] **Tenant isolation enforcement** — Cross-school user/class mutations now return 403 with audit events. **Completed:** v1.7.1 (2026-06-10)
