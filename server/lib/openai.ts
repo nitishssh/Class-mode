@@ -75,7 +75,8 @@ function handleOpenAIError(err: any): never {
 
 export async function aiChat(
   messages: ChatMessage[],
-  systemPrompt?: string
+  systemPrompt?: string,
+  options?: { signal?: AbortSignal }
 ): Promise<ChatResponse> {
   const hasGemini = !!process.env.GOOGLE_API_KEY && process.env.NODE_ENV !== "test";
   const hasOpenAI = !!process.env.OPENAI_API_KEY || process.env.NODE_ENV === "test";
@@ -96,7 +97,9 @@ export async function aiChat(
         .map((m) => `${m.role}: ${m.content}`)
         .join("\n");
       try {
-        const content = await geminiChat(processedSystemPrompt, userPrompt);
+        const content = await geminiChat(processedSystemPrompt, userPrompt, "gemini-2.0-flash", {
+          signal: options?.signal,
+        });
         return { content };
       } catch (err) {
         logger.warn("[AI] Gemini call failed, falling back to OpenAI if available:", err);
@@ -121,12 +124,15 @@ export async function aiChat(
       });
     }
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: messages,
-      max_tokens: 4096,
-      user: "default_user",
-    });
+    const response = await openai.chat.completions.create(
+      {
+        model: "gpt-4o",
+        messages: messages,
+        max_tokens: 4096,
+        user: "default_user",
+      },
+      options?.signal ? { signal: options.signal } : undefined
+    );
 
     const choice = response.choices[0];
     if (choice?.message?.refusal) {
@@ -325,7 +331,8 @@ export async function analyzeTestPerformance(
 }
 export async function* streamAIChat(
   messages: ChatMessage[],
-  systemPrompt?: string
+  systemPrompt?: string,
+  options?: { signal?: AbortSignal }
 ): AsyncGenerator<string> {
   const hasGemini = !!process.env.GOOGLE_API_KEY && process.env.NODE_ENV !== "test";
   const hasOpenAI = !!process.env.OPENAI_API_KEY || process.env.NODE_ENV === "test";
@@ -346,7 +353,9 @@ export async function* streamAIChat(
         .map((m) => `${m.role}: ${m.content}`)
         .join("\n");
       try {
-        yield* streamGeminiChat(processedSystemPrompt, userPrompt);
+        yield* streamGeminiChat(processedSystemPrompt, userPrompt, "gemini-2.0-flash", {
+          signal: options?.signal,
+        });
         return;
       } catch (err) {
         logger.warn("[AI] Gemini stream failed, falling back to OpenAI if available:", err);
@@ -363,13 +372,16 @@ export async function* streamAIChat(
       }
     }
 
-    const stream = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: messages,
-      stream: true,
-      max_tokens: 4096,
-      user: "default_user",
-    });
+    const stream = await openai.chat.completions.create(
+      {
+        model: "gpt-4o",
+        messages: messages,
+        stream: true,
+        max_tokens: 4096,
+        user: "default_user",
+      },
+      options?.signal ? { signal: options.signal } : undefined
+    );
 
     for await (const chunk of stream) {
       const choice = chunk.choices[0];
