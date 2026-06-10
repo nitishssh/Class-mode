@@ -2534,6 +2534,73 @@ ALTER TABLE ONLY public.workspaces
 
 
 --
+-- Name: timetable_slots; Type: TABLE; Schema: public; Owner: plpuser
+--
+
+CREATE TABLE public.timetable_slots (
+    id integer NOT NULL,
+    workspace_id integer NOT NULL,
+    teacher_id integer NOT NULL,
+    class_name character varying(255) NOT NULL,
+    subject character varying(255) NOT NULL,
+    day_of_week integer NOT NULL,
+    period_number integer NOT NULL,
+    start_time character varying(50) NOT NULL,
+    end_time character varying(50) NOT NULL,
+    room character varying(255)
+);
+
+ALTER TABLE public.timetable_slots OWNER TO plpuser;
+
+--
+-- Name: timetable_slots_id_seq; Type: SEQUENCE; Schema: public; Owner: plpuser
+--
+
+CREATE SEQUENCE public.timetable_slots_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER SEQUENCE public.timetable_slots_id_seq OWNER TO plpuser;
+
+--
+-- Name: timetable_slots_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: plpuser
+--
+
+ALTER SEQUENCE public.timetable_slots_id_seq OWNED BY public.timetable_slots.id;
+
+--
+-- Name: timetable_slots id; Type: DEFAULT; Schema: public; Owner: plpuser
+--
+
+ALTER TABLE ONLY public.timetable_slots ALTER COLUMN id SET DEFAULT nextval('public.timetable_slots_id_seq'::regclass);
+
+--
+-- Name: timetable_slots timetable_slots_pkey; Type: CONSTRAINT; Schema: public; Owner: plpuser
+--
+
+ALTER TABLE ONLY public.timetable_slots
+    ADD CONSTRAINT timetable_slots_pkey PRIMARY KEY (id);
+
+--
+-- Name: timetable_slots timetable_slots_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: plpuser
+--
+
+ALTER TABLE ONLY public.timetable_slots
+    ADD CONSTRAINT timetable_slots_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
+
+--
+-- Name: timetable_slots timetable_slots_teacher_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: plpuser
+--
+
+ALTER TABLE ONLY public.timetable_slots
+    ADD CONSTRAINT timetable_slots_teacher_id_fkey FOREIGN KEY (teacher_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: SCHEMA public; Type: ACL; Schema: -; Owner: pg_database_owner
 --
 
