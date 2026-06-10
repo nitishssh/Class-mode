@@ -73,7 +73,8 @@
       "Bash(cp /tmp/main-lockfile.json package-lock.json)",
       "Bash(npm audit *)",
       "Bash(python3 -c ' *)",
-      "Bash(cp /tmp/current-lockfile.json package-lock.json)"
+      "Bash(cp /tmp/current-lockfile.json package-lock.json)",
+      "Skill(review)"
     ]
   }
 }
