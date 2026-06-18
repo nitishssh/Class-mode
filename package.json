@@ -82,7 +82,7 @@
     "lucide-react": "^0.453.0",
     "memorystore": "^1.6.7",
     "mitt": "^3.0.1",
-    "multer": "^2.1.1",
+    "multer": "^2.2.0",
     "nanoid": "^5.1.11",
     "nodemailer": "^8.0.5",
     "openai": "^6.37.0",
