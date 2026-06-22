@@ -450,6 +450,154 @@ router.get("/admin/stats", authenticateToken, async (req: Request, res: Response
   }
 });
 
+// GET /api/admin/trends
+// Returns a daily time series (signups, tests created, submissions, logins) over
+// the last `days` days, plus an average-score-by-class breakdown for the Reports tab.
+router.get("/admin/trends", authenticateToken, async (req: Request, res: Response) => {
+  try {
+    if (!req.session?.userId) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    if (!["admin", "principal", "school_admin"].includes(req.session.role || "")) {
+      return res.status(403).json({ message: "Forbidden: Admin access required" });
+    }
+
+    // Clamp range to a sensible window (default 7, max 90 days).
+    const days = Math.min(Math.max(parseInt(String(req.query.days ?? "7"), 10) || 7, 1), 90);
+
+    // Build the date axis (oldest -> newest) so days with zero activity still render.
+    const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const axis: { date: string; label: string }[] = [];
+    const today = new Date();
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
+      axis.push({
+        date: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
+        label: weekdays[d.getDay()],
+      });
+    }
+
+    if (req.query.demo === "true") {
+      const daily = axis.map((a, idx) => ({
+        date: a.date,
+        label: a.label,
+        signups: 4 + ((idx * 3) % 11),
+        tests: 2 + ((idx * 2) % 7),
+        submissions: 40 + ((idx * 17) % 60),
+        logins: 30 + ((idx * 13) % 45),
+      }));
+      return res.status(200).json({
+        range: days,
+        daily,
+        scoreByClass: [
+          { className: "Grade 9", avgScore: 72, attempts: 184 },
+          { className: "Grade 10", avgScore: 78, attempts: 211 },
+          { className: "Grade 11", avgScore: 84, attempts: 168 },
+          { className: "Grade 12", avgScore: 80, attempts: 142 },
+        ],
+      });
+    }
+
+    if (!isPgReady()) return res.status(503).json({ message: "Database unavailable" });
+
+    const admin = await pgFindUserById(req.session.userId);
+    if (!admin) return res.status(400).json({ message: "Admin not found" });
+
+    const pool = getPgPool();
+    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - (days - 1));
+
+    // Super-admins ("admin") see all schools; everyone else is scoped to their own.
+    const scoped = admin.role !== "admin" && !!admin.schoolCode;
+    const sc = admin.schoolCode || "";
+
+    const [signupRows, testRows, submissionRows, loginRows, classRows] = await Promise.all([
+      pool.query(
+        `SELECT created_at::date AS d, COUNT(*)::int AS c
+           FROM users
+          WHERE created_at >= $1 ${scoped ? "AND school_code = $2" : ""}
+          GROUP BY d`,
+        scoped ? [start, sc] : [start]
+      ),
+      pool.query(
+        `SELECT t.created_at::date AS d, COUNT(*)::int AS c
+           FROM tests t
+           ${scoped ? "JOIN users u ON t.teacher_id = u.id AND u.school_code = $2" : ""}
+          WHERE t.created_at >= $1
+          GROUP BY d`,
+        scoped ? [start, sc] : [start]
+      ),
+      pool.query(
+        `SELECT ta.end_time::date AS d, COUNT(*)::int AS c
+           FROM test_attempts ta
+           ${scoped ? "JOIN users u ON ta.student_id = u.id AND u.school_code = $2" : ""}
+          WHERE ta.status IN ('completed','evaluated') AND ta.end_time >= $1
+          GROUP BY d`,
+        scoped ? [start, sc] : [start]
+      ),
+      pool.query(
+        `SELECT created_at::date AS d, COUNT(*)::int AS c
+           FROM audit_events
+          WHERE event_type = 'user.login' AND created_at >= $1 ${scoped ? "AND school_code = $2" : ""}
+          GROUP BY d`,
+        scoped ? [start, sc] : [start]
+      ),
+      pool.query(
+        `SELECT t.class_name AS class_name,
+                ROUND(AVG(ta.score)::numeric, 1)::float AS avg_score,
+                COUNT(*)::int AS attempts
+           FROM test_attempts ta
+           JOIN tests t ON ta.test_id = t.id
+           ${scoped ? "JOIN users u ON t.teacher_id = u.id AND u.school_code = $1" : ""}
+          WHERE ta.status IN ('completed','evaluated') AND ta.score IS NOT NULL
+          GROUP BY t.class_name
+          ORDER BY avg_score DESC NULLS LAST
+          LIMIT 8`,
+        scoped ? [sc] : []
+      ),
+    ]);
+
+    // Index the per-day counts by ISO date for O(1) merge onto the axis.
+    const toMap = (rows: { d: Date | string; c: number }[]) => {
+      const m = new Map<string, number>();
+      for (const r of rows) {
+        const key = r.d instanceof Date
+          ? `${r.d.getFullYear()}-${String(r.d.getMonth() + 1).padStart(2, "0")}-${String(r.d.getDate()).padStart(2, "0")}`
+          : String(r.d).slice(0, 10);
+        m.set(key, r.c);
+      }
+      return m;
+    };
+
+    const signups = toMap(signupRows.rows);
+    const tests = toMap(testRows.rows);
+    const submissions = toMap(submissionRows.rows);
+    const logins = toMap(loginRows.rows);
+
+    const daily = axis.map((a) => ({
+      date: a.date,
+      label: a.label,
+      signups: signups.get(a.date) ?? 0,
+      tests: tests.get(a.date) ?? 0,
+      submissions: submissions.get(a.date) ?? 0,
+      logins: logins.get(a.date) ?? 0,
+    }));
+
+    res.status(200).json({
+      range: days,
+      daily,
+      scoreByClass: classRows.rows.map((r) => ({
+        className: r.class_name,
+        avgScore: r.avg_score,
+        attempts: r.attempts,
+      })),
+    });
+  } catch (error) {
+    console.error("[api/admin/trends] Error:", error);
+    res.status(500).json({ message: "Failed to fetch admin trends" });
+  }
+});
+
 // GET /api/analytics/students
 router.get("/analytics/students", authenticateToken, async (req: Request, res: Response) => {
   try {
