@@ -29,7 +29,7 @@ export default function AcceptInvite() {
       setError("No invite token found.");
       return;
     }
-    fetch(`/api/invite/validate/${token}`)
+    fetch(`/api/onboarding/invite/validate/${token}`)
       .then(async (r) => {
         if (r.status === 410) {
           setError("This invite has expired. Ask your admin to resend it.");
@@ -57,23 +57,24 @@ export default function AcceptInvite() {
     }
     setLoading(true);
     try {
-      const res = await fetch("/api/invite/accept", {
+      const res = await fetch("/api/onboarding/invite/accept", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ token, displayName: form.displayName, password: form.password }),
+        body: JSON.stringify({
+          token,
+          email: invite?.email,
+          displayName: form.displayName,
+          password: form.password,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
 
-      toast({ title: "Account created!", description: "You can now sign in." });
-
-      const role = data.user?.legacyRole || data.user?.role || invite?.role;
-      if (role === "teacher") {
-        setLocation("/onboarding/teacher");
-      } else {
-        setLocation("/dashboard");
-      }
+      // The onboarding accept handler creates the account but does not establish a
+      // session, so send the user to /login to sign in with their new credentials.
+      toast({ title: "Account created!", description: "Please sign in to continue." });
+      setLocation("/login");
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {

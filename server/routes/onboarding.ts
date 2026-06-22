@@ -224,7 +224,7 @@ const teacherInviteSchema = z.object({
   grades: z.array(z.string()).min(1),
 });
 
-// POST /api/invite/teacher
+// POST /api/onboarding/invite/teacher
 router.post("/invite/teacher", authenticateToken, async (req: Request, res: Response) => {
   const uid = firebaseUid(req);
   const parsed = teacherInviteSchema.safeParse(req.body);
@@ -253,7 +253,7 @@ router.post("/invite/teacher", authenticateToken, async (req: Request, res: Resp
   return res.status(201).json({ id: invite.id, status: invite.status });
 });
 
-// GET /api/invite/teacher/list
+// GET /api/onboarding/invite/teacher/list
 router.get("/invite/teacher/list", authenticateToken, async (req: Request, res: Response) => {
   const uid = firebaseUid(req);
   const school = await pgFindSchoolByCreatedByUid(uid);
@@ -272,7 +272,7 @@ const acceptInviteSchema = z.object({
   password: z.string().min(6),
 });
 
-// POST /api/invite/accept
+// POST /api/onboarding/invite/accept
 router.post("/invite/accept", async (req: Request, res: Response) => {
   const parsed = acceptInviteSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
@@ -289,16 +289,19 @@ router.post("/invite/accept", async (req: Request, res: Response) => {
     return res.status(403).json({ message: "This invite was sent to a different email address." });
   }
 
-  // Create Firebase Auth user
+  // Create Firebase Auth user. Email ownership is already proven by clicking the
+  // invite link sent to this address, so mark it verified up front.
   const fbUser = await admin.auth().createUser({
     email: invite.email,
     password: parsed.data.password,
     displayName: parsed.data.displayName,
+    emailVerified: true,
   });
 
   await setCustomUserClaims(fbUser.uid, { role: invite.role, status: "active" });
 
-  // Create PG user
+  // Create PG user. emailVerified must be true or the login flow bounces the user
+  // to /verify-email (App.tsx gate checks profile.emailVerified === false).
   const pgUser = await pgCreateUser({
     authProvider: "firebase",
     authSubject: fbUser.uid,
@@ -309,6 +312,7 @@ router.post("/invite/accept", async (req: Request, res: Response) => {
     displayName: parsed.data.displayName,
     role: invite.role,
     status: "active",
+    emailVerified: true,
     schoolCode: null,
   });
 
@@ -391,7 +395,7 @@ const studentInviteSchema = z.object({
   classId: z.string().min(1),
 });
 
-// POST /api/invite/student
+// POST /api/onboarding/invite/student
 router.post("/invite/student", authenticateToken, async (req: Request, res: Response) => {
   const uid = firebaseUid(req);
   const parsed = studentInviteSchema.safeParse(req.body);
@@ -431,7 +435,7 @@ router.post("/invite/student", authenticateToken, async (req: Request, res: Resp
   return res.status(201).json({ id: invite.id, status: invite.status });
 });
 
-// GET /api/invite/student/list?classId=
+// GET /api/onboarding/invite/student/list?classId=
 router.get("/invite/student/list", authenticateToken, async (req: Request, res: Response) => {
   const uid = firebaseUid(req);
   const { classId } = req.query;
@@ -444,7 +448,7 @@ router.get("/invite/student/list", authenticateToken, async (req: Request, res: 
 
 // ─── Resend invite ────────────────────────────────────────────────────────────
 
-// POST /api/invite/resend/:inviteId
+// POST /api/onboarding/invite/resend/:inviteId
 router.post("/invite/resend/:inviteId", authenticateToken, async (req: Request, res: Response) => {
   const uid = firebaseUid(req);
   const invite = await pgFindInviteById(parseInt(req.params.inviteId, 10));
@@ -477,7 +481,7 @@ router.post("/invite/resend/:inviteId", authenticateToken, async (req: Request, 
   return res.json({ message: "Invite resent" });
 });
 
-// GET /api/invite/validate/:token  (used by accept-invite page to pre-fill info)
+// GET /api/onboarding/invite/validate/:token  (used by accept-invite page to pre-fill info)
 router.get("/invite/validate/:token", async (req: Request, res: Response) => {
   const invite = await pgFindInviteByToken(req.params.token);
   if (!invite) return res.status(404).json({ message: "Invalid invite link" });
@@ -504,7 +508,7 @@ const staffInviteSchema = z.object({
   grades: z.array(z.string()).optional(),
 });
 
-// POST /api/invite/staff
+// POST /api/onboarding/invite/staff
 router.post(
   "/invite/staff",
   authenticateToken,
@@ -563,7 +567,7 @@ const platformAdminInviteSchema = z.object({
   name: z.string().min(1),
 });
 
-// POST /api/invite/platform-admin
+// POST /api/onboarding/invite/platform-admin
 router.post(
   "/invite/platform-admin",
   authenticateToken,
