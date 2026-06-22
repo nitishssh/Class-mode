@@ -271,6 +271,54 @@ describe("Admin Dashboard API", () => {
     });
   });
 
+  describe("GET /api/admin/trends", () => {
+    it("should return demo trends without touching the database", async () => {
+      const res = await request(app)
+        .get("/api/admin/trends?demo=true&days=7")
+        .set("Authorization", `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.range).toBe(7);
+      expect(res.body.daily).toHaveLength(7);
+      expect(res.body.daily[0]).toHaveProperty("logins");
+      expect(res.body.daily[0]).toHaveProperty("submissions");
+      expect(res.body.scoreByClass.length).toBeGreaterThan(0);
+    });
+
+    it("should build a zero-filled daily axis when there is no activity", async () => {
+      (getPgPool() as unknown as { query: Mock }).query.mockResolvedValue({ rows: [] });
+
+      const res = await request(app)
+        .get("/api/admin/trends?days=7")
+        .set("Authorization", `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.daily).toHaveLength(7);
+      expect(res.body.daily.every((d: { logins: number }) => d.logins === 0)).toBe(true);
+      expect(res.body.scoreByClass).toEqual([]);
+    });
+
+    it("should clamp the days range to a max of 90", async () => {
+      (getPgPool() as unknown as { query: Mock }).query.mockResolvedValue({ rows: [] });
+
+      const res = await request(app)
+        .get("/api/admin/trends?days=999")
+        .set("Authorization", `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.range).toBe(90);
+      expect(res.body.daily).toHaveLength(90);
+    });
+
+    it("should return 403 for unauthorized users", async () => {
+      const res = await request(app)
+        .get("/api/admin/trends")
+        .set("Authorization", `Bearer ${unauthorizedToken}`);
+
+      expect(res.status).toBe(403);
+    });
+  });
+
   describe("GET /api/admin/logs", () => {
     it("should return audit logs", async () => {
       const mockLogs = [

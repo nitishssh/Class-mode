@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- **Admin Dashboard Trends** — New `GET /api/admin/trends` endpoint returns a daily activity time series (signups, tests created, submissions, logins) over a configurable window plus an average-score-by-class breakdown. School admins and principals are scoped to their own school; super admins see all schools.
+- **Overview activity chart** now plots real submissions, logins, and new signups over the trailing week instead of a single login-only series derived client-side.
+- **Reports tab** Average-score-by-class chart now uses real graded-submission data with an empty state, replacing the previous hardcoded mock distribution.
+
 ## [1.7.1.0] - 2026-06-10
 
 ### Added

@@ -202,6 +202,17 @@ export default function AdminDashboard() {
     enabled: !!currentUser,
   });
 
+  // Admin trends: daily activity series + average score by class
+  const { data: adminTrends, isLoading: isLoadingTrends } = useQuery<{
+    range: number;
+    daily: { date: string; label: string; signups: number; tests: number; submissions: number; logins: number }[];
+    scoreByClass: { className: string; avgScore: number; attempts: number }[];
+  }>({
+    queryKey: ["/api/admin/trends"],
+    queryFn: () => apiRequest("GET", "/api/admin/trends").then((r) => r.json()),
+    enabled: !!currentUser && ["admin", "principal", "school_admin"].includes(currentUser?.profile?.role || ""),
+  });
+
   // Google Classroom Connection status
   const { data: lmsStatus } = useQuery<any>({
     queryKey: ["/api/lms/google/status"],
@@ -532,6 +543,19 @@ export default function AdminDashboard() {
     }));
   }, [databaseLogs]);
 
+  // Prefer server-computed trends; fall back to client login counts before the
+  // trends query resolves so the chart never renders empty.
+  const trendSeries = useMemo(() => {
+    if (adminTrends?.daily?.length) return adminTrends.daily;
+    return chartData.map((d) => ({
+      label: d.name,
+      logins: d.logins,
+      submissions: 0,
+      signups: 0,
+      tests: 0,
+    }));
+  }, [adminTrends, chartData]);
+
   // Get status pill style
   const getStatusBadge = (status?: string) => {
     const s = status || "active";
@@ -787,32 +811,48 @@ export default function AdminDashboard() {
                 {/* Visual Chart Card */}
                 <Card className="lg:col-span-2 border-border/50">
                   <CardHeader>
-                    <CardTitle className="text-base font-semibold">Workspace Activity & Logins</CardTitle>
-                    <CardDescription>Visual metrics tracking daily administrative and user interactions.</CardDescription>
+                    <CardTitle className="text-base font-semibold">Workspace Activity Trends</CardTitle>
+                    <CardDescription>
+                      Daily logins, submissions, and new signups over the last {adminTrends?.range ?? 7} days.
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="h-[300px] min-h-[200px] pt-4">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id="colorLogins" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="hsl(var(--accent))" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="hsl(var(--accent))" stopOpacity={0}/>
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                        <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-                        <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: "hsl(var(--card))",
-                            border: "1px solid hsl(var(--border))",
-                            borderRadius: "8px",
-                            fontSize: "12px",
-                          }}
-                        />
-                        <Area type="monotone" dataKey="logins" name="Daily Logins" stroke="hsl(var(--accent))" fillOpacity={1} fill="url(#colorLogins)" strokeWidth={2} />
-                      </AreaChart>
-                    </ResponsiveContainer>
+                    {isLoadingTrends ? (
+                      <Skeleton className="h-full w-full rounded-xl" />
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={trendSeries} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="colorLogins" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="hsl(var(--accent))" stopOpacity={0.3}/>
+                              <stop offset="95%" stopColor="hsl(var(--accent))" stopOpacity={0}/>
+                            </linearGradient>
+                            <linearGradient id="colorSubs" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="hsl(217 91% 60%)" stopOpacity={0.25}/>
+                              <stop offset="95%" stopColor="hsl(217 91% 60%)" stopOpacity={0}/>
+                            </linearGradient>
+                            <linearGradient id="colorSignups" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="hsl(142 71% 45%)" stopOpacity={0.25}/>
+                              <stop offset="95%" stopColor="hsl(142 71% 45%)" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                          <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                          <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: "hsl(var(--card))",
+                              border: "1px solid hsl(var(--border))",
+                              borderRadius: "8px",
+                              fontSize: "12px",
+                            }}
+                          />
+                          <Area type="monotone" dataKey="submissions" name="Submissions" stroke="hsl(217 91% 60%)" fillOpacity={1} fill="url(#colorSubs)" strokeWidth={2} />
+                          <Area type="monotone" dataKey="logins" name="Logins" stroke="hsl(var(--accent))" fillOpacity={1} fill="url(#colorLogins)" strokeWidth={2} />
+                          <Area type="monotone" dataKey="signups" name="New Signups" stroke="hsl(142 71% 45%)" fillOpacity={1} fill="url(#colorSignups)" strokeWidth={2} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -1276,23 +1316,29 @@ export default function AdminDashboard() {
 
                 </div>
 
-                {/* Graph Analytics preview inside reports */}
+                {/* Average score by class — real submission data */}
                 <div className="h-[250px] min-h-[200px] border rounded-xl p-4 bg-muted/10">
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">Mock Academic Score distributions</h4>
-                  <ResponsiveContainer width="100%" height="90%">
-                    <BarChart data={[
-                      { name: "Grade 9", score: 72 },
-                      { name: "Grade 10", score: 78 },
-                      { name: "Grade 11", score: 84 },
-                      { name: "Grade 12", score: 80 },
-                    ]}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                      <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} />
-                      <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} />
-                      <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
-                      <Bar dataKey="score" name="Average Grade Score" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} barSize={40} />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">Average score by class</h4>
+                  {isLoadingTrends ? (
+                    <Skeleton className="h-[180px] w-full rounded-lg" />
+                  ) : adminTrends?.scoreByClass?.length ? (
+                    <ResponsiveContainer width="100%" height="90%">
+                      <BarChart data={adminTrends.scoreByClass}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                        <XAxis dataKey="className" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} />
+                        <YAxis domain={[0, 100]} stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} />
+                        <Tooltip
+                          contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }}
+                          formatter={(value: any, _name: any, props: any) => [`${value} avg (${props?.payload?.attempts ?? 0} attempts)`, "Score"]}
+                        />
+                        <Bar dataKey="avgScore" name="Average Score" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} barSize={40} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex h-[180px] items-center justify-center text-center">
+                      <p className="text-sm text-muted-foreground">No graded submissions yet. Scores will appear here once students complete tests.</p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
