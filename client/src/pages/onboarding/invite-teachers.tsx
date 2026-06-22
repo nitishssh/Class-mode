@@ -16,7 +16,9 @@ export default function InviteTeachers() {
   const qc = useQueryClient();
   const [, setLocation] = useLocation();
 
-  const { data: invites = [] } = useQuery<any[]>({ queryKey: ["/api/invite/teacher/list"] });
+  const { data: invites = [] } = useQuery<any[]>({
+    queryKey: ["/api/onboarding/invite/teacher/list"],
+  });
 
   const toggleGrade = (g: string) =>
     setForm((f) => ({
@@ -25,20 +27,20 @@ export default function InviteTeachers() {
     }));
 
   const sendMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/invite/teacher", form),
+    mutationFn: () => apiRequest("POST", "/api/onboarding/invite/teacher", form),
     onSuccess: () => {
       toast({ title: "Invite sent!", description: `${form.email} will receive an email shortly.` });
       setForm({ name: "", email: "", grades: [] });
-      qc.invalidateQueries({ queryKey: ["/api/invite/teacher/list"] });
+      qc.invalidateQueries({ queryKey: ["/api/onboarding/invite/teacher/list"] });
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
   const resendMutation = useMutation({
-    mutationFn: (id: string) => apiRequest("POST", `/api/invite/resend/${id}`),
+    mutationFn: (id: string) => apiRequest("POST", `/api/onboarding/invite/resend/${id}`),
     onSuccess: () => {
       toast({ title: "Invite resent" });
-      qc.invalidateQueries({ queryKey: ["/api/invite/teacher/list"] });
+      qc.invalidateQueries({ queryKey: ["/api/onboarding/invite/teacher/list"] });
     },
   });
 

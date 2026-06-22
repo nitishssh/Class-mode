@@ -16,27 +16,30 @@ export default function InviteStudents() {
 
   const { data: classes = [] } = useQuery<any[]>({ queryKey: ["/api/classes/mine"] });
   const { data: invites = [] } = useQuery<any[]>({
-    queryKey: ["/api/invite/student/list", form.classId],
+    queryKey: ["/api/onboarding/invite/student/list", form.classId],
     queryFn: () =>
-      fetch(`/api/invite/student/list${form.classId ? `?classId=${form.classId}` : ""}`, {
-        credentials: "include",
-      }).then((r) => r.json()),
+      fetch(
+        `/api/onboarding/invite/student/list${form.classId ? `?classId=${form.classId}` : ""}`,
+        {
+          credentials: "include",
+        }
+      ).then((r) => r.json()),
     enabled: true,
   });
 
   const sendMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/invite/student", form),
+    mutationFn: () => apiRequest("POST", "/api/onboarding/invite/student", form),
     onSuccess: () => {
       markQuestComplete("quest:invite-student");
       toast({ title: "Invite sent!" });
       setForm((f) => ({ ...f, studentName: "", parentEmail: "" }));
-      qc.invalidateQueries({ queryKey: ["/api/invite/student/list"] });
+      qc.invalidateQueries({ queryKey: ["/api/onboarding/invite/student/list"] });
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
   const resendMutation = useMutation({
-    mutationFn: (id: string) => apiRequest("POST", `/api/invite/resend/${id}`),
+    mutationFn: (id: string) => apiRequest("POST", `/api/onboarding/invite/resend/${id}`),
     onSuccess: () => toast({ title: "Invite resent" }),
   });
 
@@ -52,7 +55,7 @@ export default function InviteStudents() {
       const cls = (classes as any[]).find((c: any) => c.name === className);
       if (!cls) continue;
       try {
-        await apiRequest("POST", "/api/invite/student", {
+        await apiRequest("POST", "/api/onboarding/invite/student", {
           studentName,
           parentEmail,
           grade,
@@ -64,7 +67,7 @@ export default function InviteStudents() {
       }
     }
     toast({ title: `${sent} invites sent from CSV` });
-    qc.invalidateQueries({ queryKey: ["/api/invite/student/list"] });
+    qc.invalidateQueries({ queryKey: ["/api/onboarding/invite/student/list"] });
     if (csvRef.current) csvRef.current.value = "";
   };
 

@@ -1,5 +1,30 @@
 # TODOS
 
+## Class Mode (product backlog)
+
+### TODO.CM1 — Student workspace membership (DEFERRED 2026-06-22)
+
+**What:** Make students first-class workspace members so they can access class chat
+channels (Announcements / Doubts / Resources). Today students get only the role-gated
+dashboard; `GET /api/workspaces` returns `[]` for them and the WorkspaceSwitcher is empty.
+**Status:** DEFERRED via /autoplan premise gate (2026-06-22). Not building now.
+**Why deferred:** The payoff is chat/channels, and there's no demand signal — no teacher
+or student has asked for in-app chat, the dashboard works without it, and WhatsApp parent
+nudges (v1.6.0) already cover parent/student comms. Building now risks unused plumbing +
+new security surface on an unvalidated premise.
+**Re-trigger:** Revisit when a pilot teacher/student actually asks for in-app class chat,
+or a roadmap/demo commitment requires it.
+**When picked up:** Recommended approach is School = Workspace, reuse the `member` role
+(workspace:read only); create the workspace + cbse-school channels on school creation,
+add `schools.workspace_id` FK, add workspace membership at invite-accept, plus an
+idempotent backfill for existing students. Full plan archived at
+`~/.gstack/projects/NitishKumar-ai-Class-mode/main-student-workspace-membership-plan.md`.
+**Note:** The partial `kind:"student"` infra (server/routes/chat.ts:110 → role `member` +
+`studentMeta`) already exists and stays intact for when this is built.
+**Depends on:** Nothing. Demand-gated.
+
+---
+
 ## CommitGuard / Meshwork (new project)
 
 ### TODO.CG1 — Define 5-user validation gate precisely
