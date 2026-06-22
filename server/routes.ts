@@ -73,14 +73,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api", testsRouter);
   app.use("/api/timetable", timetableRouter);
   app.use("/api", aiRouter); // Handles /api/ai-chat
+  // Workspace v2 owns workspace identity/membership endpoints. Mount it before
+  // chat so GET /api/workspaces includes the active user's role.
+  app.use("/api", workspaceRouter);
   app.use("/api", chatRouter); // Handles /api/workspaces, /api/channels, /api/messages
   app.use("/api", tasksRouter);
   app.use("/api", notificationsRouter);
   app.use("/api/ocr", ocrRouter);
   app.use("/api/upload", uploadRouter);
-
-  // Legacy Workspace v2 (must be last)
-  app.use("/api", workspaceRouter);
 
   const httpServer = createServer(app);
   return httpServer;

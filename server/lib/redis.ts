@@ -1,49 +1,133 @@
-import { createClient } from "redis";
-// Assuming there's a log utility, let's just use console for now if it doesn't exist
+import Redis from "ioredis";
+import { logger } from "./logger";
 
 const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
+const readyCallbacks = new Set<() => void | Promise<void>>();
 
-export const redisClient = createClient({
-  url: redisUrl,
+let connected = false;
+let connecting: Promise<boolean> | null = null;
+let probeTimer: ReturnType<typeof setTimeout> | null = null;
+let warnedUnavailable = false;
+
+export const redisClient = new Redis(redisUrl, {
+  lazyConnect: true,
+  enableOfflineQueue: false,
+  maxRetriesPerRequest: 1,
+  retryStrategy: () => null,
 });
 
-redisClient.on("error", (err) => {
-  console.warn("Redis client error:", err);
+redisClient.on("ready", () => {
+  connected = true;
+  warnedUnavailable = false;
 });
 
-redisClient.on("connect", () => {
-  console.log("Connected to Redis at", redisUrl);
+redisClient.on("close", () => {
+  connected = false;
 });
 
-export async function connectRedis() {
-  if (!redisClient.isOpen) {
+redisClient.on("error", () => {
+  connected = false;
+});
+
+function scheduleReconnectProbe(): void {
+  if (probeTimer) return;
+  probeTimer = setTimeout(async () => {
+    probeTimer = null;
+    const recovered = await connectRedis();
+    if (!recovered) scheduleReconnectProbe();
+  }, 30_000);
+  probeTimer.unref?.();
+}
+
+async function notifyReady(): Promise<void> {
+  for (const callback of readyCallbacks) {
     try {
-      await redisClient.connect();
-    } catch (err) {
-      console.warn("Failed to connect to Redis. Caching will be disabled.");
+      await callback();
+    } catch (error) {
+      logger.error("[redis] Ready callback failed", { error: String(error) });
     }
   }
 }
 
-// Connect automatically in background
-connectRedis();
-
-export async function getCachedJSON<T>(key: string): Promise<T | null> {
-  if (!redisClient.isOpen) return null;
-  try {
-    const data = await redisClient.get(key);
-    if (data) return JSON.parse(data) as T;
-  } catch (err) {
-    console.warn(`Redis GET error for ${key}:`, err);
-  }
-  return null;
+export function isRedisReady(): boolean {
+  return connected && redisClient.status === "ready";
 }
 
-export async function setCachedJSON(key: string, value: any, ttlSeconds: number = 3600) {
-  if (!redisClient.isOpen) return;
+export function isRedisConfigured(): boolean {
+  return Boolean(redisUrl);
+}
+
+export async function connectRedis(): Promise<boolean> {
+  if (isRedisReady()) return true;
+  if (connecting) return connecting;
+
+  connecting = (async () => {
+    try {
+      await redisClient.connect();
+      await redisClient.ping();
+      connected = true;
+      logger.info("[redis] Redis connected");
+      await notifyReady();
+      return true;
+    } catch (error) {
+      connected = false;
+      if (!warnedUnavailable) {
+        warnedUnavailable = true;
+        logger.warn("[redis] Redis unavailable; cache and queue workers are disabled", {
+          error: String(error),
+        });
+      }
+      scheduleReconnectProbe();
+      return false;
+    } finally {
+      connecting = null;
+    }
+  })();
+
+  return connecting;
+}
+
+export function onRedisReady(callback: () => void | Promise<void>): () => void {
+  readyCallbacks.add(callback);
+  if (isRedisReady()) void callback();
+  return () => readyCallbacks.delete(callback);
+}
+
+export function createBullMQConnection(): Redis {
+  const connection = new Redis(redisUrl, {
+    enableOfflineQueue: false,
+    maxRetriesPerRequest: null,
+    retryStrategy: (times) => Math.min(times * 500, 5_000),
+  });
+  connection.on("error", () => {
+    connected = false;
+  });
+  connection.on("ready", () => {
+    connected = true;
+  });
+  return connection;
+}
+
+export async function getCachedJSON<T>(key: string): Promise<T | null> {
+  if (!isRedisReady()) return null;
   try {
-    await redisClient.setEx(key, ttlSeconds, JSON.stringify(value));
-  } catch (err) {
-    console.warn(`Redis SET error for ${key}:`, err);
+    const data = await redisClient.get(key);
+    return data ? (JSON.parse(data) as T) : null;
+  } catch (error) {
+    logger.warn("[redis] Cache read failed", { key, error: String(error) });
+    return null;
+  }
+}
+
+export async function setCachedJSON(
+  key: string,
+  value: unknown,
+  ttlSeconds: number = 3600
+): Promise<void> {
+  if (!isRedisReady()) return;
+  try {
+    await redisClient.setex(key, ttlSeconds, JSON.stringify(value));
+  } catch (error) {
+    logger.warn("[redis] Cache write failed", { key, error: String(error) });
   }
 }

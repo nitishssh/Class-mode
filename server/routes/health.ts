@@ -3,6 +3,7 @@ import { isCassandraConnected } from "../lib/cassandra";
 import { isPgReady, getPgPool } from "../db-pg";
 import { authenticateToken } from "../middleware";
 import { getFirebaseAdminStatus } from "../lib/firebase-admin";
+import { isRedisConfigured, isRedisReady } from "../lib/redis";
 
 const router = Router();
 
@@ -37,6 +38,12 @@ router.get("/", (_req, res) => {
       cassandra: {
         connected: cassandraReady,
         configured: !!process.env.ASTRA_DB_APPLICATION_TOKEN,
+      },
+    },
+    services: {
+      redis: {
+        configured: isRedisConfigured(),
+        connected: isRedisReady(),
       },
     },
     auth: {
@@ -101,6 +108,12 @@ router.get("/detailed", authenticateToken, async (_req, res) => {
         configured: !!process.env.ASTRA_DB_APPLICATION_TOKEN,
         keyspace: process.env.ASTRA_DB_KEYSPACE ?? "not configured",
         fallbackToPg: !cassandraReady,
+      },
+    },
+    services: {
+      redis: {
+        configured: isRedisConfigured(),
+        connected: isRedisReady(),
       },
     },
     ai: {

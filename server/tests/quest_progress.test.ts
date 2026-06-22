@@ -63,7 +63,7 @@ describe("readProgressFromStorage", () => {
   it("returns default progress when key is absent", () => {
     const p = readProgressFromStorage();
     expect(p.completedIds).toEqual([]);
-    expect(p.panelDismissed).toBe(false);
+    expect(p.panelDismissed).toBe(true);
     expect(p.firstSeenAt).toBeTruthy();
   });
 

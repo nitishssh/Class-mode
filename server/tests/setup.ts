@@ -29,15 +29,27 @@ vi.mock("../db-pg", () => {
 vi.mock("../lib/redis", () => ({
   redisClient: {
     on: vi.fn(),
-    isOpen: false,
+    status: "end",
     connect: vi.fn().mockResolvedValue(undefined),
+    ping: vi.fn().mockResolvedValue("PONG"),
     get: vi.fn().mockResolvedValue(null),
-    setEx: vi.fn().mockResolvedValue(undefined),
+    setex: vi.fn().mockResolvedValue(undefined),
     set: vi.fn().mockResolvedValue(undefined),
     del: vi.fn().mockResolvedValue(undefined),
     quit: vi.fn().mockResolvedValue(undefined),
+    disconnect: vi.fn(),
   },
-  connectRedis: vi.fn().mockResolvedValue(undefined),
+  connectRedis: vi.fn().mockResolvedValue(true),
+  isRedisReady: vi.fn().mockReturnValue(true),
+  isRedisConfigured: vi.fn().mockReturnValue(true),
+  onRedisReady: vi.fn((callback: () => void) => {
+    callback();
+    return vi.fn();
+  }),
+  createBullMQConnection: vi.fn(() => ({
+    on: vi.fn(),
+    quit: vi.fn(),
+  })),
   getCachedJSON: vi.fn().mockResolvedValue(null),
   setCachedJSON: vi.fn().mockResolvedValue(undefined),
 }));
@@ -51,6 +63,10 @@ vi.mock("ioredis", () => {
       set = vi.fn().mockResolvedValue("OK");
       del = vi.fn().mockResolvedValue(1);
       quit = vi.fn().mockResolvedValue("OK");
+      disconnect = vi.fn();
+      connect = vi.fn().mockResolvedValue(undefined);
+      ping = vi.fn().mockResolvedValue("PONG");
+      status = "ready";
       defineCommand = vi.fn();
     },
   };

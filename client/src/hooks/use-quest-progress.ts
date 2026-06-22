@@ -13,7 +13,7 @@ export interface QuestProgress {
 function defaultProgress(): QuestProgress {
   return {
     completedIds: [],
-    panelDismissed: false,
+    panelDismissed: true,
     firstSeenAt: new Date().toISOString(),
   };
 }

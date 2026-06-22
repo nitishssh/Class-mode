@@ -15,7 +15,6 @@ import {
   Settings,
   LogOut,
   Menu,
-  ScanBarcode,
   Sparkles,
   MessageSquare,
   BookOpen,
@@ -27,6 +26,7 @@ import {
   Database,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   ClipboardCheck,
   UserCheck,
   Link2,
@@ -38,6 +38,11 @@ interface NavItem {
   icon: React.ReactNode;
   /** True = route exists but feature is incomplete. Renders non-clickable. */
   disabled?: boolean;
+}
+
+interface NavSection {
+  title: string;
+  items: NavItem[];
 }
 
 interface SidebarProps {
@@ -52,10 +57,17 @@ export function Sidebar({ className }: SidebarProps) {
     logout,
   } = useAuth();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(() => window.innerWidth < 768);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [openTeacherSections, setOpenTeacherSections] = useState<Record<string, boolean>>({
+    Teaching: true,
+    Students: false,
+    Operations: false,
+  });
 
   useEffect(() => {
-    const handleResize = () => setIsCollapsed(window.innerWidth < 768);
+    const handleResize = () => {
+      if (window.innerWidth < 768) setIsCollapsed(false);
+    };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -131,32 +143,53 @@ export function Sidebar({ className }: SidebarProps) {
     { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" /> },
   ];
 
-  const teacherNavItems: NavItem[] = [
+  const teacherOverview: NavItem = {
+    title: "Overview",
+    href: "/teacher-dashboard",
+    icon: <LayoutDashboard className="h-5 w-5" />,
+  };
+  const teacherNavSections: NavSection[] = [
     {
-      title: "Dashboard",
-      href: "/teacher-dashboard",
-      icon: <LayoutDashboard className="h-5 w-5" />,
+      title: "Teaching",
+      items: [
+        { title: "Tests", href: "/create-test", icon: <FileQuestion className="h-5 w-5" /> },
+        { title: "Grading", href: "/grading", icon: <ClipboardCheck className="h-5 w-5" /> },
+        {
+          title: "AI Classroom",
+          href: "/ai-classroom",
+          icon: <Sparkles className="h-5 w-5" />,
+        },
+        { title: "Live Classes", href: "/live-classes", icon: <Video className="h-5 w-5" /> },
+      ],
     },
-    { title: "Create Test", href: "/create-test", icon: <FileQuestion className="h-5 w-5" /> },
-    { title: "Scan & Grade", href: "/ocr-scan", icon: <ScanBarcode className="h-5 w-5" /> },
-    { title: "Grading", href: "/grading", icon: <ClipboardCheck className="h-5 w-5" /> },
-    { title: "My Students", href: "/my-students", icon: <UserCheck className="h-5 w-5" /> },
     {
-      title: "Student Directory",
-      href: "/student-directory",
-      icon: <GraduationCap className="h-5 w-5" />,
+      title: "Students",
+      items: [
+        { title: "My Students", href: "/my-students", icon: <UserCheck className="h-5 w-5" /> },
+        {
+          title: "Directory",
+          href: "/student-directory",
+          icon: <GraduationCap className="h-5 w-5" />,
+        },
+        { title: "Analytics", href: "/analytics", icon: <BarChart className="h-5 w-5" /> },
+      ],
     },
-    { title: "Analytics", href: "/analytics", icon: <BarChart className="h-5 w-5" /> },
-    { title: "No-Code SIS", href: "/dynamic-sis", icon: <Database className="h-5 w-5" /> },
-    { title: "Live Classes", href: "/live-classes", icon: <Video className="h-5 w-5" /> },
-    { title: "AI Classroom", href: "/ai-classroom", icon: <Sparkles className="h-5 w-5" /> },
-    { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
     {
-      title: "Google Classroom",
-      href: "/integrations/google-classroom",
-      icon: <Link2 className="h-5 w-5" />,
+      title: "Operations",
+      items: [
+        { title: "School SIS", href: "/dynamic-sis", icon: <Database className="h-5 w-5" /> },
+        {
+          title: "Google Classroom",
+          href: "/integrations/google-classroom",
+          icon: <Link2 className="h-5 w-5" />,
+        },
+        { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
+      ],
     },
-    { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" /> },
+  ];
+  const teacherNavItems = [
+    teacherOverview,
+    ...teacherNavSections.flatMap((section) => section.items),
   ];
 
   const studentNavItems: NavItem[] = [
@@ -236,6 +269,53 @@ export function Sidebar({ className }: SidebarProps) {
   };
 
   const roleLabel = getRoleLabel(user?.role);
+  const renderNavItem = (item: NavItem) => {
+    const isActive = location === item.href;
+    if (item.disabled) {
+      return (
+        <div
+          key={item.href}
+          className={cn(
+            "flex min-h-11 cursor-not-allowed items-center rounded-lg text-sm font-medium opacity-40",
+            isCollapsed ? "justify-center px-2" : "px-3"
+          )}
+          title={isCollapsed ? `${item.title} (Coming Soon)` : undefined}
+        >
+          <span className={cn("flex h-5 w-5 items-center justify-center", !isCollapsed && "mr-3")}>
+            {item.icon}
+          </span>
+          {!isCollapsed && <span className="flex-1 truncate">{item.title}</span>}
+        </div>
+      );
+    }
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        onClick={closeMobileMenu}
+        className={cn(
+          "group relative flex min-h-11 items-center rounded-lg text-sm font-medium transition-colors duration-150",
+          isActive
+            ? "bg-accent-soft font-semibold text-accent"
+            : "text-muted-foreground hover:bg-muted hover:text-foreground",
+          isCollapsed ? "justify-center px-2" : "px-3"
+        )}
+        title={isCollapsed ? item.title : undefined}
+        aria-current={isActive ? "page" : undefined}
+      >
+        <span
+          className={cn(
+            "flex h-5 w-5 items-center justify-center transition-colors",
+            isActive ? "text-accent" : "text-muted-foreground group-hover:text-foreground",
+            !isCollapsed && "mr-3"
+          )}
+        >
+          {item.icon}
+        </span>
+        {!isCollapsed && <span className="flex-1 truncate">{item.title}</span>}
+      </Link>
+    );
+  };
 
   return (
     <>
@@ -273,10 +353,10 @@ export function Sidebar({ className }: SidebarProps) {
         <div className="flex items-center px-6 py-6">
           {!isCollapsed ? (
             <div className="flex flex-col">
-              <h1 className="font-display text-2xl leading-tight text-foreground">
+              <div className="font-display text-2xl leading-tight text-foreground">
                 {t("sidebar.classMode", "Class Mode")}
-              </h1>
-              <p className="mt-0.5 font-body text-[10px] uppercase tracking-widest text-muted-foreground">
+              </div>
+              <p className="mt-0.5 font-body text-xs text-muted-foreground">
                 {t("sidebar.learningPlatform", "Learning Platform")}
               </p>
             </div>
@@ -313,77 +393,44 @@ export function Sidebar({ className }: SidebarProps) {
 
         {/* Navigation */}
         <div className={cn("flex-1 overflow-y-auto", isCollapsed ? "px-2" : "px-3")}>
-          {!isCollapsed && (
-            <div className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              {t("sidebar.mainMenu", "Main Menu")}
-            </div>
-          )}
-          <nav className="space-y-0.5">
-            {items.map((item) => {
-              const isActive = location === item.href;
-
-              if (item.disabled) {
-                return (
-                  <div
-                    key={item.href}
-                    className={cn(
-                      "flex cursor-not-allowed items-center rounded-xl py-2.5 text-sm font-medium opacity-40",
-                      isCollapsed ? "justify-center px-2" : "px-3"
-                    )}
-                    title={isCollapsed ? `${item.title} (Coming Soon)` : undefined}
-                  >
-                    <span
-                      className={cn(
-                        "flex h-5 w-5 flex-shrink-0 items-center justify-center",
-                        !isCollapsed && "mr-3"
+          <nav className="space-y-1" aria-label="Primary navigation">
+            {user?.role === "teacher" && !isCollapsed ? (
+              <>
+                {renderNavItem(teacherOverview)}
+                {teacherNavSections.map((section) => {
+                  const isOpen = openTeacherSections[section.title];
+                  const containsActive = section.items.some((item) => item.href === location);
+                  return (
+                    <div key={section.title} className="pt-2">
+                      <button
+                        type="button"
+                        className="flex min-h-11 w-full items-center justify-between rounded-lg px-3 text-xs font-semibold text-muted-foreground hover:bg-muted hover:text-foreground"
+                        onClick={() =>
+                          setOpenTeacherSections((current) => ({
+                            ...current,
+                            [section.title]: !isOpen,
+                          }))
+                        }
+                        aria-expanded={isOpen}
+                      >
+                        <span>{section.title}</span>
+                        <ChevronDown
+                          className={cn(
+                            "h-4 w-4 transition-transform",
+                            (isOpen || containsActive) && "rotate-180"
+                          )}
+                        />
+                      </button>
+                      {(isOpen || containsActive) && (
+                        <div className="space-y-1">{section.items.map(renderNavItem)}</div>
                       )}
-                    >
-                      {item.icon}
-                    </span>
-                    {!isCollapsed && (
-                      <>
-                        <span className="flex-1 truncate text-muted-foreground">{item.title}</span>
-                        <span className="ml-2 flex-shrink-0 rounded-full border border-accent/10 bg-accent-soft px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-accent">
-                          {t("sidebar.soon", "Soon")}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                );
-              }
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={closeMobileMenu}
-                  className={cn(
-                    "group relative flex items-center rounded-xl py-2.5 text-sm font-medium transition-all duration-150",
-                    isActive
-                      ? "bg-accent-soft font-semibold text-accent"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                    isCollapsed ? "justify-center px-2" : "px-3"
-                  )}
-                  title={isCollapsed ? item.title : undefined}
-                >
-                  {isActive && !isCollapsed && (
-                    <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-accent" />
-                  )}
-                  <span
-                    className={cn(
-                      "flex h-5 w-5 flex-shrink-0 items-center justify-center transition-colors",
-                      isActive
-                        ? "text-accent"
-                        : "text-muted-foreground group-hover:text-foreground",
-                      !isCollapsed && "mr-3"
-                    )}
-                  >
-                    {item.icon}
-                  </span>
-                  {!isCollapsed && <span className="flex-1 truncate">{item.title}</span>}
-                </Link>
-              );
-            })}
+                    </div>
+                  );
+                })}
+              </>
+            ) : (
+              items.map(renderNavItem)
+            )}
           </nav>
         </div>
 

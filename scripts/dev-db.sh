@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Tiny wrapper around docker-compose.dev.yml for local Postgres.
+# Tiny wrapper around docker-compose.dev.yml for local Postgres and Redis.
 #
 # Usage:
 #   ./scripts/dev-db.sh up      # start (creates volume + applies schema on first run)
@@ -24,11 +24,12 @@ case "$cmd" in
       echo "❌ Docker daemon not running. Start Docker Desktop first."
       exit 1
     fi
-    echo "→ Booting Postgres (max 384MB RAM, port 5432)…"
+    echo "→ Booting Postgres (port 5432) and Redis (port 6379)…"
     docker-compose -f "$COMPOSE_FILE" up -d
-    echo "→ Waiting for health…"
+    echo "→ Waiting for both services to become healthy…"
     for i in {1..30}; do
-      if docker-compose -f "$COMPOSE_FILE" exec -T pg pg_isready -U classmode -d classmode_dev >/dev/null 2>&1; then
+      if docker-compose -f "$COMPOSE_FILE" exec -T pg pg_isready -U classmode -d classmode_dev >/dev/null 2>&1 \
+        && docker-compose -f "$COMPOSE_FILE" exec -T redis redis-cli ping 2>/dev/null | grep -q PONG; then
         echo "✓ Ready."
         echo ""
         echo "Connection string:"
@@ -56,7 +57,7 @@ case "$cmd" in
     exec "$0" up
     ;;
   logs)
-    docker-compose -f "$COMPOSE_FILE" logs -f pg
+    docker-compose -f "$COMPOSE_FILE" logs -f pg redis
     ;;
   psql)
     docker-compose -f "$COMPOSE_FILE" exec pg psql -U classmode -d classmode_dev

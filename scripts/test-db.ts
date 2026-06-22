@@ -1,40 +1,44 @@
 import "dotenv/config";
-import { storage } from "../server/storage";
-import { initCassandra } from "../server/lib/cassandra";
+import { Pool } from "pg";
+import Redis from "ioredis";
 
-async function test() {
-  console.log("Starting Cassandra-only test...");
+const postgresUrl = process.env.POSTGRESQL_URL;
+const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
 
-  // Initialize Cassandra
-  await initCassandra();
+async function main(): Promise<void> {
+  if (!postgresUrl) {
+    throw new Error("POSTGRESQL_URL is not configured");
+  }
 
-  const testChannelId = "test-channel-123";
-  const testMessage = {
-    channelId: testChannelId,
-    authorId: 1,
-    content: "Hello from Astra DB! " + new Date().toISOString(),
-    attachments: [],
-  };
+  const pool = new Pool({ connectionString: postgresUrl, max: 1 });
+  const redis = new Redis(redisUrl, {
+    lazyConnect: true,
+    enableOfflineQueue: false,
+    maxRetriesPerRequest: 1,
+    retryStrategy: () => null,
+  });
 
   try {
-    console.log("Attempting to create message in Cassandra...");
-    const created = await storage.createMessage(testMessage as any);
-    console.log("Message created successfully:", created);
+    const pgStarted = Date.now();
+    const pgResult = await pool.query<{ database: string; user_name: string }>(
+      "SELECT current_database() AS database, current_user AS user_name"
+    );
+    console.log(
+      `✓ PostgreSQL connected (${Date.now() - pgStarted}ms): ${pgResult.rows[0].database} as ${pgResult.rows[0].user_name}`
+    );
 
-    console.log("Attempting to retrieve messages for channel...");
-    const messages = await storage.getMessagesByChannel(testChannelId);
-    console.log("Retrieved messages:", messages);
-
-    if (messages.length > 0 && messages[messages.length - 1].content === testMessage.content) {
-      console.log("SUCCESS: Cassandra integration is working!");
-    } else {
-      console.log("FAILURE: Message not found or content mismatch.");
-    }
-  } catch (err) {
-    console.error("Test failed:", err);
+    const redisStarted = Date.now();
+    await redis.connect();
+    const pong = await redis.ping();
+    if (pong !== "PONG") throw new Error(`Unexpected Redis response: ${pong}`);
+    console.log(`✓ Redis connected (${Date.now() - redisStarted}ms): ${redisUrl}`);
   } finally {
-    process.exit(0);
+    redis.disconnect();
+    await pool.end();
   }
 }
 
-test();
+main().catch((error) => {
+  console.error(`✗ Data service check failed: ${error instanceof Error ? error.message : error}`);
+  process.exitCode = 1;
+});

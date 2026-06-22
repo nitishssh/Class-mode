@@ -54,6 +54,11 @@
     --input: 38 12% 76%;
     --ring: 15 51% 58% / 0.3;
     --radius: 0.75rem;
+    --radius-control: 0.625rem;
+    --radius-surface: 0.875rem;
+    --space-page: clamp(1rem, 2vw, 2rem);
+    --surface-raised: 0 1px 2px rgba(26, 26, 26, 0.05);
+    --surface-overlay: 0 12px 32px rgba(26, 26, 26, 0.12);
 
     --illustration-bg: 38 29% 94%;
     --ticker-bg: 48 20% 91%;
@@ -196,7 +201,8 @@
 
   body {
     @apply bg-background font-body text-foreground antialiased;
-    font-size: 0.9375rem;
+    font-size: 1rem;
+    line-height: 1.5;
   }
 
   :focus-visible {
@@ -234,6 +240,7 @@
 
   h1 {
     font-size: 2.25rem;
+    text-wrap: balance;
   }
 
   h2 {
@@ -243,6 +250,17 @@
   h3 {
     @apply font-body font-semibold;
     font-size: 1.125rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 

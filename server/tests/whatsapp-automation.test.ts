@@ -18,14 +18,9 @@ vi.mock("../db-pg", () => ({
   getPgPool: vi.fn(),
 }));
 
-vi.mock("ioredis", () => {
-  return {
-    default: class Redis {
-      on = vi.fn();
-      quit = vi.fn();
-    },
-  };
-});
+vi.mock("../lib/redis", () => ({
+  createBullMQConnection: vi.fn(() => ({ on: vi.fn(), quit: vi.fn() })),
+}));
 
 const { workerProcess } = vi.hoisted(() => ({ workerProcess: { fn: null as any } }));
 
@@ -120,13 +115,15 @@ describe("WhatsApp Automation Service", () => {
       const mockQuery = vi.fn().mockResolvedValue({ rows: [] });
       (getPgPool as any).mockReturnValue({ query: mockQuery });
 
-      mockQuery.mockResolvedValueOnce({ rows: [{ id: "1", workspace_id: 1 }] }); // inactivity
+      mockQuery.mockResolvedValueOnce({ rows: [{ id: "1" }] }); // inactivity
       mockQuery.mockResolvedValueOnce({
         rows: [{ student_id: "2", subject: "Math", score: 30, total_marks: 100 }],
       }); // low score
 
       await scheduleAtRiskChecks();
       expect(mockQuery).toHaveBeenCalledTimes(2);
+      expect(mockQuery.mock.calls[0][0]).toContain("SELECT id FROM users");
+      expect(mockQuery.mock.calls[0][0]).not.toContain("workspace_id");
       expect(automationQueue.add).toHaveBeenCalledTimes(2);
     });
   });

@@ -97,7 +97,7 @@ router.get(
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      const [myTests, pendingSubmissions, liveClasses] = await Promise.all([
+      const [myTests, pendingSubmissions, liveClasses, studentSummary] = await Promise.all([
         pool
           ? pool
               .query(
@@ -110,8 +110,11 @@ router.get(
           ? pool
               .query(
                 `
-        SELECT ta.* FROM test_attempts ta
+        SELECT ta.*, t.title AS test_title,
+               COALESCE(u.display_name, u.name, u.email) AS student_name
+        FROM test_attempts ta
         JOIN tests t ON t.id = ta.test_id
+        JOIN users u ON u.id = ta.student_id
         WHERE t.teacher_id = $1 AND ta.status = 'completed'
         ORDER BY ta.end_time DESC LIMIT 5`,
                 [teacherId]
@@ -126,13 +129,30 @@ router.get(
               )
               .then((r) => r.rows)
           : [],
+        pool
+          ? pool
+              .query(
+                `SELECT
+                   COUNT(DISTINCT ta.student_id)::int AS total_students,
+                   COALESCE(ROUND(AVG(attempt.score)), 0)::int AS avg_score
+                 FROM test_assignments ta
+                 JOIN tests t ON t.id = ta.test_id
+                 LEFT JOIN test_attempts attempt
+                   ON attempt.test_id = ta.test_id
+                  AND attempt.student_id = ta.student_id
+                  AND attempt.status = 'evaluated'
+                 WHERE t.teacher_id = $1`,
+                [teacherId]
+              )
+              .then((r) => r.rows[0])
+          : { total_students: 0, avg_score: 0 },
       ]);
 
       res.json({
         stats: {
           activeTests: myTests.length,
-          totalStudents: 0,
-          avgScore: 0,
+          totalStudents: studentSummary?.total_students ?? 0,
+          avgScore: studentSummary?.avg_score ?? 0,
           classesCount: liveClasses.length,
         },
         tests: myTests,
@@ -561,9 +581,10 @@ router.get("/admin/trends", authenticateToken, async (req: Request, res: Respons
     const toMap = (rows: { d: Date | string; c: number }[]) => {
       const m = new Map<string, number>();
       for (const r of rows) {
-        const key = r.d instanceof Date
-          ? `${r.d.getFullYear()}-${String(r.d.getMonth() + 1).padStart(2, "0")}-${String(r.d.getDate()).padStart(2, "0")}`
-          : String(r.d).slice(0, 10);
+        const key =
+          r.d instanceof Date
+            ? `${r.d.getFullYear()}-${String(r.d.getMonth() + 1).padStart(2, "0")}-${String(r.d.getDate()).padStart(2, "0")}`
+            : String(r.d).slice(0, 10);
         m.set(key, r.c);
       }
       return m;

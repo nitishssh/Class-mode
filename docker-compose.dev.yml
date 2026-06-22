@@ -1,5 +1,5 @@
-# Local development Postgres ONLY.
-# Memory-capped at 384MB so it won't eat your laptop's RAM.
+# Local development data services.
+# Memory-capped so they won't eat your laptop's RAM.
 # Start:  docker-compose -f docker-compose.dev.yml up -d
 # Stop:   docker-compose -f docker-compose.dev.yml down
 # Reset:  docker-compose -f docker-compose.dev.yml down -v   (drops volume!)
@@ -55,6 +55,35 @@ services:
     # macOS Docker Desktop applies the limits via the linuxkit VM, so they're
     # advisory but honored. On Linux they're hard caps via cgroups.
 
+  redis:
+    image: redis:7.4-alpine
+    container_name: classmode-dev-redis
+    restart: unless-stopped
+    command:
+      - "redis-server"
+      - "--appendonly"
+      - "yes"
+      - "--maxmemory"
+      - "96mb"
+      - "--maxmemory-policy"
+      - "noeviction"
+    ports:
+      - "6379:6379"
+    volumes:
+      - classmode_dev_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.50"
+
 volumes:
   classmode_dev_pg:
     name: classmode_dev_pg
+  classmode_dev_redis:
+    name: classmode_dev_redis

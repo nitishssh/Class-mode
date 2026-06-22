@@ -1,14 +1,13 @@
 import { Queue, Worker, Job } from "bullmq";
-import Redis from "ioredis";
 import { whatsappService } from "./whatsapp";
 import { 
   pgFindUserById 
 } from "../lib/pg-queries";
 import { getPgPool, isPgReady } from "../db-pg";
 import { logger } from "../lib/logger";
+import { createBullMQConnection } from "../lib/redis";
 
-const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
-const connection = new Redis(REDIS_URL, { maxRetriesPerRequest: null });
+const connection = createBullMQConnection();
 
 export const automationQueue = new Queue("sis-automation", {
   connection: connection as any,
@@ -21,7 +20,7 @@ export const automationQueue = new Queue("sis-automation", {
 export const automationWorker = new Worker(
   "sis-automation",
   async (job: Job) => {
-    const { type, userId, workspaceId, metadata } = job.data;
+    const { type, userId, metadata } = job.data;
 
     try {
       const user = await pgFindUserById(userId);
@@ -64,7 +63,7 @@ export async function scheduleAtRiskChecks() {
 
   // 1. Check for inactivity
   const inactiveStudents = await pool.query(
-    "SELECT id, workspace_id FROM users WHERE role = 'student' AND (last_login_at < $1 OR (last_login_at IS NULL AND created_at < $1))",
+    "SELECT id FROM users WHERE role = 'student' AND (last_login_at < $1 OR (last_login_at IS NULL AND created_at < $1))",
     [threeDaysAgo]
   );
 
@@ -72,7 +71,6 @@ export async function scheduleAtRiskChecks() {
     await automationQueue.add(`inactivity-${student.id}`, {
       type: "inactivity",
       userId: parseInt(student.id),
-      workspaceId: student.workspace_id,
     }, {
       jobId: `inactivity-${student.id}-${new Date().toISOString().split('T')[0]}`, // Once per day
     });

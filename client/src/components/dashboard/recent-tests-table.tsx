@@ -21,6 +21,10 @@ interface Test {
   status: string;
   completionRate?: number;
   averageScore?: number;
+  class_name?: string;
+  test_date?: string | Date;
+  completion_rate?: number;
+  average_score?: number;
 }
 
 interface RecentTestsTableProps {
@@ -30,17 +34,20 @@ interface RecentTestsTableProps {
 export function RecentTestsTable({ data }: RecentTestsTableProps) {
   if (!data || data.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed bg-card p-8 text-center shadow">
-        <p className="mb-4 text-muted-foreground">No tests available</p>
-        <Link href="/create-test">
-          <Button>Create your first test</Button>
-        </Link>
+      <div className="rounded-[var(--radius-surface)] border border-dashed bg-card p-8 text-center">
+        <p className="text-sm font-medium text-foreground">No assessments yet</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Create a test to start collecting student work.
+        </p>
+        <Button className="mt-4" asChild>
+          <Link href="/create-test">Create your first test</Link>
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+    <div className="overflow-x-auto rounded-[var(--radius-surface)] border bg-card">
       <Table>
         <TableHeader>
           <TableRow>
@@ -59,13 +66,15 @@ export function RecentTestsTable({ data }: RecentTestsTableProps) {
                 <div className="font-medium">{test.title}</div>
                 <div className="text-xs text-muted-foreground">{test.subject}</div>
               </TableCell>
-              <TableCell>{test.class}</TableCell>
+              <TableCell>{test.class || test.class_name}</TableCell>
               <TableCell>
-                {new Date(test.testDate).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
+                {test.testDate || test.test_date
+                  ? new Date(test.testDate || test.test_date || "").toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })
+                  : "Not scheduled"}
               </TableCell>
               <TableCell>
                 <TestStatusBadge status={test.status} />
@@ -74,12 +83,19 @@ export function RecentTestsTable({ data }: RecentTestsTableProps) {
                 {test.status !== "scheduled" && test.status !== "draft" ? (
                   <div className="w-full max-w-[100px]">
                     <div className="mb-1 flex items-center justify-between">
-                      <span className="text-xs">{test.completionRate || 0}%</span>
+                      <span className="text-xs">
+                        {test.completionRate || test.completion_rate || 0}%
+                      </span>
                       {test.status === "completed" && (
-                        <span className="text-xs">Avg: {test.averageScore || 0}%</span>
+                        <span className="text-xs">
+                          Avg: {test.averageScore || test.average_score || 0}%
+                        </span>
                       )}
                     </div>
-                    <Progress value={test.completionRate || 0} className="h-2" />
+                    <Progress
+                      value={test.completionRate || test.completion_rate || 0}
+                      className="h-2"
+                    />
                   </div>
                 ) : (
                   <span className="text-xs text-muted-foreground">Not started</span>
@@ -87,7 +103,7 @@ export function RecentTestsTable({ data }: RecentTestsTableProps) {
               </TableCell>
               <TableCell>
                 <Button size="sm" variant="outline" asChild>
-                  <Link href={`/tests/${test.id}`} className="flex items-center">
+                  <Link href={`/tests/${test.id}/questions`} className="flex items-center">
                     <FileText className="mr-1 h-4 w-4" />
                     View
                   </Link>

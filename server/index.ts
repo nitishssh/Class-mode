@@ -16,6 +16,7 @@ import { setupChatWebSocket } from "./chat-ws";
 import { setupMessagePalWebSocket } from "./message";
 import { initCassandra } from "./lib/cassandra";
 import { checkFirebaseAdminReadiness } from "./lib/firebase-admin";
+import { connectRedis, onRedisReady } from "./lib/redis";
 import { requireDb } from "./middleware";
 
 // Fix SRV resolution errors by forcing Google DNS globally
@@ -206,26 +207,28 @@ app.use(
   await connectPostgres();
   await initCassandra();
 
-  // Start AI Job Workers (Study Arena)
-  import("./services/study-arena/job-queue")
-    .then(({ classroomWorker }) => {
+  let queueWorkersStarted = false;
+  onRedisReady(async () => {
+    if (queueWorkersStarted) return;
+    queueWorkersStarted = true;
+    try {
+      const [{ classroomWorker }, { automationWorker, scheduleAtRiskChecks }] = await Promise.all([
+        import("./services/study-arena/job-queue"),
+        import("./services/whatsapp-automation"),
+      ]);
+      void classroomWorker;
+      void automationWorker;
       logger.info("[StudyArena] Worker initialized");
-    })
-    .catch((err) => {
-      logger.error("[StudyArena] Failed to initialize worker:", err);
-    });
-
-  // Start SIS Automation Workers
-  import("./services/whatsapp-automation")
-    .then(({ automationWorker, scheduleAtRiskChecks }) => {
       logger.info("[SIS Automation] Worker initialized");
-      // Run initial check and then every hour
-      scheduleAtRiskChecks();
-      setInterval(scheduleAtRiskChecks, 60 * 60 * 1000);
-    })
-    .catch((err) => {
-      logger.error("[SIS Automation] Failed to initialize worker:", err);
-    });
+      await scheduleAtRiskChecks();
+      const automationTimer = setInterval(scheduleAtRiskChecks, 60 * 60 * 1000);
+      automationTimer.unref?.();
+    } catch (error) {
+      queueWorkersStarted = false;
+      logger.error("[queues] Failed to initialize workers", { error: String(error) });
+    }
+  });
+  await connectRedis();
 
   const server = await registerRoutes(app);
 

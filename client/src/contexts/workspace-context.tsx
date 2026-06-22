@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 
 export interface WorkspaceWithRole {
   id: number;
@@ -34,6 +35,9 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceWithRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const {
+    currentUser: { profile },
+  } = useFirebaseAuth();
 
   const refreshWorkspaces = useCallback(async () => {
     setIsLoading(true);
@@ -93,7 +97,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   useEffect(() => {
     refreshWorkspaces();
-  }, [refreshWorkspaces]);
+  }, [profile?.id, refreshWorkspaces]);
 
   return (
     <WorkspaceContext.Provider
