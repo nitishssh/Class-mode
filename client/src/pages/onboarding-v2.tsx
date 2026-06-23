@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -30,6 +30,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { getDashboardPath, canChooseOnboardingRole } from "@/lib/role-routes";
+import {
+  loadOnboardingProgress,
+  saveOnboardingProgress,
+  clearOnboardingProgress,
+} from "@/lib/onboarding-persistence";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -50,6 +55,19 @@ interface OnboardingData {
 }
 
 const TOTAL_STEPS = 6;
+
+const DEFAULT_DATA: OnboardingData = {
+  role: "",
+  userType: "",
+  name: "",
+  city: "",
+  board: "",
+  subjects: [],
+  grades: [],
+  approximateStudents: "",
+  currentTools: [],
+  discoverySource: "",
+};
 
 const BOARDS = [
   { label: "CBSE", value: "CBSE" },
@@ -377,7 +395,12 @@ export default function OnboardingV2() {
   const {
     currentUser: { profile },
   } = useFirebaseAuth();
-  const [step, setStep] = useState<Step>(1);
+  // Resume from saved progress if the user dropped off mid-flow. Clamp to
+  // steps 1-6 so we never restore directly onto the celebration screen (7).
+  const [step, setStep] = useState<Step>(() => {
+    const saved = loadOnboardingProgress(profile?.uid);
+    return (Math.min(Math.max(saved?.step ?? 1, 1), TOTAL_STEPS) as Step) || 1;
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Only self-signup workspace creators (school_admin/admin) may choose a role
@@ -387,18 +410,17 @@ export default function OnboardingV2() {
   const roleLocked = !!profile && !canChooseOnboardingRole(profile.role);
   const availableRoles = roleLocked ? ROLES.filter((r) => r.value === profile?.role) : ROLES;
 
-  const [data, setData] = useState<OnboardingData>({
-    role: "",
-    userType: "",
-    name: "",
-    city: "",
-    board: "",
-    subjects: [],
-    grades: [],
-    approximateStudents: "",
-    currentTools: [],
-    discoverySource: "",
+  const [data, setData] = useState<OnboardingData>(() => {
+    const saved = loadOnboardingProgress(profile?.uid);
+    return saved?.data ? { ...DEFAULT_DATA, ...(saved.data as Partial<OnboardingData>) } : DEFAULT_DATA;
   });
+
+  // Persist progress on every change (best-effort). Skip step 7 — onboarding is
+  // already submitted/complete by then and the draft has been cleared.
+  useEffect(() => {
+    if (step >= 7) return;
+    saveOnboardingProgress(profile?.uid, { step, data });
+  }, [step, data, profile?.uid]);
 
   const unlockedCount = useUnlockedCount(data, step);
   const activeStep = STEP_META[Math.min(step, TOTAL_STEPS) - 1];
@@ -435,6 +457,7 @@ export default function OnboardingV2() {
       // Invalidate it so the guard sees the fresh "complete" state and doesn't
       // bounce the user back into onboarding after they land on the dashboard.
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      clearOnboardingProgress(profile?.uid);
       nextStep();
     } catch (error) {
       toast({
