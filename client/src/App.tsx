@@ -59,6 +59,7 @@ import WorkspaceCreate from "@/pages/workspace/create";
 import JoinWorkspace from "@/pages/workspace/join";
 import OnboardingV2 from "@/pages/onboarding-v2";
 import { useOnboardingGuard } from "@/hooks/use-onboarding-guard";
+import { getDashboardPath } from "@/lib/role-routes";
 import { WorkspaceProvider } from "@/contexts/workspace-context";
 
 function Layout({
@@ -204,26 +205,6 @@ const WorkspaceSettingsRoute = withLayout(protect(WorkspaceSettings));
 const WorkspaceCreateRoute = withLayout(protect(WorkspaceCreate));
 // Join is public-ish — unauthenticated users are redirected to login by protect(), then back
 const JoinWorkspaceRoute = withLayout(protect(JoinWorkspace));
-
-function getDashboardPath(role: string): string {
-  const r = (role || "").toLowerCase();
-  switch (r) {
-    case "principal":
-      return "/principal-dashboard";
-    case "school_admin":
-      return "/school-admin-dashboard";
-    case "admin":
-      return "/admin-dashboard";
-    case "teacher":
-      return "/teacher-dashboard";
-    case "student":
-      return "/student-dashboard";
-    case "parent":
-      return "/parent-dashboard";
-    default:
-      return "/teacher-dashboard";
-  }
-}
 
 function App() {
   const { t } = useTranslation();

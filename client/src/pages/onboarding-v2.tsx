@@ -28,7 +28,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { getDashboardPath } from "@/lib/role-routes";
+import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -372,8 +374,18 @@ function ContinueButton({
 export default function OnboardingV2() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const {
+    currentUser: { profile },
+  } = useFirebaseAuth();
   const [step, setStep] = useState<Step>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Only self-signup workspace creators (school_admin/admin) may choose a role
+  // during onboarding. Invited users (teacher, principal, ...) have a fixed
+  // role the server enforces — so only offer role options they're allowed to
+  // pick, otherwise they fill the whole wizard and hit a 403 at submit.
+  const roleLocked = !!profile && !["school_admin", "admin"].includes(profile.role);
+  const availableRoles = roleLocked ? ROLES.filter((r) => r.value === profile?.role) : ROLES;
 
   const [data, setData] = useState<OnboardingData>({
     role: "",
@@ -419,6 +431,10 @@ export default function OnboardingV2() {
           discoverySource: data.discoverySource,
         },
       });
+      // The onboarding guard reads onboardingComplete from this query's cache.
+      // Invalidate it so the guard sees the fresh "complete" state and doesn't
+      // bounce the user back into onboarding after they land on the dashboard.
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       nextStep();
     } catch (error) {
       toast({
@@ -475,7 +491,7 @@ export default function OnboardingV2() {
                   description="This decides the dashboard language, recommendations, and first-win checklist you see after setup."
                 />
                 <div className="grid gap-3 md:grid-cols-2">
-                  {ROLES.map((role) => {
+                  {availableRoles.map((role) => {
                     const Icon = role.icon;
                     const selected = data.userType === role.userType;
                     return (
@@ -735,7 +751,7 @@ export default function OnboardingV2() {
                     grades: data.grades,
                     approximateStudents: data.approximateStudents,
                   }}
-                  onComplete={() => setLocation("/analytics")}
+                  onComplete={() => setLocation(getDashboardPath(data.role || profile?.role || ""))}
                 />
               </motion.div>
             )}
