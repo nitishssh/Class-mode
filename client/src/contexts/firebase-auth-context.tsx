@@ -5,13 +5,7 @@ import { clearServerToken, setServerToken } from "@/lib/queryClient";
 // Authentication is now fully server-backed (local password + server-side
 // Google OAuth). The Firebase client SDK has been removed; this type used to
 // live in @/lib/firebase.
-export type UserRole =
-  | "student"
-  | "teacher"
-  | "school_admin"
-  | "admin"
-  | "principal"
-  | "parent";
+export type UserRole = "student" | "teacher" | "school_admin" | "admin" | "principal" | "parent";
 
 export interface UserProfile {
   uid: string;

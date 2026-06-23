@@ -74,7 +74,9 @@ async function main() {
   );
 
   console.log(`\nFound ${rows.length} user(s) with role = "admin".`);
-  console.log(`  → ${candidates.length} look like self-signups and will be downgraded to "school_admin".`);
+  console.log(
+    `  → ${candidates.length} look like self-signups and will be downgraded to "school_admin".`
+  );
   console.log(`  → ${preserved.length} preserved as platform "admin".\n`);
 
   if (preserved.length) {

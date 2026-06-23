@@ -222,5 +222,4 @@ describe("custom auth routes", () => {
     expect(res.status).toBe(201);
     expect(res.body.user.emailVerified).toBe(false);
   });
-
 });

@@ -21,10 +21,7 @@ import {
 import { getPgPool } from "../db-pg";
 
 const TEST_SECRET = process.env.JWT_SECRET ?? "super_secret_jwt_key_learning_pro_123";
-const adminToken = jwt.sign(
-  { userId: 100, role: "admin", email: "admin@school.com" },
-  TEST_SECRET
-);
+const adminToken = jwt.sign({ userId: 100, role: "admin", email: "admin@school.com" }, TEST_SECRET);
 const unauthorizedToken = jwt.sign(
   { userId: 1, role: "student", email: "student@test.com" },
   TEST_SECRET
@@ -124,9 +121,7 @@ describe("Admin Dashboard API", () => {
 
   describe("GET /api/admin/classes", () => {
     it("should return classes for the admin's school", async () => {
-      const mockClasses = [
-        { id: 1, name: "Math 101", grade: "10", schoolId: 10 },
-      ];
+      const mockClasses = [{ id: 1, name: "Math 101", grade: "10", schoolId: 10 }];
       (pgFindSchoolClassesBySchoolId as Mock).mockResolvedValue(mockClasses);
 
       const res = await request(app)
@@ -182,11 +177,13 @@ describe("Admin Dashboard API", () => {
 
       expect(res.status).toBe(201);
       expect(res.body).toEqual(newClass);
-      expect(pgCreateSchoolClass).toHaveBeenCalledWith(expect.objectContaining({
-        name: "Science 101",
-        grade: "10",
-        schoolId: 10,
-      }));
+      expect(pgCreateSchoolClass).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: "Science 101",
+          grade: "10",
+          schoolId: 10,
+        })
+      );
     });
   });
 
@@ -315,9 +312,7 @@ describe("Admin Dashboard API", () => {
 
   describe("GET /api/admin/logs", () => {
     it("should return audit logs", async () => {
-      const mockLogs = [
-        { id: 1, eventType: "LOGIN", createdAt: new Date() },
-      ];
+      const mockLogs = [{ id: 1, eventType: "LOGIN", createdAt: new Date() }];
       const mockQuery = vi.fn().mockResolvedValue({ rows: mockLogs });
       (getPgPool as Mock).mockReturnValue({ query: mockQuery });
       (isPgReady as Mock).mockReturnValue(true);
@@ -384,13 +379,13 @@ describe("Admin Dashboard API", () => {
 
         (pgFindUsers as Mock).mockResolvedValue([]);
 
-        await request(app)
-          .get("/api/users")
-          .set("Authorization", `Bearer ${schoolAdminToken}`);
+        await request(app).get("/api/users").set("Authorization", `Bearer ${schoolAdminToken}`);
 
-        expect(pgFindUsers).toHaveBeenCalledWith(expect.objectContaining({
-          schoolCode: "SCHOOL123"
-        }));
+        expect(pgFindUsers).toHaveBeenCalledWith(
+          expect.objectContaining({
+            schoolCode: "SCHOOL123",
+          })
+        );
       });
     });
 
@@ -457,7 +452,7 @@ describe("Admin Dashboard API", () => {
           { userId: 101, role: "school_admin", email: "sadmin@school.com" },
           TEST_SECRET
         );
-        
+
         (pgFindUserById as Mock).mockImplementation((id: number) => {
           if (id === 101) {
             return Promise.resolve({
@@ -492,7 +487,7 @@ describe("Admin Dashboard API", () => {
           { userId: 101, role: "school_admin", email: "sadmin@school.com" },
           TEST_SECRET
         );
-        
+
         (pgFindUserById as Mock).mockImplementation((id: number) => {
           if (id === 101) {
             return Promise.resolve({
@@ -526,7 +521,7 @@ describe("Admin Dashboard API", () => {
           { userId: 101, role: "school_admin", email: "sadmin@school.com" },
           TEST_SECRET
         );
-        
+
         (pgFindUserById as Mock).mockImplementation((id: number) => {
           if (id === 101) {
             return Promise.resolve({

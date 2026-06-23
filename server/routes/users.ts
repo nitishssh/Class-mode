@@ -8,7 +8,19 @@ import {
   updateSchoolSchema,
   updateUserSchema,
 } from "../../shared/schema";
-import { pgFindUsers, pgFindUserById, pgUpdateUser, pgDeleteUser, pgFindSchoolClassesBySchoolId, pgFindSchoolClassById, pgCreateSchoolClass, pgUpdateSchoolClass, pgDeleteSchoolClass, pgFindSchoolById, pgUpsertSchool } from "../lib/pg-queries";
+import {
+  pgFindUsers,
+  pgFindUserById,
+  pgUpdateUser,
+  pgDeleteUser,
+  pgFindSchoolClassesBySchoolId,
+  pgFindSchoolClassById,
+  pgCreateSchoolClass,
+  pgUpdateSchoolClass,
+  pgDeleteSchoolClass,
+  pgFindSchoolById,
+  pgUpsertSchool,
+} from "../lib/pg-queries";
 import { recordAuditEvent, AUDIT_EVENTS } from "../lib/audit";
 import { isPgReady } from "../db-pg";
 import { getPgPool } from "../db-pg";
@@ -97,7 +109,11 @@ router.post(
           targetUserId: teacher.id,
           schoolCode: admin.schoolCode,
           eventType: AUDIT_EVENTS.TENANT_ACCESS_DENIED,
-          payload: { route: "POST /school/teachers/:id/approve", targetId: teacher.id, targetType: "teacher" },
+          payload: {
+            route: "POST /school/teachers/:id/approve",
+            targetId: teacher.id,
+            targetType: "teacher",
+          },
         });
         return res
           .status(403)
@@ -130,7 +146,12 @@ router.post(
 // GET /api/users
 router.get("/users", authenticateToken, async (req: Request, res: Response) => {
   try {
-    if (!req.session?.userId || (req.session.role !== "school_admin" && req.session.role !== "admin" && req.session.role !== "principal")) {
+    if (
+      !req.session?.userId ||
+      (req.session.role !== "school_admin" &&
+        req.session.role !== "admin" &&
+        req.session.role !== "principal")
+    ) {
       return res.status(403).json({ message: "Forbidden: Access restricted to administrators" });
     }
 
@@ -159,24 +180,29 @@ router.get("/users", authenticateToken, async (req: Request, res: Response) => {
 // POST /api/users
 router.post("/users", authenticateToken, async (req: Request, res: Response) => {
   try {
-    if (!req.session?.userId || (req.session.role !== "school_admin" && req.session.role !== "admin" && req.session.role !== "principal")) {
+    if (
+      !req.session?.userId ||
+      (req.session.role !== "school_admin" &&
+        req.session.role !== "admin" &&
+        req.session.role !== "principal")
+    ) {
       return res.status(403).json({ message: "Forbidden: Access restricted to administrators" });
     }
 
     const admin = await pgFindUserById(req.session.userId);
-    
+
     // In a real implementation we would validate the body using Zod schema
     const newUserData = req.body;
-    
+
     // Generate a placeholder password hash
-    const placeholderHash = "placeholder_hash"; 
-    
+    const placeholderHash = "placeholder_hash";
+
     const user = await storage.createUser({
       ...newUserData,
       password: placeholderHash,
       schoolCode: admin?.schoolCode || newUserData.schoolCode,
     });
-    
+
     res.status(201).json(user);
   } catch (error) {
     console.error("[api/users] POST Error:", error);
@@ -187,7 +213,12 @@ router.post("/users", authenticateToken, async (req: Request, res: Response) => 
 // PUT /api/users/:id
 router.put("/users/:id", authenticateToken, async (req: Request, res: Response) => {
   try {
-    if (!req.session?.userId || (req.session.role !== "school_admin" && req.session.role !== "admin" && req.session.role !== "principal")) {
+    if (
+      !req.session?.userId ||
+      (req.session.role !== "school_admin" &&
+        req.session.role !== "admin" &&
+        req.session.role !== "principal")
+    ) {
       return res.status(403).json({ message: "Forbidden" });
     }
 
@@ -208,12 +239,16 @@ router.put("/users/:id", authenticateToken, async (req: Request, res: Response) 
         eventType: AUDIT_EVENTS.TENANT_ACCESS_DENIED,
         payload: { route: "PUT /api/users/:id", targetId: targetUser.id, targetType: "user" },
       });
-      return res.status(403).json({ message: "Forbidden: You can only manage users in your own school" });
+      return res
+        .status(403)
+        .json({ message: "Forbidden: You can only manage users in your own school" });
     }
 
     const parsed = updateUserSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ message: "Invalid request data", errors: parsed.error.format() });
+      return res
+        .status(400)
+        .json({ message: "Invalid request data", errors: parsed.error.format() });
     }
 
     const updatedUser = await pgUpdateUser(userId, parsed.data);
@@ -232,7 +267,12 @@ router.put("/users/:id", authenticateToken, async (req: Request, res: Response) 
 // DELETE /api/users/:id
 router.delete("/users/:id", authenticateToken, async (req: Request, res: Response) => {
   try {
-    if (!req.session?.userId || (req.session.role !== "school_admin" && req.session.role !== "admin" && req.session.role !== "principal")) {
+    if (
+      !req.session?.userId ||
+      (req.session.role !== "school_admin" &&
+        req.session.role !== "admin" &&
+        req.session.role !== "principal")
+    ) {
       return res.status(403).json({ message: "Forbidden" });
     }
 
@@ -253,15 +293,17 @@ router.delete("/users/:id", authenticateToken, async (req: Request, res: Respons
         eventType: AUDIT_EVENTS.TENANT_ACCESS_DENIED,
         payload: { route: "DELETE /api/users/:id", targetId: targetUser.id, targetType: "user" },
       });
-      return res.status(403).json({ message: "Forbidden: You can only manage users in your own school" });
+      return res
+        .status(403)
+        .json({ message: "Forbidden: You can only manage users in your own school" });
     }
 
     const success = await pgDeleteUser(userId);
-    
+
     if (!success) {
       return res.status(404).json({ message: "User not found" });
     }
-    
+
     res.status(200).json({ message: "User deleted" });
   } catch (error) {
     console.error("[api/users] DELETE Error:", error);
@@ -269,11 +311,15 @@ router.delete("/users/:id", authenticateToken, async (req: Request, res: Respons
   }
 });
 
-
 // GET /api/admin/classes
 router.get("/admin/classes", authenticateToken, async (req: Request, res: Response) => {
   try {
-    if (!req.session?.userId || (req.session.role !== "school_admin" && req.session.role !== "admin" && req.session.role !== "principal")) {
+    if (
+      !req.session?.userId ||
+      (req.session.role !== "school_admin" &&
+        req.session.role !== "admin" &&
+        req.session.role !== "principal")
+    ) {
       return res.status(403).json({ message: "Forbidden" });
     }
 
@@ -293,7 +339,12 @@ router.get("/admin/classes", authenticateToken, async (req: Request, res: Respon
 // POST /api/admin/classes
 router.post("/admin/classes", authenticateToken, async (req: Request, res: Response) => {
   try {
-    if (!req.session?.userId || (req.session.role !== "school_admin" && req.session.role !== "admin" && req.session.role !== "principal")) {
+    if (
+      !req.session?.userId ||
+      (req.session.role !== "school_admin" &&
+        req.session.role !== "admin" &&
+        req.session.role !== "principal")
+    ) {
       return res.status(403).json({ message: "Forbidden" });
     }
 
@@ -310,7 +361,9 @@ router.post("/admin/classes", authenticateToken, async (req: Request, res: Respo
         eventType: AUDIT_EVENTS.VALIDATION_FAILED,
         payload: { route: "POST /admin/classes", errors: parsed.error.format() },
       });
-      return res.status(400).json({ message: "Invalid request data", errors: parsed.error.format() });
+      return res
+        .status(400)
+        .json({ message: "Invalid request data", errors: parsed.error.format() });
     }
 
     const cls = await pgCreateSchoolClass({
@@ -319,7 +372,7 @@ router.post("/admin/classes", authenticateToken, async (req: Request, res: Respo
       teacherFirebaseUid: parsed.data.teacherFirebaseUid || admin.authSubject || "admin",
       schoolId: admin.schoolId,
     });
-    
+
     res.status(201).json(cls);
   } catch (error) {
     console.error("[api/admin/classes] POST Error:", error);
@@ -330,7 +383,12 @@ router.post("/admin/classes", authenticateToken, async (req: Request, res: Respo
 // PUT /api/admin/classes/:id
 router.put("/admin/classes/:id", authenticateToken, async (req: Request, res: Response) => {
   try {
-    if (!req.session?.userId || (req.session.role !== "school_admin" && req.session.role !== "admin" && req.session.role !== "principal")) {
+    if (
+      !req.session?.userId ||
+      (req.session.role !== "school_admin" &&
+        req.session.role !== "admin" &&
+        req.session.role !== "principal")
+    ) {
       return res.status(403).json({ message: "Forbidden" });
     }
 
@@ -350,7 +408,9 @@ router.put("/admin/classes/:id", authenticateToken, async (req: Request, res: Re
         eventType: AUDIT_EVENTS.TENANT_ACCESS_DENIED,
         payload: { route: "PUT /api/admin/classes/:id", targetId: classId, targetType: "class" },
       });
-      return res.status(403).json({ message: "Forbidden: You can only manage classes in your own school" });
+      return res
+        .status(403)
+        .json({ message: "Forbidden: You can only manage classes in your own school" });
     }
 
     const parsed = updateSchoolClassSchema.safeParse(req.body);
@@ -359,17 +419,23 @@ router.put("/admin/classes/:id", authenticateToken, async (req: Request, res: Re
         actorUserId: admin?.id,
         schoolCode: admin?.schoolCode,
         eventType: AUDIT_EVENTS.VALIDATION_FAILED,
-        payload: { route: "PUT /api/admin/classes/:id", targetId: classId, errors: parsed.error.format() },
+        payload: {
+          route: "PUT /api/admin/classes/:id",
+          targetId: classId,
+          errors: parsed.error.format(),
+        },
       });
-      return res.status(400).json({ message: "Invalid request data", errors: parsed.error.format() });
+      return res
+        .status(400)
+        .json({ message: "Invalid request data", errors: parsed.error.format() });
     }
 
     const updatedClass = await pgUpdateSchoolClass(classId, parsed.data);
-    
+
     if (!updatedClass) {
       return res.status(404).json({ message: "Class not found" });
     }
-    
+
     res.status(200).json(updatedClass);
   } catch (error) {
     console.error("[api/admin/classes] PUT Error:", error);
@@ -380,7 +446,12 @@ router.put("/admin/classes/:id", authenticateToken, async (req: Request, res: Re
 // DELETE /api/admin/classes/:id
 router.delete("/admin/classes/:id", authenticateToken, async (req: Request, res: Response) => {
   try {
-    if (!req.session?.userId || (req.session.role !== "school_admin" && req.session.role !== "admin" && req.session.role !== "principal")) {
+    if (
+      !req.session?.userId ||
+      (req.session.role !== "school_admin" &&
+        req.session.role !== "admin" &&
+        req.session.role !== "principal")
+    ) {
       return res.status(403).json({ message: "Forbidden" });
     }
 
@@ -400,15 +471,17 @@ router.delete("/admin/classes/:id", authenticateToken, async (req: Request, res:
         eventType: AUDIT_EVENTS.TENANT_ACCESS_DENIED,
         payload: { route: "DELETE /api/admin/classes/:id", targetId: classId, targetType: "class" },
       });
-      return res.status(403).json({ message: "Forbidden: You can only manage classes in your own school" });
+      return res
+        .status(403)
+        .json({ message: "Forbidden: You can only manage classes in your own school" });
     }
 
     const success = await pgDeleteSchoolClass(classId);
-    
+
     if (!success) {
       return res.status(404).json({ message: "Class not found" });
     }
-    
+
     res.status(200).json({ message: "Class deleted" });
   } catch (error) {
     console.error("[api/admin/classes] DELETE Error:", error);
@@ -416,11 +489,15 @@ router.delete("/admin/classes/:id", authenticateToken, async (req: Request, res:
   }
 });
 
-
 // GET /api/admin/school
 router.get("/admin/school", authenticateToken, async (req: Request, res: Response) => {
   try {
-    if (!req.session?.userId || (req.session.role !== "school_admin" && req.session.role !== "admin" && req.session.role !== "principal")) {
+    if (
+      !req.session?.userId ||
+      (req.session.role !== "school_admin" &&
+        req.session.role !== "admin" &&
+        req.session.role !== "principal")
+    ) {
       return res.status(403).json({ message: "Forbidden" });
     }
     const admin = await pgFindUserById(req.session.userId);
@@ -436,7 +513,12 @@ router.get("/admin/school", authenticateToken, async (req: Request, res: Respons
 // PUT /api/admin/school
 router.put("/admin/school", authenticateToken, async (req: Request, res: Response) => {
   try {
-    if (!req.session?.userId || (req.session.role !== "school_admin" && req.session.role !== "admin" && req.session.role !== "principal")) {
+    if (
+      !req.session?.userId ||
+      (req.session.role !== "school_admin" &&
+        req.session.role !== "admin" &&
+        req.session.role !== "principal")
+    ) {
       return res.status(403).json({ message: "Forbidden" });
     }
     const admin = await pgFindUserById(req.session.userId);
@@ -450,7 +532,9 @@ router.put("/admin/school", authenticateToken, async (req: Request, res: Respons
         eventType: AUDIT_EVENTS.VALIDATION_FAILED,
         payload: { route: "PUT /api/admin/school", errors: parsed.error.format() },
       });
-      return res.status(400).json({ message: "Invalid request data", errors: parsed.error.format() });
+      return res
+        .status(400)
+        .json({ message: "Invalid request data", errors: parsed.error.format() });
     }
 
     await pgUpsertSchool({
@@ -459,7 +543,7 @@ router.put("/admin/school", authenticateToken, async (req: Request, res: Respons
       city: parsed.data.city ?? undefined,
       board: parsed.data.board ?? undefined,
     });
-    
+
     // the upsert might return the school or null, let's just refetch
     const updated = await pgFindSchoolById(admin.schoolId);
     res.json(updated);
@@ -471,7 +555,12 @@ router.put("/admin/school", authenticateToken, async (req: Request, res: Respons
 // GET /api/admin/logs
 router.get("/admin/logs", authenticateToken, async (req: Request, res: Response) => {
   try {
-    if (!req.session?.userId || (req.session.role !== "school_admin" && req.session.role !== "admin" && req.session.role !== "principal")) {
+    if (
+      !req.session?.userId ||
+      (req.session.role !== "school_admin" &&
+        req.session.role !== "admin" &&
+        req.session.role !== "principal")
+    ) {
       return res.status(403).json({ message: "Forbidden" });
     }
 
@@ -516,7 +605,12 @@ router.get("/admin/logs", authenticateToken, async (req: Request, res: Response)
 // POST /api/admin/keys
 router.post("/admin/keys", authenticateToken, async (req: Request, res: Response) => {
   try {
-    if (!req.session?.userId || (req.session.role !== "school_admin" && req.session.role !== "admin" && req.session.role !== "principal")) {
+    if (
+      !req.session?.userId ||
+      (req.session.role !== "school_admin" &&
+        req.session.role !== "admin" &&
+        req.session.role !== "principal")
+    ) {
       return res.status(403).json({ message: "Forbidden" });
     }
 

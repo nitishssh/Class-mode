@@ -140,13 +140,16 @@ async function resolveUserId(
     if (sid.startsWith("s:")) sid = sid.slice(2).split(".")[0];
 
     sessionStore.get(sid, async (err, session) => {
-      const customSession = session as (CustomSessionData | null | undefined);
+      const customSession = session as CustomSessionData | null | undefined;
       if (err || !customSession?.userId) return resolve(null);
 
       const user = await storage.getUser(customSession.userId);
       if (!user) return resolve(null);
 
-      const extendedUser = user as User & { firebaseUid?: string | null; displayName?: string | null };
+      const extendedUser = user as User & {
+        firebaseUid?: string | null;
+        displayName?: string | null;
+      };
 
       resolve({
         userId: user.id,
@@ -351,7 +354,10 @@ export function setupChatWebSocket(httpServer: Server, sessionStore: Store) {
               channelId,
               authorId: userId,
               content: content.trim(),
-              type: (messageType === "text" || messageType === "file" || messageType === "image") ? messageType : "text",
+              type:
+                messageType === "text" || messageType === "file" || messageType === "image"
+                  ? messageType
+                  : "text",
               fileUrl: fileUrl ?? null,
               isHomework: messageType === "assignment",
               readBy: [],
