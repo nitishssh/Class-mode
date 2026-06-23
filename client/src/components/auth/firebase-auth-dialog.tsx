@@ -427,7 +427,7 @@ export function FirebaseAuthDialog() {
                       type="button"
                       onClick={onForgotPasswordSubmit}
                       disabled={isLoginSubmitting || !loginForm.watch("email")}
-                      className="bg-eduai-primary hover:bg-eduai-accent mt-2 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-sm font-semibold text-white transition-all active:scale-[0.98]"
+                      className="bg-primary hover:bg-accent-hover mt-2 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-sm font-semibold text-white transition-all active:scale-[0.98]"
                     >
                       {isLoginSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
                       Send Reset Link
@@ -580,7 +580,7 @@ export function FirebaseAuthDialog() {
                 <button
                   type="submit"
                   disabled={isLoginSubmitting}
-                  className="bg-eduai-primary hover:bg-eduai-accent mt-2 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-sm font-semibold text-white transition-all active:scale-[0.98]"
+                  className="bg-primary hover:bg-accent-hover mt-2 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-sm font-semibold text-white transition-all active:scale-[0.98]"
                 >
                   {isLoginSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
                   Login
@@ -766,7 +766,7 @@ export function FirebaseAuthDialog() {
                 <button
                   type="submit"
                   disabled={isRegSubmitting}
-                  className="bg-eduai-primary hover:bg-eduai-accent mt-4 flex w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold text-white transition-all active:scale-[0.98]"
+                  className="bg-primary hover:bg-accent-hover mt-4 flex w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold text-white transition-all active:scale-[0.98]"
                 >
                   {isRegSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
                   Create Account
