@@ -13,6 +13,7 @@ import {
   DemoWidget,
   Pricing,
   ContactForm,
+  WhatSchoolGains,
 } from "@/components/landing";
 
 // --- Navbar ---
@@ -24,6 +25,7 @@ const Navbar = () => {
   const links = [
     { key: "landing.howItWorks", label: "How it Works", href: "#journey" },
     { key: "landing.features", label: "Features", href: "#features" },
+    { key: "landing.forSchools", label: "For Schools", href: "#for-schools" },
     { key: "landing.pricing", label: "Pricing", href: "#pricing" },
     { key: "landing.contact", label: "Contact", href: "#contact" },
   ];
@@ -126,6 +128,9 @@ const Footer = () => {
               <a href="#features" className="block transition-colors hover:text-foreground">
                 {t("landing.features", "Features")}
               </a>
+              <a href="#for-schools" className="block transition-colors hover:text-foreground">
+                {t("landing.forSchools", "For Schools")}
+              </a>
               <a href="#pricing" className="block transition-colors hover:text-foreground">
                 {t("landing.pricing", "Pricing")}
               </a>
@@ -175,6 +180,7 @@ const LandingPage = () => (
       <Journey />
       <NotebookFeature />
       <OnboardingFeatures />
+      <WhatSchoolGains />
       <DemoWidget />
       <Pricing />
       <ContactForm />

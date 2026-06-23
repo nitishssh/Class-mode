@@ -60,7 +60,10 @@ const roles = [
 
 export const WhatSchoolGains = () => {
   return (
-    <section className="relative overflow-hidden bg-card/30 py-24 dark:bg-background">
+    <section
+      id="for-schools"
+      className="relative overflow-hidden bg-card/30 py-24 dark:bg-background"
+    >
       <div className="container relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -145,6 +148,24 @@ export const WhatSchoolGains = () => {
             </motion.div>
           ))}
         </div>
+
+        {/* Institutional CTA — routes principals to the contact form */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mt-16 flex flex-col items-center gap-4 text-center"
+        >
+          <p className="text-lg font-medium text-muted-foreground">
+            Ready to bring Class Mode to your school?
+          </p>
+          <a
+            href="#contact"
+            className="sketch-border sketch-shadow-yellow hover-tilt inline-flex items-center gap-2 rounded-full bg-primary px-8 py-3.5 font-heading text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98]"
+          >
+            Request a pilot for your institution →
+          </a>
+        </motion.div>
       </div>
     </section>
   );
