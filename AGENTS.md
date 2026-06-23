@@ -15,6 +15,20 @@ npm run deploy:gcp # gcloud builds submit --config cloudbuild.yaml
 
 CI order (`.github/workflows/ci.yml`): `check → lint → build → test`.
 
+## Async agents (Jules)
+
+This repo is wired for the [Jules](https://jules.google) coding agent.
+
+- **Environment setup**: `scripts/jules-setup.sh` — paste it into the Jules repo
+  Configuration → "Initial Setup" window and "Run and Snapshot". It installs
+  deps and runs `check` + `lint`.
+- **Validating changes in the Jules VM**: the ephemeral VM has **no Postgres /
+  MongoDB / Redis**, so `npm test` (which needs live databases) will fail there.
+  Validate with `npm run check && npm run lint && npm run build` instead. Leave
+  the full test suite to CI / local runs that have the databases available.
+- **Driving Jules from the terminal**: `node scripts/jules.mjs --help` wraps the
+  Jules REST API (set `JULES_API_KEY`).
+
 ## Test quirks
 
 - `.env.test` is gitignored; `vitest.config.ts` provides fallback defaults for CI.

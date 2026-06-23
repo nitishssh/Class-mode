@@ -13,7 +13,8 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "deploy:gcp": "gcloud builds submit --config cloudbuild.yaml"
+    "deploy:gcp": "gcloud builds submit --config cloudbuild.yaml",
+    "jules": "node scripts/jules.mjs"
   },
   "dependencies": {
     "@daily-co/daily-js": "^0.87.0",
