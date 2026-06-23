@@ -13,10 +13,6 @@ import { registerRoutes } from "../routes";
 
 // ── Mock all heavy dependencies ────────────────────────────────────────────
 
-vi.mock("../lib/firebase-admin", () => ({
-  verifyFirebaseToken: vi.fn().mockResolvedValue(null), // default: Firebase fails → JWT path
-}));
-
 vi.mock("../storage", () => ({
   storage: {
     getUser: vi.fn(),

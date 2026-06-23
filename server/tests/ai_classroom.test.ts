@@ -2,16 +2,10 @@ import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import express from "express";
 import request from "supertest";
 import { registerRoutes } from "../routes";
-import { verifyFirebaseToken } from "../lib/firebase-admin";
 import session from "express-session";
 import { pgFindUserById } from "../lib/pg-queries";
 
 // Mock dependencies
-vi.mock("../lib/firebase-admin", () => ({
-  verifyFirebaseToken: vi.fn(),
-  setCustomUserClaims: vi.fn().mockResolvedValue(true),
-}));
-
 vi.mock("../storage", () => ({
   storage: {
     getUser: vi.fn(),
@@ -92,14 +86,6 @@ describe("AI Classroom Routes", () => {
   });
 
   it("should submit a classroom generation job and return jobId", async () => {
-    (
-      verifyFirebaseToken as unknown as { mockResolvedValue: (val: unknown) => void }
-    ).mockResolvedValue({
-      uid: "uid123",
-      email: "test@test.com",
-      role: "student",
-    });
-
     const res = await request(app)
       .post("/api/ai-classroom/create")
       .set("Authorization", "Bearer valid_token")
@@ -114,14 +100,6 @@ describe("AI Classroom Routes", () => {
   });
 
   it("should poll job status", async () => {
-    (
-      verifyFirebaseToken as unknown as { mockResolvedValue: (val: unknown) => void }
-    ).mockResolvedValue({
-      uid: "uid123",
-      email: "test@test.com",
-      role: "student",
-    });
-
     const res = await request(app)
       .get("/api/ai-classroom/status/job_abc123")
       .set("Authorization", "Bearer valid_token");
@@ -133,14 +111,6 @@ describe("AI Classroom Routes", () => {
   });
 
   it("should fetch user classrooms", async () => {
-    (
-      verifyFirebaseToken as unknown as { mockResolvedValue: (val: unknown) => void }
-    ).mockResolvedValue({
-      uid: "uid123",
-      email: "test@test.com",
-      role: "student",
-    });
-
     const res = await request(app)
       .get("/api/ai-classroom/my-classrooms")
       .set("Authorization", "Bearer valid_token");

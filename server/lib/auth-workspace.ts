@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
 import type { PgUser, PgWorkspace, PgWorkspaceMembership } from "./pg-queries";
 
 export const ACCESS_COOKIE = "access_token";
@@ -6,6 +7,88 @@ export const REFRESH_COOKIE = "refresh_token";
 
 export const ACCESS_TOKEN_TTL_MS = 15 * 60 * 1000;
 export const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+// ── JWT: single source of truth ────────────────────────────────────────────
+// Both the auth routes and the auth middleware previously read process.env
+// independently — the middleware even carried a hardcoded fallback secret,
+// so the two could silently diverge. Resolve and validate the secret once,
+// here, and have everything import from this module.
+function resolveJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (secret && secret.length > 0) return secret;
+  // Tests inject a secret via vitest config; never allow a real server to
+  // run on a guessable default.
+  throw new Error("JWT_SECRET environment variable is required.");
+}
+
+export const JWT_SECRET: string = resolveJwtSecret();
+
+export type AccessTokenPayload = {
+  userId: number;
+  sessionId?: number;
+  role?: string;
+  email?: string;
+  emailVerified?: boolean;
+  workspaceId?: number | null;
+  workspaceRole?: string | null;
+};
+
+export function issueAccessToken(
+  payload: AccessTokenPayload,
+  expiresIn: jwt.SignOptions["expiresIn"] = "15m"
+): string {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn });
+}
+
+/**
+ * Verify and decode an access token. Returns the payload on success, or null
+ * on any failure (expired, bad signature, malformed) — callers decide how to
+ * respond. Centralizing this means token rules live in exactly one place.
+ */
+export function verifyAccessToken(token: string | undefined | null): AccessTokenPayload | null {
+  if (!token) return null;
+  try {
+    return jwt.verify(token, JWT_SECRET) as AccessTokenPayload;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Decode a token WITHOUT verifying its signature. Only used by the test
+ * harness fallback in the auth middleware (guarded by NODE_ENV === "test").
+ * Never trust the result of this in production code paths.
+ */
+export function decodeAccessTokenUnsafe(token: string): AccessTokenPayload | null {
+  try {
+    return jwt.decode(token) as AccessTokenPayload | null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Pull a bearer token out of a cookie or Authorization header.
+ */
+export function extractAccessToken(req: {
+  cookies?: Record<string, string | undefined>;
+  headers?: Record<string, unknown>;
+  get?: (name: string) => string | undefined;
+}): string | undefined {
+  const cookieToken = req.cookies?.[ACCESS_COOKIE];
+  if (cookieToken) return cookieToken;
+
+  const authHeader =
+    (req.headers?.authorization as string | undefined) ||
+    (req.headers?.Authorization as string | undefined) ||
+    (typeof req.get === "function" ? req.get("Authorization") : undefined);
+
+  if (typeof authHeader === "string" && authHeader.length > 0) {
+    const parts = authHeader.split(" ");
+    return parts.length === 2 ? parts[1] : parts[0];
+  }
+  return undefined;
+}
 
 export type WorkspaceRole =
   | "owner"

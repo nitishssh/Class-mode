@@ -1,7 +1,6 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import crypto from "crypto";
 import {
@@ -11,11 +10,12 @@ import {
   REFRESH_COOKIE_OPTS,
   REFRESH_TOKEN_TTL_MS,
   authMePayload,
+  issueAccessToken,
   randomToken,
   slugifyWorkspaceName,
   tokenHash,
+  verifyAccessToken,
 } from "../lib/auth-workspace";
-import { verifyFirebaseToken, setCustomUserClaims } from "../lib/firebase-admin";
 import { logger } from "../lib/logger";
 import { recordAuditEvent, AUDIT_EVENTS } from "../lib/audit";
 import { storage } from "../storage";
@@ -39,7 +39,6 @@ import {
   type PgWorkspaceMembership,
 } from "../lib/pg-queries";
 import { sendEmailVerification, sendPasswordReset, sendWelcomeEmail } from "../lib/mailer";
-import { normalizeSelfRegisterableRole } from "../../shared/authz";
 
 const router = Router();
 
@@ -116,24 +115,9 @@ const resetLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-if (!process.env.JWT_SECRET) {
-  throw new Error("JWT_SECRET environment variable is required.");
-}
-const JWT_SECRET = process.env.JWT_SECRET;
-
 function isLocalPasswordAuthEnabled(): boolean {
   return process.env.ENABLE_LOCAL_PASSWORD_AUTH === "true" || process.env.NODE_ENV !== "production";
 }
-
-type AccessPayload = {
-  userId: number;
-  sessionId?: number;
-  role?: string;
-  email?: string;
-  emailVerified?: boolean;
-  workspaceId?: number | null;
-  workspaceRole?: string | null;
-};
 
 type DevSession = {
   id: number;
@@ -226,7 +210,9 @@ function createDevUser(data: {
     displayName: data.name,
     avatar: null,
     emailVerified: false,
-    role: "admin",
+    // Self-signup creates a tenant (school) admin, NOT the platform-level
+    // "admin" super-role (which is reserved for platform-admin invites).
+    role: "school_admin",
     status: "active",
     schoolCode: null,
     schoolId: null,
@@ -278,10 +264,6 @@ function devAuthPayload(user: PgUser) {
     workspace: workspaceContext?.workspace ?? null,
     membership: workspaceContext?.membership ?? null,
   });
-}
-
-function issueAccessToken(payload: AccessPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: "15m" });
 }
 
 async function createDevLoginSession(req: Request, res: Response, user: PgUser) {
@@ -409,11 +391,10 @@ async function findOtpByTokenHash(hash: string, type: "registration" | "password
 }
 
 // Public auth-capability flags so the client can decide whether to attempt
-// Firebase first, fall back to local password, etc. Safe to expose.
+// local password, etc. Safe to expose.
 router.get("/config", (_req: Request, res: Response) => {
   res.status(200).json({
     localPasswordAuthEnabled: isLocalPasswordAuthEnabled(),
-    firebaseExchangeEnabled: process.env.ENABLE_FIREBASE_AUTH_COMPAT !== "false",
     devAuthWithoutDb: isDevAuthWithoutDbEnabled(),
   });
 });
@@ -525,7 +506,9 @@ router.get("/google/callback", async (req: Request, res: Response) => {
         displayName: info.name || null,
         avatar: info.picture,
         emailVerified: info.emailVerified,
-        role: "admin",
+        // Self-signup via Google creates a tenant (school) admin, not the
+        // platform-level "admin" super-role.
+        role: "school_admin",
         status: "active",
       });
       const fallbackWsName =
@@ -580,7 +563,7 @@ const signupSchema = z.object({
 router.post("/signup", signupLimiter, async (req: Request, res: Response) => {
   if (!isLocalPasswordAuthEnabled()) {
     return res.status(410).json({
-      message: "Password signup is disabled. Use Firebase Authentication.",
+      message: "Password signup is disabled on this server.",
     });
   }
 
@@ -624,7 +607,8 @@ router.post("/signup", signupLimiter, async (req: Request, res: Response) => {
       passwordHash: await bcrypt.hash(parsed.data.password, 12),
       name: parsed.data.name,
       displayName: parsed.data.name,
-      role: "admin",
+      // Self-signup creates a tenant (school) admin, not the platform "admin".
+      role: "school_admin",
       status: "active",
       emailVerified: false,
     });
@@ -683,7 +667,7 @@ const loginSchema = z.object({ email: z.string().email(), password: z.string().m
 router.post("/login", loginLimiter, async (req: Request, res: Response) => {
   if (!isLocalPasswordAuthEnabled()) {
     return res.status(410).json({
-      message: "Password login is disabled. Use Firebase Authentication.",
+      message: "Password login is disabled on this server.",
     });
   }
 
@@ -796,7 +780,8 @@ router.get("/me", async (req: Request, res: Response) => {
   try {
     const token = req.cookies?.access_token || req.headers.authorization?.split(" ")[1];
     if (!token) return res.status(401).json({ message: "Not authenticated" });
-    const payload = jwt.verify(token, JWT_SECRET) as AccessPayload;
+    const payload = verifyAccessToken(token);
+    if (!payload?.userId) return res.status(401).json({ message: "Invalid or expired token" });
     if (isDevAuthWithoutDbEnabled()) {
       const user = devUsersById.get(payload.userId);
       if (!user || ["suspended", "rejected"].includes(user.status)) {
@@ -832,8 +817,8 @@ router.post("/logout", async (req: Request, res: Response) => {
 router.post("/logout-all", async (req: Request, res: Response) => {
   try {
     const token = req.cookies?.access_token || req.headers.authorization?.split(" ")[1];
-    if (token) {
-      const payload = jwt.verify(token, JWT_SECRET) as AccessPayload;
+    const payload = verifyAccessToken(token);
+    if (payload?.userId) {
       await storage.deleteAllUserSessions(payload.userId);
     }
   } catch {
@@ -847,7 +832,8 @@ router.post("/email/verify/request", verifyRequestLimiter, async (req: Request, 
   try {
     const token = req.cookies?.access_token || req.headers.authorization?.split(" ")[1];
     if (!token) return res.status(401).json({ message: "Not authenticated" });
-    const payload = jwt.verify(token, JWT_SECRET) as AccessPayload;
+    const payload = verifyAccessToken(token);
+    if (!payload?.userId) return res.status(401).json({ message: "Not authenticated" });
 
     if (isDevAuthWithoutDbEnabled()) {
       const user = devUsersById.get(payload.userId);
@@ -880,12 +866,9 @@ router.post("/email/verify", verifyLimiter, async (req: Request, res: Response) 
   // a per-OTP attempt limit without leaking codes across accounts.
   const accessToken = req.cookies?.access_token || req.headers.authorization?.split(" ")[1];
   if (!accessToken) return res.status(401).json({ message: "Not authenticated" });
-  let userId: number;
-  try {
-    userId = (jwt.verify(accessToken, JWT_SECRET) as AccessPayload).userId;
-  } catch {
-    return res.status(401).json({ message: "Not authenticated" });
-  }
+  const verified = verifyAccessToken(accessToken);
+  if (!verified?.userId) return res.status(401).json({ message: "Not authenticated" });
+  const userId: number = verified.userId;
 
   if (isDevAuthWithoutDbEnabled()) {
     const otp = latestDevOtp(userId, "registration");
@@ -941,7 +924,7 @@ router.post("/email/verify", verifyLimiter, async (req: Request, res: Response) 
 router.post("/password/forgot", forgotLimiter, async (req: Request, res: Response) => {
   if (!isLocalPasswordAuthEnabled()) {
     return res.status(410).json({
-      message: "Password reset is disabled. Use Firebase Authentication.",
+      message: "Password reset is disabled on this server.",
     });
   }
 
@@ -970,7 +953,7 @@ router.post("/password/forgot", forgotLimiter, async (req: Request, res: Respons
 router.post("/password/reset", resetLimiter, async (req: Request, res: Response) => {
   if (!isLocalPasswordAuthEnabled()) {
     return res.status(410).json({
-      message: "Password reset is disabled. Use Firebase Authentication.",
+      message: "Password reset is disabled on this server.",
     });
   }
 
@@ -1032,7 +1015,16 @@ async function acceptWorkspaceInvite(req: Request, res: Response) {
       passwordHash: await bcrypt.hash(parsed.data.password, 12),
       name: displayName,
       displayName,
-      role: invite.kind === "student" ? "student" : invite.role === "admin" ? "admin" : "teacher",
+      // invite.role is a WORKSPACE role (owner/admin/member). A workspace
+      // "admin" maps to the tenant-level user role "school_admin" — never the
+      // platform "admin" super-role, which is granted only via the
+      // platform-admin invite flow.
+      role:
+        invite.kind === "student"
+          ? "student"
+          : invite.role === "admin"
+            ? "school_admin"
+            : "teacher",
       status: "active",
       emailVerified: true,
       grade: invite.studentMeta?.grade ?? null,
@@ -1078,90 +1070,12 @@ router.post("/register", (_req: Request, res: Response) => {
   });
 });
 
-router.post("/firebase", async (req: Request, res: Response) => {
-  if (process.env.ENABLE_FIREBASE_AUTH_COMPAT === "false") {
-    return res.status(410).json({ message: "Firebase auth compatibility is disabled" });
-  }
-  const { idToken, role, workspaceName } = req.body as {
-    idToken?: string;
-    role?: string;
-    workspaceName?: string;
-  };
-  if (!idToken) return res.status(400).json({ message: "idToken is required" });
-  const decoded = await verifyFirebaseToken(idToken);
-  if (!decoded?.email)
-    return res.status(401).json({ message: "Invalid or expired Firebase ID token" });
-
-  const email = decoded.email.toLowerCase().trim();
-  let user =
-    (await pgFindUserByAuthSubject("firebase", decoded.uid)) || (await pgFindUserByEmail(email));
-  if (!user) {
-    const requestedWorkspaceName =
-      typeof workspaceName === "string" && workspaceName.trim().length >= 2
-        ? workspaceName.trim()
-        : null;
-    const userRole = requestedWorkspaceName ? "admin" : normalizeSelfRegisterableRole(role);
-    const userStatus = userRole === "teacher" ? "pending" : "active";
-    user = await pgCreateUser({
-      authProvider: "firebase",
-      authSubject: decoded.uid,
-      email,
-      username: `${email.split("@")[0]}_${Date.now()}`,
-      passwordHash: `firebase_managed_${decoded.uid}`,
-      name: decoded.name || email.split("@")[0],
-      displayName: decoded.name || null,
-      avatar: decoded.picture || null,
-      role: userRole,
-      status: userStatus,
-      emailVerified: !!decoded.email_verified,
-    });
-
-    if (requestedWorkspaceName) {
-      const workspace = await pgCreateWorkspace({
-        name: requestedWorkspaceName,
-        slug: await makeUniqueSlug(requestedWorkspaceName),
-        type: "business",
-        ownerId: user.id,
-      });
-      await pgUpsertWorkspaceMembership({
-        workspaceId: workspace.id,
-        userId: user.id,
-        role: "owner",
-      });
-      recordAuditEvent({
-        actorUserId: user.id,
-        targetUserId: user.id,
-        eventType: AUDIT_EVENTS.USER_REGISTERED,
-        payload: { provider: "firebase", workspaceId: workspace.id, workspaceRole: "owner" },
-      });
-    }
-
-    if (!decoded.email_verified) {
-      const verifyToken = await createVerificationToken(user.id);
-      sendEmailVerification(user.email, user.displayName || user.name, verifyToken).catch((e) =>
-        logger.warn("[auth/firebase] Failed to send verification email", { error: String(e) })
-      );
-    }
-    sendWelcomeEmail(user.email, user.displayName || user.name).catch((e) =>
-      logger.warn("[auth/firebase] Failed to send welcome email", { error: String(e) })
-    );
-  } else if (user.authProvider !== "firebase") {
-    // Prevent password-auth account takeover via Firebase registration/login with same email
-    return res.status(409).json({
-      message:
-        "An account with this email already exists using password login. Please log in with your password.",
-    });
-  }
-  setCustomUserClaims(decoded.uid, { role: user.role, status: user.status }).catch(() => undefined);
-  const tokens = await createLoginSession(req, res, user.id);
-  return res.json({ token: tokens.accessToken, ...(await currentAuthPayload(user.id)) });
-});
-
 router.post("/sync-profile", async (req: Request, res: Response) => {
   const token = req.cookies?.access_token || req.headers.authorization?.split(" ")[1];
   if (!token) return res.status(401).json({ message: "Unauthorized" });
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as AccessPayload;
+    const payload = verifyAccessToken(token);
+    if (!payload?.userId) return res.status(401).json({ message: "Unauthorized" });
     const updates: Record<string, unknown> = {};
     const body = req.body as Record<string, unknown>;
     if (body.displayName !== undefined) updates.displayName = body.displayName;

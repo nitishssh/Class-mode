@@ -15,7 +15,6 @@ import { connectPostgres } from "./db-pg";
 import { setupChatWebSocket } from "./chat-ws";
 import { setupMessagePalWebSocket } from "./message";
 import { initCassandra } from "./lib/cassandra";
-import { checkFirebaseAdminReadiness } from "./lib/firebase-admin";
 import { requireDb } from "./middleware";
 
 // Fix SRV resolution errors by forcing Google DNS globally
@@ -158,9 +157,6 @@ app.use(
 
 // Serve uploaded files
 app.use("/uploads", express.static(path.resolve("public", "uploads")));
-
-// Check Firebase Admin readiness at startup
-checkFirebaseAdminReadiness();
 
 // Set up session middleware
 const SESSION_SECRET = process.env.SESSION_SECRET || "class-mode-secret-key";

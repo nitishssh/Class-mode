@@ -20,21 +20,6 @@ vi.mock("../lib/audit", () => ({
   recordAuditEvent: vi.fn(),
 }));
 
-// Mock Firebase Admin
-vi.mock("../lib/firebase-admin", () => ({
-  verifyFirebaseToken: vi.fn(),
-  setCustomUserClaims: vi.fn().mockResolvedValue(true),
-}));
-
-// Mock firebase-admin npm library
-vi.mock("firebase-admin", () => ({
-  default: {
-    auth: () => ({
-      createUser: vi.fn().mockResolvedValue({ uid: "fb_user_uid_456" }),
-    }),
-  },
-}));
-
 // Mock Storage
 vi.mock("../storage", () => ({
   storage: {
@@ -56,7 +41,6 @@ import authRouter from "../routes/auth";
 import onboardingRouter from "../routes/onboarding";
 import { authenticateToken } from "../middleware";
 import {
-  pgFindUserByAuthSubject,
   pgFindUserByEmail,
   pgFindUserById,
   pgCreateUser,
@@ -68,9 +52,7 @@ import {
   pgFindWorkspaceBySlug,
   pgCreateWorkspace,
 } from "../lib/pg-queries";
-import { verifyFirebaseToken } from "../lib/firebase-admin";
 import { sendWelcomeEmail, sendEmailVerification } from "../lib/mailer";
-import { storage } from "../storage";
 import jwt from "jsonwebtoken";
 
 describe("Authentication Security and Hardening", () => {
@@ -79,7 +61,6 @@ describe("Authentication Security and Hardening", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.ENABLE_FIREBASE_AUTH_COMPAT = "true";
     process.env.JWT_SECRET = JWT_SECRET;
 
     app = express();
@@ -94,72 +75,6 @@ describe("Authentication Security and Hardening", () => {
     app.use("/api/auth", authRouter);
     app.use("/api", authRouter);
     app.use("/api", onboardingRouter);
-  });
-
-  describe("Firebase account takeover vulnerability", () => {
-    it("should prevent takeover of local password accounts matching the Firebase email", async () => {
-      const localUser = {
-        id: 1,
-        email: "victim@example.com",
-        authProvider: "local",
-        authSubject: "victim@example.com",
-        displayName: "Victim User",
-        name: "Victim User",
-        role: "student",
-        status: "active",
-        emailVerified: true,
-      };
-
-      (pgFindUserByAuthSubject as any).mockResolvedValue(null);
-      (pgFindUserByEmail as any).mockResolvedValue(localUser);
-
-      (verifyFirebaseToken as any).mockResolvedValue({
-        uid: "attacker_firebase_uid",
-        email: "victim@example.com",
-        name: "Attacker Takeover Attempt",
-        email_verified: true,
-      });
-
-      const res = await request(app)
-        .post("/api/auth/firebase")
-        .send({ idToken: "some-attacker-token" });
-
-      expect(res.status).toBe(409);
-      expect(res.body.message).toContain("already exists using password login");
-      expect(storage.createSession).not.toHaveBeenCalled();
-    });
-
-    it("should allow login for existing Firebase accounts matching the email", async () => {
-      const firebaseUser = {
-        id: 2,
-        email: "legit@example.com",
-        authProvider: "firebase",
-        authSubject: "legit_firebase_uid",
-        displayName: "Legit Firebase User",
-        name: "Legit Firebase User",
-        role: "student",
-        status: "active",
-        emailVerified: true,
-      };
-
-      (pgFindUserByAuthSubject as any).mockResolvedValue(firebaseUser);
-      (pgFindUserByEmail as any).mockResolvedValue(firebaseUser);
-      (pgFindUserById as any).mockResolvedValue(firebaseUser);
-      (pgFindFirstWorkspaceMembership as any).mockResolvedValue(null);
-
-      (verifyFirebaseToken as any).mockResolvedValue({
-        uid: "legit_firebase_uid",
-        email: "legit@example.com",
-        name: "Legit Firebase User",
-        email_verified: true,
-      });
-
-      const res = await request(app).post("/api/auth/firebase").send({ idToken: "legit-token" });
-
-      expect(res.status).toBe(200);
-      expect(res.body.token).toBeDefined();
-      expect(storage.createSession).toHaveBeenCalled();
-    });
   });
 
   describe("Password corruption on workspace invite acceptance", () => {
@@ -369,43 +284,6 @@ describe("Authentication Security and Hardening", () => {
         expect.any(String)
       );
       expect(sendWelcomeEmail).toHaveBeenCalledWith("welcome_local@example.com", "Welcome Local");
-    });
-
-    it("should trigger sendWelcomeEmail on first-time federated Firebase signups", async () => {
-      const newUser = {
-        id: 61,
-        email: "welcome_firebase@example.com",
-        authProvider: "firebase",
-        authSubject: "firebase_user_welcome_uid",
-        displayName: "Welcome Firebase",
-        name: "Welcome Firebase",
-        role: "student",
-        status: "active",
-        emailVerified: true,
-      };
-
-      (pgFindUserByAuthSubject as any).mockResolvedValue(null);
-      (pgFindUserByEmail as any).mockResolvedValue(null);
-      (pgCreateUser as any).mockResolvedValue(newUser);
-      (pgFindUserById as any).mockResolvedValue(newUser);
-      (pgFindFirstWorkspaceMembership as any).mockResolvedValue(null);
-
-      (verifyFirebaseToken as any).mockResolvedValue({
-        uid: "firebase_user_welcome_uid",
-        email: "welcome_firebase@example.com",
-        name: "Welcome Firebase",
-        email_verified: true,
-      });
-
-      const res = await request(app)
-        .post("/api/auth/firebase")
-        .send({ idToken: "legit-welcome-token" });
-
-      expect(res.status).toBe(200);
-      expect(sendWelcomeEmail).toHaveBeenCalledWith(
-        "welcome_firebase@example.com",
-        "Welcome Firebase"
-      );
     });
 
     it("should trigger sendWelcomeEmail on onboarding invitation acceptance", async () => {

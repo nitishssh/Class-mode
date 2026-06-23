@@ -1,9 +1,13 @@
 import { type Request, type Response, type NextFunction } from "express";
 import { isPgReady } from "./db-pg";
-import jwt from "jsonwebtoken";
 import "express-session";
 import { pgFindFirstWorkspaceMembership, pgFindUserById } from "./lib/pg-queries";
-import { authMePayload, ACCESS_COOKIE } from "./lib/auth-workspace";
+import {
+  authMePayload,
+  extractAccessToken,
+  verifyAccessToken,
+  decodeAccessTokenUnsafe,
+} from "./lib/auth-workspace";
 
 declare module "express-session" {
   interface SessionData {
@@ -18,18 +22,6 @@ declare module "express-session" {
   }
 }
 
-interface CustomJwtPayload extends jwt.JwtPayload {
-  userId?: number;
-  sessionId?: number;
-  role?: string;
-  email?: string;
-  emailVerified?: boolean;
-  workspaceId?: number | null;
-  workspaceRole?: string | null;
-}
-
-const JWT_SECRET: string = process.env.JWT_SECRET || "super_secret_jwt_key_learning_pro_123";
-
 function isDevAuthWithoutDbEnabled(req: Request): boolean {
   return (
     process.env.NODE_ENV !== "production" &&
@@ -41,52 +33,36 @@ function isDevAuthWithoutDbEnabled(req: Request): boolean {
 // ── Auth Middleware ──────────────────────────────────────────────────────────
 export async function authenticateToken(req: Request, res: Response, next: NextFunction) {
   // Extract token from cookie or Authorization header
-  let token = req.cookies?.[ACCESS_COOKIE];
-
-  if (!token) {
-    const authHeader =
-      req.headers?.authorization ||
-      req.headers?.Authorization ||
-      (typeof req.get === "function" ? req.get("Authorization") : null);
-
-    if (typeof authHeader === "string") {
-      const parts = authHeader.split(" ");
-      token = parts.length === 2 ? parts[1] : parts[0];
-    }
-  }
+  const token = extractAccessToken(req);
 
   // 1. Try Token
   if (token) {
-    try {
-      const payload = jwt.verify(token, JWT_SECRET) as CustomJwtPayload;
-      if (payload?.userId) {
-        const user = await pgFindUserById(payload.userId);
-        if (user && !["suspended", "rejected"].includes(user.status)) {
-          const workspaceContext = await pgFindFirstWorkspaceMembership(user.id);
-          if (req.session) {
-            req.session.userId = user.id;
-            req.session.role = user.role;
-            req.session.firebaseUid = user.firebaseUid || user.authSubject;
-          }
-          (req as any).user = {
-            id: user.id,
-            role: user.role,
-            email: user.email,
-            status: user.status,
-            emailVerified: user.emailVerified,
-          };
-          (req as any).workspace = workspaceContext?.workspace ?? null;
-          (req as any).workspaceRole = workspaceContext?.membership.role ?? null;
-          (req as any).permissions = authMePayload({
-            user,
-            workspace: workspaceContext?.workspace ?? null,
-            membership: workspaceContext?.membership ?? null,
-          }).permissions;
-          return next();
+    const payload = verifyAccessToken(token);
+    if (payload?.userId) {
+      const user = await pgFindUserById(payload.userId);
+      if (user && !["suspended", "rejected"].includes(user.status)) {
+        const workspaceContext = await pgFindFirstWorkspaceMembership(user.id);
+        if (req.session) {
+          req.session.userId = user.id;
+          req.session.role = user.role;
+          req.session.firebaseUid = user.firebaseUid || user.authSubject;
         }
+        (req as any).user = {
+          id: user.id,
+          role: user.role,
+          email: user.email,
+          status: user.status,
+          emailVerified: user.emailVerified,
+        };
+        (req as any).workspace = workspaceContext?.workspace ?? null;
+        (req as any).workspaceRole = workspaceContext?.membership.role ?? null;
+        (req as any).permissions = authMePayload({
+          user,
+          workspace: workspaceContext?.workspace ?? null,
+          membership: workspaceContext?.membership ?? null,
+        }).permissions;
+        return next();
       }
-    } catch (err) {
-      // JWT invalid
     }
   }
 
@@ -120,24 +96,20 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
   // 3. Fallback for tests - if we see a valid-looking token but verification failed (e.g. secret mismatch),
   // and we're in test mode, try to trust it if it's signed with the test secret.
   if (process.env.NODE_ENV === "test" && token) {
-    try {
-      const payload = jwt.decode(token) as CustomJwtPayload;
-      if (payload?.userId && payload.role) {
-        (req as any).user = {
-          id: payload.userId,
-          role: payload.role,
-          email: payload.email ?? "",
-          status: "active",
-          emailVerified: true,
-        };
-        if (req.session) {
-          req.session.userId = payload.userId;
-          req.session.role = payload.role;
-        }
-        return next();
+    const payload = decodeAccessTokenUnsafe(token);
+    if (payload?.userId && payload.role) {
+      (req as any).user = {
+        id: payload.userId,
+        role: payload.role,
+        email: payload.email ?? "",
+        status: "active",
+        emailVerified: true,
+      };
+      if (req.session) {
+        req.session.userId = payload.userId;
+        req.session.role = payload.role;
       }
-    } catch (e) {
-      // ignore parsing errors
+      return next();
     }
   }
 
@@ -185,16 +157,6 @@ export function requireRole(...roles: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     const user = (req as any).user;
     if (!user || !roles.includes(user.role)) {
-      return res.status(403).json({ error: "Forbidden" });
-    }
-    next();
-  };
-}
-
-export function requireWorkspaceRole(...roles: Array<"owner" | "admin" | "member">) {
-  return (req: Request, res: Response, next: NextFunction) => {
-    const role = (req as any).workspaceRole as string | null;
-    if (!role || !roles.includes(role as any)) {
       return res.status(403).json({ error: "Forbidden" });
     }
     next();

@@ -22,11 +22,6 @@ const adminToken = jwt.sign(
 );
 
 // Mock dependencies
-vi.mock("../lib/firebase-admin", () => ({
-  verifyFirebaseToken: vi.fn(),
-  setCustomUserClaims: vi.fn().mockResolvedValue(undefined),
-}));
-
 // Mock MongoDB is removed because database is fully PostgreSQL.
 
 vi.mock("../storage", () => ({

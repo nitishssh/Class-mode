@@ -12,10 +12,6 @@ import session from "express-session";
 import { registerRoutes } from "../routes";
 
 // Mock out heavy dependencies
-vi.mock("../lib/firebase-admin", () => ({
-  verifyFirebaseToken: vi.fn().mockResolvedValue(null),
-}));
-
 vi.mock("../storage", () => ({
   storage: {
     getUser: vi.fn(),
@@ -146,14 +142,12 @@ describe("Test Generator API Endpoints", () => {
       ];
       mockGenerateContentFromPdf.mockResolvedValue(JSON.stringify(mockQuestions));
 
-      const res = await request(app)
-        .post("/api/ai/generate-from-pdf")
-        .send({
-          pdfData: "data:application/pdf;base64,dGVzdA==",
-          numQuestions: 1,
-          difficulty: "easy",
-          grade: "9",
-        });
+      const res = await request(app).post("/api/ai/generate-from-pdf").send({
+        pdfData: "data:application/pdf;base64,dGVzdA==",
+        numQuestions: 1,
+        difficulty: "easy",
+        grade: "9",
+      });
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual(mockQuestions);

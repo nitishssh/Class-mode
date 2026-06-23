@@ -34,10 +34,6 @@ vi.mock("../message", () => ({
   setupMessagePalWebSocket: vi.fn(),
 }));
 
-vi.mock("../lib/firebase-admin", () => ({
-  verifyFirebaseToken: vi.fn(),
-}));
-
 vi.mock("../storage", () => ({
   storage: {
     getUser: vi.fn(),
