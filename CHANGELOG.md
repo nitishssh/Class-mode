@@ -10,6 +10,13 @@ All notable changes to this project will be documented in this file.
 - **Overview activity chart** now plots real submissions, logins, and new signups over the trailing week instead of a single login-only series derived client-side.
 - **Reports tab** Average-score-by-class chart now uses real graded-submission data with an empty state, replacing the previous hardcoded mock distribution.
 
+## [1.7.1.1] - 2026-06-23
+
+### Security
+
+- **Privilege escalation on first onboarding blocked (M1)** — `POST /api/onboarding/complete` previously included `student` in the set of roles allowed to self-select a new role during first onboarding. An invited student could escalate to `teacher`, `principal`, or `school_admin` within their tenant. Students are now excluded; only self-signup `school_admin`/`admin` defaults may change role. Added a regression test.
+- **Onboarding routes no longer bypass authentication (H2)** — `/api/onboarding` was listed in the auth middleware's EXEMPT set, so `authenticateToken` returned `next()` without populating `req.user` for every onboarding route. Authenticated routes (e.g. `/complete`, `/school/setup`) ran without a verified identity. Removed the blanket exemption; genuinely public routes (`/invite/accept`, `/invite/validate/:token`) do not invoke `authenticateToken` and are unaffected.
+
 ## [1.7.1.0] - 2026-06-10
 
 ### Added
