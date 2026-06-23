@@ -60,7 +60,10 @@ const roles = [
 
 export const WhatSchoolGains = () => {
   return (
-    <section className="relative overflow-hidden bg-card/30 py-24 dark:bg-background">
+    <section
+      id="for-schools"
+      className="relative overflow-hidden bg-card/30 py-24 dark:bg-background"
+    >
       <div className="container relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
