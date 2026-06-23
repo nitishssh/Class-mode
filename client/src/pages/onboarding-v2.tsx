@@ -29,7 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { getDashboardPath } from "@/lib/role-routes";
+import { getDashboardPath, canChooseOnboardingRole } from "@/lib/role-routes";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -384,7 +384,7 @@ export default function OnboardingV2() {
   // during onboarding. Invited users (teacher, principal, ...) have a fixed
   // role the server enforces — so only offer role options they're allowed to
   // pick, otherwise they fill the whole wizard and hit a 403 at submit.
-  const roleLocked = !!profile && !["school_admin", "admin"].includes(profile.role);
+  const roleLocked = !!profile && !canChooseOnboardingRole(profile.role);
   const availableRoles = roleLocked ? ROLES.filter((r) => r.value === profile?.role) : ROLES;
 
   const [data, setData] = useState<OnboardingData>({
