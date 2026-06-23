@@ -29,6 +29,7 @@ import {
   ChevronRight,
   ClipboardCheck,
   UserCheck,
+  UserPlus,
   Link2,
 } from "lucide-react";
 
@@ -98,6 +99,11 @@ export function Sidebar({ className }: SidebarProps) {
       icon: <LayoutDashboard className="h-5 w-5" />,
     },
     {
+      title: "Invite Teachers",
+      href: "/onboarding/invite-teachers",
+      icon: <UserPlus className="h-5 w-5" />,
+    },
+    {
       title: "Student Directory",
       href: "/student-directory",
       icon: <GraduationCap className="h-5 w-5" />,
@@ -141,6 +147,11 @@ export function Sidebar({ className }: SidebarProps) {
     { title: "Scan & Grade", href: "/ocr-scan", icon: <ScanBarcode className="h-5 w-5" /> },
     { title: "Grading", href: "/grading", icon: <ClipboardCheck className="h-5 w-5" /> },
     { title: "My Students", href: "/my-students", icon: <UserCheck className="h-5 w-5" /> },
+    {
+      title: "Invite Students",
+      href: "/onboarding/invite-students",
+      icon: <UserPlus className="h-5 w-5" />,
+    },
     {
       title: "Student Directory",
       href: "/student-directory",
