@@ -84,4 +84,26 @@ describe("POST /api/onboarding/complete role guard", () => {
     expect(res.status).toBe(403);
     expect(res.body.message).toMatch(/cannot change role/i);
   });
+
+  it("blocks an invited student from escalating to a staff role (M1)", async () => {
+    // Regression: `student` was previously in CHANGEABLE_DEFAULT_ROLES, which let
+    // an invited student self-select principal/teacher/school_admin during their
+    // first onboarding. Students must never be able to change to a staff role.
+    (pgFindUserById as any).mockResolvedValue({
+      id: 12,
+      authSubject: "student@example.com",
+      email: "student@example.com",
+      role: "student",
+      status: "active",
+      emailVerified: true,
+      onboardingComplete: false,
+    });
+    const token = issueAccessToken({ userId: 12 });
+    const res = await request(makeApp())
+      .post("/api/onboarding/complete")
+      .set("Authorization", `Bearer ${token}`)
+      .send(validBody("teacher"));
+    expect(res.status).toBe(403);
+    expect(res.body.message).toMatch(/cannot change role/i);
+  });
 });

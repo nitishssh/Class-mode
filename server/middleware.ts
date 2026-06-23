@@ -122,7 +122,6 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
     "/api/invites/",
     "/api/messagepal",
     "/api/ai-classroom/providers",
-    "/api/onboarding",
   ];
   if (path && EXEMPT.some((p) => path.startsWith(p))) {
     return next();

@@ -164,11 +164,12 @@ router.post("/complete", authenticateToken, async (req: Request, res: Response) 
   // 2. Validate role constraints strictly.
   // We've already returned above if onboarding is complete, so this is the
   // user's FIRST onboarding. Allow them to pick their role only if they're
-  // starting from a "default" role: self-signup workspace creators now land as
-  // school_admin (legacy accounts may be admin), and invited students default
-  // to student. This still blocks an already-assigned/invited teacher from
-  // escalating to principal/school_admin.
-  const CHANGEABLE_DEFAULT_ROLES = new Set(["student", "school_admin", "admin"]);
+  // starting from a "default" role: self-signup workspace creators land as
+  // school_admin (legacy accounts may be admin). Students are NOT in this set —
+  // an invited student must never be able to self-select a staff role
+  // (principal/teacher/school_admin) during onboarding. This also blocks an
+  // already-assigned/invited teacher from escalating.
+  const CHANGEABLE_DEFAULT_ROLES = new Set(["school_admin", "admin"]);
   if (pgUser.role !== role && !CHANGEABLE_DEFAULT_ROLES.has(pgUser.role)) {
     return res.status(403).json({ message: "Cannot change role during onboarding" });
   }
