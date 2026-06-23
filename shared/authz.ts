@@ -1,3 +1,17 @@
+// ── Roles: single source of truth ──────────────────────────────────────────
+// `users.role` is THE authority for authorization across the app (enforced by
+// requireRole on the server and protect()/getDashboardPath on the client).
+//
+// Tiers, lowest → highest privilege:
+//   student, parent          — end users
+//   teacher                  — classroom staff
+//   principal, school_admin  — tenant (school) administrators
+//   admin                    — PLATFORM super-admin (cross-tenant). Only ever
+//                              granted via the platform-admin invite flow —
+//                              never through self-signup.
+//
+// The legacy workspace-membership role layer (owner/admin/member) is cosmetic
+// and not enforced; do not add authorization on it.
 export const USER_ROLES = [
   "student",
   "teacher",

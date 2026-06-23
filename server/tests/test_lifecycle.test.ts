@@ -7,10 +7,6 @@ import { pgFindUserById, pgFindFirstWorkspaceMembership } from "../lib/pg-querie
 
 // ── Dependency mocks ───────────────────────────────────────────────────────
 
-vi.mock("../lib/firebase-admin", () => ({
-  verifyFirebaseToken: vi.fn().mockResolvedValue(null),
-}));
-
 vi.mock("../message", () => ({
   setupMessagePalWebSocket: vi.fn(),
   default: { router: express.Router() },

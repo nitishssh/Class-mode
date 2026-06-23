@@ -12,10 +12,6 @@ import session from "express-session";
 import { registerRoutes } from "../routes";
 
 // Mock out heavy dependencies
-vi.mock("../lib/firebase-admin", () => ({
-  verifyFirebaseToken: vi.fn().mockResolvedValue(null),
-}));
-
 vi.mock("../storage", () => ({
   storage: {
     getUser: vi.fn(),

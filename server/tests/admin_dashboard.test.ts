@@ -55,12 +55,6 @@ vi.mock("../db-pg", () => ({
   isPgReady: vi.fn().mockReturnValue(true),
 }));
 
-vi.mock("../lib/firebase-admin", () => ({
-  verifyFirebaseToken: vi.fn(),
-  setCustomUserClaims: vi.fn().mockResolvedValue(undefined),
-  checkFirebaseAdminReadiness: vi.fn(),
-}));
-
 vi.mock("../storage", () => ({
   storage: {
     getUser: vi.fn(),

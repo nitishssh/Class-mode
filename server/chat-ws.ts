@@ -1,11 +1,8 @@
 /**
- * server/chat-ws.ts — Phase 4 Update
+ * server/chat-ws.ts
  *
- * WebSocket server for real-time chat. Authentication is now via Firebase ID token
- * passed as a query parameter: ws://host/ws/chat?token=<firebase_id_token>
- *
- * Falls back to Express session cookie auth for backward compatibility
- * (e.g. when firebase-admin is not fully configured).
+ * WebSocket server for real-time chat. Authentication is via the Express
+ * session cookie (same-origin), matching the rest of the app.
  *
  * New events supported:
  *   Client → Server:  mark_delivered, answer_doubt, stop_typing, pin_message
@@ -18,8 +15,6 @@ import type { Store } from "express-session";
 import { type User } from "@shared/schema";
 import { storage } from "./storage";
 import { aiChat } from "./lib/openai";
-import { verifyFirebaseToken } from "./lib/firebase-admin";
-import { pgFindUserByAuthSubject, pgFindUserByEmail } from "./lib/pg-queries";
 import { getPgPool, isPgReady } from "./db-pg";
 
 const AI_TUTOR_ID = 999;
@@ -129,39 +124,13 @@ interface CustomSessionData {
 }
 
 /**
- * Resolves the authenticated userId either from:
- *   1. ?token=<firebase_id_token> query param  (preferred, Phase 4)
- *   2. Express session cookie                  (legacy/fallback)
+ * Resolves the authenticated userId from the Express session cookie
+ * (same-origin auth, matching the rest of the app).
  */
 async function resolveUserId(
   sessionStore: Store,
   req: IncomingMessage
 ): Promise<{ userId: number; firebaseUid: string; displayName: string; role: string } | null> {
-  const url = req.url || "";
-  const params = new URLSearchParams(url.includes("?") ? url.split("?")[1] : "");
-  const token = params.get("token");
-
-  if (token) {
-    // ── Firebase token path ────────────────────────────────────────────────
-    const decoded = await verifyFirebaseToken(token);
-    if (!decoded) return null;
-
-    const { uid, name, email } = decoded;
-
-    let pgUser = await pgFindUserByAuthSubject("firebase", uid);
-    if (!pgUser && email) pgUser = await pgFindUserByEmail(email);
-
-    if (!pgUser) return null;
-
-    return {
-      userId: pgUser.id,
-      firebaseUid: uid,
-      displayName: (pgUser as User & { displayName?: string | null }).displayName || pgUser.name || name || email || "User",
-      role: pgUser.role ?? "student",
-    };
-  }
-
-  // ── Session fallback ─────────────────────────────────────────────────────
   return new Promise((resolve) => {
     const cookieHeader = req.headers?.cookie || "";
     const match = cookieHeader.match(/connect\.sid=([^;]+)/);
@@ -669,6 +638,6 @@ export function setupChatWebSocket(httpServer: Server, sessionStore: Store) {
     });
   });
 
-  console.log("[chat-ws] WebSocket server attached at /ws/chat (Firebase token + session auth)");
+  console.log("[chat-ws] WebSocket server attached at /ws/chat (session auth)");
   return wss;
 }

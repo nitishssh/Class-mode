@@ -1,14 +1,17 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { clearServerToken, setServerToken } from "@/lib/queryClient";
-import type { UserRole } from "@/lib/firebase";
-import {
-  loginWithEmail,
-  registerWithEmail,
-  logoutUser,
-  resetPassword,
-  type UserProfile as FirebaseUserProfile,
-} from "@/lib/firebase";
+
+// Authentication is now fully server-backed (local password + server-side
+// Google OAuth). The Firebase client SDK has been removed; this type used to
+// live in @/lib/firebase.
+export type UserRole =
+  | "student"
+  | "teacher"
+  | "school_admin"
+  | "admin"
+  | "principal"
+  | "parent";
 
 export interface UserProfile {
   uid: string;
@@ -66,11 +69,6 @@ interface AuthContextType {
   // user in if they exist, creates a workspace for them if they're new.
   // workspaceNameHint is used only when the server has to create a workspace.
   googleAuth: (workspaceNameHint?: string) => Promise<UserProfile>;
-  completeGoogleRegistration: (
-    user: unknown,
-    role: UserRole,
-    additionalData?: Record<string, unknown>
-  ) => Promise<void>;
   logout: () => Promise<void>;
   resetUserPassword: (email: string) => Promise<void>;
   refreshSession: () => Promise<void>;
@@ -117,26 +115,6 @@ async function parseError(res: Response, fallback: string) {
   return new Error(body.message || body.error || fallback);
 }
 
-async function exchangeFirebaseToken(
-  idToken: string,
-  options: { role?: UserRole; workspaceName?: string } = {}
-): Promise<UserProfile> {
-  const res = await fetch("/api/auth/firebase", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({
-      idToken,
-      role: options.role,
-      workspaceName: options.workspaceName,
-    }),
-  });
-  if (!res.ok) throw await parseError(res, "Firebase login failed");
-  const data = await res.json();
-  if (data.token) setServerToken(data.token);
-  return profileFromMe(data);
-}
-
 async function localPasswordLogin(email: string, password: string): Promise<UserProfile> {
   const res = await fetch("/api/auth/login", {
     method: "POST",
@@ -168,61 +146,9 @@ async function localPasswordSignup(args: {
   return profileFromMe(data);
 }
 
-interface AuthServerConfig {
-  localPasswordAuthEnabled: boolean;
-  firebaseExchangeEnabled: boolean;
-  devAuthWithoutDb: boolean;
-}
-
-const DEFAULT_AUTH_CONFIG: AuthServerConfig = {
-  // Conservative default: assume disabled until the server says otherwise,
-  // so we don't probe a disabled endpoint on every Firebase failure.
-  localPasswordAuthEnabled: false,
-  firebaseExchangeEnabled: true,
-  devAuthWithoutDb: false,
-};
-
-// Cap how long we wait on the Firebase SDK before falling through to the
-// local-password path. Firestore writes can hang indefinitely (no thrown
-// error) when the project is partially configured or unreachable, which
-// would otherwise leave the Create Account button spinning forever.
-const FIREBASE_AUTH_TIMEOUT_MS = 8000;
-
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const t = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
-    promise.then(
-      (v) => {
-        clearTimeout(t);
-        resolve(v);
-      },
-      (e) => {
-        clearTimeout(t);
-        reject(e);
-      }
-    );
-  });
-}
-
-async function fetchAuthConfig(): Promise<AuthServerConfig> {
-  try {
-    const res = await fetch("/api/auth/config", { credentials: "include" });
-    if (!res.ok) return DEFAULT_AUTH_CONFIG;
-    const data = await res.json();
-    return {
-      localPasswordAuthEnabled: !!data.localPasswordAuthEnabled,
-      firebaseExchangeEnabled: data.firebaseExchangeEnabled !== false,
-      devAuthWithoutDb: !!data.devAuthWithoutDb,
-    };
-  } catch {
-    return DEFAULT_AUTH_CONFIG;
-  }
-}
-
 export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<AuthUser>({ user: null, profile: null });
   const [isLoading, setIsLoading] = useState(true);
-  const [authConfig, setAuthConfig] = useState<AuthServerConfig>(DEFAULT_AUTH_CONFIG);
   const { toast } = useToast();
 
   const refreshSession = async () => {
@@ -253,33 +179,15 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   useEffect(() => {
-    Promise.all([fetchAuthConfig().then(setAuthConfig), refreshSession()]).finally(() =>
-      setIsLoading(false)
-    );
+    refreshSession().finally(() => setIsLoading(false));
   }, []);
 
   const login = async (email: string, password: string): Promise<UserProfile> => {
     setIsLoading(true);
     try {
-      let profile: UserProfile;
-      // When the server is running dev-without-db, Firebase can't work
-      // anyway (no Firestore project, no admin SDK). Go straight to local.
-      if ((authConfig.devAuthWithoutDb && authConfig.localPasswordAuthEnabled) || !authConfig.firebaseExchangeEnabled) {
-        profile = await localPasswordLogin(email, password);
-      } else {
-        try {
-          const firebaseUser = await withTimeout(
-            loginWithEmail(email, password),
-            FIREBASE_AUTH_TIMEOUT_MS,
-            "Firebase login"
-          );
-          const idToken = await firebaseUser.getIdToken();
-          profile = await exchangeFirebaseToken(idToken);
-        } catch (error) {
-          if (!authConfig.localPasswordAuthEnabled) throw error;
-          profile = await localPasswordLogin(email, password);
-        }
-      }
+      // Single server-backed path. Local password is the identity provider;
+      // Google sign-in is a separate server-side redirect (googleAuth).
+      const profile = await localPasswordLogin(email, password);
       setCurrentUser({ user: runtimeUserFromProfile(profile), profile });
       toast({
         title: "Login successful",
@@ -307,23 +215,7 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         typeof additionalData?.workspaceName === "string" && additionalData.workspaceName
           ? additionalData.workspaceName
           : `${name}'s Workspace`;
-      let profile: UserProfile;
-      if ((authConfig.devAuthWithoutDb && authConfig.localPasswordAuthEnabled) || !authConfig.firebaseExchangeEnabled) {
-        profile = await localPasswordSignup({ email, password, name, workspaceName });
-      } else {
-        try {
-          const firebaseUser = await withTimeout(
-            registerWithEmail(email, password, name, "admin"),
-            FIREBASE_AUTH_TIMEOUT_MS,
-            "Firebase register"
-          );
-          const idToken = await firebaseUser.getIdToken();
-          profile = await exchangeFirebaseToken(idToken, { workspaceName });
-        } catch (error) {
-          if (!authConfig.localPasswordAuthEnabled) throw error;
-          profile = await localPasswordSignup({ email, password, name, workspaceName });
-        }
-      }
+      const profile = await localPasswordSignup({ email, password, name, workspaceName });
       setCurrentUser({ user: runtimeUserFromProfile(profile), profile });
       toast({ title: "Workspace created", description: `Welcome, ${name}!` });
     } finally {
@@ -349,34 +241,25 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return new Promise<UserProfile>(() => {}); // never resolves; page navigates
   };
 
-  const completeGoogleRegistration: AuthContextType["completeGoogleRegistration"] = async (
-    user,
-    role,
-    additionalData
-  ) => {
-    const firebaseUser = user as { getIdToken?: () => Promise<string> };
-    if (!firebaseUser.getIdToken) throw new Error("Invalid Firebase user");
-    const profileData = additionalData as Partial<FirebaseUserProfile> | undefined;
-    const profile = await exchangeFirebaseToken(await firebaseUser.getIdToken(), {
-      role,
-      workspaceName: profileData?.institutionId,
-    });
-    setCurrentUser({ user: runtimeUserFromProfile(profile), profile });
-  };
-
   const logout = async () => {
     await fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
-    await logoutUser().catch(() => {});
     clearServerToken();
     setCurrentUser({ user: null, profile: null });
     toast({ title: "Logged out", description: "You have been successfully logged out." });
   };
 
   const resetUserPassword = async (email: string) => {
-    await resetPassword(email);
+    // Server-driven reset: sends an OTP/link via the mailer. Always returns a
+    // generic success to avoid leaking which emails are registered.
+    await fetch("/api/auth/password/forgot", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ email }),
+    }).catch(() => {});
     toast({
       title: "Password reset email sent",
-      description: "Check your email for reset instructions.",
+      description: "If that account exists, check your email for reset instructions.",
     });
   };
 
@@ -389,7 +272,6 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         register,
         googleLogin,
         googleAuth,
-        completeGoogleRegistration,
         logout,
         resetUserPassword,
         refreshSession,

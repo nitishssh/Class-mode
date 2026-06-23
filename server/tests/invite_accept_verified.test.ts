@@ -14,27 +14,23 @@ vi.mock("../lib/audit", () => ({
   recordAuditEvent: vi.fn(),
 }));
 
-vi.mock("../lib/firebase-admin", () => ({
-  setCustomUserClaims: vi.fn().mockResolvedValue(true),
-}));
-
-const createUser = vi.fn().mockResolvedValue({ uid: "fb_uid_123" });
-vi.mock("firebase-admin", () => ({
-  default: { auth: () => ({ createUser }) },
-}));
-
 import { describe, it, expect, beforeEach } from "vitest";
 import express from "express";
 import request from "supertest";
+import bcrypt from "bcryptjs";
 import onboardingRouter from "../routes/onboarding";
-import { pgFindInviteByToken, pgCreateUser, pgAcceptInvite } from "../lib/pg-queries";
+import {
+  pgFindInviteByToken,
+  pgFindUserByEmail,
+  pgCreateUser,
+  pgAcceptInvite,
+} from "../lib/pg-queries";
 
-describe("Onboarding invite accept marks the account email-verified", () => {
+describe("Onboarding invite accept creates a local-password account", () => {
   let app: express.Express;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    createUser.mockResolvedValue({ uid: "fb_uid_123" });
     app = express();
     app.use(express.json());
     app.use("/api/onboarding", onboardingRouter);
@@ -48,15 +44,18 @@ describe("Onboarding invite accept marks the account email-verified", () => {
       status: "pending",
       expiresAt: new Date(Date.now() + 60 * 60 * 1000),
     });
+    // No pre-existing account → the create branch runs.
+    (pgFindUserByEmail as any).mockResolvedValue(null);
     (pgCreateUser as any).mockResolvedValue({
       id: 77,
       email: "student@example.com",
+      authSubject: "student@example.com",
       role: "student",
     });
     (pgAcceptInvite as any).mockResolvedValue(undefined);
   });
 
-  it("creates the Firebase and PG user with emailVerified: true", async () => {
+  it("creates a local PG user with a bcrypt password and emailVerified: true", async () => {
     const res = await request(app).post("/api/onboarding/invite/accept").send({
       token: "11111111-1111-1111-1111-111111111111",
       email: "student@example.com",
@@ -65,9 +64,19 @@ describe("Onboarding invite accept marks the account email-verified", () => {
     });
 
     expect(res.status).toBe(201);
-    expect(createUser).toHaveBeenCalledWith(expect.objectContaining({ emailVerified: true }));
     expect(pgCreateUser).toHaveBeenCalledWith(
-      expect.objectContaining({ emailVerified: true, role: "student", status: "active" })
+      expect.objectContaining({
+        authProvider: "local",
+        emailVerified: true,
+        role: "student",
+        status: "active",
+      })
     );
+
+    // The stored password must be a bcrypt hash of the submitted password —
+    // not the literal "firebase_managed", which made local login impossible.
+    const createArgs = (pgCreateUser as any).mock.calls[0][0];
+    expect(createArgs.passwordHash).not.toBe("firebase_managed");
+    expect(await bcrypt.compare("supersecret123", createArgs.passwordHash)).toBe(true);
   });
 });

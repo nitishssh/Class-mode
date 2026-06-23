@@ -2,7 +2,6 @@ import { Router } from "express";
 import { isCassandraConnected } from "../lib/cassandra";
 import { isPgReady, getPgPool } from "../db-pg";
 import { authenticateToken } from "../middleware";
-import { getFirebaseAdminStatus } from "../lib/firebase-admin";
 
 const router = Router();
 
@@ -17,7 +16,6 @@ const SERVICE_VERSION = process.env.npm_package_version ?? "1.1.0";
 router.get("/", (_req, res) => {
   const pgReady = isPgReady();
   const cassandraReady = isCassandraConnected();
-  const firebase = getFirebaseAdminStatus();
 
   res.status(200).json({
     service: "eduai-api",
@@ -40,10 +38,6 @@ router.get("/", (_req, res) => {
       },
     },
     auth: {
-      firebaseAdminReady: firebase.hasApp,
-      firebaseServiceAccountConfigured: firebase.hasServiceAccount,
-      firebaseProjectConfigured: !!firebase.projectId,
-      firebaseExchangeEnabled: process.env.ENABLE_FIREBASE_AUTH_COMPAT !== "false",
       localPasswordAuthEnabled:
         process.env.ENABLE_LOCAL_PASSWORD_AUTH === "true" || process.env.NODE_ENV !== "production",
     },
@@ -63,7 +57,6 @@ router.get("/", (_req, res) => {
  */
 router.get("/detailed", authenticateToken, async (_req, res) => {
   const cassandraReady = isCassandraConnected();
-  const firebase = getFirebaseAdminStatus();
 
   // Live ping — more reliable than the cached isPgReady() flag
   let pgLive: boolean;
@@ -106,12 +99,6 @@ router.get("/detailed", authenticateToken, async (_req, res) => {
     ai: {
       gemini: !!process.env.GOOGLE_API_KEY,
       openai: !!process.env.OPENAI_API_KEY,
-    },
-    firebase: {
-      adminReady: firebase.hasApp,
-      serviceAccountConfigured: firebase.hasServiceAccount,
-      projectConfigured: !!firebase.projectId,
-      exchangeEnabled: process.env.ENABLE_FIREBASE_AUTH_COMPAT !== "false",
     },
     secrets: {
       postgresqlUrlConfigured: !!process.env.POSTGRESQL_URL,

@@ -1,8 +1,7 @@
 import { Router, Request, Response } from "express";
 import crypto from "crypto";
 import { z } from "zod";
-import admin from "firebase-admin";
-import { setCustomUserClaims } from "../lib/firebase-admin";
+import bcrypt from "bcryptjs";
 import { authenticateToken } from "../middleware";
 import { upload, diskPathToUrl } from "../lib/upload";
 import { logger } from "../lib/logger";
@@ -29,7 +28,8 @@ import {
   pgCreateSchoolClass,
   pgFindSchoolClassesByTeacher,
   pgFindSchoolClassById,
-  pgFindUserByAuthSubject,
+  pgFindUserById,
+  pgFindUserByEmail,
   pgCreateUser,
   pgUpdateUser,
   pgUpsertMembership,
@@ -43,8 +43,20 @@ const router = Router();
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
+// Legacy stable identity key used to key schools/classes (created_by_uid,
+// teacher_firebase_uid). The auth middleware populates session.firebaseUid
+// with `user.firebaseUid || user.authSubject`, so for local-password users
+// this resolves to their authSubject (email) — keeping schools/classes keyed
+// consistently per user regardless of auth provider.
 function firebaseUid(req: Request): string {
   return (req.session as any).firebaseUid as string;
+}
+
+// The authenticated numeric user id, populated by authenticateToken. This is
+// the provider-agnostic way to resolve the current user (works for local,
+// Google, and legacy Firebase accounts alike).
+function currentUserId(req: Request): number | undefined {
+  return (req as any).user?.id;
 }
 
 function sevenDaysFromNow() {
@@ -81,7 +93,7 @@ router.post("/school/setup", authenticateToken, async (req: Request, res: Respon
   });
 
   // Link school to user
-  const pgUser = await pgFindUserByAuthSubject("firebase", uid);
+  const pgUser = await pgFindUserById(currentUserId(req) ?? 0);
   if (pgUser) await pgUpdateUser(pgUser.id, { schoolId: school.id });
 
   return res.status(200).json(school);
@@ -142,7 +154,7 @@ router.post("/complete", authenticateToken, async (req: Request, res: Response) 
   const { role, userType, school, user, businessIntel } = parsed.data;
 
   // 1. Resolve PG User
-  const pgUser = await pgFindUserByAuthSubject("firebase", uid);
+  const pgUser = await pgFindUserById(currentUserId(req) ?? 0);
   if (!pgUser) return res.status(404).json({ message: "User not found" });
 
   if (pgUser.onboardingComplete) {
@@ -289,32 +301,37 @@ router.post("/invite/accept", async (req: Request, res: Response) => {
     return res.status(403).json({ message: "This invite was sent to a different email address." });
   }
 
-  // Create Firebase Auth user. Email ownership is already proven by clicking the
-  // invite link sent to this address, so mark it verified up front.
-  const fbUser = await admin.auth().createUser({
-    email: invite.email,
-    password: parsed.data.password,
-    displayName: parsed.data.displayName,
-    emailVerified: true,
-  });
-
-  await setCustomUserClaims(fbUser.uid, { role: invite.role, status: "active" });
-
-  // Create PG user. emailVerified must be true or the login flow bounces the user
-  // to /verify-email (App.tsx gate checks profile.emailVerified === false).
-  const pgUser = await pgCreateUser({
-    authProvider: "firebase",
-    authSubject: fbUser.uid,
-    email: invite.email,
-    username: `${invite.email.split("@")[0]}_${Date.now()}`,
-    passwordHash: "firebase_managed",
-    name: parsed.data.displayName,
-    displayName: parsed.data.displayName,
-    role: invite.role,
-    status: "active",
-    emailVerified: true,
-    schoolCode: null,
-  });
+  // Create (or update) a local-password account. The password is hashed and
+  // stored in Postgres so the user can sign in via the standard local login —
+  // previously this minted a Firebase user with the PG passwordHash set to the
+  // literal "firebase_managed", which made local login impossible. Email
+  // ownership is already proven by clicking the invite link, so mark verified.
+  const passwordHash = await bcrypt.hash(parsed.data.password, 12);
+  let pgUser = await pgFindUserByEmail(invite.email);
+  if (pgUser) {
+    await pgUpdateUser(pgUser.id, {
+      passwordHash,
+      displayName: parsed.data.displayName,
+      role: invite.role,
+      status: "active",
+      emailVerified: true,
+    });
+    pgUser = (await pgFindUserById(pgUser.id)) ?? pgUser;
+  } else {
+    pgUser = await pgCreateUser({
+      authProvider: "local",
+      authSubject: invite.email,
+      email: invite.email,
+      username: `${invite.email.split("@")[0]}_${Date.now()}`,
+      passwordHash,
+      name: parsed.data.displayName,
+      displayName: parsed.data.displayName,
+      role: invite.role,
+      status: "active",
+      emailVerified: true,
+      schoolCode: null,
+    });
+  }
 
   sendWelcomeEmail(pgUser.email, pgUser.displayName || pgUser.name).catch((e) =>
     logger.warn("[invite/accept] Failed to send welcome email", { error: String(e) })
@@ -345,7 +362,8 @@ router.post("/invite/accept", async (req: Request, res: Response) => {
   });
 
   return res.status(201).json({
-    uid: fbUser.uid,
+    uid: pgUser.authSubject,
+    userId: pgUser.id,
     role: invite.role,
     onboardingComplete,
   });
@@ -364,7 +382,7 @@ router.post("/classes", authenticateToken, async (req: Request, res: Response) =
   const parsed = classSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
 
-  const user = await pgFindUserByAuthSubject("firebase", uid);
+  const user = await pgFindUserById(currentUserId(req) ?? 0);
   if (!user?.schoolId) return res.status(400).json({ message: "Not linked to a school" });
 
   const cls = await pgCreateSchoolClass({

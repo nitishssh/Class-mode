@@ -3,14 +3,7 @@ import express from "express";
 import request from "supertest";
 import { registerRoutes } from "../routes";
 import session from "express-session";
-import { pgFindUserByEmail, pgFindUserByAuthSubject, pgCreateUser } from "../lib/pg-queries";
-
-// Mock dependencies
-vi.mock("../lib/firebase-admin", () => ({
-  verifyFirebaseToken: vi.fn(),
-  setCustomUserClaims: vi.fn().mockResolvedValue(true),
-  checkFirebaseAdminReadiness: vi.fn(),
-}));
+import { pgFindUserByEmail, pgCreateUser } from "../lib/pg-queries";
 
 const instances: Record<string, unknown>[] = [];
 
@@ -122,45 +115,5 @@ describe("User Registration Status", () => {
     expect(instances.length).toBe(1);
     expect(instances[0].role).toBe("student");
     expect(instances[0].status).toBe("active");
-  });
-
-  it("should set status to pending when a teacher registers via Firebase bridge", async () => {
-    const originalCompat = process.env.ENABLE_FIREBASE_AUTH_COMPAT;
-    process.env.ENABLE_FIREBASE_AUTH_COMPAT = "true";
-    try {
-      const { verifyFirebaseToken } = await import("../lib/firebase-admin");
-      (verifyFirebaseToken as Mock).mockResolvedValue({
-        uid: "fire-uid-1",
-        email: "fire-teacher@test.com",
-        name: "Fire Teacher",
-        email_verified: true,
-      });
-
-      (pgFindUserByAuthSubject as Mock).mockResolvedValue(null);
-      (pgFindUserByEmail as Mock).mockResolvedValue(null);
-      (pgCreateUser as Mock).mockImplementation((userData: Record<string, unknown>) => {
-        const createdUser = {
-          id: 123,
-          ...userData,
-        };
-        instances.push(createdUser);
-        return Promise.resolve(createdUser);
-      });
-
-      const res = await request(app)
-        .post("/api/auth/firebase")
-        .send({ idToken: "valid-token", role: "teacher" });
-
-      expect(res.status).toBe(200);
-      expect(instances.length).toBe(1);
-      expect(instances[0].role).toBe("teacher");
-      expect(instances[0].status).toBe("pending");
-    } finally {
-      if (originalCompat !== undefined) {
-        process.env.ENABLE_FIREBASE_AUTH_COMPAT = originalCompat;
-      } else {
-        delete process.env.ENABLE_FIREBASE_AUTH_COMPAT;
-      }
-    }
   });
 });

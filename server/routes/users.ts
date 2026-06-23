@@ -9,9 +9,7 @@ import {
   updateUserSchema,
 } from "../../shared/schema";
 import { pgFindUsers, pgFindUserById, pgUpdateUser, pgDeleteUser, pgFindSchoolClassesBySchoolId, pgFindSchoolClassById, pgCreateSchoolClass, pgUpdateSchoolClass, pgDeleteSchoolClass, pgFindSchoolById, pgUpsertSchool } from "../lib/pg-queries";
-import { setCustomUserClaims } from "../lib/firebase-admin";
 import { recordAuditEvent, AUDIT_EVENTS } from "../lib/audit";
-import { logger } from "../lib/logger";
 import { isPgReady } from "../db-pg";
 import { getPgPool } from "../db-pg";
 
@@ -107,11 +105,6 @@ router.post(
       }
 
       await pgUpdateUser(teacherId, { status: "active" });
-      if (teacher.firebaseUid) {
-        setCustomUserClaims(teacher.firebaseUid, { role: teacher.role, status: "active" }).catch(
-          (e) => logger.warn("[approve] Failed to update custom claims", { error: String(e) })
-        );
-      }
       if (isPgReady()) {
         getPgPool()
           .query("UPDATE memberships SET status = 'active' WHERE user_id = $1", [teacherId])
