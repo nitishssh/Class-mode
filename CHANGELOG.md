@@ -10,6 +10,21 @@ All notable changes to this project will be documented in this file.
 - **Overview activity chart** now plots real submissions, logins, and new signups over the trailing week instead of a single login-only series derived client-side.
 - **Reports tab** Average-score-by-class chart now uses real graded-submission data with an empty state, replacing the previous hardcoded mock distribution.
 
+## [1.8.0.0] - 2026-06-25
+
+### Added
+
+- **Workspace invitations work end-to-end over email.** Opening an invite link lands you on the workspace join page where you can accept (if already signed in), sign in and accept, or — for a brand-new email — set a name and password to create your account and join in one step.
+- **One-step join for new members** — `POST /api/auth/workspace-invite/signup` creates a verified account, adds you to the workspace, and signs you in from a single form, so an invited person goes straight into the workspace with no separate signup/login detour.
+- **Resend invites** from Settings → Invites. Pending or expired invites can be re-armed with a fresh link and a new 7-day expiry.
+- **`npm run migrate`** applies the database schema (`scripts/pg-schema.sql`) so a new or out-of-date database gets every required table.
+
+### Fixed
+
+- **Workspace invite emails no longer dead-end.** The link pointed at the school-invite page, which doesn't own workspace invite tokens, so every workspace invite failed with "Invalid invite link." Links now open the workspace join page that owns the token.
+- **No more duplicate invites.** Inviting someone who is already a member is rejected, and re-inviting a still-pending email re-arms the existing invite instead of stacking a second one.
+- **Clear startup warning on schema drift.** If core tables (including `workspace_invites`) are missing, the server now logs an actionable warning at boot telling you to run `npm run migrate`, instead of failing later with an opaque error.
+
 ## [1.7.1.1] - 2026-06-23
 
 ### Security

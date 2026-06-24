@@ -3,6 +3,7 @@
 ### Development
 - `npm run dev` - Start dev server (port 5001)
 - `npm run check` - Type check
+- `npm run migrate` - Apply DB schema from `scripts/pg-schema.sql` (idempotent; run on new or drifted databases)
 - `npm run lint` - Lint
 - `npm run format` - Format code
 - `npm test` - Run unit/integration tests
