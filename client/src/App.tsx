@@ -203,8 +203,12 @@ const GoogleClassroomRoute = withLayout(
 );
 const WorkspaceSettingsRoute = withLayout(protect(WorkspaceSettings));
 const WorkspaceCreateRoute = withLayout(protect(WorkspaceCreate));
-// Join is public-ish — unauthenticated users are redirected to login by protect(), then back
-const JoinWorkspaceRoute = withLayout(protect(JoinWorkspace));
+// Join is a public, self-contained landing page (like /accept-invite): a
+// brand-new invitee has no account yet, so it must NOT be wrapped in protect()
+// (which would bounce them to /login) or the app Layout chrome. The page itself
+// branches on auth state — accept (logged in), sign in (existing account), or
+// create-account-and-join (new email).
+const JoinWorkspaceRoute = JoinWorkspace;
 
 function App() {
   const { t } = useTranslation();

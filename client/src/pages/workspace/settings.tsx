@@ -12,6 +12,7 @@ import {
   Loader2,
   MoreHorizontal,
   Shield,
+  RefreshCw,
 } from "lucide-react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -515,6 +516,40 @@ function InvitesTab({ workspaceId }: { workspaceId: number }) {
     }
   };
 
+  const [resendingId, setResendingId] = useState<number | null>(null);
+
+  const handleResend = async (inviteId: number) => {
+    setResendingId(inviteId);
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/invites/${inviteId}/resend`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.message || "Failed to resend invite");
+      }
+      const refreshed = await res.json();
+      // Re-arming resets the invite back to pending with a fresh token + expiry.
+      setInvites((prev) =>
+        prev.map((i) =>
+          i.id === inviteId
+            ? { ...i, status: refreshed.status ?? "pending", token: refreshed.token }
+            : i
+        )
+      );
+      toast({ title: "Invite resent" });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Unknown",
+        variant: "destructive",
+      });
+    } finally {
+      setResendingId(null);
+    }
+  };
+
   const handleRevoke = async (inviteId: number) => {
     try {
       const res = await fetch(`/api/workspaces/${workspaceId}/invites/${inviteId}`, {
@@ -636,6 +671,22 @@ function InvitesTab({ workspaceId }: { workspaceId: number }) {
                       <Copy className="h-4 w-4" />
                     )}
                   </Button>
+                  {(invite.status === "pending" || invite.status === "expired") && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 flex-shrink-0 text-muted-foreground"
+                      title="Resend invite"
+                      disabled={resendingId === invite.id}
+                      onClick={() => handleResend(invite.id)}
+                    >
+                      {resendingId === invite.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4" />
+                      )}
+                    </Button>
+                  )}
                   {invite.status === "pending" && (
                     <Button
                       variant="ghost"

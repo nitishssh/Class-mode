@@ -3,6 +3,8 @@ import { useParams, useLocation } from "wouter";
 import { Loader2, Building2, UserCheck, AlertTriangle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
@@ -22,7 +24,12 @@ interface InviteInfo {
     iconUrl: string | null;
   };
   inviterName?: string;
+  email: string;
+  name: string | null;
   role: string;
+  kind?: "business_member" | "student";
+  /** Whether the invited email already has an account (login vs signup). */
+  accountExists: boolean;
   expiresAt: string;
   status: "pending" | "accepted" | "revoked" | "expired";
 }
@@ -44,7 +51,7 @@ export default function JoinWorkspace() {
   const params = useParams<{ token: string }>();
   const token = params.token;
   const [, navigate] = useLocation();
-  const { currentUser, isLoading: authLoading } = useFirebaseAuth();
+  const { currentUser, isLoading: authLoading, refreshSession } = useFirebaseAuth();
   const { refreshWorkspaces } = useWorkspace();
   const { toast } = useToast();
 
@@ -53,6 +60,7 @@ export default function JoinWorkspace() {
   const [isFetching, setIsFetching] = useState(true);
   const [isJoining, setIsJoining] = useState(false);
   const [joined, setJoined] = useState(false);
+  const [signup, setSignup] = useState({ displayName: "", password: "" });
 
   // Fetch invite info on mount
   useEffect(() => {
@@ -69,7 +77,10 @@ export default function JoinWorkspace() {
         }
         return res.json();
       })
-      .then((data: InviteInfo) => setInfo(data))
+      .then((data: InviteInfo) => {
+        setInfo(data);
+        if (data.name) setSignup((s) => ({ ...s, displayName: data.name as string }));
+      })
       .catch((err) => setFetchError(err instanceof Error ? err.message : "Could not load invite"))
       .finally(() => setIsFetching(false));
   }, [token]);
@@ -100,6 +111,53 @@ export default function JoinWorkspace() {
     } catch (err) {
       toast({
         title: "Could not join",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
+  // Brand-new invitee: create the account + join + sign in, all in one step.
+  const handleSignup = async () => {
+    if (signup.password.length < 8) {
+      toast({ title: "Password must be at least 8 characters", variant: "destructive" });
+      return;
+    }
+    setIsJoining(true);
+    try {
+      const res = await fetch(`/api/auth/workspace-invite/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          token,
+          displayName: signup.displayName,
+          password: signup.password,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        // An account already exists for this email → route them to sign in.
+        if (res.status === 409 && body.accountExists) {
+          navigate(`/login?redirect=/workspace/join/${token}`);
+          return;
+        }
+        throw new Error(body.message || "Failed to create account");
+      }
+      // The endpoint set the session cookies; pull the new profile into the SPA
+      // so the dashboard (a protected route) recognizes the user immediately.
+      await refreshSession();
+      await refreshWorkspaces();
+      setJoined(true);
+      toast({
+        title: "Welcome!",
+        description: `Your account is ready and you've joined ${info?.workspace.name ?? "the workspace"}.`,
+      });
+    } catch (err) {
+      toast({
+        title: "Could not create account",
         description: err instanceof Error ? err.message : "Unknown error",
         variant: "destructive",
       });
@@ -221,22 +279,66 @@ export default function JoinWorkspace() {
               </div>
             )}
 
-            {!currentUser.profile && canAccept && (
+            {/* Brand-new invitee with no account: collect name + password and
+                create the account + join in one step. */}
+            {canAccept && !currentUser.profile && info.accountExists === false && (
+              <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
+                <p className="text-sm font-medium">Create your account</p>
+                <div className="space-y-1.5">
+                  <Label htmlFor="join-email">Email</Label>
+                  <Input id="join-email" value={info.email} disabled className="opacity-60" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="join-name">Your name</Label>
+                  <Input
+                    id="join-name"
+                    value={signup.displayName}
+                    onChange={(e) => setSignup((s) => ({ ...s, displayName: e.target.value }))}
+                    placeholder="Jane Doe"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="join-password">Password</Label>
+                  <Input
+                    id="join-password"
+                    type="password"
+                    value={signup.password}
+                    onChange={(e) => setSignup((s) => ({ ...s, password: e.target.value }))}
+                    placeholder="Min. 8 characters"
+                    onKeyDown={(e) => e.key === "Enter" && handleSignup()}
+                  />
+                </div>
+              </div>
+            )}
+
+            {canAccept && !currentUser.profile && info.accountExists && (
               <p className="text-center text-xs text-muted-foreground">
-                You'll be asked to sign in before joining.
+                You already have an account — sign in to accept this invite.
               </p>
             )}
 
             <div className="flex flex-col gap-2 pt-2">
-              <Button
-                onClick={handleAccept}
-                disabled={!canAccept || isJoining}
-                className="w-full"
-                size="lg"
-              >
-                {isJoining && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {currentUser.profile ? "Accept invitation" : "Sign in to accept"}
-              </Button>
+              {canAccept && !currentUser.profile && info.accountExists === false ? (
+                <Button
+                  onClick={handleSignup}
+                  disabled={isJoining || !signup.displayName || !signup.password}
+                  className="w-full"
+                  size="lg"
+                >
+                  {isJoining && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Create account & join
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleAccept}
+                  disabled={!canAccept || isJoining}
+                  className="w-full"
+                  size="lg"
+                >
+                  {isJoining && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {currentUser.profile ? "Accept invitation" : "Sign in to accept"}
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 className="w-full text-muted-foreground"
