@@ -36,6 +36,39 @@ function scheduleReconnectProbe(): void {
   }, 30_000);
 }
 
+// Core tables the application cannot function without. Kept deliberately short —
+// this is a smoke check for gross schema drift, not a full migration validator.
+const CORE_TABLES = [
+  "users",
+  "workspaces",
+  "workspace_memberships",
+  "workspace_invites",
+  "invites",
+  "channels",
+] as const;
+
+async function warnOnMissingCoreTables(): Promise<void> {
+  if (!pool) return;
+  try {
+    const { rows } = await pool.query<{ name: string; present: boolean }>(
+      `SELECT name, to_regclass('public.' || name) IS NOT NULL AS present
+       FROM unnest($1::text[]) AS name`,
+      [CORE_TABLES as unknown as string[]]
+    );
+    const missing = rows.filter((r) => !r.present).map((r) => r.name);
+    if (missing.length > 0) {
+      logger.warn(
+        `[pg] Schema drift detected — missing table(s): ${missing.join(", ")}. ` +
+          `Run \`npm run migrate\` to apply scripts/pg-schema.sql. ` +
+          `Features depending on these tables will fail until then.`
+      );
+    }
+  } catch (err) {
+    // Never let a diagnostic check take down startup.
+    logger.warn("[pg] Core-table schema check failed", { err: String(err) });
+  }
+}
+
 export async function connectPostgres(): Promise<void> {
   const url = process.env.POSTGRESQL_URL;
   if (!url) {
@@ -68,6 +101,15 @@ export async function connectPostgres(): Promise<void> {
 
     isPgConnected = true;
     logger.info("[pg] PostgreSQL connected");
+
+    // Schema drift guard: a DB provisioned from a stale dump (or never migrated)
+    // can be missing tables the app needs — workspace_invites in particular has
+    // been absent in environments not run through scripts/pg-schema.sql, which
+    // makes the whole workspace-invite flow 500 with no obvious cause. We don't
+    // apply DDL here (the bundled prod server doesn't ship the .sql file, and
+    // racing instances shouldn't ALTER on boot); instead we surface a loud,
+    // actionable warning so the operator runs the migration.
+    await warnOnMissingCoreTables();
 
     // Graceful shutdown
     const shutdown = async () => {
