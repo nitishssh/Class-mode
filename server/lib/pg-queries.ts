@@ -1336,6 +1336,54 @@ export async function pgRevokeWorkspaceInvite(
   }
 }
 
+/**
+ * Re-arm an invite: mint a fresh token hash, push the expiry out, and reset the
+ * row back to `pending` (so an expired/revoked invite can be re-sent). Returns
+ * the updated row so the caller can re-send the email with the right
+ * email/name/kind without a second round-trip.
+ */
+export async function pgResendWorkspaceInvite(
+  inviteId: number,
+  workspaceId: number,
+  newTokenHash: string,
+  expiresAt: Date
+): Promise<PgWorkspaceInvite | null> {
+  if (!isPgReady()) return null;
+  try {
+    const { rows } = await getPgPool().query(
+      `UPDATE workspace_invites
+         SET token_hash = $1, expires_at = $2, status = 'pending', accepted_at = NULL
+       WHERE id = $3 AND workspace_id = $4
+       RETURNING *`,
+      [newTokenHash, expiresAt, inviteId, workspaceId]
+    );
+    return rows[0] ? mapWorkspaceInvite(rows[0]) : null;
+  } catch (err) {
+    logger.error("[pg] pgResendWorkspaceInvite failed", { err: String(err) });
+    return null;
+  }
+}
+
+/** Find a still-pending invite for an email in a workspace (used to dedupe). */
+export async function pgFindPendingWorkspaceInviteByEmail(
+  workspaceId: number,
+  email: string
+): Promise<PgWorkspaceInvite | null> {
+  if (!isPgReady()) return null;
+  try {
+    const { rows } = await getPgPool().query(
+      `SELECT * FROM workspace_invites
+       WHERE workspace_id = $1 AND lower(email) = lower($2) AND status = 'pending'
+       ORDER BY created_at DESC LIMIT 1`,
+      [workspaceId, email.trim()]
+    );
+    return rows[0] ? mapWorkspaceInvite(rows[0]) : null;
+  } catch (err) {
+    logger.error("[pg] pgFindPendingWorkspaceInviteByEmail failed", { err: String(err) });
+    return null;
+  }
+}
+
 export async function pgDeleteWorkspace(id: number): Promise<void> {
   if (!isPgReady()) return;
   try {

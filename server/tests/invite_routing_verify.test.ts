@@ -44,7 +44,10 @@ describe("School invite routing (production mount)", () => {
 
   it("workspace join flow remains separate at /api/workspaces/join/:token", async () => {
     const res = await request(app).get("/api/workspaces/join/sometoken").send();
-    // Separate path; must exist independently of the school invite flow.
-    expect(res.status).not.toBe(404);
+    // Separate path; must exist independently of the school invite flow. The
+    // preview is public, so an unknown token reaches the handler and returns a
+    // JSON 404 ("Invalid or expired invite token") — not Express's HTML "Cannot
+    // GET", which is how a missing route would fail.
+    expect(res.body?.message).toBe("Invalid or expired invite token");
   });
 });

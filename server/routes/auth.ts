@@ -29,6 +29,7 @@ import {
   pgFindUserByAuthSubject,
   pgFindUserByEmail,
   pgFindUserById,
+  pgFindWorkspaceById,
   pgFindWorkspaceBySlug,
   pgFindWorkspaceInviteByTokenHash,
   pgSetUserLastLogin,
@@ -659,6 +660,104 @@ router.post("/signup", signupLimiter, async (req: Request, res: Response) => {
       );
     }
     return res.status(500).json({ message: "Signup failed" });
+  }
+});
+
+// ─── POST /api/auth/workspace-invite/signup ──────────────────────────────────
+// Brand-new invitee path for workspace invites (System B). The invite link in
+// the email lands on /workspace/join/:token; if the invited email has no
+// account yet, the page collects a name + password and calls this endpoint,
+// which creates a verified account, joins the workspace, and logs them in — so
+// they go straight into the workspace with no separate signup/login round-trip.
+const workspaceInviteSignupSchema = z.object({
+  token: z.string().min(1),
+  displayName: z.string().min(1),
+  password: passwordSchema,
+});
+
+router.post("/workspace-invite/signup", signupLimiter, async (req: Request, res: Response) => {
+  if (!isLocalPasswordAuthEnabled()) {
+    return res.status(410).json({ message: "Password signup is disabled on this server." });
+  }
+  // This flow creates a real PG account + membership; the in-memory dev-auth
+  // mode has neither, so it isn't supported there.
+  if (isDevAuthWithoutDbEnabled()) {
+    return res.status(501).json({ message: "Not available in dev auth mode." });
+  }
+
+  const parsed = workspaceInviteSignupSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+
+  try {
+    const invite = await pgFindWorkspaceInviteByTokenHash(tokenHash(parsed.data.token));
+    if (!invite) return res.status(404).json({ message: "Invalid or expired invite token" });
+    if (invite.status !== "pending") {
+      return res.status(409).json({ message: `Invite is already ${invite.status}` });
+    }
+    if (invite.expiresAt < new Date()) {
+      return res.status(410).json({ message: "Invite has expired" });
+    }
+
+    // If the email already has an account, this is the wrong door — they should
+    // sign in and accept rather than create a second account / reset a password.
+    if (await pgFindUserByEmail(invite.email)) {
+      return res.status(409).json({
+        message: "An account already exists for this email. Please sign in to accept.",
+        accountExists: true,
+      });
+    }
+
+    // Email ownership is proven by possession of the invite link, so the new
+    // account is created already-verified. The workspace membership role governs
+    // in-workspace access; the platform role is a coarse collaborator bucket.
+    const platformRole = invite.kind === "student" ? "student" : "teacher";
+    const user = await pgCreateUser({
+      authProvider: "local",
+      authSubject: invite.email,
+      email: invite.email,
+      username: `${invite.email.split("@")[0]}_${Date.now()}`,
+      passwordHash: await bcrypt.hash(parsed.data.password, 12),
+      name: parsed.data.displayName,
+      displayName: parsed.data.displayName,
+      role: platformRole,
+      status: "active",
+      emailVerified: true,
+    });
+
+    await pgUpsertWorkspaceMembership({
+      workspaceId: invite.workspaceId,
+      userId: user.id,
+      role: invite.role,
+      status: "active",
+    });
+    await pgAcceptWorkspaceInvite(invite.id);
+
+    sendWelcomeEmail(user.email, user.displayName || user.name).catch((e) =>
+      logger.warn("[auth/workspace-invite] Failed to send welcome email", { error: String(e) })
+    );
+
+    recordAuditEvent({
+      actorUserId: user.id,
+      targetUserId: user.id,
+      eventType: AUDIT_EVENTS.INVITE_ACCEPTED,
+      payload: { workspaceId: invite.workspaceId, workspaceRole: invite.role, kind: invite.kind },
+    });
+
+    const { accessToken } = await createLoginSession(req, res, user.id);
+    await pgSetUserLastLogin(user.id);
+
+    const workspace = await pgFindWorkspaceById(invite.workspaceId);
+    return res.status(201).json({
+      token: accessToken,
+      ...(await currentAuthPayload(user.id)),
+      workspace: workspace
+        ? { id: workspace.id, name: workspace.name, slug: workspace.slug }
+        : { id: invite.workspaceId },
+      role: invite.role,
+    });
+  } catch (err) {
+    logger.error("[auth/workspace-invite/signup] Error", { error: String(err) });
+    return res.status(500).json({ message: "Failed to create account" });
   }
 });
 

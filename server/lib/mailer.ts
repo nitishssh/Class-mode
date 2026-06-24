@@ -294,7 +294,11 @@ export async function sendWorkspaceInvite(
   token: string,
   kind: "business_member" | "student"
 ) {
-  const link = `${APP_URL}/accept-invite?token=${token}`;
+  // Workspace invites are owned by the workspace_invites table and resolved by
+  // the /workspace/join/:token page (System B). The old /accept-invite page only
+  // knows the school `invites` table, so pointing here previously dead-ended
+  // every workspace invite at "Invalid invite link".
+  const link = `${APP_URL}/workspace/join/${token}`;
   const subject =
     kind === "student"
       ? `You've been invited to join ${workspaceName} on Class Mode`

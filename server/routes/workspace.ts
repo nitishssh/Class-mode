@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { getPgPool } from "../db-pg";
 import {
   pgFindUserById,
+  pgFindUserByEmail,
   pgUpdateUser,
   pgFindWorkspaceById,
   pgFindWorkspaceBySlug,
@@ -9,7 +10,9 @@ import {
   pgUpsertWorkspaceMembership,
   pgCreateWorkspaceInvite,
   pgFindWorkspaceInviteByTokenHash,
+  pgFindPendingWorkspaceInviteByEmail,
   pgAcceptWorkspaceInvite,
+  pgResendWorkspaceInvite,
   pgListUserWorkspaces,
   pgListWorkspaceMembers,
   pgListWorkspaceInvites,
@@ -213,15 +216,22 @@ router.post("/workspaces", authenticateToken, async (req: Request, res: Response
 });
 
 // ─── GET /workspaces/join/:token — preview invite info ───────────────────────
+// Public on purpose: a brand-new invitee has no account/session yet, so the
+// join page must be able to render the invite (and decide login vs signup)
+// before the user authenticates. `accountExists` tells the client whether the
+// invited email already has an account so it can show "sign in" vs a signup form.
 
-router.get("/workspaces/join/:token", authenticateToken, async (req: Request, res: Response) => {
+router.get("/workspaces/join/:token", async (req: Request, res: Response) => {
   try {
     const hash = tokenHash(req.params.token);
     const invite = await pgFindWorkspaceInviteByTokenHash(hash);
     if (!invite) return res.status(404).json({ message: "Invalid or expired invite token" });
 
-    const workspace = await pgFindWorkspaceById(invite.workspaceId);
-    const inviter = invite.invitedBy ? await pgFindUserById(invite.invitedBy) : null;
+    const [workspace, inviter, invitedUser] = await Promise.all([
+      pgFindWorkspaceById(invite.workspaceId),
+      invite.invitedBy ? pgFindUserById(invite.invitedBy) : Promise.resolve(null),
+      pgFindUserByEmail(invite.email),
+    ]);
 
     const now = new Date();
     const status =
@@ -238,7 +248,11 @@ router.get("/workspaces/join/:token", authenticateToken, async (req: Request, re
           }
         : null,
       inviterName: inviter?.displayName || inviter?.name || null,
+      email: invite.email,
+      name: invite.name ?? null,
       role: invite.role,
+      kind: invite.kind,
+      accountExists: !!invitedUser,
       expiresAt: invite.expiresAt,
       status,
     });
@@ -509,6 +523,40 @@ router.post("/workspaces/:id/invites", authenticateToken, async (req: Request, r
     const workspace = await pgFindWorkspaceById(workspaceId);
     if (!workspace) return res.status(404).json({ message: "Workspace not found" });
 
+    // If the email already belongs to an active member, there's nothing to invite.
+    const existingUser = await pgFindUserByEmail(email);
+    if (existingUser) {
+      const existingMembership = await pgFindWorkspaceMembership(workspaceId, existingUser.id);
+      if (existingMembership && existingMembership.status === "active") {
+        return res.status(409).json({ message: "This person is already a member" });
+      }
+    }
+
+    // Don't pile up duplicate pending invites for the same email — re-arm the
+    // existing one instead so the most recent link is the only valid one.
+    const pending = await pgFindPendingWorkspaceInviteByEmail(workspaceId, email);
+    if (pending) {
+      const rawToken = randomToken();
+      const refreshed = await pgResendWorkspaceInvite(
+        pending.id,
+        workspaceId,
+        tokenHash(rawToken),
+        new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      );
+      sendWorkspaceInvite(
+        email,
+        name ?? pending.name ?? "",
+        workspace.name,
+        rawToken,
+        kind ?? pending.kind ?? "business_member"
+      ).catch((e) =>
+        logger.warn("[workspace/invites] Failed to send invite email", { error: String(e) })
+      );
+      return res
+        .status(200)
+        .json({ id: pending.id, status: refreshed?.status ?? "pending", token: rawToken });
+    }
+
     const rawToken = randomToken();
     const invite = await pgCreateWorkspaceInvite({
       workspaceId,
@@ -583,6 +631,55 @@ router.delete(
     } catch (err) {
       logger.error("[workspace] DELETE /workspaces/:id/invites/:iid failed", { err: String(err) });
       return res.status(500).json({ message: "Failed to revoke invite" });
+    }
+  }
+);
+
+// ─── POST /workspaces/:id/invites/:iid/resend — re-arm + re-send invite ──────
+
+router.post(
+  "/workspaces/:id/invites/:iid/resend",
+  authenticateToken,
+  async (req: Request, res: Response) => {
+    try {
+      const user = (req as any).user;
+      if (!user?.id) return res.status(401).json({ message: "Authentication required" });
+
+      const workspaceId = parseInt(req.params.id, 10);
+      const inviteId = parseInt(req.params.iid, 10);
+      if (Number.isNaN(workspaceId) || Number.isNaN(inviteId)) {
+        return res.status(400).json({ message: "Invalid id" });
+      }
+
+      const perm = await requirePermission(res, workspaceId, user.id, "workspace:invite");
+      if (!perm) return;
+
+      const rawToken = randomToken();
+      const invite = await pgResendWorkspaceInvite(
+        inviteId,
+        workspaceId,
+        tokenHash(rawToken),
+        new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      );
+      if (!invite) return res.status(404).json({ message: "Invite not found" });
+
+      const workspace = await pgFindWorkspaceById(workspaceId);
+      sendWorkspaceInvite(
+        invite.email,
+        invite.name ?? "",
+        workspace?.name ?? "the workspace",
+        rawToken,
+        invite.kind ?? "business_member"
+      ).catch((e) =>
+        logger.warn("[workspace/invites] Failed to send invite email", { error: String(e) })
+      );
+
+      return res.json({ id: invite.id, status: invite.status, token: rawToken });
+    } catch (err) {
+      logger.error("[workspace] POST /workspaces/:id/invites/:iid/resend failed", {
+        err: String(err),
+      });
+      return res.status(500).json({ message: "Failed to resend invite" });
     }
   }
 );
