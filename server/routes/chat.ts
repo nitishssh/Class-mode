@@ -437,6 +437,21 @@ router.post("/messages", authenticateToken, async (req: Request, res: Response) 
       authorId: req.session.userId,
     });
 
+    const channel = await storage.getChannel(body.channelId);
+    if (!channel) return res.status(404).json({ message: "Channel not found" });
+
+    if (channel.type === "dm") {
+      if (!channel.name.split("-").includes(req.session.userId.toString())) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+    } else {
+      if (!channel.workspaceId) return res.status(403).json({ message: "Access denied" });
+      const workspace = await storage.getWorkspace(channel.workspaceId);
+      if (!workspace || !workspace.members.includes(req.session.userId)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+    }
+
     const message = await storage.createMessage(body);
     return res.status(201).json(message);
   } catch (error) {

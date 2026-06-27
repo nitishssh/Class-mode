@@ -53,6 +53,8 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
           email: user.email,
           status: user.status,
           emailVerified: user.emailVerified,
+          firebaseUid: user.firebaseUid,
+          authSubject: user.authSubject,
         };
         (req as any).workspace = workspaceContext?.workspace ?? null;
         (req as any).workspaceRole = workspaceContext?.membership.role ?? null;
@@ -78,6 +80,8 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
           email: user.email,
           status: user.status,
           emailVerified: user.emailVerified,
+          firebaseUid: user.firebaseUid,
+          authSubject: user.authSubject,
         };
         (req as any).workspace = workspaceContext?.workspace ?? null;
         (req as any).workspaceRole = workspaceContext?.membership.role ?? null;

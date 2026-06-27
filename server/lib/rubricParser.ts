@@ -47,11 +47,19 @@ The final total must not exceed ${rubric.totalPoints}.
 
 /**
  * Calculate the weighted total from individual criterion scores.
+ *
+ * Each criterion's score is first normalized to a 0..1 fraction by its
+ * maxScore, then multiplied by its weight. Since criterion weights are
+ * validated to sum to 1.0 (see validateWeights), the result is a proper
+ * 0..1 weighted fraction.
  */
 export function calculateWeightedTotal(
-  criterionScores: { name: string; score: number; maxScore: number; weight: number }[]
+  criterionScores: { score: number; maxScore: number; weight: number }[]
 ): number {
-  return criterionScores.reduce((acc, cs) => acc + cs.score * cs.weight, 0 as number);
+  return criterionScores.reduce((acc, cs) => {
+    const normalizedScore = cs.maxScore > 0 ? cs.score / cs.maxScore : 0;
+    return acc + normalizedScore * cs.weight;
+  }, 0 as number);
 }
 
 /**

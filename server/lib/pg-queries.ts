@@ -2129,3 +2129,56 @@ export async function pgIncrementAIUsage(data: {
     logger.error("[pg] pgIncrementAIUsage failed", { err: String(err) });
   }
 }
+
+// ─── Learning Resources (Learn hub → Read tab) ───────────────────────────────
+
+export interface PgResource {
+  id: number;
+  title: string;
+  description: string | null;
+  type: string;
+  subject: string | null;
+  topic: string | null;
+  url: string | null;
+  created_at: string;
+}
+
+/**
+ * Lists learning resources, optionally filtered by topic / subject / type.
+ * `topic` matches case-insensitively against either the topic or the title so a
+ * student's free-text topic ("electromagnetism") finds loosely-tagged content.
+ */
+export async function pgGetResources(filters: {
+  topic?: string;
+  subject?: string;
+  type?: string;
+}): Promise<PgResource[]> {
+  if (!isPgReady()) return [];
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+  let i = 1;
+  if (filters.topic) {
+    conditions.push(`(lower(topic) LIKE $${i} OR lower(title) LIKE $${i})`);
+    params.push(`%${filters.topic.toLowerCase()}%`);
+    i++;
+  }
+  if (filters.subject) {
+    conditions.push(`lower(subject) = $${i++}`);
+    params.push(filters.subject.toLowerCase());
+  }
+  if (filters.type) {
+    conditions.push(`type = $${i++}`);
+    params.push(filters.type);
+  }
+  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+  try {
+    const { rows } = await getPgPool().query(
+      `SELECT * FROM resources ${where} ORDER BY created_at DESC LIMIT 60`,
+      params
+    );
+    return rows as PgResource[];
+  } catch (err) {
+    logger.error("[pg] pgGetResources failed", { err: String(err) });
+    return [];
+  }
+}

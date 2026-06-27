@@ -35,7 +35,19 @@ process.on("unhandledRejection", (reason: unknown) => {
 
 const app = express();
 app.set("trust proxy", 1);
-app.use(express.json());
+app.use(
+  express.json({
+    // Stash the raw request body for the Stripe webhook so signature
+    // verification (stripe.webhooks.constructEvent) can run against the
+    // exact bytes Stripe signed. express.json() otherwise consumes the
+    // stream and only leaves the parsed object behind.
+    verify: (req: Request & { rawBody?: Buffer }, _res, buf) => {
+      if (req.originalUrl?.startsWith("/api/billing/webhook")) {
+        req.rawBody = buf;
+      }
+    },
+  })
+);
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 

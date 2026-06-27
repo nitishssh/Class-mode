@@ -118,6 +118,20 @@ CREATE TABLE IF NOT EXISTS school_classes (
   created_at            timestamptz  NOT NULL DEFAULT now()
 );
 
+-- ─── Learning Resources (Learn hub → Read tab) ───────────────────────────────
+CREATE TABLE IF NOT EXISTS resources (
+  id           bigserial    PRIMARY KEY,
+  title        text         NOT NULL,
+  description  text,
+  type         text         NOT NULL DEFAULT 'textbook',  -- textbook | video | lab
+  subject      text,
+  topic        text,
+  url          text,
+  created_at   timestamptz  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS resources_topic_idx ON resources (lower(topic));
+CREATE INDEX IF NOT EXISTS resources_subject_idx ON resources (lower(subject));
+
 -- ─── Audit Events ────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS audit_events (
   id              bigserial    PRIMARY KEY,
