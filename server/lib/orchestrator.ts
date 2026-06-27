@@ -18,6 +18,7 @@ import { generate, streamGenerate, type ChatMessage } from "./ai/gateway";
 import { getLearnerSnapshot, type LearnerSnapshot } from "./learner-model";
 import { recordOutcome } from "./knowledge-tracing";
 import { recordReview } from "./spaced-repetition";
+import { retrieve, formatRetrievedContext } from "./rag";
 
 export interface TutorTurnParams {
   studentId: number;
@@ -29,6 +30,15 @@ export interface TutorTurnParams {
   message: string;
   /** Concept under study, used to surface targeted mastery context. */
   concept?: string;
+  /** Subject/topic used to scope curriculum retrieval. */
+  subject?: string;
+  topic?: string;
+  /**
+   * Ground the turn in retrieved curriculum (RAG). Degrades gracefully: if no
+   * embeddings provider or pgvector store is available, retrieval returns
+   * nothing and the turn proceeds ungrounded.
+   */
+  groundInCurriculum?: boolean;
   /**
    * Graded work: when true, the orchestrator instructs the model to withhold
    * the final answer. "No answers on graded work" is a product rule, enforced
@@ -84,16 +94,29 @@ export function buildLearnerContext(
   return lines.join("\n");
 }
 
-function composeMessages(params: TutorTurnParams, learnerContext: string): {
-  system: string;
-  messages: ChatMessage[];
-} {
-  const system = `${params.systemPrompt}\n\n${learnerContext}`;
+function composeMessages(
+  params: TutorTurnParams,
+  learnerContext: string,
+  curriculumContext: string
+): { system: string; messages: ChatMessage[] } {
+  const system = [params.systemPrompt, curriculumContext, learnerContext]
+    .filter((s) => s && s.trim().length > 0)
+    .join("\n\n");
   const messages: ChatMessage[] = [
     ...(params.history ?? []),
     { role: "user", content: params.message },
   ];
   return { system, messages };
+}
+
+/** Retrieve curriculum context for a turn, or "" when grounding is off/unavailable. */
+async function curriculumFor(params: TutorTurnParams): Promise<string> {
+  if (!params.groundInCurriculum) return "";
+  const chunks = await retrieve(params.message, {
+    subject: params.subject,
+    topic: params.topic ?? params.concept,
+  });
+  return formatRetrievedContext(chunks);
 }
 
 export interface TutorTurnResult {
@@ -107,12 +130,15 @@ export interface TutorTurnResult {
  * `commitTurnOutcome` once the exchange is assessed.
  */
 export async function runTutorTurn(params: TutorTurnParams): Promise<TutorTurnResult> {
-  const snapshot = await getLearnerSnapshot(params.studentId);
+  const [snapshot, curriculumContext] = await Promise.all([
+    getLearnerSnapshot(params.studentId),
+    curriculumFor(params),
+  ]);
   const learnerContext = buildLearnerContext(snapshot, {
     concept: params.concept,
     graded: params.graded,
   });
-  const { system, messages } = composeMessages(params, learnerContext);
+  const { system, messages } = composeMessages(params, learnerContext, curriculumContext);
   const reply = await generate({
     model: "orchestrator",
     system,
@@ -126,12 +152,15 @@ export async function runTutorTurn(params: TutorTurnParams): Promise<TutorTurnRe
 
 /** Streaming variant of {@link runTutorTurn} for SSE/WebSocket delivery. */
 export async function* streamTutorTurn(params: TutorTurnParams): AsyncIterable<string> {
-  const snapshot = await getLearnerSnapshot(params.studentId);
+  const [snapshot, curriculumContext] = await Promise.all([
+    getLearnerSnapshot(params.studentId),
+    curriculumFor(params),
+  ]);
   const learnerContext = buildLearnerContext(snapshot, {
     concept: params.concept,
     graded: params.graded,
   });
-  const { system, messages } = composeMessages(params, learnerContext);
+  const { system, messages } = composeMessages(params, learnerContext, curriculumContext);
   yield* streamGenerate({
     model: "orchestrator",
     system,
