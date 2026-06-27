@@ -114,6 +114,54 @@ services:
       - dev
 
   # ─────────────────────────────────────────────────────────────────
+  # LOCAL DATA LAYER (Layer 0 — reproducible local Postgres + Redis)
+  #   Brought up by `npm run db:up` (docker compose up -d).
+  #   App expects Postgres on 127.0.0.1:5432 and Redis on 127.0.0.1:6379.
+  # ─────────────────────────────────────────────────────────────────
+
+  # ── PostgreSQL (with pgvector for RAG) ───────────────────────────
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: classmode-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: classmode
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-classmode}
+      POSTGRES_DB: classmode_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - classmode_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U classmode -d classmode_dev"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - app-net
+    security_opt:
+      - no-new-privileges:true
+
+  # ── Redis (sessions / cache / pub-sub) ───────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: classmode-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - classmode_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - app-net
+    security_opt:
+      - no-new-privileges:true
+
+  # ─────────────────────────────────────────────────────────────────
   # SUPPORTING SERVICES
   # ─────────────────────────────────────────────────────────────────
 
@@ -247,4 +295,8 @@ networks:
       com.docker.network.bridge.enable_icc: "false"
 
 # ── Volumes ───────────────────────────────────────────────────────
-volumes: {}
+volumes:
+  classmode_postgres_data:
+    name: classmode_postgres_data
+  classmode_redis_data:
+    name: classmode_redis_data

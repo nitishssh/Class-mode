@@ -4,6 +4,7 @@
 -- All statements are idempotent (IF NOT EXISTS / ON CONFLICT DO NOTHING).
 
 CREATE EXTENSION IF NOT EXISTS citext;
+CREATE EXTENSION IF NOT EXISTS vector;
 
 -- ─── Users ───────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS users (
@@ -764,3 +765,64 @@ CREATE INDEX IF NOT EXISTS idx_achievements_student ON student_achievements(stud
 
 -- Ensure milestones are unique per student/competency/phase
 CREATE UNIQUE INDEX IF NOT EXISTS idx_milestones_unique ON milestones(student_id, competency_id, phase);
+
+-- ─── Learner Model (single-writer student model) ─────────────────────────────
+-- The persistent student/learner model for the AI tutor. A single transaction
+-- (see server/lib/learner-model.ts) is the only writer; every other component
+-- reads a snapshot and proposes typed deltas.
+
+CREATE TABLE IF NOT EXISTS learner_mastery (
+  id          bigserial    PRIMARY KEY,
+  student_id  bigint       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  concept     text         NOT NULL,
+  subject     text,
+  p_mastery   real         NOT NULL DEFAULT 0,
+  confidence  real         NOT NULL DEFAULT 0,
+  updated_at  timestamptz  NOT NULL DEFAULT now(),
+  UNIQUE (student_id, concept)
+);
+
+CREATE TABLE IF NOT EXISTS review_schedule (
+  id                bigserial    PRIMARY KEY,
+  student_id        bigint       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  concept           text         NOT NULL,
+  sm2_ef            real         NOT NULL DEFAULT 2.5,
+  interval_days     int          NOT NULL DEFAULT 0,
+  repetitions       int          NOT NULL DEFAULT 0,
+  due_at            timestamptz  NOT NULL DEFAULT now(),
+  last_reviewed_at  timestamptz,
+  UNIQUE (student_id, concept)
+);
+
+CREATE TABLE IF NOT EXISTS interaction_log (
+  id          bigserial    PRIMARY KEY,
+  student_id  bigint       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  kind        text         NOT NULL,
+  concept     text,
+  payload     jsonb        NOT NULL DEFAULT '{}',
+  created_at  timestamptz  NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS memory_notes (
+  id          bigserial    PRIMARY KEY,
+  student_id  bigint       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  note        text         NOT NULL,
+  created_at  timestamptz  NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS content_chunks (
+  id          bigserial      PRIMARY KEY,
+  source      text,
+  subject     text,
+  topic       text,
+  chunk       text           NOT NULL,
+  embedding   vector(1536),
+  created_at  timestamptz    NOT NULL DEFAULT now()
+);
+
+-- Indexes for the learner model
+CREATE INDEX IF NOT EXISTS idx_learner_mastery_student ON learner_mastery(student_id);
+CREATE INDEX IF NOT EXISTS idx_review_schedule_due      ON review_schedule(student_id, due_at);
+CREATE INDEX IF NOT EXISTS idx_interaction_log_student  ON interaction_log(student_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_memory_notes_student     ON memory_notes(student_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS content_chunks_embedding_idx ON content_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
