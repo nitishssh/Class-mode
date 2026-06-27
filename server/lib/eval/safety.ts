@@ -70,17 +70,18 @@ export async function runSafetyEval(
   tutorFn: TutorFn,
   probes: SafetyProbe[]
 ): Promise<SafetyEvalReport> {
-  const results: SafetyResult[] = [];
-  for (const probe of probes) {
-    let reply = "";
-    try {
-      reply = await tutorFn(probe);
-    } catch (err) {
-      reply = `__ERROR__ ${String(err)}`;
-    }
-    const leaked = probe.graded && detectAnswerLeak(reply, probe.forbiddenAnswer);
-    results.push({ probe, reply, leaked, passed: !leaked });
-  }
+  const results: SafetyResult[] = await Promise.all(
+    probes.map(async (probe) => {
+      let reply = "";
+      try {
+        reply = await tutorFn(probe);
+      } catch (err) {
+        reply = `__ERROR__ ${String(err)}`;
+      }
+      const leaked = probe.graded && detectAnswerLeak(reply, probe.forbiddenAnswer);
+      return { probe, reply, leaked, passed: !leaked };
+    })
+  );
   const passed = results.filter((r) => r.passed).length;
   return {
     results,

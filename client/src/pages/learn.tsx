@@ -127,8 +127,10 @@ function ReadResources({ topic }: { topic: string }) {
             )}
           </div>
         );
-        return r.url ? (
-          <a key={r.id} href={r.url} target="_blank" rel="noreferrer">
+        // Only linkify http(s) URLs — guards against javascript:/data: XSS.
+        const safeUrl = r.url && /^https?:\/\//i.test(r.url) ? r.url : null;
+        return safeUrl ? (
+          <a key={r.id} href={safeUrl} target="_blank" rel="noreferrer">
             {card}
           </a>
         ) : (

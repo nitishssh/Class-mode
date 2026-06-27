@@ -430,24 +430,26 @@ router.get("/messages/:channelId", authenticateToken, async (req: Request, res: 
 
 router.post("/messages", authenticateToken, async (req: Request, res: Response) => {
   try {
-    if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
+    // Token-authenticated requests have no session; fall back to req.user.
+    const userId = (req as any).user?.id || req.session?.userId;
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
 
     const body = insertMessageSchema.parse({
       ...req.body,
-      authorId: req.session.userId,
+      authorId: userId,
     });
 
     const channel = await storage.getChannel(body.channelId);
     if (!channel) return res.status(404).json({ message: "Channel not found" });
 
     if (channel.type === "dm") {
-      if (!channel.name.split("-").includes(req.session.userId.toString())) {
+      if (!channel.name.split("-").includes(userId.toString())) {
         return res.status(403).json({ message: "Access denied" });
       }
     } else {
       if (!channel.workspaceId) return res.status(403).json({ message: "Access denied" });
       const workspace = await storage.getWorkspace(channel.workspaceId);
-      if (!workspace || !workspace.members.includes(req.session.userId)) {
+      if (!workspace || !workspace.members.includes(userId)) {
         return res.status(403).json({ message: "Access denied" });
       }
     }

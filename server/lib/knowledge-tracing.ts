@@ -90,7 +90,7 @@ export async function recordOutcome(
   const pMastery = bktUpdate(prior.pMastery, correct, params);
   const confidence = Math.min(0.95, prior.confidence + 0.15);
 
-  await commitLearnerUpdate(studentId, {
+  const committed = await commitLearnerUpdate(studentId, {
     masteryDeltas: [{ concept, subject, pMastery, confidence }],
     interaction: {
       kind: "kt_outcome",
@@ -98,6 +98,11 @@ export async function recordOutcome(
       payload: { correct, priorMastery: prior.pMastery, pMastery },
     },
   });
+  if (!committed) {
+    throw new Error(
+      `Failed to persist mastery update for student ${studentId} (concept "${concept}")`
+    );
+  }
 
   return { pMastery, confidence };
 }

@@ -104,11 +104,12 @@ export async function runPedagogyEval(
   cases: PedagogyCase[],
   judge: Judge = gatewayJudge
 ): Promise<PedagogyEvalReport> {
-  const results: PedagogyResult[] = [];
-  for (const c of cases) {
-    const scores = await judge(c);
-    results.push({ case: c, scores, overall: meanOverall(scores) });
-  }
+  const results: PedagogyResult[] = await Promise.all(
+    cases.map(async (c) => {
+      const scores = await judge(c);
+      return { case: c, scores, overall: meanOverall(scores) };
+    })
+  );
   const averages = {
     mistakeIdentification: 0,
     mistakeLocation: 0,

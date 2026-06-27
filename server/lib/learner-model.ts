@@ -9,6 +9,7 @@
  * component is a pure function that reads a snapshot (`getLearnerSnapshot`)
  * and proposes typed deltas, which are then handed to the single writer.
  */
+import type { PoolClient } from "pg";
 import { getPgPool, isPgReady } from "../db-pg";
 import { logger } from "./logger";
 
@@ -173,8 +174,9 @@ export async function commitLearnerUpdate(
   update: LearnerUpdate
 ): Promise<boolean> {
   if (!isPgReady()) return false;
-  const client = await getPgPool().connect();
+  let client: PoolClient | undefined;
   try {
+    client = await getPgPool().connect();
     await client.query("BEGIN");
 
     for (const d of update.masteryDeltas ?? []) {
@@ -228,17 +230,19 @@ export async function commitLearnerUpdate(
     await client.query("COMMIT");
     return true;
   } catch (err) {
-    try {
-      await client.query("ROLLBACK");
-    } catch (rollbackErr) {
-      logger.error("[learner-model] commitLearnerUpdate rollback failed", {
-        err: String(rollbackErr),
-        studentId,
-      });
+    if (client) {
+      try {
+        await client.query("ROLLBACK");
+      } catch (rollbackErr) {
+        logger.error("[learner-model] commitLearnerUpdate rollback failed", {
+          err: String(rollbackErr),
+          studentId,
+        });
+      }
     }
     logger.error("[learner-model] commitLearnerUpdate failed", { err: String(err), studentId });
     return false;
   } finally {
-    client.release();
+    if (client) client.release();
   }
 }

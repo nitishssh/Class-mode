@@ -93,7 +93,7 @@ export async function recordReview(
   const next = sm2Next(prev, quality);
   const dueAt = new Date(Date.now() + next.intervalDays * MS_PER_DAY);
 
-  await commitLearnerUpdate(studentId, {
+  const committed = await commitLearnerUpdate(studentId, {
     reviewUpdates: [
       {
         concept,
@@ -109,6 +109,11 @@ export async function recordReview(
       payload: { quality, intervalDays: next.intervalDays, dueAt: dueAt.toISOString() },
     },
   });
+  if (!committed) {
+    throw new Error(
+      `Failed to persist review schedule for student ${studentId} (concept "${concept}")`
+    );
+  }
 
   return { ...next, dueAt };
 }

@@ -130,8 +130,8 @@ CREATE TABLE IF NOT EXISTS resources (
   url          text,
   created_at   timestamptz  NOT NULL DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS resources_topic_idx ON resources (lower(topic));
-CREATE INDEX IF NOT EXISTS resources_subject_idx ON resources (lower(subject));
+CREATE INDEX IF NOT EXISTS resources_topic_idx ON resources ((lower(topic)));
+CREATE INDEX IF NOT EXISTS resources_subject_idx ON resources ((lower(subject)));
 
 -- ─── Audit Events ────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS audit_events (
