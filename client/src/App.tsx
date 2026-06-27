@@ -1,5 +1,5 @@
 import React from "react";
-import { Switch, Route, Redirect } from "wouter";
+import { Switch, Route, Redirect, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/contexts/theme-context";
 import { FirebaseAuthProvider, useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/layout/sidebar";
+import { ErrorBoundary } from "@/components/error-boundary";
 import { QuestPanel } from "@/components/quest/QuestPanel";
 import { QuestButton } from "@/components/quest/QuestButton";
 import { Loader2 } from "lucide-react";
@@ -22,7 +23,7 @@ import SchoolAdminDashboard from "@/pages/school-admin-dashboard";
 import CreateTest from "@/pages/create-test";
 import OcrScan from "@/pages/ocr-scan";
 import Analytics from "@/pages/analytics";
-import AiTutor from "@/pages/ai-tutor";
+import LearnPage from "@/pages/learn";
 import StudentDirectory from "@/pages/student-directory";
 import Messages from "@/pages/messages";
 import LiveClasses from "@/pages/live-classes";
@@ -40,7 +41,6 @@ import DynamicSIS from "@/pages/dynamic-sis";
 import DynamicSISBase from "@/pages/dynamic-sis-base";
 import EducatorGrading from "@/pages/educator/grading";
 import EducatorStudents from "@/pages/educator/students";
-import StudyArena from "@/pages/study-arena";
 import ResourcesPage from "@/pages/resources-page";
 import TestPage from "@/pages/test-page";
 import TestsList from "@/pages/tests-list";
@@ -69,6 +69,9 @@ function Layout({
   children: React.ReactNode;
   fullWidth?: boolean;
 }) {
+  // Key the boundary by location so navigating to a new route clears a caught
+  // error and remounts the page tree.
+  const [location] = useLocation();
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
@@ -78,11 +81,13 @@ function Layout({
         className="flex-1 transition-all duration-300 ease-in-out"
         style={{ marginLeft: "var(--sidebar-width, 16rem)" }}
       >
-        {fullWidth ? (
-          <div className="h-screen w-full overflow-hidden">{children}</div>
-        ) : (
-          <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">{children}</div>
-        )}
+        <ErrorBoundary key={location}>
+          {fullWidth ? (
+            <div className="h-screen w-full overflow-hidden">{children}</div>
+          ) : (
+            <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">{children}</div>
+          )}
+        </ErrorBoundary>
       </main>
     </div>
   );
@@ -164,14 +169,13 @@ const GradingRoute = withLayout(protect(EducatorGrading, ["teacher"]));
 const MyStudentsRoute = withLayout(protect(EducatorStudents, ["teacher"]));
 const OcrScanRoute = withLayout(protect(OcrScan, ["teacher", "student", "parent"]));
 const AnalyticsRoute = withLayout(protect(Analytics));
-const AiTutorRoute = withLayout(protect(AiTutor, ["student"]));
+const LearnRoute = withLayout(protect(LearnPage, ["student"]));
 const StudentDirRoute = withLayout(protect(StudentDirectory, ["teacher", "principal", "admin"]));
 const MessagesRoute = withLayout(protect(Messages), { fullWidth: true });
 const TestPageRoute = withLayout(protect(TestPage, ["student", "teacher", "admin"]), {
   fullWidth: true,
 });
 const ResourcesRoute = withLayout(protect(ResourcesPage, ["student"]), { fullWidth: true });
-const StudyArenaRoute = withLayout(protect(StudyArena, ["student"]), { fullWidth: true });
 const TasksRoute = withLayout(protect(Tasks));
 const NotificationsRoute = withLayout(protect(Notifications));
 const TestsListRoute = withLayout(protect(TestsList, ["student"]));
@@ -346,12 +350,19 @@ function App() {
       <Route path="/my-students" component={MyStudentsRoute} />
       <Route path="/ocr-scan" component={OcrScanRoute} />
       <Route path="/analytics" component={AnalyticsRoute} />
-      <Route path="/ai-tutor" component={AiTutorRoute} />
+      <Route path="/learn" component={LearnRoute} />
+      {/* Legacy: the standalone AI Tutor now lives inside the unified Learn hub. */}
+      <Route path="/ai-tutor">
+        <Redirect to="/learn?mode=ask" />
+      </Route>
       <Route path="/student-directory" component={StudentDirRoute} />
       <Route path="/messages" component={MessagesRoute} />
       <Route path="/test/:id" component={TestPageRoute} />
       <Route path="/resources" component={ResourcesRoute} />
-      <Route path="/study-arena" component={StudyArenaRoute} />
+      {/* Retired: the mock Study Arena chat duplicated Messages. */}
+      <Route path="/study-arena">
+        <Redirect to="/messages" />
+      </Route>
       <Route path="/tasks" component={TasksRoute} />
       <Route path="/notifications" component={NotificationsRoute} />
       <Route path="/tests" component={TestsListRoute} />
