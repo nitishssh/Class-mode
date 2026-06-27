@@ -241,7 +241,7 @@ export default function LearnPage() {
 
         <div className="mt-8 border-t border-border pt-8">
           <TabsContent value="ask" className="mt-0">
-            <AiTutor />
+            <AiTutor initialTopic={topic} />
           </TabsContent>
 
           <TabsContent value="practice" className="mt-0">

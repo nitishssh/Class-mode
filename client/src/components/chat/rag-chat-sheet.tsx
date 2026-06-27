@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { X, Send, Book, FileText, ChevronDown, Sparkles } from "lucide-react";
+import { X, Send, Book, FileText, ChevronDown, Sparkles, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -14,9 +14,10 @@ interface SourceSnippet {
 
 interface Message {
   id: string;
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "system-error";
   content: string;
   sources?: SourceSnippet[];
+  retryPayload?: { messageText: string; level: number };
 }
 
 interface RagChatSheetProps {
@@ -24,14 +25,22 @@ interface RagChatSheetProps {
   onClose: () => void;
   subjectName: string;
   initialPrompt?: string;
+  conceptName?: string;
 }
 
-export function RagChatSheet({ isOpen, onClose, subjectName, initialPrompt }: RagChatSheetProps) {
+export function RagChatSheet({ isOpen, onClose, subjectName, initialPrompt, conceptName }: RagChatSheetProps) {
   const { t } = useTranslation();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  // Graduated hint level for the *current* problem. Starts at 0 (no help yet);
+  // the student must deliberately unlock each level. Resets when they make a
+  // fresh attempt, so help is always earned by trying first.
+  const [hintLevel, setHintLevel] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const MAX_HINT_LEVEL = 4;
+  const HINT_LABELS = ["Nudge", "Strategy", "First step", "Worked example"];
 
   // Set initial prompt or welcome message
   useEffect(() => {
@@ -47,7 +56,7 @@ export function RagChatSheet({ isOpen, onClose, subjectName, initialPrompt }: Ra
             role: "assistant",
             content: t(
               "chat.welcomeMessage",
-              "Hi! I'm your **{subjectName}** AI Tutor. How can I help you today? You can ask me to explain concepts, generate quizzes, or help with problem solving."
+              "Hi! I'm your **{subjectName}** tutor. I won't just hand you answers — I'll help you work them out so it actually sticks. Tell me what you're working on and what you've tried so far. Stuck? Use **Unlock a hint** for graduated help."
             ).replace("{subjectName}", subjectName),
           },
         ]);
@@ -62,14 +71,13 @@ export function RagChatSheet({ isOpen, onClose, subjectName, initialPrompt }: Ra
     }
   }, [messages, isTyping]);
 
-  const handleSend = async () => {
-    const messageText = input.trim();
+  // Core sender. `level` is the hint level to send to the tutor for this turn.
+  const sendMessage = async (messageText: string, level: number) => {
     if (!messageText || isTyping) return;
 
     const userMsg: Message = { id: Date.now().toString(), role: "user", content: messageText };
     const updatedMessages = [...messages, userMsg];
     setMessages(updatedMessages);
-    setInput("");
     setIsTyping(true);
 
     try {
@@ -78,6 +86,9 @@ export function RagChatSheet({ isOpen, onClose, subjectName, initialPrompt }: Ra
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: updatedMessages.map((m) => ({ role: m.role, content: m.content })),
+          subject: subjectName,
+          concept: conceptName,
+          hintLevel: level,
         }),
       });
 
@@ -92,9 +103,43 @@ export function RagChatSheet({ isOpen, onClose, subjectName, initialPrompt }: Ra
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (error) {
       console.error("AI chat error:", error);
+      const errorMsg: Message = {
+        id: (Date.now() + 2).toString() + "-error",
+        role: "system-error",
+        content: "Failed to connect to AI Tutor. Check your internet connection and try again.",
+        retryPayload: { messageText, level },
+      };
+      setMessages((prev) => [...prev, errorMsg]);
     } finally {
       setIsTyping(false);
     }
+  };
+
+  const handleRetry = (msgId: string, retryPayload?: { messageText: string; level: number }) => {
+    if (!retryPayload || isTyping) return;
+    setMessages((prev) => prev.filter((m) => m.id !== msgId));
+    void sendMessage(retryPayload.messageText, retryPayload.level);
+  };
+
+  // A typed message is a fresh attempt → reset the hint ladder so help must be
+  // re-earned by trying first.
+  const handleSend = () => {
+    const messageText = input.trim();
+    if (!messageText || isTyping) return;
+    setInput("");
+    setHintLevel(0);
+    void sendMessage(messageText, 0);
+  };
+
+  // Deliberately unlock the next graduated hint level.
+  const handleUnlockHint = () => {
+    if (isTyping || hintLevel >= MAX_HINT_LEVEL) return;
+    const nextLevel = hintLevel + 1;
+    setHintLevel(nextLevel);
+    void sendMessage(
+      `I'm stuck — can you give me a level ${nextLevel} hint (${HINT_LABELS[nextLevel - 1]}) without giving the full answer?`,
+      nextLevel
+    );
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -132,7 +177,7 @@ export function RagChatSheet({ isOpen, onClose, subjectName, initialPrompt }: Ra
             </div>
             <div>
               <h3 className="font-display text-sm text-foreground">
-                {t("chat.tutorTitle", "Class Mode Tutor • ")}
+                {conceptName ? `${conceptName} • ` : t("chat.tutorTitle", "Class Mode Tutor • ")}
                 {subjectName}
               </h3>
               <div className="mt-0.5 flex items-center gap-1.5">
@@ -164,10 +209,36 @@ export function RagChatSheet({ isOpen, onClose, subjectName, initialPrompt }: Ra
         >
           {messages.map((msg) => (
             <div key={msg.id} className={cn("flex w-full flex-col gap-2")}>
-              {msg.role === "user" ? (
-                <div className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-tr-sm border border-accent/10 bg-accent-soft px-5 py-3.5 font-body text-sm leading-relaxed text-foreground shadow-soft">
-                  {msg.content}
+              {msg.role === "system-error" ? (
+                <div className="mx-auto flex max-w-[85%] flex-col gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 shadow-soft">
+                  <p className="font-body text-xs text-red-700 leading-relaxed">
+                    {msg.content}
+                  </p>
+                  {msg.retryPayload && (
+                    <Button
+                      onClick={() => handleRetry(msg.id, msg.retryPayload)}
+                      disabled={isTyping}
+                      variant="outline"
+                      size="sm"
+                      className="w-fit h-8 rounded-lg border-red-300 text-xs font-semibold text-red-700 bg-white hover:bg-red-50 hover:text-red-800 disabled:opacity-40"
+                    >
+                      Retry Attempt
+                    </Button>
+                  )}
                 </div>
+              ) : msg.role === "user" ? (
+                msg.content.startsWith("I'm stuck — can you give me a level") ? (
+                  <div className="mx-auto my-2 rounded-full bg-amber-50 px-4 py-1.5 text-center font-body text-[11px] font-bold uppercase tracking-wider text-amber-700 border border-amber-200/50 shadow-soft">
+                    {msg.content.includes("level 1") && "Unlocked: Level 1 Hint (Nudge)"}
+                    {msg.content.includes("level 2") && "Unlocked: Level 2 Hint (Strategy)"}
+                    {msg.content.includes("level 3") && "Unlocked: Level 3 Hint (First step)"}
+                    {msg.content.includes("level 4") && "Unlocked: Level 4 Hint (Worked example)"}
+                  </div>
+                ) : (
+                  <div className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-tr-sm border border-accent/10 bg-accent-soft px-5 py-3.5 font-body text-sm leading-relaxed text-foreground shadow-soft">
+                    {msg.content}
+                  </div>
+                )
               ) : (
                 <div className="mr-auto flex w-full max-w-[95%] flex-col gap-4">
                   <div className="prose prose-sm prose-stone max-w-none font-body leading-relaxed text-muted-foreground md:text-base">
@@ -218,6 +289,41 @@ export function RagChatSheet({ isOpen, onClose, subjectName, initialPrompt }: Ra
 
         {/* Input Area */}
         <div className="shrink-0 border-t border-border bg-card p-5">
+          {/* Graduated hint control — help is unlocked one level at a time, only
+              when the student deliberately asks. Attempt-first by design. */}
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-1.5">
+              {Array.from({ length: MAX_HINT_LEVEL }).map((_, i) => (
+                <span
+                  key={i}
+                  className={cn(
+                    "h-1.5 w-5 rounded-full transition-colors",
+                    i < hintLevel ? "bg-amber-500" : "bg-muted-foreground/20"
+                  )}
+                  title={HINT_LABELS[i]}
+                />
+              ))}
+              <span className="ml-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                {hintLevel === 0
+                  ? t("chat.tryFirst", "Try first")
+                  : t("chat.hintLevel", "Hint {n} • {label}")
+                      .replace("{n}", String(hintLevel))
+                      .replace("{label}", HINT_LABELS[hintLevel - 1] ?? "")}
+              </span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleUnlockHint}
+              disabled={isTyping || hintLevel >= MAX_HINT_LEVEL}
+              className="h-11 md:h-8 gap-1.5 rounded-lg border-amber-500/30 text-xs font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-40 px-4 md:px-3"
+            >
+              <Lightbulb className="h-3.5 w-3.5" />
+              {hintLevel >= MAX_HINT_LEVEL
+                ? t("chat.maxHint", "Max hint reached")
+                : t("chat.unlockHint", "Unlock a hint")}
+            </Button>
+          </div>
           <div className="relative flex items-end rounded-2xl border border-border bg-muted shadow-inner transition-all focus-within:border-accent/40 focus-within:ring-2 focus-within:ring-accent/5">
             <Textarea
               value={input}
@@ -246,7 +352,7 @@ export function RagChatSheet({ isOpen, onClose, subjectName, initialPrompt }: Ra
           <div className="mt-3 flex items-center justify-center gap-1.5 opacity-40">
             <Sparkles className="h-3 w-3 text-accent" />
             <span className="text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              {t("chat.aiInsights", "AI generated insights for faster learning")}
+              {t("chat.guidedLearning", "Guided learning — answers you earn, not answers you're given")}
             </span>
           </div>
         </div>

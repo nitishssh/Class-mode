@@ -4,7 +4,10 @@ import { pgFindUserById, pgFindFirstWorkspaceMembership } from "../lib/pg-querie
 
 // vi.hoisted() runs before ANY vi.mock hoisting, so these refs are safe to use
 // inside vi.mock factory functions.
-const { mockAiChat } = vi.hoisted(() => ({ mockAiChat: vi.fn() }));
+const { mockRunTutorTurn, mockGradeTutorTurn } = vi.hoisted(() => ({
+  mockRunTutorTurn: vi.fn(),
+  mockGradeTutorTurn: vi.fn(),
+}));
 
 import express from "express";
 import request from "supertest";
@@ -33,9 +36,19 @@ vi.mock("../lib/cassandra", () => ({
   getCassandraClient: vi.fn().mockReturnValue(null),
 }));
 
+// Mock the orchestrator and grader service
+vi.mock("../lib/orchestrator", () => ({
+  runTutorTurn: mockRunTutorTurn,
+  commitTurnOutcome: vi.fn(),
+}));
+
+vi.mock("../lib/grader-service", () => ({
+  gradeTutorTurn: mockGradeTutorTurn,
+}));
+
 // ── The KEY mock: openai lib ────────────────────────────────────────────────
 vi.mock("../lib/openai", () => ({
-  aiChat: mockAiChat,
+  aiChat: vi.fn(),
   evaluateSubjectiveAnswer: vi.fn(),
   generateStudyPlan: vi.fn(),
   analyzeTestPerformance: vi.fn(),
@@ -74,6 +87,12 @@ describe("POST /api/ai-chat — AI Tutor", () => {
     });
     (pgFindFirstWorkspaceMembership as Mock).mockResolvedValue(null);
 
+    mockRunTutorTurn.mockResolvedValue({
+      reply: "Gravity is a force.",
+      snapshot: { mastery: [], dueReviews: [], recentMemory: [] },
+    });
+    mockGradeTutorTurn.mockResolvedValue(undefined);
+
     app = express();
     app.use(express.json());
     app.use(session({ secret: "test-secret", resave: false, saveUninitialized: false }));
@@ -91,8 +110,6 @@ describe("POST /api/ai-chat — AI Tutor", () => {
 
   // ── CASE 2: Missing messages ───────────────────────────────────────────────
   it("should return 400 when messages field is missing", async () => {
-    mockAiChat.mockResolvedValue({ content: "Gravity is…" });
-
     const res = await request(app)
       .post("/api/ai-chat")
       .set("Authorization", `Bearer ${makeStudentToken()}`)
@@ -115,8 +132,9 @@ describe("POST /api/ai-chat — AI Tutor", () => {
 
   // ── CASE 4: Happy path ─────────────────────────────────────────────────────
   it("should return 200 with AI tutor response for valid messages", async () => {
-    mockAiChat.mockResolvedValue({
-      content: "Gravity is the force that attracts two masses toward each other.",
+    mockRunTutorTurn.mockResolvedValue({
+      reply: "Gravity is the force that attracts two masses toward each other.",
+      snapshot: { mastery: [], dueReviews: [], recentMemory: [] },
     });
 
     const res = await request(app)
@@ -129,14 +147,12 @@ describe("POST /api/ai-chat — AI Tutor", () => {
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty("content");
     expect(typeof res.body.content).toBe("string");
-    expect(res.body.content.length).toBeGreaterThan(0);
-    expect(mockAiChat).toHaveBeenCalledOnce();
+    expect(res.body.content).toBe("Gravity is the force that attracts two masses toward each other.");
+    expect(mockRunTutorTurn).toHaveBeenCalledOnce();
   });
 
   // ── CASE 5: Multi-turn conversation preserved ──────────────────────────────
-  it("should forward the full message history to aiChat", async () => {
-    mockAiChat.mockResolvedValue({ content: "Yes, on the Moon gravity is 1/6th of Earth." });
-
+  it("should forward the full message history to runTutorTurn", async () => {
     const messages = [
       { role: "user", content: "What is gravity?" },
       { role: "assistant", content: "Gravity is a fundamental force." },
@@ -148,12 +164,14 @@ describe("POST /api/ai-chat — AI Tutor", () => {
       .set("Authorization", `Bearer ${makeStudentToken()}`)
       .send({ messages });
 
-    expect(mockAiChat.mock.calls[0][0]).toEqual(messages);
+    const callArgs = mockRunTutorTurn.mock.calls[0][0];
+    expect(callArgs.history).toEqual(messages.slice(0, -1));
+    expect(callArgs.message).toBe("Does it change on the Moon?");
   });
 
   // ── CASE 6: AI service throws → 500 ───────────────────────────────────────
   it("should return 500 when the AI service throws an error", async () => {
-    mockAiChat.mockRejectedValue(new Error("OpenAI API rate limit exceeded"));
+    mockRunTutorTurn.mockRejectedValue(new Error("AI Gateway is down"));
 
     const res = await request(app)
       .post("/api/ai-chat")
@@ -164,5 +182,34 @@ describe("POST /api/ai-chat — AI Tutor", () => {
 
     expect(res.status).toBe(500);
     expect(res.body.message).toMatch(/failed to generate/i);
+  });
+
+  // ── CASE 7: Background grader hook triggered ──────────────────────────────
+  it("should trigger background grader on response finish if concept is specified", async () => {
+    mockRunTutorTurn.mockResolvedValue({
+      reply: "Learning is fun!",
+      snapshot: { mastery: [], dueReviews: [], recentMemory: [] },
+    });
+
+    const res = await request(app)
+      .post("/api/ai-chat")
+      .set("Authorization", `Bearer ${makeStudentToken()}`)
+      .send({
+        messages: [{ role: "user", content: "What is gravity?" }],
+        concept: "gravity-formula",
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.content).toBe("Learning is fun!");
+
+    // Wait a brief moment for the express response finish event loop to fire
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(mockGradeTutorTurn).toHaveBeenCalledWith({
+      studentId: 42,
+      concept: "gravity-formula",
+      subject: undefined,
+      history: [],
+      latestMessage: "What is gravity?",
+    });
   });
 });

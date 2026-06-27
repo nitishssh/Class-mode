@@ -5,7 +5,11 @@ import { BentoSubjectCard } from "@/components/chat/bento-subject-card";
 import { RagChatSheet } from "@/components/chat/rag-chat-sheet";
 import { Sparkles, Rocket, GraduationCap } from "lucide-react";
 
-export default function AiTutor() {
+interface AiTutorProps {
+  initialTopic?: string;
+}
+
+export default function AiTutor({ initialTopic }: AiTutorProps = {}) {
   const { currentUser } = useFirebaseAuth();
   const [activeSubject, setActiveSubject] = useState<string | null>(null);
   const [initialPrompt, setInitialPrompt] = useState("");
@@ -136,6 +140,7 @@ export default function AiTutor() {
           onClose={() => setIsChatOpen(false)}
           subjectName={activeSubject}
           initialPrompt={initialPrompt}
+          conceptName={initialTopic}
         />
       )}
     </div>

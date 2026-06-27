@@ -58,6 +58,8 @@ export interface GenerateOptions {
   maxTokens?: number;
   /** Optional cancellation signal, forwarded to the underlying provider. */
   signal?: AbortSignal;
+  /** Enable JSON Mode for structured output. */
+  jsonMode?: boolean;
 }
 
 /** Concrete providers the gateway knows how to dispatch to. */
@@ -96,7 +98,7 @@ export interface ModelMapping {
 export const MODEL_REGISTRY: Record<ModelAlias, ModelMapping> = {
   orchestrator: { provider: "openai", model: "gpt-4o" },
   fast: { provider: "gemini", model: "gemini-2.0-flash" },
-  grader: { provider: "openai", model: "gpt-4o" },
+  grader: { provider: "gemini", model: "gemini-2.0-flash" },
   embed: { provider: "openai", model: "text-embedding-3-small" },
 };
 
@@ -164,6 +166,7 @@ export async function generate(opts: GenerateOptions): Promise<string> {
       // Delegate to existing server/lib/gemini.ts.
       return geminiChat(extractSystemPrompt(opts), flattenForGemini(opts.messages), model, {
         signal: opts.signal,
+        jsonMode: opts.jsonMode,
       });
     }
 
@@ -176,6 +179,7 @@ export async function generate(opts: GenerateOptions): Promise<string> {
           ...(opts.temperature !== undefined ? { temperature: opts.temperature } : {}),
           max_tokens: opts.maxTokens ?? 4096,
           user: "default_user",
+          ...(opts.jsonMode ? { response_format: { type: "json_object" } } : {}),
         },
         opts.signal ? { signal: opts.signal } : undefined
       );
