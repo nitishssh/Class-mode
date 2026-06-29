@@ -226,7 +226,7 @@ After starting the app:
   1. **Create a Test**: Guides the user through the AI test generation or manual creation flow.
   2. **Set up a Class**: Encourages organizing students into classes.
   3. **Invite a Student**: Onboards the first member to the workspace.
-  Completion of these quests triggers a celebratory confetti effect and ensures the workspace is fully functional.
+     Completion of these quests triggers a celebratory confetti effect and ensures the workspace is fully functional.
 - **Invite-Only Students**: Students are onboarded via workspace-specific invite links (`/api/workspaces/:id/invites`) which generate unique tokenized signup links.
 
 ```mermaid
