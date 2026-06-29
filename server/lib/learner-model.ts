@@ -96,7 +96,8 @@ function mapDueReview(r: any): LearnerDueReview {
   return {
     concept: r.concept,
     sm2Ef: typeof r.sm2_ef === "number" ? r.sm2_ef : parseFloat(r.sm2_ef),
-    intervalDays: typeof r.interval_days === "number" ? r.interval_days : parseInt(r.interval_days, 10),
+    intervalDays:
+      typeof r.interval_days === "number" ? r.interval_days : parseInt(r.interval_days, 10),
     repetitions: typeof r.repetitions === "number" ? r.repetitions : parseInt(r.repetitions, 10),
     dueAt: r.due_at,
     lastReviewedAt: r.last_reviewed_at ?? null,
@@ -208,10 +209,10 @@ export async function commitLearnerUpdate(
     }
 
     if (update.memoryNote != null && update.memoryNote.trim().length > 0) {
-      await client.query(
-        `INSERT INTO memory_notes (student_id, note) VALUES ($1, $2)`,
-        [studentId, update.memoryNote]
-      );
+      await client.query(`INSERT INTO memory_notes (student_id, note) VALUES ($1, $2)`, [
+        studentId,
+        update.memoryNote,
+      ]);
     }
 
     if (update.interaction) {

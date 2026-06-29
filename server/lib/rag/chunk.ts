@@ -34,7 +34,10 @@ const wordCount = (s: string): number => (s ? s.split(/\s+/).length : 0);
  */
 export function chunkText(text: string, opts: ChunkOptions = {}): string[] {
   const maxWords = Math.max(20, opts.maxWords ?? DEFAULT_MAX_WORDS);
-  const overlapWords = Math.max(0, Math.min(opts.overlapWords ?? DEFAULT_OVERLAP_WORDS, maxWords - 1));
+  const overlapWords = Math.max(
+    0,
+    Math.min(opts.overlapWords ?? DEFAULT_OVERLAP_WORDS, maxWords - 1)
+  );
 
   const sentences = splitSentences(text);
   if (sentences.length === 0) return [];

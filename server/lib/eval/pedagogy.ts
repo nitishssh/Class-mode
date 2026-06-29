@@ -73,7 +73,10 @@ export async function gatewayJudge(c: PedagogyCase): Promise<PedagogyScores> {
       actionability: clampScore(parsed.actionability),
     };
   } catch (err) {
-    logger.error("[eval/pedagogy] judge parse failed", { err: String(err), raw: raw.slice(0, 200) });
+    logger.error("[eval/pedagogy] judge parse failed", {
+      err: String(err),
+      raw: raw.slice(0, 200),
+    });
     return { mistakeIdentification: 0, mistakeLocation: 0, guidance: 0, actionability: 0 };
   }
 }
