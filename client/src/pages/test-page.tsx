@@ -176,9 +176,7 @@ export default function TestPage() {
         let ansText = `Question ${idx + 1}: `;
         if (q.type === "mcq" && q.options) {
           const optionsArray = Array.isArray(q.options) ? q.options : [];
-          const correctIdx = optionsArray.findIndex(
-            (opt: any) => typeof opt === "object" && opt.isCorrect
-          );
+          const correctIdx = optionsArray.findIndex((opt: any) => opt?.isCorrect);
           const correctLabel =
             correctIdx !== -1 ? String.fromCharCode(65 + correctIdx) : q.correctAnswer || "TBD";
           ansText += correctLabel;
