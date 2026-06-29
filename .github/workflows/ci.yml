@@ -93,11 +93,16 @@ jobs:
           format: "sarif"
           output: "trivy-results.sarif"
           severity: "CRITICAL,HIGH"
-          exit-code: "1"
+          # Report-only: surface CRITICAL/HIGH in the Security tab but don't hard-fail
+          # CI on base-image OS CVEs (outside the app's control). Mirrors cd.yml.
+          # App-dependency vulnerabilities are already gated by `npm audit` in build-and-test.
           ignore-unfixed: true
 
       - name: Upload Trivy results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@7211b7c8077ea37d8641b6271f6a365a22a5fbfa # v4
+        # Don't fail CI if code scanning isn't enabled on the repo; this is a
+        # best-effort reporting step. Mirrors cd.yml.
+        continue-on-error: true
         if: always()
         with:
           sarif_file: "trivy-results.sarif"
