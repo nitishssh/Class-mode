@@ -14,10 +14,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import {
-  createParserState,
-  parseStructuredChunk,
-} from "../services/study-arena/orchestrator";
+import { createParserState, parseStructuredChunk } from "../services/study-arena/orchestrator";
 import {
   parseDirectorDecision,
   buildDirectorPrompt,
@@ -128,9 +125,10 @@ describe("parseDirectorDecision", () => {
   });
 
   it("extracts the decision when wrapped in prose", () => {
-    expect(
-      parseDirectorDecision('Sure! {"next_agent":"student-2"} that seems best.')
-    ).toEqual({ nextAgentId: "student-2", shouldEnd: false });
+    expect(parseDirectorDecision('Sure! {"next_agent":"student-2"} that seems best.')).toEqual({
+      nextAgentId: "student-2",
+      shouldEnd: false,
+    });
   });
 
   it("ends safely on unparseable / empty output", () => {
