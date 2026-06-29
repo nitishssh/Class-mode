@@ -37,6 +37,7 @@ import Settings from "@/pages/settings";
 import AiStudyPlans from "./pages/ai-study-plans";
 import Focus from "@/pages/focus";
 import AIClassroom from "@/pages/ai-classroom";
+import StudyArenaBeta from "@/pages/study-arena-beta";
 import DynamicSIS from "@/pages/dynamic-sis";
 import DynamicSISBase from "@/pages/dynamic-sis-base";
 import EducatorGrading from "@/pages/educator/grading";
@@ -190,6 +191,7 @@ const MyProgressRoute = withLayout(protect(MyProgress, ["student", "parent"]), {
 const SettingsRoute = withLayout(protect(Settings));
 const AiStudyPlansRoute = withLayout(protect(AiStudyPlans, ["student"]));
 const AIClassroomRoute = withLayout(protect(AIClassroom, ["student", "teacher"]));
+const StudyArenaBetaRoute = withLayout(protect(StudyArenaBeta, ["student", "teacher"]));
 const DynamicSISRoute = withLayout(
   protect(DynamicSIS, ["admin", "school_admin", "principal", "teacher"])
 );
@@ -375,6 +377,7 @@ function App() {
       <Route path="/settings" component={SettingsRoute} />
       <Route path="/ai-study-plans" component={AiStudyPlansRoute} />
       <Route path="/ai-classroom" component={AIClassroomRoute} />
+      <Route path="/study-arena-beta" component={StudyArenaBetaRoute} />
       <Route path="/dynamic-sis" component={DynamicSISRoute} />
       <Route path="/dynamic-sis/base/:id" component={DynamicSISBaseRoute} />
 

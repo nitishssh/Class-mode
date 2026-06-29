@@ -17,6 +17,7 @@ import resourcesRoutes from "./routes/resources";
 import parentRoutes from "./routes/parent";
 import gradingRoutes from "./routes/grading";
 import aiClassroomRoutes from "./routes/ai-classroom";
+import studyArenaBetaRoutes from "./routes/study-arena-beta";
 import { liveRouter } from "./routes/live";
 import messageRoutes from "./message/routes";
 
@@ -55,6 +56,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/messagepal", messageRoutes);
   app.use("/api/live", ...verifiedAuth, liveRouter);
   app.use("/api/ai-classroom", aiClassroomRoutes);
+  app.use("/api/study-arena-beta", studyArenaBetaRoutes);
   app.use("/api/grading", ...verifiedAuth, gradingRoutes);
   app.use("/api/educator", ...verifiedAuth, educatorRoutes);
   app.use("/api/resources", ...verifiedAuth, resourcesRoutes);
