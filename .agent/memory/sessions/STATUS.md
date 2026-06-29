@@ -30,19 +30,22 @@
 
 ### 2. AI Classroom Integration - Study Arena ✅
 
-**Status:** PHASES 1-2 COMPLETE, PHASE 3-4 PARTIAL  
+**Status:** PHASES 1-3 COMPLETE, PHASE 4 PARTIAL  
 **Files:**
 
 - `.agent/memory/roadmap/ai-classroom-integration/requirements.md`
 - `.agent/memory/roadmap/ai-classroom-integration/design.md`
 - `.agent/memory/roadmap/ai-classroom-integration/tasks.md`
+- `.agent/memory/decisions/0001-client-pumped-orchestration.md` 🆕
 
 **Completion:**
 
 - Phase 1 (Backend): 10/10 tasks (100%) ✅
 - Phase 2 (Frontend): 3/3 tasks (100%) ✅
-- Phase 3 (Multi-Agent): 1/4 tasks (25%) 🔄
-- Phase 4 (Polish): 4/5 tasks (80%) 🔄
+- Phase 3 (Multi-Agent): 6/6 tasks (100%) ✅ — _corrected 2026-06-29; the port was
+  already done in code, the roadmap was stale. Verified + de-duplicated the wire
+  contract + added unit tests._
+- Phase 4 (Polish): 4/5 tasks (80%) 🔄 — only TTS (4.1) remains
 
 ---
 
@@ -87,10 +90,12 @@
 
 ### Immediate (Sprint 5 Planning)
 
-1. Complete Phase 3 (Multi-Agent Orchestration) for AI Classroom
-2. Add TTS integration (Azure Cognitive Services)
+1. ~~Complete Phase 3 (Multi-Agent Orchestration)~~ ✅ done 2026-06-29
+2. Add TTS integration (Azure Cognitive Services) — Phase 4.1, the last open item
 3. Run full test suite (`npm test`)
 4. Deploy to production
+5. _Optional:_ decide whether to keep the client-pumped one-turn-per-request loop
+   or move to an autonomous multi-turn SSE stream (see ADR 0001)
 
 ### Backlog
 

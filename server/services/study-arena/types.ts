@@ -1,110 +1,35 @@
 /**
  * Study Arena Types — Adapted from features/ai-classroom/studyArena
  *
- * These types mirror the StudyArena generation pipeline but are simplified
- * for use within PersonalLearningPro's Express server.
+ * These types describe the StudyArena generation pipeline as used within
+ * PersonalLearningPro's Express server.
+ *
+ * The multi-agent orchestration wire contract (StatelessChatRequest,
+ * StatelessEvent, DirectorState, AgentTurnSummary, WhiteboardActionRecord,
+ * AgentInfo) is the SAME contract the client sends and the director graph
+ * consumes, so it lives in `@shared/study-arena` as the single source of
+ * truth and is re-exported here. Do NOT redefine those types locally — two
+ * copies silently drift and TypeScript will not catch a mismatch across the
+ * route ↔ orchestrator boundary.
  */
+
+export type {
+  AgentInfo,
+  AgentTurnSummary,
+  WhiteboardActionRecord,
+  DirectorState,
+  StatelessChatRequest,
+  StatelessEvent,
+} from "@shared/study-arena";
+
+import type { AgentInfo } from "@shared/study-arena";
+
+// ── Generation-pipeline types (server-only) ───────────────────────────────
+// `SceneType`/`WidgetType` here intentionally differ from the playback enums
+// in `@shared/study-arena`: this set covers the generation outline stage.
 
 export type SceneType = "slide" | "quiz" | "simulation" | "pbl" | "interactive" | "code" | "diagram" | "game" | "visualization3d";
 export type WidgetType = "simulation" | "diagram" | "code" | "game" | "visualization3d";
-
-/** Lightweight agent info passed to the generation pipeline */
-// ── Orchestration Types ───────────────────────────────────────────────────
-
-export interface WhiteboardActionRecord {
-  actionName: string;
-  agentId: string;
-  agentName: string;
-  params: Record<string, any>;
-}
-
-export interface AgentTurnSummary {
-  agentId: string;
-  agentName: string;
-  contentPreview: string;
-  actionCount: number;
-  whiteboardActions: WhiteboardActionRecord[];
-}
-
-export interface DirectorState {
-  turnCount: number;
-  agentResponses: AgentTurnSummary[];
-  whiteboardLedger: WhiteboardActionRecord[];
-}
-
-export interface StatelessChatRequest {
-  messages: any[];
-  storeState: {
-    stage: any | null;
-    scenes: any[];
-    currentSceneId: string | null;
-    mode: string;
-    whiteboardOpen: boolean;
-  };
-  config: {
-    agentIds: string[];
-    sessionType?: "qa" | "discussion";
-    discussionTopic?: string;
-    discussionPrompt?: string;
-    triggerAgentId?: string;
-    agentConfigs?: AgentInfo[];
-  };
-  directorState?: DirectorState;
-  userProfile?: {
-    nickname?: string;
-    bio?: string;
-  };
-}
-
-export type StatelessEvent =
-  | {
-      type: "agent_start";
-      data: {
-        messageId: string;
-        agentId: string;
-        agentName: string;
-        agentAvatar?: string;
-        agentColor?: string;
-      };
-    }
-  | { type: "agent_end"; data: { messageId: string; agentId: string } }
-  | { type: "text_delta"; data: { content: string; messageId?: string } }
-  | {
-      type: "action";
-      data: {
-        actionId: string;
-        actionName: string;
-        params: Record<string, any>;
-        agentId: string;
-        messageId?: string;
-      };
-    }
-  | {
-      type: "thinking";
-      data: { stage: "director" | "agent_loading"; agentId?: string };
-    }
-  | { type: "cue_user"; data: { fromAgentId?: string; prompt?: string } }
-  | {
-      type: "done";
-      data: {
-        totalActions: number;
-        totalAgents: number;
-        agentHadContent?: boolean;
-        directorState?: DirectorState;
-      };
-    }
-  | { type: "error"; data: { message: string } };
-
-export interface AgentInfo {
-  id: string;
-  name: string;
-  role: "teacher" | "assistant" | "student";
-  persona: string;
-  avatar?: string;
-  color?: string;
-  priority?: number;
-  allowedActions?: string[];
-}
 
 export interface SceneOutline {
   id: string;

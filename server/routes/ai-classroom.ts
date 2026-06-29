@@ -8,7 +8,7 @@ const archiver = _require("archiver") as typeof import("archiver");
 import { studyArenaInternalService } from "../services/study-arena/internal-service";
 import { pgFindAIClassroomById } from "../lib/pg-queries";
 import { orchestrateChat } from "../services/study-arena/orchestrator";
-import { StatelessChatRequest } from "../services/study-arena/types";
+import { StatelessChatRequest } from "@shared/study-arena";
 import { generatePPTX } from "../services/study-arena/pptx-export";
 import { generateClassroomHTML } from "../services/study-arena/html-export";
 import { logger } from "../lib/logger";
