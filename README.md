@@ -107,6 +107,32 @@ npm run dev
 
 Open [http://localhost:5001](http://localhost:5001)
 
+### 🐘 Local Data Layer (Postgres + Redis)
+
+For a reproducible local environment, bring up Postgres and Redis with Docker
+instead of installing them by hand:
+
+```bash
+npm run db:up      # start Postgres (5432) + Redis (6379) in the background
+npm run migrate    # apply the schema from scripts/pg-schema.sql
+npm run dev        # start the app (port 5001)
+```
+
+| Service  | Image                    | Host port |
+| -------- | ------------------------ | --------- |
+| Postgres | `pgvector/pgvector:pg15` | `5432`    |
+| Redis    | `redis:7-alpine`         | `6379`    |
+
+Postgres ships as the **pgvector** image, so the `vector` extension is available
+out of the box for RAG work (enable it with `CREATE EXTENSION IF NOT EXISTS vector;`).
+Credentials match `.env`: user `classmode`, password `classmode`, database
+`classmode_dev`. Data persists in named volumes across restarts.
+
+```bash
+npm run db:down    # stop the containers (keeps data)
+npm run db:reset   # wipe volumes and start fresh (drops all local data)
+```
+
 ### 🔑 Required Environment Variables
 
 ```env

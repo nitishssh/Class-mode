@@ -16,7 +16,9 @@ test.describe("Authentication Flows", () => {
     await expect(page).toHaveURL(/.*\/admin-dashboard/);
   });
 
-  test("should login with teacher credentials and redirect to teacher dashboard", async ({ page }) => {
+  test("should login with teacher credentials and redirect to teacher dashboard", async ({
+    page,
+  }) => {
     await page.goto("http://localhost:5001/login");
     await page.fill('input[name="email"]', "teacher@test.com");
     await page.fill('input[name="password"]', "password123");

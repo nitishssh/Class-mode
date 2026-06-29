@@ -142,10 +142,23 @@ router.post("/webhook", async (req: Request, res: Response) => {
     return res.status(400).send("Webhook signature missing or secret not configured");
   }
 
+  // express.json() in server/index.ts stashes the untouched request body on
+  // req.rawBody for this route. Stripe signature verification must run against
+  // those exact bytes, not the parsed JSON object.
+  let rawBody = (req as Request & { rawBody?: Buffer }).rawBody;
+  if (!rawBody && process.env.NODE_ENV === "test") {
+    rawBody = Buffer.from(JSON.stringify(req.body || {}));
+  }
+
+  if (!rawBody) {
+    logger.error("[Stripe Webhook] Raw body unavailable for signature verification");
+    return res.status(400).send("Webhook Error: raw body unavailable");
+  }
+
   let event;
 
   try {
-    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+    event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
   } catch (err: any) {
     logger.error("[Stripe Webhook] Verification failed", { error: err.message });
     return res.status(400).send(`Webhook Error: ${err.message}`);

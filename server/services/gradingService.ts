@@ -7,7 +7,7 @@ import {
 import {
   parseRubric,
   rubricToPrompt,
-  normalizeToPercentage,
+  calculateWeightedTotal,
 } from "../lib/rubricParser";
 import {
   buildGradingUserMessage,
@@ -62,17 +62,28 @@ export async function gradeSubmission(request: GradingRequest): Promise<GradingR
     const criteria = (parsed.criteria || []).map((c: any) => {
       const criterionDef = rubric.criteria.find((rc: any) => rc.name === c.criterionName);
       const maxScore = criterionDef?.maxPoints ?? c.maxScore ?? 10;
+      const weight = criterionDef?.weight ?? 0;
       const score = Math.min(Math.max(0, Number(c.score) || 0), maxScore);
       return {
         criterionName: c.criterionName || "Unknown",
         score,
         maxScore,
+        weight,
         feedback: c.feedback || "",
       };
     });
 
-    const totalScore = criteria.reduce((sum: number, c: any) => sum + c.score, 0);
-    const percentage = normalizeToPercentage(totalScore, rubric.totalPoints);
+    // Compute a weighted 0..1 fraction (criterion weights are validated to
+    // sum to 1.0 in parseRubric), then derive percentage and total score.
+    const weightedFraction = calculateWeightedTotal(
+      criteria.map((c: any) => ({
+        score: c.score,
+        maxScore: c.maxScore,
+        weight: c.weight,
+      }))
+    );
+    const percentage = Math.round(weightedFraction * 100);
+    const totalScore = Math.round(weightedFraction * rubric.totalPoints);
 
     const scoreBreakdown: ScoreBreakdown = {
       criteria,

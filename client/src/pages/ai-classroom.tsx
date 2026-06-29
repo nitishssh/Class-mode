@@ -1062,11 +1062,15 @@ const ClassroomPlayer = ({ data, onClose }: { data: ClassroomRecord; onClose: ()
 
 // ── Main Page Component ───────────────────────────────────────────────────────
 
-export default function StudyArenaPage() {
+export default function StudyArenaPage({
+  initialTopic = "",
+}: {
+  initialTopic?: string;
+} = {}) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [topic, setTopic] = useState("");
+  const [topic, setTopic] = useState(initialTopic);
   const [sceneType, setSceneType] = useState<"slides" | "quiz" | "simulation" | "pbl">("slides");
   const [activeClassroomId, setActiveClassroomId] = useState<string | null>(null);
   const [classroomData, setClassroomData] = useState<ClassroomRecord | null>(null);
@@ -1087,7 +1091,10 @@ export default function StudyArenaPage() {
     queryFn: async () => {
       const res = await fetch("/api/ai-classroom/my-classrooms");
       if (!res.ok) throw new Error("Failed to fetch classrooms");
-      return res.json();
+      const data = await res.json();
+      // The endpoint returns { classrooms, total }, not a bare array. Normalize
+      // so callers can safely `.map` over the result.
+      return Array.isArray(data) ? data : (data?.classrooms ?? []);
     },
   });
 

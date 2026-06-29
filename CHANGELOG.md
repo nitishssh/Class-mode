@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.8.0.1] - 2026-06-27
+
+### Added
+
+- **Asynchronous Background Tutor Grading** — Integrated a Gemini 2.0 Flash powered background grading service (`gradeTutorTurn`) executing out-of-band on Express `res.on("finish")` to evaluate student attempts against SM-2 recall scores (0-5) and update BKT mastery without blocking chat rendering.
+- **Grader Resiliency and Timeout Checks** — Implemented 8-second request abort signal timeouts and robust regex-based JSON extraction in `grader-service.ts` to ensure clean recovery from malformed or fenced AI responses.
+- **Frontend Active Concept Displays and Event badges** — Passed active concepts from the Learn Hub into the tutoring sheet, showing the concept name dynamically in the header and intercepting automatic hint requests to render them as compact, non-invasive system event badges instead of standard user chat bubbles.
+- **Inline Chat Error Bubbles and Retries** — Introduced red system-error panels in the chat conversation log allowing students to retry requests inline after network or quota failures.
+- **Accessible Hint Touch Targets** — Configured a minimum 44px mobile touch target for the "Unlock Hint" trigger.
+
 ### Added
 
 - **Admin Dashboard Trends** — New `GET /api/admin/trends` endpoint returns a daily activity time series (signups, tests created, submissions, logins) over a configurable window plus an average-score-by-class breakdown. School admins and principals are scoped to their own school; super admins see all schools.

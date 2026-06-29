@@ -35,7 +35,7 @@ This repo is wired for the [Jules](https://jules.google) coding agent.
 - Two vitest configs: `vitest.config.ts` (root, CI) and `server/vitest.config.ts` (standalone server tests).
 - Test setup: `server/tests/setup.ts` — loads `.env.test`.
 - `server/tests/microservices-integration.test.ts` is excluded from server vitest config.
-- Excluded from root test glob: `e2e/`, `features/`, `mobile/`.
+- Excluded from root test glob: `e2e/`, `features/`.
 - MongoDB required for meaningful tests (`MONGODB_URL` env var).
 
 ## Pilot School & Testing
@@ -53,7 +53,6 @@ Single `package.json` (no monorepo tool). Key directories:
 - `client/` — Vite + React 18 (`root: client/`, entry: `client/src/main.tsx`)
 - `server/` — Express (entry: `server/index.ts`, routes: `server/routes/*.ts`)
 - `shared/` — Zod schemas + Mongoose models, imported via `@shared/*`
-- `mobile/` — Expo Router (`cd mobile && npm start`)
 - `features/ai-classroom/` — Study Arena + IniClaw (separate Docker services)
 - `services/iniclaw/` — IniClaw agent gateway (Docker compose profile)
 

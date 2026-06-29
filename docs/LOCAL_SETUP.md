@@ -143,6 +143,7 @@ npx tsx server/scripts/seed-pilot.ts
 ```
 
 This creates:
+
 - An admin user (`nitish_admin` / `PilotPassword123!`)
 - A workspace ("Pilot Headquarters")
 - A general chat channel

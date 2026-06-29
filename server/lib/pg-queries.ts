@@ -963,7 +963,6 @@ export async function pgFindSchoolClassesByTeacher(uid: string): Promise<PgSchoo
   }
 }
 
-
 export async function pgFindSchoolClassesBySchoolId(schoolId: number): Promise<PgSchoolClass[]> {
   if (!isPgReady()) return [];
   try {
@@ -989,7 +988,10 @@ export async function pgDeleteSchoolClass(id: number): Promise<boolean> {
   }
 }
 
-export async function pgUpdateSchoolClass(id: number, data: { name?: string, grade?: string }): Promise<PgSchoolClass | null> {
+export async function pgUpdateSchoolClass(
+  id: number,
+  data: { name?: string; grade?: string }
+): Promise<PgSchoolClass | null> {
   if (!isPgReady()) return null;
   try {
     const updates = [];
@@ -1004,7 +1006,7 @@ export async function pgUpdateSchoolClass(id: number, data: { name?: string, gra
       params.push(data.grade);
     }
     if (updates.length === 0) return pgFindSchoolClassById(id);
-    
+
     const { rows } = await getPgPool().query(
       `UPDATE school_classes SET ${updates.join(", ")} WHERE id = $1 RETURNING *`,
       params
@@ -2127,5 +2129,58 @@ export async function pgIncrementAIUsage(data: {
     );
   } catch (err) {
     logger.error("[pg] pgIncrementAIUsage failed", { err: String(err) });
+  }
+}
+
+// ─── Learning Resources (Learn hub → Read tab) ───────────────────────────────
+
+export interface PgResource {
+  id: number;
+  title: string;
+  description: string | null;
+  type: string;
+  subject: string | null;
+  topic: string | null;
+  url: string | null;
+  created_at: string;
+}
+
+/**
+ * Lists learning resources, optionally filtered by topic / subject / type.
+ * `topic` matches case-insensitively against either the topic or the title so a
+ * student's free-text topic ("electromagnetism") finds loosely-tagged content.
+ */
+export async function pgGetResources(filters: {
+  topic?: string;
+  subject?: string;
+  type?: string;
+}): Promise<PgResource[]> {
+  if (!isPgReady()) return [];
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+  let i = 1;
+  if (filters.topic) {
+    conditions.push(`(lower(topic) LIKE $${i} OR lower(title) LIKE $${i})`);
+    params.push(`%${filters.topic.toLowerCase()}%`);
+    i++;
+  }
+  if (filters.subject) {
+    conditions.push(`lower(subject) = $${i++}`);
+    params.push(filters.subject.toLowerCase());
+  }
+  if (filters.type) {
+    conditions.push(`type = $${i}`);
+    params.push(filters.type);
+  }
+  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+  try {
+    const { rows } = await getPgPool().query(
+      `SELECT * FROM resources ${where} ORDER BY created_at DESC LIMIT 60`,
+      params
+    );
+    return rows as PgResource[];
+  } catch (err) {
+    logger.error("[pg] pgGetResources failed", { err: String(err) });
+    return [];
   }
 }

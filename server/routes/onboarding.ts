@@ -49,7 +49,9 @@ const router = Router();
 // this resolves to their authSubject (email) — keeping schools/classes keyed
 // consistently per user regardless of auth provider.
 function firebaseUid(req: Request): string {
-  return (req.session as any).firebaseUid as string;
+  const sessionUid = req.session ? (req.session as any).firebaseUid : null;
+  const userUid = (req as any).user?.firebaseUid || (req as any).user?.authSubject;
+  return (sessionUid || userUid) as string;
 }
 
 // The authenticated numeric user id, populated by authenticateToken. This is
@@ -537,7 +539,7 @@ router.post(
   requireRole("school_admin", "admin"),
   async (req: Request, res: Response) => {
     const uid = firebaseUid(req);
-    const actorRole = (req.session as any).role as string;
+    const actorRole = ((req as any).user?.role || (req.session as any)?.role) as string;
     const parsed = staffInviteSchema.safeParse(req.body);
     if (!parsed.success)
       return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });

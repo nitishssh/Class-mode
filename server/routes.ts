@@ -13,9 +13,11 @@ import gdprRoutes from "./routes/gdpr";
 import billingRoutes from "./routes/billing";
 import lmsRoutes from "./routes/lms";
 import educatorRoutes from "./routes/educator";
+import resourcesRoutes from "./routes/resources";
 import parentRoutes from "./routes/parent";
 import gradingRoutes from "./routes/grading";
 import aiClassroomRoutes from "./routes/ai-classroom";
+import studyArenaBetaRoutes from "./routes/study-arena-beta";
 import { liveRouter } from "./routes/live";
 import messageRoutes from "./message/routes";
 
@@ -54,10 +56,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/messagepal", messageRoutes);
   app.use("/api/live", ...verifiedAuth, liveRouter);
   app.use("/api/ai-classroom", aiClassroomRoutes);
+  app.use("/api/study-arena-beta", studyArenaBetaRoutes);
   app.use("/api/grading", ...verifiedAuth, gradingRoutes);
   app.use("/api/educator", ...verifiedAuth, educatorRoutes);
+  app.use("/api/resources", ...verifiedAuth, resourcesRoutes);
   app.use("/api/parent", ...verifiedAuth, parentRoutes);
-  app.use("/api/billing", ...verifiedAuth, billingRoutes);
+  // Stripe posts to /api/billing/webhook with no app session/token, so it must
+  // bypass verifiedAuth. Run the auth chain only for the other billing routes;
+  // signature verification (in billing.ts) is what authenticates the webhook.
+  app.use(
+    "/api/billing",
+    (req: Request, res: Response, next: express.NextFunction) => {
+      if (req.path === "/webhook") return next();
+      let i = 0;
+      const runNext = (err?: unknown): void => {
+        if (err) return next(err as any);
+        const mw = verifiedAuth[i++];
+        if (!mw) return next();
+        mw(req, res, runNext);
+      };
+      runNext();
+    },
+    billingRoutes
+  );
   app.use("/api/lms", ...verifiedAuth, lmsRoutes);
   app.use("/api/dynamic-sis", dynamicSisRouter);
   app.use("/api/lifecycle", authenticateToken, lifecycleRouter);

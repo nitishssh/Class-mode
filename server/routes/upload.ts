@@ -15,7 +15,8 @@ router.post("/", authenticateToken, upload.single("file"), (req: Request, res: R
     }
 
     const url = diskPathToUrl(req.file.path);
-    logger.info(`[upload] file uploaded`, { userId: req.session!.userId });
+    const userId = (req as any).user?.id || req.session?.userId;
+    logger.info(`[upload] file uploaded`, { userId });
 
     return res.status(200).json({
       url,

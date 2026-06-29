@@ -1,6 +1,7 @@
 ## Useful Commands
 
 ### Development
+
 - `npm run dev` - Start dev server (port 5001)
 - `npm run check` - Type check
 - `npm run migrate` - Apply DB schema from `scripts/pg-schema.sql` (idempotent; run on new or drifted databases)
@@ -10,6 +11,7 @@
 - `npx playwright test` - Run E2E tests
 
 ### Pilot School & Testing
+
 - `npx tsx server/scripts/seed-pilot.ts` - Seed pilot school data
 - `npx tsx scripts/simulate-pilot-school.ts` - Run pilot school AI simulation
 - `npx tsx scripts/test-db.ts` - Test database connectivity

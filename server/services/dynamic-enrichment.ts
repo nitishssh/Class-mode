@@ -97,14 +97,20 @@ export class DynamicEnrichmentService {
 
       logger.info(`[Enrichment] Processing record ${recordId} for table ${tableId}`);
 
-      // Process each enrichment field
+      // Process each enrichment field, propagating computed values so that
+      // later fields can reference values produced by earlier ones.
+      const currentData: Record<string, any> = { ...record.data };
       for (const field of enrichmentFields) {
+        let updatedValue: string | null = null;
         if (field.type === "ai_enrichment") {
-          await this.handleAIEnrichment(recordId, record.data, field);
+          updatedValue = await this.handleAIEnrichment(recordId, currentData, field);
         } else if (field.type === "api_fetch") {
-          await this.handleAPIFetch(recordId, record.data, field);
+          updatedValue = await this.handleAPIFetch(recordId, currentData, field);
         } else if (field.type === "formula") {
-          await this.handleFormula(recordId, record.data, field);
+          updatedValue = await this.handleFormula(recordId, currentData, field);
+        }
+        if (updatedValue !== null) {
+          currentData[field.name] = updatedValue;
         }
       }
     } catch (error) {
@@ -126,36 +132,40 @@ export class DynamicEnrichmentService {
    * Handles AI Prompt columns (Clay.com style)
    */
   private async handleAIEnrichment(
-    recordId: string, 
-    data: Record<string, any>, 
+    recordId: string,
+    data: Record<string, any>,
     field: DynamicField
-  ): Promise<void> {
+  ): Promise<string | null> {
     const promptTemplate = field.config?.prompt as string;
-    if (!promptTemplate) return;
+    if (!promptTemplate) return null;
 
     const finalPrompt = DynamicEnrichmentService.interpolate(promptTemplate, data);
-    
+
     // Check if interpolation changed anything or if required variables are missing
     if (finalPrompt.includes("{{")) {
       logger.warn(`[Enrichment] Skipping AI for ${recordId}: Missing data for template variables.`);
-      return;
+      return null;
     }
 
     try {
       logger.info(`[Enrichment] Running AI for ${field.name} on record ${recordId}`);
-      
+
       const response = await geminiChat(
         "You are an expert school administrator assistant. Provide concise, helpful responses based on the provided data.",
         finalPrompt
       );
 
+      const value = response.trim();
       // Save result back to the record
-      await pgUpdateRecord(recordId, { [field.name]: response.trim() });
-      
+      await pgUpdateRecord(recordId, { [field.name]: value });
+
       logger.info(`[Enrichment] AI completed for ${field.name} on record ${recordId}`);
+      return value;
     } catch (error) {
       logger.error(`[Enrichment] AI failed for ${field.name}`, { error: String(error) });
-      await pgUpdateRecord(recordId, { [field.name]: `Error: ${String(error)}` });
+      const errorValue = `Error: ${String(error)}`;
+      await pgUpdateRecord(recordId, { [field.name]: errorValue });
+      return errorValue;
     }
   }
 
@@ -166,21 +176,24 @@ export class DynamicEnrichmentService {
     recordId: string,
     data: Record<string, any>,
     field: DynamicField
-  ): Promise<void> {
+  ): Promise<string | null> {
     const formulaTemplate = field.config?.formula as string;
-    if (!formulaTemplate) return;
+    if (!formulaTemplate) return null;
 
     const interpolated = DynamicEnrichmentService.interpolate(formulaTemplate, data);
 
     try {
       if (/^[0-9+\-*/().\s]+$/.test(interpolated)) {
-        const result = safeMathEval(interpolated);
-        await pgUpdateRecord(recordId, { [field.name]: String(result) });
+        const result = String(safeMathEval(interpolated));
+        await pgUpdateRecord(recordId, { [field.name]: result });
+        return result;
       } else {
         await pgUpdateRecord(recordId, { [field.name]: interpolated });
+        return interpolated;
       }
     } catch (error) {
       await pgUpdateRecord(recordId, { [field.name]: "#ERROR!" });
+      return "#ERROR!";
     }
   }
 
@@ -189,20 +202,21 @@ export class DynamicEnrichmentService {
    * Handles external API fetches
    */
   private async handleAPIFetch(
-    recordId: string, 
-    data: Record<string, any>, 
+    recordId: string,
+    data: Record<string, any>,
     field: DynamicField
-  ): Promise<void> {
+  ): Promise<string | null> {
     const urlTemplate = field.config?.url as string;
-    if (!urlTemplate) return;
+    if (!urlTemplate) return null;
 
     const finalUrl = DynamicEnrichmentService.interpolate(urlTemplate, data);
-    if (finalUrl.includes("{{")) return;
+    if (finalUrl.includes("{{")) return null;
 
     if (isPrivateUrl(finalUrl)) {
       logger.warn(`[Enrichment] Blocked SSRF attempt to private URL: ${finalUrl}`);
-      await pgUpdateRecord(recordId, { [field.name]: "#BLOCKED: private URL not allowed" });
-      return;
+      const blockedValue = "#BLOCKED: private URL not allowed";
+      await pgUpdateRecord(recordId, { [field.name]: blockedValue });
+      return blockedValue;
     }
 
     try {
@@ -211,8 +225,10 @@ export class DynamicEnrichmentService {
       const result = typeof json === "object" ? JSON.stringify(json) : String(json);
 
       await pgUpdateRecord(recordId, { [field.name]: result });
+      return result;
     } catch (error) {
       logger.error(`[Enrichment] API Fetch failed for ${field.name}`, { error: String(error) });
+      return null;
     }
   }
 }
