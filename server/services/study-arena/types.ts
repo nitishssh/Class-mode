@@ -13,7 +13,7 @@
  * route ↔ orchestrator boundary.
  */
 
-export type {
+import type {
   AgentInfo,
   AgentTurnSummary,
   WhiteboardActionRecord,
@@ -22,7 +22,14 @@ export type {
   StatelessEvent,
 } from "@shared/study-arena";
 
-import type { AgentInfo } from "@shared/study-arena";
+export type {
+  AgentInfo,
+  AgentTurnSummary,
+  WhiteboardActionRecord,
+  DirectorState,
+  StatelessChatRequest,
+  StatelessEvent,
+};
 
 // ── Generation-pipeline types (server-only) ───────────────────────────────
 // `SceneType`/`WidgetType` here intentionally differ from the playback enums
