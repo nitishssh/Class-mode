@@ -13,6 +13,7 @@ This report details the evaluation of the AI predictive features for our mock pi
 **Total Scenes Generated:** 1
 
 **Classroom Preview (First Scene):**
+
 ```json
 {
   "sceneId": "scene1",
@@ -40,17 +41,20 @@ This report details the evaluation of the AI predictive features for our mock pi
 **Overall Score:** 8 / undefined
 
 **Overall Feedback:**
+
 > Good overall understanding, but missed some key details.
 
 ### Strengths
+
 - Clear explanation of the basic process
 - Mentions sunlight, water, and CO2
 
 ### Areas for Improvement
+
 - Missed the connection to the food chain
 
 **Detailed Question Grading:**
+
 ```json
 undefined
 ```
-

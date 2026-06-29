@@ -76,10 +76,10 @@ export async function generateContentFromPdf(
       {
         inlineData: {
           data: pdfBuffer.toString("base64"),
-          mimeType: "application/pdf"
-        }
+          mimeType: "application/pdf",
+        },
       },
-      { text: prompt }
+      { text: prompt },
     ],
     options.signal ? { signal: options.signal } : undefined
   );

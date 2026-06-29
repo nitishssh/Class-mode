@@ -58,7 +58,8 @@ async function seedPilotData() {
   const messageData: InsertMessage = {
     channelId: channel.id,
     authorId: pilot.id,
-    content: "Welcome to the pilot environment. This is a real mock message to test the chat feature.",
+    content:
+      "Welcome to the pilot environment. This is a real mock message to test the chat feature.",
     type: "text",
     isHomework: false,
     readBy: [pilot.id],
