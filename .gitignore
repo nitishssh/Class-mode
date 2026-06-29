@@ -5,11 +5,6 @@
 .env.local
 .env.*.local
 
-# Mobile
-mobile/.env
-mobile/.env.*
-mobile/.expo/
-
 # Database config and keys
 config/*.zip
 firebase-keys.json
