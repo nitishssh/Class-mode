@@ -36,12 +36,29 @@
 - [x] **2.2** Remove dependency on `server/services/study-arena-client.ts` (old bridge client)
 - [x] **2.3** Remove legacy auth bridge (dead code)
 
-## Phase 3: Multi-Agent Orchestration (Partial)
+## Phase 3: Multi-Agent Orchestration ✅
 
-- [ ] **3.1** Port `director-graph.ts` (requires `@langchain/langgraph` dependency)
-- [ ] **3.2** Port `prompt-builder.ts` for agent-specific system prompts
-- [ ] **3.3** Port `director-prompt.ts` for turn-taking decisions
+> **Status corrected 2026-06-29:** the port was already complete in code; the
+> checkboxes below were stale. `@langchain/langgraph@^1.3.2` + `@langchain/core`
+> are installed, the director graph is wired into the SSE endpoint
+> `POST /api/ai-classroom/chat`, and the client drives it from
+> `client/src/hooks/use-orchestrator.ts`. Remaining work was verification +
+> de-duplicating the wire-contract types, now done.
+
+- [x] **3.1** Port `director-graph.ts` (LangGraph `StateGraph`: director → agent_generate loop)
+- [x] **3.2** Port `prompt-builder.ts` for agent-specific system prompts
+- [x] **3.3** Port `director-prompt.ts` for turn-taking decisions
 - [x] **3.4** Simplified Action Loop: Added logic to generate multi-agent actions for each scene
+- [x] **3.5** Unify the `StatelessChatRequest`/`StatelessEvent` wire contract on
+      `@shared/study-arena` (was duplicated + drifting in `services/study-arena/types.ts`)
+- [x] **3.6** Unit tests for the streaming parser (`parseStructuredChunk`) and
+      director turn-taking (`parseDirectorDecision`) —
+      `server/tests/study-arena-orchestration.test.ts`
+
+**Design note:** orchestration is *client-pumped* — `buildInitialState` sets
+`maxTurns = turnCount + 1`, so each HTTP request advances exactly one agent turn
+and returns `directorState`; the client re-calls to continue the roundtable. See
+ADR `0001-client-pumped-orchestration.md`.
 
 ## Phase 4: Polish & Advanced Features
 
@@ -57,5 +74,5 @@
 | --------------------- | ------------------ | ------------ |
 | Phase 1 (Backend)     | ✅ Complete        | 100% (10/10) |
 | Phase 2 (Frontend)    | ✅ Complete        | 100% (3/3)   |
-| Phase 3 (Multi-Agent) | 🔄 Partial         | 25% (1/4)    |
+| Phase 3 (Multi-Agent) | ✅ Complete        | 100% (6/6)   |
 | Phase 4 (Polish)      | 🔄 Mostly Complete | 80% (4/5)    |
