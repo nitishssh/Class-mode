@@ -32,11 +32,18 @@ jobs:
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@dc73d59c2d7bd4f8194098a91219eeee6d8a1719 # v4
+        # Tolerate "code scanning is not enabled for this repository": until the
+        # repo's Code Scanning setting is turned on (Settings → Code security),
+        # CodeQL can't upload results and the job hard-fails on every PR. These
+        # continue-on-error flags keep it non-blocking; remove them once Code
+        # Scanning is enabled so real CodeQL failures surface again.
+        continue-on-error: true
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@dc73d59c2d7bd4f8194098a91219eeee6d8a1719 # v4
+        continue-on-error: true
         with:
           category: "/language:${{ matrix.language }}"
