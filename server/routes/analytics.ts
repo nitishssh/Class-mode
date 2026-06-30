@@ -420,20 +420,42 @@ router.get("/admin/stats", authenticateToken, async (req: Request, res: Response
     }
 
     if (!isPgReady()) return res.status(503).json({ message: "Database unavailable" });
+
+    const admin = await pgFindUserById(req.session.userId);
+    if (!admin) return res.status(400).json({ message: "Admin not found" });
+
+    // Tenant isolation: only the platform-level "admin" sees cross-school
+    // totals. School admins / principals are scoped to their own school; an
+    // account with no schoolCode is denied rather than shown global counts.
+    const isPlatformAdmin = admin.role === "admin";
+    if (!isPlatformAdmin && !admin.schoolCode) {
+      return res
+        .status(403)
+        .json({ message: "Forbidden: your account is not associated with a school yet" });
+    }
+    const sc = admin.schoolCode || "";
+
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const pool2 = getPgPool();
 
     const [studentCount, teacherCount, testsThisMonth, submissionsThisMonth] = await Promise.all([
-      pgCountUsers({ role: "student" }),
-      pgCountUsers({ role: "teacher" }),
+      pgCountUsers(isPlatformAdmin ? { role: "student" } : { role: "student", schoolCode: sc }),
+      pgCountUsers(isPlatformAdmin ? { role: "teacher" } : { role: "teacher", schoolCode: sc }),
       pool2
-        .query("SELECT COUNT(*) FROM tests WHERE created_at >= $1", [startOfMonth])
+        .query(
+          isPlatformAdmin
+            ? "SELECT COUNT(*) FROM tests WHERE created_at >= $1"
+            : "SELECT COUNT(*) FROM tests t JOIN users u ON t.teacher_id = u.id AND u.school_code = $2 WHERE t.created_at >= $1",
+          isPlatformAdmin ? [startOfMonth] : [startOfMonth, sc]
+        )
         .then((r) => parseInt(r.rows[0].count)),
       pool2
         .query(
-          "SELECT COUNT(*) FROM test_attempts WHERE status IN ('completed','evaluated') AND end_time >= $1",
-          [startOfMonth]
+          isPlatformAdmin
+            ? "SELECT COUNT(*) FROM test_attempts WHERE status IN ('completed','evaluated') AND end_time >= $1"
+            : "SELECT COUNT(*) FROM test_attempts ta JOIN users u ON ta.student_id = u.id AND u.school_code = $2 WHERE ta.status IN ('completed','evaluated') AND ta.end_time >= $1",
+          isPlatformAdmin ? [startOfMonth] : [startOfMonth, sc]
         )
         .then((r) => parseInt(r.rows[0].count)),
     ]);
@@ -507,8 +529,15 @@ router.get("/admin/trends", authenticateToken, async (req: Request, res: Respons
     const pool = getPgPool();
     const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - (days - 1));
 
-    // Super-admins ("admin") see all schools; everyone else is scoped to their own.
-    const scoped = admin.role !== "admin" && !!admin.schoolCode;
+    // Super-admins ("admin") see all schools; everyone else is scoped to their
+    // own. An account without a schoolCode must be denied — falling through to
+    // an unscoped query would expose every school's signups, logins and tests.
+    if (admin.role !== "admin" && !admin.schoolCode) {
+      return res
+        .status(403)
+        .json({ message: "Forbidden: your account is not associated with a school yet" });
+    }
+    const scoped = admin.role !== "admin";
     const sc = admin.schoolCode || "";
 
     const [signupRows, testRows, submissionRows, loginRows, classRows] = await Promise.all([

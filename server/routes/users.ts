@@ -165,7 +165,16 @@ router.get("/users", authenticateToken, async (req: Request, res: Response) => {
     if (role) {
       filters.role = role;
     }
-    if (admin.schoolCode && admin.role !== "admin") {
+    // Tenant isolation: only the platform-level "admin" super-role may list
+    // users across all schools. Everyone else is scoped to their own school —
+    // and an account without a schoolCode must be denied rather than fall
+    // through to an unscoped (global) query, which would leak every school.
+    if (admin.role !== "admin") {
+      if (!admin.schoolCode) {
+        return res
+          .status(403)
+          .json({ message: "Forbidden: your account is not associated with a school yet" });
+      }
       filters.schoolCode = admin.schoolCode;
     }
 
@@ -587,7 +596,14 @@ router.get("/admin/logs", authenticateToken, async (req: Request, res: Response)
     `;
     const queryParams: (string | number)[] = [];
 
-    if (admin.role !== "admin" && admin.schoolCode) {
+    // Tenant isolation: non-platform admins only see their own school's audit
+    // log. A missing schoolCode must fail closed, not return every school's log.
+    if (admin.role !== "admin") {
+      if (!admin.schoolCode) {
+        return res
+          .status(403)
+          .json({ message: "Forbidden: your account is not associated with a school yet" });
+      }
       queryText += ` WHERE ae.school_code = $1 `;
       queryParams.push(admin.schoolCode);
     }

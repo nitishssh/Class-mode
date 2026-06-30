@@ -14,6 +14,7 @@ import {
   pgFindSchoolById,
   pgUpsertSchool,
   pgFindUsers,
+  pgCountUsers,
   pgUpdateUser,
   pgDeleteUser,
   isPgReady,
@@ -38,6 +39,7 @@ vi.mock("../lib/pg-queries", () => ({
   pgFindSchoolById: vi.fn(),
   pgUpsertSchool: vi.fn(),
   pgFindUsers: vi.fn(),
+  pgCountUsers: vi.fn(),
   pgCreateUser: vi.fn(),
   pgUpdateUser: vi.fn(),
   pgDeleteUser: vi.fn(),
@@ -327,6 +329,57 @@ describe("Admin Dashboard API", () => {
     });
   });
 
+  describe("GET /api/admin/stats", () => {
+    it("scopes counts to the admin's school for a school_admin with a schoolCode", async () => {
+      const schoolAdminToken = jwt.sign(
+        { userId: 103, role: "school_admin", email: "sadmin@school.com" },
+        TEST_SECRET
+      );
+      (pgFindUserById as Mock).mockImplementation((id: number) => {
+        if (id === 103) {
+          return Promise.resolve({
+            id: 103,
+            role: "school_admin",
+            schoolCode: "SCHOOL123",
+            status: "active",
+            emailVerified: true,
+          });
+        }
+        return Promise.resolve(null);
+      });
+      (pgCountUsers as Mock).mockResolvedValue(5);
+      (getPgPool as Mock).mockReturnValue({
+        query: vi.fn().mockResolvedValue({ rows: [{ count: "3" }] }),
+      });
+
+      const res = await request(app)
+        .get("/api/admin/stats")
+        .set("Authorization", `Bearer ${schoolAdminToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.totalStudents).toBe(5);
+      // The scoping is the whole point of the fix: counts must carry schoolCode.
+      expect(pgCountUsers).toHaveBeenCalledWith({ role: "student", schoolCode: "SCHOOL123" });
+      expect(pgCountUsers).toHaveBeenCalledWith({ role: "teacher", schoolCode: "SCHOOL123" });
+    });
+
+    it("returns unscoped counts for the platform admin", async () => {
+      (pgCountUsers as Mock).mockResolvedValue(42);
+      (getPgPool as Mock).mockReturnValue({
+        query: vi.fn().mockResolvedValue({ rows: [{ count: "7" }] }),
+      });
+
+      const res = await request(app)
+        .get("/api/admin/stats")
+        .set("Authorization", `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.totalStudents).toBe(42);
+      // Platform admin (role "admin") sees every school — no schoolCode filter.
+      expect(pgCountUsers).toHaveBeenCalledWith({ role: "student" });
+    });
+  });
+
   describe("POST /api/admin/keys", () => {
     it("should generate an API key", async () => {
       const res = await request(app)
@@ -514,6 +567,67 @@ describe("Admin Dashboard API", () => {
           .send({ name: "Hacker" });
 
         expect(res.status).toBe(403);
+      });
+
+      // Regression: a school_admin / principal whose account has no schoolCode
+      // (e.g. self-signup before completing school setup) must NOT fall through
+      // to an unscoped, cross-tenant query. These endpoints must fail closed.
+      describe("scoping fails closed when schoolCode is missing", () => {
+        const noSchoolToken = jwt.sign(
+          { userId: 102, role: "school_admin", email: "fresh@school.com" },
+          TEST_SECRET
+        );
+
+        beforeEach(() => {
+          (pgFindUserById as Mock).mockImplementation((id: number) => {
+            if (id === 102) {
+              return Promise.resolve({
+                id: 102,
+                role: "school_admin",
+                schoolCode: null,
+                schoolId: null,
+                status: "active",
+                emailVerified: true,
+              });
+            }
+            return Promise.resolve(null);
+          });
+        });
+
+        it("GET /api/users denies a school_admin without a schoolCode", async () => {
+          (pgFindUsers as Mock).mockResolvedValue([{ id: 1 }, { id: 2 }]);
+
+          const res = await request(app)
+            .get("/api/users")
+            .set("Authorization", `Bearer ${noSchoolToken}`);
+
+          expect(res.status).toBe(403);
+          expect(pgFindUsers).not.toHaveBeenCalled();
+        });
+
+        it("GET /api/admin/logs denies a school_admin without a schoolCode", async () => {
+          const res = await request(app)
+            .get("/api/admin/logs")
+            .set("Authorization", `Bearer ${noSchoolToken}`);
+
+          expect(res.status).toBe(403);
+        });
+
+        it("GET /api/admin/trends denies a school_admin without a schoolCode", async () => {
+          const res = await request(app)
+            .get("/api/admin/trends")
+            .set("Authorization", `Bearer ${noSchoolToken}`);
+
+          expect(res.status).toBe(403);
+        });
+
+        it("GET /api/admin/stats denies a school_admin without a schoolCode", async () => {
+          const res = await request(app)
+            .get("/api/admin/stats")
+            .set("Authorization", `Bearer ${noSchoolToken}`);
+
+          expect(res.status).toBe(403);
+        });
       });
 
       it("should prevent school_admin from deleting a class from another school", async () => {
