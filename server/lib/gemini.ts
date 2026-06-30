@@ -15,6 +15,59 @@ function getGenAI() {
   return genAI;
 }
 
+export function isGeminiConfigured(): boolean {
+  return Boolean(process.env.GOOGLE_API_KEY);
+}
+
+/**
+ * Boot-time health check for the Gemini provider.
+ *
+ * Without this, a missing or blocked API key only surfaces deep inside a
+ * feature (e.g. a 403 API_KEY_SERVICE_BLOCKED mid-lesson-generation), with no
+ * obvious cause. This fires a tiny generateContent call at startup and logs a
+ * loud, actionable warning so the operator can fix credentials before users
+ * hit the failure. Best-effort: never throws, never blocks boot.
+ */
+export async function verifyGeminiAccess(): Promise<void> {
+  if (!isGeminiConfigured()) {
+    logger.warn(
+      "[Gemini] GOOGLE_API_KEY not set — AI tutor, grading, test generation, and " +
+        "Study Arena will be unavailable. Set GOOGLE_API_KEY to enable AI features."
+    );
+    return;
+  }
+
+  try {
+    const ai = getGenAI();
+    if (!ai) return;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const model = ai.getGenerativeModel({ model: "gemini-2.0-flash" });
+    await model.generateContent(
+      { contents: [{ role: "user", parts: [{ text: "ping" }] }] },
+      { signal: controller.signal }
+    );
+    clearTimeout(timeoutId);
+    logger.info("[Gemini] Provider health check passed — AI features are live.");
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/API_KEY_SERVICE_BLOCKED|blocked/i.test(msg)) {
+      logger.error(
+        "[Gemini] API key is BLOCKED for the Generative Language API. " +
+          "Enable 'generativelanguage.googleapis.com' for this GCP project and remove any " +
+          "API key restrictions, or issue a new unrestricted key. AI features will fail until fixed."
+      );
+    } else if (/403|PERMISSION_DENIED|API_KEY_INVALID|invalid/i.test(msg)) {
+      logger.error(
+        "[Gemini] API key was rejected (invalid or unauthorized). " +
+          `Verify GOOGLE_API_KEY. Underlying error: ${msg}`
+      );
+    } else {
+      logger.warn(`[Gemini] Provider health check failed (non-fatal): ${msg}`);
+    }
+  }
+}
+
 export async function geminiChat(
   systemPrompt: string,
   userPrompt: string,
