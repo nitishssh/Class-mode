@@ -83,18 +83,34 @@ async function main() {
     const mockSubmission = {
       submissionId: `sim_sub_${Date.now()}`,
       studentId: 101,
-      content: "The Pythagorean theorem is a^2 + b^2 = c^2. It is used to find the length of the hypotenuse in a right triangle if you know the other two sides.",
+      content:
+        "The Pythagorean theorem is a^2 + b^2 = c^2. It is used to find the length of the hypotenuse in a right triangle if you know the other two sides.",
       contentType: "text" as const,
       rubric: {
         title: "Pythagorean Theorem Essay",
         gradingType: "essay" as const,
         totalPoints: 10,
         criteria: [
-          { name: "Mentions Formula", description: "Mentions a^2 + b^2 = c^2", maxPoints: 4, weight: 0.4 },
-          { name: "Mentions Right Triangle", description: "Mentions right-angled triangles", maxPoints: 3, weight: 0.3 },
-          { name: "Explains Usage", description: "Explains finding unknown side", maxPoints: 3, weight: 0.3 }
-        ]
-      }
+          {
+            name: "Mentions Formula",
+            description: "Mentions a^2 + b^2 = c^2",
+            maxPoints: 4,
+            weight: 0.4,
+          },
+          {
+            name: "Mentions Right Triangle",
+            description: "Mentions right-angled triangles",
+            maxPoints: 3,
+            weight: 0.3,
+          },
+          {
+            name: "Explains Usage",
+            description: "Explains finding unknown side",
+            maxPoints: 3,
+            weight: 0.3,
+          },
+        ],
+      },
     };
 
     reportContent += `**Subject:** Math (10th Grade)\n`;

@@ -76,13 +76,24 @@ export function buildLearnerContext(
   const weak = snapshot.mastery.filter((m) => m.pMastery < WEAK).map((m) => m.concept);
   const strong = snapshot.mastery.filter((m) => m.pMastery >= STRONG).map((m) => m.concept);
   if (weak.length) lines.push(`Weak (reteach/scaffold heavily): ${weak.slice(0, 8).join(", ")}.`);
-  if (strong.length) lines.push(`Strong (fade support, stretch): ${strong.slice(0, 8).join(", ")}.`);
+  if (strong.length)
+    lines.push(`Strong (fade support, stretch): ${strong.slice(0, 8).join(", ")}.`);
 
   if (snapshot.dueReviews.length) {
-    lines.push(`Due for review now: ${snapshot.dueReviews.map((r) => r.concept).slice(0, 8).join(", ")}.`);
+    lines.push(
+      `Due for review now: ${snapshot.dueReviews
+        .map((r) => r.concept)
+        .slice(0, 8)
+        .join(", ")}.`
+    );
   }
   if (snapshot.recentMemory.length) {
-    lines.push(`Remembered about this student: ${snapshot.recentMemory.slice(0, 3).map((n) => n.note).join(" | ")}.`);
+    lines.push(
+      `Remembered about this student: ${snapshot.recentMemory
+        .slice(0, 3)
+        .map((n) => n.note)
+        .join(" | ")}.`
+    );
   }
 
   if (opts.graded) {

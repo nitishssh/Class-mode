@@ -32,7 +32,11 @@ const clamp01 = (x: number): number => (x < 0 ? 0 : x > 1 ? 1 : x);
  * correct, compute the posterior (accounting for guess/slip) and then apply the
  * learning transition. Returns the new P(known) in [0,1]. Pure and synchronous.
  */
-export function bktUpdate(pKnown: number, correct: boolean, params: BktParams = DEFAULT_BKT): number {
+export function bktUpdate(
+  pKnown: number,
+  correct: boolean,
+  params: BktParams = DEFAULT_BKT
+): number {
   const { pLearn, pSlip, pGuess } = params;
   const prior = clamp01(pKnown);
   const num = correct ? prior * (1 - pSlip) : prior * pSlip;

@@ -18,30 +18,34 @@ vi.mock("../middleware", () => ({
 }));
 
 vi.mock("../lib/pg-queries", () => ({
-  pgGetTimetableByWorkspace: vi.fn().mockResolvedValue([{
-    id: 1,
-    subject: "Math",
-    room: null,
-    day_of_week: 1,
-    period_number: 1,
-    class_name: "10A",
-    teacher_id: 1,
-    start_time: "08:00",
-    end_time: "08:45",
-    workspace_id: 1
-  }]),
-  pgGetTimetableByClass: vi.fn().mockResolvedValue([{
-    id: 2,
-    subject: "Science",
-    room: null,
-    day_of_week: 1,
-    period_number: 2,
-    class_name: "10A",
-    teacher_id: 1,
-    start_time: "08:45",
-    end_time: "09:30",
-    workspace_id: 1
-  }]),
+  pgGetTimetableByWorkspace: vi.fn().mockResolvedValue([
+    {
+      id: 1,
+      subject: "Math",
+      room: null,
+      day_of_week: 1,
+      period_number: 1,
+      class_name: "10A",
+      teacher_id: 1,
+      start_time: "08:00",
+      end_time: "08:45",
+      workspace_id: 1,
+    },
+  ]),
+  pgGetTimetableByClass: vi.fn().mockResolvedValue([
+    {
+      id: 2,
+      subject: "Science",
+      room: null,
+      day_of_week: 1,
+      period_number: 2,
+      class_name: "10A",
+      teacher_id: 1,
+      start_time: "08:45",
+      end_time: "09:30",
+      workspace_id: 1,
+    },
+  ]),
   pgCreateTimetableSlot: vi.fn().mockResolvedValue({
     id: 3,
     subject: "History",
@@ -52,7 +56,7 @@ vi.mock("../lib/pg-queries", () => ({
     teacher_id: 1,
     start_time: "10:00",
     end_time: "11:00",
-    workspace_id: 1
+    workspace_id: 1,
   }),
   pgDeleteTimetableSlot: vi.fn().mockImplementation(async (id) => id === 1),
 }));
@@ -82,18 +86,20 @@ describe("Timetable Routes", () => {
     it("returns timetable for workspace", async () => {
       const res = await request(app).get("/api/timetable").set("x-workspace-id", "1");
       expect(res.status).toBe(200);
-      expect(res.body).toEqual([{
-        id: 1,
-        subject: "Math",
-        room: null,
-        dayOfWeek: 1,
-        periodNumber: 1,
-        className: "10A",
-        teacherId: 1,
-        startTime: "08:00",
-        endTime: "08:45",
-        workspaceId: 1
-      }]);
+      expect(res.body).toEqual([
+        {
+          id: 1,
+          subject: "Math",
+          room: null,
+          dayOfWeek: 1,
+          periodNumber: 1,
+          className: "10A",
+          teacherId: 1,
+          startTime: "08:00",
+          endTime: "08:45",
+          workspaceId: 1,
+        },
+      ]);
     });
 
     it("returns 500 on db error", async () => {
@@ -113,18 +119,20 @@ describe("Timetable Routes", () => {
     it("returns class timetable", async () => {
       const res = await request(app).get("/api/timetable/class/10A").set("x-workspace-id", "1");
       expect(res.status).toBe(200);
-      expect(res.body).toEqual([{
-        id: 2,
-        subject: "Science",
-        room: null,
-        dayOfWeek: 1,
-        periodNumber: 2,
-        className: "10A",
-        teacherId: 1,
-        startTime: "08:45",
-        endTime: "09:30",
-        workspaceId: 1
-      }]);
+      expect(res.body).toEqual([
+        {
+          id: 2,
+          subject: "Science",
+          room: null,
+          dayOfWeek: 1,
+          periodNumber: 2,
+          className: "10A",
+          teacherId: 1,
+          startTime: "08:45",
+          endTime: "09:30",
+          workspaceId: 1,
+        },
+      ]);
     });
 
     it("returns 500 on db error", async () => {
@@ -161,7 +169,7 @@ describe("Timetable Routes", () => {
         teacherId: 1,
         startTime: "10:00",
         endTime: "11:00",
-        workspaceId: 1
+        workspaceId: 1,
       });
     });
 

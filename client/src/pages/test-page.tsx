@@ -103,7 +103,11 @@ export default function TestPage() {
       // Subtitle / Subject
       doc.setFont("helvetica", "normal");
       doc.setFontSize(12);
-      doc.text(`Subject: ${test.subject}  |  Duration: ${test.duration} minutes  |  Marks: ${test.totalMarks}`, 20, yOffset);
+      doc.text(
+        `Subject: ${test.subject}  |  Duration: ${test.duration} minutes  |  Marks: ${test.totalMarks}`,
+        20,
+        yOffset
+      );
       yOffset += 8;
 
       if (test.description) {
@@ -172,8 +176,9 @@ export default function TestPage() {
         let ansText = `Question ${idx + 1}: `;
         if (q.type === "mcq" && q.options) {
           const optionsArray = Array.isArray(q.options) ? q.options : [];
-          const correctIdx = optionsArray.findIndex((opt: any) => typeof opt === "object" && opt.isCorrect);
-          const correctLabel = correctIdx !== -1 ? String.fromCharCode(65 + correctIdx) : q.correctAnswer || "TBD";
+          const correctIdx = optionsArray.findIndex((opt: any) => opt?.isCorrect);
+          const correctLabel =
+            correctIdx !== -1 ? String.fromCharCode(65 + correctIdx) : q.correctAnswer || "TBD";
           ansText += correctLabel;
         } else {
           ansText += q.correctAnswer || "Subjective Evaluation";
@@ -192,7 +197,7 @@ export default function TestPage() {
       });
 
       doc.save(`${test.title.replace(/\s+/g, "_")}_test.pdf`);
-      
+
       toast({
         title: "Success",
         description: "PDF downloaded successfully",
@@ -419,7 +424,7 @@ export default function TestPage() {
             <div className="flex flex-col justify-center gap-4 sm:flex-row">
               <Button
                 onClick={handleDownloadPdf}
-                className="h-14 rounded-full bg-accent text-white px-10 font-bold shadow-soft transition-all hover:bg-accent/90 animate-pulse"
+                className="h-14 animate-pulse rounded-full bg-accent px-10 font-bold text-white shadow-soft transition-all hover:bg-accent/90"
               >
                 <Download className="mr-3 h-5 w-5" />
                 Download PDF
@@ -457,11 +462,11 @@ export default function TestPage() {
         />
 
         <div className="relative flex-1 overflow-y-auto bg-background/50 px-6 pb-24 md:px-12">
-          <div className="absolute right-8 top-8 hidden md:flex items-center gap-3">
+          <div className="absolute right-8 top-8 hidden items-center gap-3 md:flex">
             <Button
               variant="outline"
               onClick={handleDownloadPdf}
-              className="h-11 rounded-xl border-border bg-card px-5 text-xs font-bold uppercase tracking-widest text-muted-foreground shadow-soft hover:border-accent/40 hover:text-accent transition-all"
+              className="h-11 rounded-xl border-border bg-card px-5 text-xs font-bold uppercase tracking-widest text-muted-foreground shadow-soft transition-all hover:border-accent/40 hover:text-accent"
             >
               <Download className="mr-2 h-4 w-4 text-accent" />
               Download PDF

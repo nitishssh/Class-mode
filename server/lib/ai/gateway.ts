@@ -82,7 +82,7 @@ export interface ModelMapping {
 //
 //   orchestrator → openai / gpt-4o                  (today's GPT-4o chat path)
 //   fast         → gemini / gemini-2.0-flash        (today's Gemini path)
-//   grader       → openai / gpt-4o                  (today's grading/eval path)
+//   grader       → gemini / gemini-2.0-flash        (today's grading/eval path)
 //   embed        → openai / text-embedding-3-small  (1536-dim, see embed())
 //
 // To adopt the multi-model Claude architecture from

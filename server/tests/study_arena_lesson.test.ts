@@ -19,14 +19,26 @@ const goodScript = {
       actions: [
         { type: "showSlide", title: "Right triangles", bullets: ["a² + b² = c²"] },
         { type: "speak", agent: "teacher", text: "c is the hypotenuse." },
-        { type: "ask", agent: "teacher", prompt: "Which side is c?", expects: "freeText", gate: true },
+        {
+          type: "ask",
+          agent: "teacher",
+          prompt: "Which side is c?",
+          expects: "freeText",
+          gate: true,
+        },
       ],
     },
     {
       id: "s2",
       actions: [
         { type: "speak", agent: "classmate", text: "Wait, why squared?" },
-        { type: "ask", agent: "teacher", prompt: "Predict c if a=3, b=4.", expects: "freeText", gate: true },
+        {
+          type: "ask",
+          agent: "teacher",
+          prompt: "Predict c if a=3, b=4.",
+          expects: "freeText",
+          gate: true,
+        },
       ],
     },
   ],
@@ -91,7 +103,11 @@ describe("respondToInteraction", () => {
 
   it("proceeds with Socratic feedback after a genuine attempt", async () => {
     (mockAiChat as Mock).mockResolvedValue({ content: "Good start — keep going!" });
-    const res = await respondToInteraction({ topic: "Pythagoras", question: "Predict c", answer: "5" });
+    const res = await respondToInteraction({
+      topic: "Pythagoras",
+      question: "Predict c",
+      answer: "5",
+    });
     expect(res.proceed).toBe(true);
     expect(res.feedback).toMatch(/keep going/i);
     expect(mockAiChat).toHaveBeenCalledOnce();

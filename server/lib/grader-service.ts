@@ -29,12 +29,11 @@ export async function gradeTutorTurn(params: GradeTutorTurnParams): Promise<void
     const timeoutId = setTimeout(() => controller.abort(), 8000);
 
     const system = buildGraderSystemPrompt();
-    const messages: ChatMessage[] = [
-      ...history,
-      { role: "user", content: latestMessage },
-    ];
+    const messages: ChatMessage[] = [...history, { role: "user", content: latestMessage }];
 
-    logger.info(`[Grader Service] Dispatching grading request for student ${studentId}, concept: ${concept}`);
+    logger.info(
+      `[Grader Service] Dispatching grading request for student ${studentId}, concept: ${concept}`
+    );
 
     const rawResponse = await generate({
       model: "grader",
@@ -50,7 +49,8 @@ export async function gradeTutorTurn(params: GradeTutorTurnParams): Promise<void
     const jsonText = match ? match[0] : rawResponse;
     const parsed = JSON.parse(jsonText);
     const correct = !!parsed.correct;
-    const reviewQuality = typeof parsed.reviewQuality === "number" ? Math.min(Math.max(0, parsed.reviewQuality), 5) : 0;
+    const reviewQuality =
+      typeof parsed.reviewQuality === "number" ? Math.min(Math.max(0, parsed.reviewQuality), 5) : 0;
 
     logger.info(
       `[Grader Service] Grading outcome for student ${studentId}: correct=${correct}, reviewQuality=${reviewQuality}, rationale=${
@@ -68,9 +68,14 @@ export async function gradeTutorTurn(params: GradeTutorTurnParams): Promise<void
   } catch (error) {
     const err = error as Error;
     if (err.name === "AbortError" || err.message?.includes("aborted")) {
-      logger.error(`[Grader Service] Grading timed out (8s) for student ${studentId}, concept: ${concept}`);
+      logger.error(
+        `[Grader Service] Grading timed out (8s) for student ${studentId}, concept: ${concept}`
+      );
     } else {
-      logger.error(`[Grader Service] Background grading failed for student ${studentId}, concept: ${concept}:`, error);
+      logger.error(
+        `[Grader Service] Background grading failed for student ${studentId}, concept: ${concept}:`,
+        error
+      );
     }
     // Graceful degradation: do not throw to caller
   }

@@ -963,7 +963,6 @@ export async function pgFindSchoolClassesByTeacher(uid: string): Promise<PgSchoo
   }
 }
 
-
 export async function pgFindSchoolClassesBySchoolId(schoolId: number): Promise<PgSchoolClass[]> {
   if (!isPgReady()) return [];
   try {
@@ -989,7 +988,10 @@ export async function pgDeleteSchoolClass(id: number): Promise<boolean> {
   }
 }
 
-export async function pgUpdateSchoolClass(id: number, data: { name?: string, grade?: string }): Promise<PgSchoolClass | null> {
+export async function pgUpdateSchoolClass(
+  id: number,
+  data: { name?: string; grade?: string }
+): Promise<PgSchoolClass | null> {
   if (!isPgReady()) return null;
   try {
     const updates = [];
@@ -1004,7 +1006,7 @@ export async function pgUpdateSchoolClass(id: number, data: { name?: string, gra
       params.push(data.grade);
     }
     if (updates.length === 0) return pgFindSchoolClassById(id);
-    
+
     const { rows } = await getPgPool().query(
       `UPDATE school_classes SET ${updates.join(", ")} WHERE id = $1 RETURNING *`,
       params
@@ -2167,7 +2169,7 @@ export async function pgGetResources(filters: {
     params.push(filters.subject.toLowerCase());
   }
   if (filters.type) {
-    conditions.push(`type = $${i++}`);
+    conditions.push(`type = $${i}`);
     params.push(filters.type);
   }
   const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";

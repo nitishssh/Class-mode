@@ -412,7 +412,9 @@ export default function OnboardingV2() {
 
   const [data, setData] = useState<OnboardingData>(() => {
     const saved = loadOnboardingProgress(profile?.uid);
-    return saved?.data ? { ...DEFAULT_DATA, ...(saved.data as Partial<OnboardingData>) } : DEFAULT_DATA;
+    return saved?.data
+      ? { ...DEFAULT_DATA, ...(saved.data as Partial<OnboardingData>) }
+      : DEFAULT_DATA;
   });
 
   // Persist progress on every change (best-effort). Skip step 7 — onboarding is

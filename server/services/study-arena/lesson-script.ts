@@ -121,7 +121,7 @@ export async function generateLessonScript(
     parsed = parseScriptJson(content);
   } catch (err) {
     logger.error("[StudyArena/lesson-script] JSON parse failed", { error: String(err) });
-    throw new Error("Failed to generate a valid lesson script");
+    throw new Error("Failed to generate a valid lesson script", { cause: err });
   }
 
   const script = lessonScriptSchema.parse(parsed);

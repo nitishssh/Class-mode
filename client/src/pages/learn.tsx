@@ -85,9 +85,8 @@ function ReadResources({ topic }: { topic: string }) {
           <p className="mt-1 max-w-sm text-sm text-muted-foreground">
             {topic ? (
               <>
-                Nothing curated for{" "}
-                <span className="font-medium text-foreground">{topic}</span> yet — try the Ask or
-                Practice tab, or pick another topic.
+                Nothing curated for <span className="font-medium text-foreground">{topic}</span> yet
+                — try the Ask or Practice tab, or pick another topic.
               </>
             ) : (
               "Enter a topic above to find curated notes, videos, and labs."

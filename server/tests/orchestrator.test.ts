@@ -19,8 +19,20 @@ describe("buildLearnerContext", () => {
     const ctx = buildLearnerContext(
       snap({
         mastery: [
-          { concept: "Fractions", subject: "Math", pMastery: 0.2, confidence: 0.5, updatedAt: new Date() },
-          { concept: "Addition", subject: "Math", pMastery: 0.95, confidence: 0.9, updatedAt: new Date() },
+          {
+            concept: "Fractions",
+            subject: "Math",
+            pMastery: 0.2,
+            confidence: 0.5,
+            updatedAt: new Date(),
+          },
+          {
+            concept: "Addition",
+            subject: "Math",
+            pMastery: 0.95,
+            confidence: 0.9,
+            updatedAt: new Date(),
+          },
         ],
       })
     );
@@ -32,7 +44,13 @@ describe("buildLearnerContext", () => {
     const ctx = buildLearnerContext(
       snap({
         mastery: [
-          { concept: "Photosynthesis", subject: "Bio", pMastery: 0.6, confidence: 0.4, updatedAt: new Date() },
+          {
+            concept: "Photosynthesis",
+            subject: "Bio",
+            pMastery: 0.6,
+            confidence: 0.4,
+            updatedAt: new Date(),
+          },
         ],
       }),
       { concept: "Photosynthesis" }
@@ -60,7 +78,14 @@ describe("buildLearnerContext", () => {
     const ctx = buildLearnerContext(
       snap({
         dueReviews: [
-          { concept: "Newton's Laws", sm2Ef: 2.5, intervalDays: 6, repetitions: 2, dueAt: new Date(), lastReviewedAt: null },
+          {
+            concept: "Newton's Laws",
+            sm2Ef: 2.5,
+            intervalDays: 6,
+            repetitions: 2,
+            dueAt: new Date(),
+            lastReviewedAt: null,
+          },
         ],
       })
     );

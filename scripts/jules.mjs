@@ -45,7 +45,7 @@ const API_KEY = loadApiKey();
 if (NEEDS_KEY && !API_KEY) {
   console.error(
     "✗ JULES_API_KEY is not set. Create a key in the Jules web app (Settings → API)\n" +
-      "  then: export JULES_API_KEY=...  (or add JULES_API_KEY=... to .env)",
+      "  then: export JULES_API_KEY=...  (or add JULES_API_KEY=... to .env)"
   );
   process.exit(1);
 }
@@ -129,7 +129,9 @@ switch (cmd) {
     }
     const source = flag(rest, "--source") || defaultSource();
     if (!source) {
-      console.error("✗ Could not derive --source from git remote. Pass --source sources/github/owner/repo");
+      console.error(
+        "✗ Could not derive --source from git remote. Pass --source sources/github/owner/repo"
+      );
       process.exit(1);
     }
     const branch = flag(rest, "--branch") || defaultBranch();
@@ -218,6 +220,6 @@ switch (cmd) {
         "  approve <SESSION_ID>         Approve a pending plan",
         "",
         "Auth: set JULES_API_KEY (env or .env).",
-      ].join("\n"),
+      ].join("\n")
     );
 }

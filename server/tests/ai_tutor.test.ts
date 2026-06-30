@@ -147,7 +147,9 @@ describe("POST /api/ai-chat — AI Tutor", () => {
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty("content");
     expect(typeof res.body.content).toBe("string");
-    expect(res.body.content).toBe("Gravity is the force that attracts two masses toward each other.");
+    expect(res.body.content).toBe(
+      "Gravity is the force that attracts two masses toward each other."
+    );
     expect(mockRunTutorTurn).toHaveBeenCalledOnce();
   });
 

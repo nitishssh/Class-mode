@@ -561,9 +561,10 @@ router.get("/admin/trends", authenticateToken, async (req: Request, res: Respons
     const toMap = (rows: { d: Date | string; c: number }[]) => {
       const m = new Map<string, number>();
       for (const r of rows) {
-        const key = r.d instanceof Date
-          ? `${r.d.getFullYear()}-${String(r.d.getMonth() + 1).padStart(2, "0")}-${String(r.d.getDate()).padStart(2, "0")}`
-          : String(r.d).slice(0, 10);
+        const key =
+          r.d instanceof Date
+            ? `${r.d.getFullYear()}-${String(r.d.getMonth() + 1).padStart(2, "0")}-${String(r.d.getDate()).padStart(2, "0")}`
+            : String(r.d).slice(0, 10);
         m.set(key, r.c);
       }
       return m;

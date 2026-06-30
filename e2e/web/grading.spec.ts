@@ -7,13 +7,13 @@ test.describe("AI Grading View", () => {
     await page.fill('input[name="email"]', "teacher@test.com");
     await page.fill('input[name="password"]', "password123");
     await page.click('button[type="submit"]');
-    
+
     // Wait for redirect to teacher dashboard
     await expect(page).toHaveURL(/.*\/teacher-dashboard/);
   });
 
   test("should load the pending grading page successfully", async ({ page }) => {
     await page.goto("http://localhost:5001/grading");
-    await expect(page.getByRole('heading', { name: "Pending Grading" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Pending Grading" })).toBeVisible();
   });
 });

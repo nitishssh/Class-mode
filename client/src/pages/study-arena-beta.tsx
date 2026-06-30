@@ -36,11 +36,12 @@ interface FlatAction {
   action: SceneAction;
 }
 
-const AGENTS: Record<AgentRole, { label: string; className: string; icon: typeof GraduationCap }> = {
-  teacher: { label: "Teacher", className: "text-accent", icon: GraduationCap },
-  classmate: { label: "Classmate", className: "text-sky-600", icon: MessageCircleQuestion },
-  coach: { label: "Coach", className: "text-amber-600", icon: Lightbulb },
-};
+const AGENTS: Record<AgentRole, { label: string; className: string; icon: typeof GraduationCap }> =
+  {
+    teacher: { label: "Teacher", className: "text-accent", icon: GraduationCap },
+    classmate: { label: "Classmate", className: "text-sky-600", icon: MessageCircleQuestion },
+    coach: { label: "Coach", className: "text-amber-600", icon: Lightbulb },
+  };
 
 async function postJson<T>(url: string, body: unknown): Promise<T> {
   const res = await fetch(url, {
@@ -77,7 +78,9 @@ export default function StudyArenaBeta() {
     setPhase("generating");
     setGenError(null);
     try {
-      const data = await postJson<LessonScript>("/api/study-arena-beta/lesson-script", { topic: t });
+      const data = await postJson<LessonScript>("/api/study-arena-beta/lesson-script", {
+        topic: t,
+      });
       const flattened: FlatAction[] = data.scenes.flatMap((scene, si) =>
         scene.actions.map((action, ai) => ({ key: `${si}-${ai}`, sceneIndex: si, action }))
       );

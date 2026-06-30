@@ -11,7 +11,11 @@ import {
 import { evaluateSubjectiveAnswer, aiChat } from "../lib/openai";
 import { logger } from "../lib/logger";
 import { checkAIQuota } from "../middleware/aiQuota";
-import { pgIncrementAIUsage, pgFindFirstWorkspaceMembership, pgFindUserById } from "../lib/pg-queries";
+import {
+  pgIncrementAIUsage,
+  pgFindFirstWorkspaceMembership,
+  pgFindUserById,
+} from "../lib/pg-queries";
 import { upload } from "../lib/upload";
 import { generateContentFromPdf } from "../lib/gemini";
 import fs from "fs";
@@ -393,7 +397,9 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
           );
 
           const timeoutPromise = new Promise<never>((_, reject) => {
-            controller.signal.addEventListener("abort", () => reject(new Error("Request timed out")));
+            controller.signal.addEventListener("abort", () =>
+              reject(new Error("Request timed out"))
+            );
           });
 
           const response = await Promise.race([apiPromise, timeoutPromise]);
@@ -491,7 +497,10 @@ router.options("/ai/generate-from-pdf", (req: Request, res: Response) => {
   res.header("Access-Control-Allow-Origin", origin || "*");
   res.header("Access-Control-Allow-Credentials", "true");
   res.header("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+  );
   res.sendStatus(200);
 });
 
@@ -503,7 +512,10 @@ router.post(
     res.header("Access-Control-Allow-Origin", origin || "*");
     res.header("Access-Control-Allow-Credentials", "true");
     res.header("Access-Control-Allow-Methods", "POST, OPTIONS");
-    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+    res.header(
+      "Access-Control-Allow-Headers",
+      "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+    );
     next();
   },
   optionalAuthenticate,

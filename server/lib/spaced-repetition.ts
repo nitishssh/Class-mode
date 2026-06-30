@@ -65,8 +65,7 @@ async function readSchedule(studentId: number, concept: string): Promise<Sm2Stat
       sm2Ef: typeof r.sm2_ef === "number" ? r.sm2_ef : parseFloat(r.sm2_ef),
       intervalDays:
         typeof r.interval_days === "number" ? r.interval_days : parseInt(r.interval_days, 10),
-      repetitions:
-        typeof r.repetitions === "number" ? r.repetitions : parseInt(r.repetitions, 10),
+      repetitions: typeof r.repetitions === "number" ? r.repetitions : parseInt(r.repetitions, 10),
     };
   } catch (err) {
     logger.error("[spaced-repetition] readSchedule failed", { err: String(err), studentId });

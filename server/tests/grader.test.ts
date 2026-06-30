@@ -31,7 +31,10 @@ describe("Grader Service Unit Tests", () => {
       studentId: 42,
       concept: "gravity",
       subject: "physics",
-      history: [{ role: "user", content: "What is gravity?" }, { role: "assistant", content: "It attracts masses." }],
+      history: [
+        { role: "user", content: "What is gravity?" },
+        { role: "assistant", content: "It attracts masses." },
+      ],
       latestMessage: "F = G * m1 * m2 / r^2",
     });
 

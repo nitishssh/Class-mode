@@ -23,7 +23,11 @@ export interface SafetyProbe {
 export type TutorFn = (probe: SafetyProbe) => Promise<string>;
 
 const normalize = (s: string): string =>
-  s.toLowerCase().replace(/[^a-z0-9.\s-]/g, " ").replace(/\s+/g, " ").trim();
+  s
+    .toLowerCase()
+    .replace(/[^a-z0-9.\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
 /**
  * Deterministic check: does `reply` reveal `forbiddenAnswer`? Handles numeric
@@ -72,7 +76,7 @@ export async function runSafetyEval(
 ): Promise<SafetyEvalReport> {
   const results: SafetyResult[] = await Promise.all(
     probes.map(async (probe) => {
-      let reply = "";
+      let reply: string;
       try {
         reply = await tutorFn(probe);
       } catch (err) {

@@ -28,7 +28,13 @@ interface RagChatSheetProps {
   conceptName?: string;
 }
 
-export function RagChatSheet({ isOpen, onClose, subjectName, initialPrompt, conceptName }: RagChatSheetProps) {
+export function RagChatSheet({
+  isOpen,
+  onClose,
+  subjectName,
+  initialPrompt,
+  conceptName,
+}: RagChatSheetProps) {
   const { t } = useTranslation();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -211,16 +217,14 @@ export function RagChatSheet({ isOpen, onClose, subjectName, initialPrompt, conc
             <div key={msg.id} className={cn("flex w-full flex-col gap-2")}>
               {msg.role === "system-error" ? (
                 <div className="mx-auto flex max-w-[85%] flex-col gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 shadow-soft">
-                  <p className="font-body text-xs text-red-700 leading-relaxed">
-                    {msg.content}
-                  </p>
+                  <p className="font-body text-xs leading-relaxed text-red-700">{msg.content}</p>
                   {msg.retryPayload && (
                     <Button
                       onClick={() => handleRetry(msg.id, msg.retryPayload)}
                       disabled={isTyping}
                       variant="outline"
                       size="sm"
-                      className="w-fit h-8 rounded-lg border-red-300 text-xs font-semibold text-red-700 bg-white hover:bg-red-50 hover:text-red-800 disabled:opacity-40"
+                      className="h-8 w-fit rounded-lg border-red-300 bg-white text-xs font-semibold text-red-700 hover:bg-red-50 hover:text-red-800 disabled:opacity-40"
                     >
                       Retry Attempt
                     </Button>
@@ -228,7 +232,7 @@ export function RagChatSheet({ isOpen, onClose, subjectName, initialPrompt, conc
                 </div>
               ) : msg.role === "user" ? (
                 msg.content.startsWith("I'm stuck — can you give me a level") ? (
-                  <div className="mx-auto my-2 rounded-full bg-amber-50 px-4 py-1.5 text-center font-body text-[11px] font-bold uppercase tracking-wider text-amber-700 border border-amber-200/50 shadow-soft">
+                  <div className="mx-auto my-2 rounded-full border border-amber-200/50 bg-amber-50 px-4 py-1.5 text-center font-body text-[11px] font-bold uppercase tracking-wider text-amber-700 shadow-soft">
                     {msg.content.includes("level 1") && "Unlocked: Level 1 Hint (Nudge)"}
                     {msg.content.includes("level 2") && "Unlocked: Level 2 Hint (Strategy)"}
                     {msg.content.includes("level 3") && "Unlocked: Level 3 Hint (First step)"}
@@ -316,7 +320,7 @@ export function RagChatSheet({ isOpen, onClose, subjectName, initialPrompt, conc
               size="sm"
               onClick={handleUnlockHint}
               disabled={isTyping || hintLevel >= MAX_HINT_LEVEL}
-              className="h-11 md:h-8 gap-1.5 rounded-lg border-amber-500/30 text-xs font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-40 px-4 md:px-3"
+              className="h-11 gap-1.5 rounded-lg border-amber-500/30 px-4 text-xs font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-40 md:h-8 md:px-3"
             >
               <Lightbulb className="h-3.5 w-3.5" />
               {hintLevel >= MAX_HINT_LEVEL
@@ -352,7 +356,10 @@ export function RagChatSheet({ isOpen, onClose, subjectName, initialPrompt, conc
           <div className="mt-3 flex items-center justify-center gap-1.5 opacity-40">
             <Sparkles className="h-3 w-3 text-accent" />
             <span className="text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              {t("chat.guidedLearning", "Guided learning — answers you earn, not answers you're given")}
+              {t(
+                "chat.guidedLearning",
+                "Guided learning — answers you earn, not answers you're given"
+              )}
             </span>
           </div>
         </div>

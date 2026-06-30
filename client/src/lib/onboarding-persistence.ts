@@ -23,7 +23,12 @@ export function loadOnboardingProgress(uid: string | undefined | null): Persiste
     const raw = window.localStorage.getItem(key);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed.step === "number" && parsed.data && typeof parsed.data === "object") {
+    if (
+      parsed &&
+      typeof parsed.step === "number" &&
+      parsed.data &&
+      typeof parsed.data === "object"
+    ) {
       return parsed as PersistedOnboarding;
     }
     return null;
