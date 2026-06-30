@@ -184,7 +184,9 @@ export default function MasteryDashboard() {
                   <Progress value={pct} className="h-2" />
                   <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
                     <span>Confidence {Math.round(m.confidence * 100)}%</span>
-                    <span>updated {formatDistanceToNow(new Date(m.updatedAt), { addSuffix: true })}</span>
+                    <span>
+                      updated {formatDistanceToNow(new Date(m.updatedAt), { addSuffix: true })}
+                    </span>
                   </div>
                 </div>
               );

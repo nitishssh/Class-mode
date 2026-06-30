@@ -1,9 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import {
-  webSearch,
-  activeSearchProvider,
-  formatSearchForContext,
-} from "../services/web-search";
+import { webSearch, activeSearchProvider, formatSearchForContext } from "../services/web-search";
 
 describe("web-search", () => {
   const origFetch = global.fetch;
