@@ -15,6 +15,12 @@ All notable changes to this project will be documented in this file.
 - **Grading failures no longer masked** — When grading errored, the failure-record write in `gradeSubmission`'s catch block could itself throw (e.g. DB unavailable) and overwrite the real error. That secondary write is now best-effort, so the original cause propagates.
 - **Pilot simulation harness** — `scripts/simulate-pilot-school.ts` now connects to PostgreSQL before grading (fixing the "pool not initialized" failure in the predictive report) and renders the detailed-grading section from the correct field.
 
+## [1.8.0.2] - 2026-07-01
+
+### Fixed
+
+- **Cross-school data isolation on admin dashboards** — Admin, principal, and school-admin dashboards no longer leak users, activity, and audit logs from other schools. The user directory (`GET /api/users`), audit log (`GET /api/admin/logs`), and analytics stats/trends (`GET /api/admin/stats`, `GET /api/admin/trends`) now scope strictly to the signed-in admin's own school; only the platform super-admin sees cross-school data. An admin account not yet associated with a school is denied rather than shown every school's data (previously the school filter was skipped when no school code was set, exposing all tenants).
+
 ## [1.8.0.1] - 2026-06-27
 
 ### Added
