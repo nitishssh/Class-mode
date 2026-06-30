@@ -2,6 +2,25 @@
 
 This document serves as an architectural blueprint for adding advanced AI classroom capabilities natively to the Study Arena, completely leveraging the internal backend (`server/services/study-arena/`) and the lightweight `IniClaw` LLM gateway.
 
+> **Status (2026-06-30):** Sections 1–3 are **shipped**, not future work — the
+> implementation diverged from the original IniClaw-routed blueprint below.
+>
+> - **TTS** — `POST /api/ai-classroom/tts` (OpenAI `tts-1`). ✅
+> - **ASR** — `POST /api/ai-classroom/asr` (multipart audio → OpenAI `whisper-1`). ✅
+> - **Whiteboard** — `client/src/components/ai-classroom/WhiteboardCanvas.tsx`,
+>   driven by `wb_*`/`widget_*` director actions. ✅
+> - **Presentation export** — `POST /api/ai-classroom/export/:id` (PPTX),
+>   `GET …/export/:id/html`, and `…/export/:id/zip`, via
+>   `server/services/study-arena/{pptx-export,html-export}.ts`. ✅
+> - **Web search for agents (Section 4)** — shipped at the service + API layer:
+>   `server/services/web-search.ts` and `POST /api/ai/web-search`. Works keyless
+>   via DuckDuckGo and upgrades to Tavily/Serper when `TAVILY_API_KEY` /
+>   `SERPER_API_KEY` is set. Remaining follow-up: have the streaming director
+>   call it mid-generation (the current director uses a JSON-action protocol,
+>   not function-calling, so this is a deliberate next step rather than a gap). ✅
+>
+> The architecture notes below are retained for historical context.
+
 ## 1. Text-to-Speech (TTS) & Speech Recognition (ASR)
 
 **Goal:** Enable vocal interactions. The AI teacher and assistants can speak their dialogue, and the user can talk back using their microphone.

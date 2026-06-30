@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **Learner Mastery & Spaced-Repetition dashboard** — New **Progress** tab in the Learn Hub (`/learn?mode=progress`) shows students their per-concept BKT mastery levels, confidence, and SM-2 review schedule (due-now vs. upcoming review cards). Backed by `GET /api/learn/mastery`, which reads the single-writer learner model (`learner_mastery` + `review_schedule`).
+- **Gemini provider boot health check** — At startup the server now verifies the Google API key with a lightweight probe and logs a loud, actionable warning when the key is missing or **blocked** (`API_KEY_SERVICE_BLOCKED`), instead of surfacing an opaque 403 deep inside a feature.
+- **Web search for AI agents** — New `webSearch` service + `POST /api/ai/web-search`. Works keyless out of the box via DuckDuckGo and transparently upgrades to Tavily or Serper when `TAVILY_API_KEY` / `SERPER_API_KEY` is configured. Completes the last open item in the Study Arena roadmap.
+
+### Fixed
+
+- **Grading failures no longer masked** — When grading errored, the failure-record write in `gradeSubmission`'s catch block could itself throw (e.g. DB unavailable) and overwrite the real error. That secondary write is now best-effort, so the original cause propagates.
+- **Pilot simulation harness** — `scripts/simulate-pilot-school.ts` now connects to PostgreSQL before grading (fixing the "pool not initialized" failure in the predictive report) and renders the detailed-grading section from the correct field.
+
 ## [1.8.0.1] - 2026-06-27
 
 ### Added

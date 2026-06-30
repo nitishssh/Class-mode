@@ -5,6 +5,7 @@ import path from "path";
 import axios from "axios";
 import { generateFullClassroom } from "../server/services/study-arena/generator";
 import { gradeSubmission } from "../server/services/gradingService";
+import { connectPostgres, isPgReady } from "../server/db-pg";
 
 // Override with dummy key since tests might not have real one
 process.env.GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || "dummy";
@@ -16,8 +17,17 @@ async function main() {
   reportContent +=
     "This report details the evaluation of the AI predictive features for our mock pilot school.\n\n";
 
-  let dbConnected = false;
-  console.log("⚠️ MongoDB removed. Proceeding with database-free simulation.\n");
+  console.log("⚠️ MongoDB removed. Connecting to PostgreSQL for grading persistence...\n");
+  await connectPostgres();
+  const dbConnected = isPgReady();
+  if (dbConnected) {
+    console.log("✅ PostgreSQL connected — grading outcomes will persist.\n");
+  } else {
+    console.log(
+      "⚠️ PostgreSQL unavailable (POSTGRESQL_URL unset or unreachable). " +
+        "Grading will run AI-only without persistence.\n"
+    );
+  }
 
   try {
     // 2. Test Study Arena (AI Classroom Generator)
@@ -169,7 +179,7 @@ async function main() {
       reportContent += `\n### Areas for Improvement\n`;
       gradingResult.areasForImprovement.forEach((a: string) => (reportContent += `- ${a}\n`));
 
-      reportContent += `\n**Detailed Question Grading:**\n\`\`\`json\n${JSON.stringify(gradingResult.scoreBreakdown.questionScores, null, 2)}\n\`\`\`\n\n`;
+      reportContent += `\n**Detailed Question Grading:**\n\`\`\`json\n${JSON.stringify(gradingResult.scoreBreakdown.criteria, null, 2)}\n\`\`\`\n\n`;
     }
 
     // Write Report

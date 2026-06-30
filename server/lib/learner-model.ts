@@ -160,6 +160,58 @@ export async function getLearnerSnapshot(studentId: number): Promise<LearnerSnap
   }
 }
 
+// ─── Dashboard reader ─────────────────────────────────────────────────────────
+
+export interface MasteryDashboard {
+  /** Per-concept mastery vector, strongest first. */
+  mastery: LearnerMasteryRow[];
+  /** Full review schedule (due + upcoming), soonest due first. */
+  reviews: LearnerDueReview[];
+  /** Count of reviews currently due (due_at <= now). */
+  dueCount: number;
+}
+
+/**
+ * Read-only projection for the Learner Mastery & Spaced-Repetition dashboard.
+ * Unlike `getLearnerSnapshot` (which only returns reviews that are due *now*
+ * for the tutor loop), this returns the full review schedule so the UI can
+ * render both "due now" and "upcoming" review cards alongside the mastery
+ * vector. Pure read; degrades to empty when Postgres is unavailable.
+ */
+export async function getMasteryDashboard(studentId: number): Promise<MasteryDashboard> {
+  if (!isPgReady()) return { mastery: [], reviews: [], dueCount: 0 };
+  try {
+    const pool = getPgPool();
+    const [masteryRes, reviewRes] = await Promise.all([
+      pool.query(
+        `SELECT concept, subject, p_mastery, confidence, updated_at
+         FROM learner_mastery
+         WHERE student_id = $1
+         ORDER BY p_mastery DESC, concept`,
+        [studentId]
+      ),
+      pool.query(
+        `SELECT concept, sm2_ef, interval_days, repetitions, due_at, last_reviewed_at
+         FROM review_schedule
+         WHERE student_id = $1
+         ORDER BY due_at`,
+        [studentId]
+      ),
+    ]);
+    const reviews = reviewRes.rows.map(mapDueReview);
+    const now = Date.now();
+    const dueCount = reviews.filter((r) => new Date(r.dueAt).getTime() <= now).length;
+    return {
+      mastery: masteryRes.rows.map(mapMastery),
+      reviews,
+      dueCount,
+    };
+  } catch (err) {
+    logger.error("[learner-model] getMasteryDashboard failed", { err: String(err), studentId });
+    return { mastery: [], reviews: [], dueCount: 0 };
+  }
+}
+
 // ─── Single-writer commit ─────────────────────────────────────────────────────
 
 /**

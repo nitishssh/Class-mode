@@ -14,22 +14,25 @@ import {
   FlaskConical,
   FileText,
   ExternalLink,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AiTutor from "@/pages/ai-tutor";
 import StudyArenaPage from "@/pages/ai-classroom";
+import MasteryDashboard from "@/components/learn/MasteryDashboard";
 
-type Mode = "ask" | "practice" | "read";
+type Mode = "ask" | "practice" | "read" | "progress";
 
 const MODES: { id: Mode; label: string; blurb: string; icon: typeof Brain }[] = [
   { id: "ask", label: "Ask", blurb: "Chat with your AI tutor", icon: Brain },
   { id: "practice", label: "Practice", blurb: "Generate an interactive lesson", icon: Sparkles },
   { id: "read", label: "Read", blurb: "Curated notes & materials", icon: BookOpen },
+  { id: "progress", label: "Progress", blurb: "Track mastery & reviews", icon: TrendingUp },
 ];
 
 function readModeFromUrl(): Mode {
   const m = new URLSearchParams(window.location.search).get("mode");
-  return m === "practice" || m === "read" ? m : "ask";
+  return m === "practice" || m === "read" || m === "progress" ? m : "ask";
 }
 
 interface Resource {
@@ -219,7 +222,7 @@ export default function LearnPage() {
 
       {/* Modes */}
       <Tabs value={mode} onValueChange={changeMode} className="w-full">
-        <TabsList className="grid h-auto w-full grid-cols-1 gap-3 bg-transparent p-0 sm:grid-cols-3">
+        <TabsList className="grid h-auto w-full grid-cols-1 gap-3 bg-transparent p-0 sm:grid-cols-2 lg:grid-cols-4">
           {MODES.map(({ id, label, blurb, icon: Icon }) => (
             <TabsTrigger
               key={id}
@@ -250,6 +253,10 @@ export default function LearnPage() {
 
           <TabsContent value="read" className="mt-0">
             <ReadResources topic={topic} />
+          </TabsContent>
+
+          <TabsContent value="progress" className="mt-0">
+            <MasteryDashboard />
           </TabsContent>
         </div>
       </Tabs>

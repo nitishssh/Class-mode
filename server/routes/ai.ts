@@ -3,6 +3,8 @@ import { z } from "zod";
 import { authenticateToken } from "../middleware";
 import { runTutorTurn } from "../lib/orchestrator";
 import { gradeTutorTurn } from "../lib/grader-service";
+import { getMasteryDashboard } from "../lib/learner-model";
+import { webSearch } from "../services/web-search";
 import { buildTutorSystemPrompt } from "../lib/prompts/tutor";
 import { checkAIQuota } from "../middleware/aiQuota";
 import { pgIncrementAIUsage } from "../lib/pg-queries";
@@ -100,5 +102,42 @@ router.post(
     }
   }
 );
+
+// GET /api/learn/mastery — Learner mastery vector + spaced-repetition schedule
+// for the authenticated student, powering the Learn Hub Progress dashboard.
+router.get("/learn/mastery", authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const studentId = (req.user?.id || req.session?.userId) as number;
+    if (!studentId) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    const dashboard = await getMasteryDashboard(studentId);
+    res.json(dashboard);
+  } catch (error) {
+    logger.error("Mastery dashboard error:", error);
+    res.status(500).json({ message: "Failed to load mastery dashboard" });
+  }
+});
+
+const webSearchSchema = z.object({
+  query: z.string().min(1).max(300),
+  maxResults: z.number().int().min(1).max(10).optional(),
+});
+
+// POST /api/ai/web-search — Real-time web search for AI agents. Works keyless
+// via DuckDuckGo and upgrades to Tavily/Serper when an API key is configured.
+router.post("/ai/web-search", authenticateToken, async (req: Request, res: Response) => {
+  const parsed = webSearchSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ message: "Invalid query", errors: parsed.error.errors });
+  }
+  try {
+    const result = await webSearch(parsed.data.query, parsed.data.maxResults);
+    res.json(result);
+  } catch (error) {
+    logger.error("Web search error:", error);
+    res.status(500).json({ message: "Web search failed" });
+  }
+});
 
 export default router;

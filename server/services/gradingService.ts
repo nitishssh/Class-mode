@@ -127,14 +127,21 @@ export async function gradeSubmission(request: GradingRequest): Promise<GradingR
   } catch (error: any) {
     logger.error("Grading service error:", error);
 
-    await pgCreateGradingResult({
-      submissionId: request.submissionId,
-      studentId: request.studentId,
-      teacherId: 0,
-      rubric,
-      status: "failed",
-      contentType: request.contentType,
-    });
+    // Best-effort failure record. This must never throw — otherwise a
+    // secondary error here (e.g. DB unavailable) masks the real grading
+    // failure and the caller gets a misleading message.
+    try {
+      await pgCreateGradingResult({
+        submissionId: request.submissionId,
+        studentId: request.studentId,
+        teacherId: 0,
+        rubric,
+        status: "failed",
+        contentType: request.contentType,
+      });
+    } catch (persistErr) {
+      logger.error("Failed to persist grading failure record:", persistErr);
+    }
 
     throw new Error(`Grading failed: ${error.message}`, { cause: error });
   }
