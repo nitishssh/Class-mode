@@ -8,7 +8,7 @@ import { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { BaseMessage, HumanMessage, AIMessage, SystemMessage } from "@langchain/core/messages";
 import { CallbackManagerForLLMRun } from "@langchain/core/callbacks/manager";
 import { ChatResult } from "@langchain/core/outputs";
-import { aiChat, streamAIChat } from "../../lib/openai";
+import { generate, streamGenerate } from "../../lib/ai/gateway";
 
 export type StreamChunk = { type: "delta"; content: string } | { type: "done"; content: string };
 
@@ -40,8 +40,11 @@ export class AISdkLangGraphAdapter extends BaseChatModel {
     runManager?: CallbackManagerForLLMRun
   ): Promise<ChatResult> {
     const openaiMessages = this.convertMessages(messages);
-    const response = await aiChat(openaiMessages);
-    const content = response.content;
+    const content = await generate({
+      model: "orchestrator",
+      messages: openaiMessages,
+      feature: "study_arena_director",
+    });
     const aiMessage = new AIMessage({ content });
 
     return {
@@ -57,7 +60,11 @@ export class AISdkLangGraphAdapter extends BaseChatModel {
     const openaiMessages = this.convertMessages(messages);
     let fullContent = "";
 
-    const stream = streamAIChat(openaiMessages);
+    const stream = streamGenerate({
+      model: "orchestrator",
+      messages: openaiMessages,
+      feature: "study_arena_director",
+    });
     for await (const chunk of stream) {
       fullContent += chunk;
       yield { type: "delta", content: chunk };

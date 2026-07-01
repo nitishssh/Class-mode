@@ -39,7 +39,12 @@
 
 import OpenAI from "openai";
 import { logger } from "../logger";
-import { geminiChat, streamGeminiChat, generateContentFromPdf } from "../gemini";
+import {
+  geminiChat,
+  streamGeminiChat,
+  generateContentFromPdf,
+  verifyGeminiAccess,
+} from "../gemini";
 import { evaluateSubjectiveAnswer } from "../openai";
 
 // ── Public types ───────────────────────────────────────────────────────────
@@ -384,6 +389,15 @@ export async function generateFromPdf(
     logAiCall(logOpts, "fast", started, false);
     throw err;
   }
+}
+
+/**
+ * Startup health check for the default text-model provider (Gemini today).
+ * Delegates to the existing verifier, routed through the gateway so the app
+ * has no direct provider imports outside this module. Fire-and-forget.
+ */
+export async function healthcheck(): Promise<void> {
+  return verifyGeminiAccess();
 }
 
 export async function embed(texts: string[]): Promise<number[][]> {
