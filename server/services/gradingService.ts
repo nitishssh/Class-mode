@@ -18,10 +18,11 @@ import {
   pgCreateGradingResult, pgFindGradingResultBySubmissionId,
   pgFindGradingResults, pgDeleteGradingResult,
 } from "../lib/pg-queries";
-import { geminiChat } from "../lib/gemini";
+import { generate, MODEL_REGISTRY } from "../lib/ai/gateway";
 import { logger } from "../lib/logger";
 
-const MODEL = "gemini-2.0-flash";
+// Concrete model backing the "grader" role — recorded in results for auditing.
+const MODEL = MODEL_REGISTRY.grader.model;
 
 /**
  * Main entry point: grade a submission using OpenAI GPT-4o.
@@ -53,9 +54,15 @@ export async function gradeSubmission(request: GradingRequest): Promise<GradingR
       : "";
   const fullSystemPrompt = systemPrompt + fewShotSection;
 
-  // 4. Call Gemini with JSON mode
+  // 4. Call the grader model (Gemini 2.0 Flash) with JSON mode via the AI gateway.
   try {
-    const content = await geminiChat(fullSystemPrompt, userMessage, MODEL, { jsonMode: true });
+    const content = await generate({
+      model: "grader",
+      system: fullSystemPrompt,
+      messages: [{ role: "user", content: userMessage }],
+      jsonMode: true,
+      feature: "grading",
+    });
     const parsed = JSON.parse(content);
 
     // 5. Validate and normalize scores

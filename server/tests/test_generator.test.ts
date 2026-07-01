@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import { pgFindUserById, pgFindFirstWorkspaceMembership } from "../lib/pg-queries";
 
-const { mockAiChat, mockGenerateContentFromPdf } = vi.hoisted(() => ({
-  mockAiChat: vi.fn(),
+const { mockGenerate, mockGenerateContentFromPdf } = vi.hoisted(() => ({
+  mockGenerate: vi.fn(),
   mockGenerateContentFromPdf: vi.fn(),
 }));
 
@@ -32,8 +32,14 @@ vi.mock("../lib/cassandra", () => ({
   getCassandraClient: vi.fn().mockReturnValue(null),
 }));
 
+// Partial-mock: stub only `generate`, keep the real MODEL_REGISTRY etc. so
+// other modules loaded via registerRoutes (e.g. gradingService) still work.
+vi.mock("../lib/ai/gateway", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../lib/ai/gateway")>();
+  return { ...actual, generate: mockGenerate };
+});
+
 vi.mock("../lib/openai", () => ({
-  aiChat: mockAiChat,
   evaluateSubjectiveAnswer: vi.fn(),
 }));
 
@@ -79,8 +85,8 @@ describe("Test Generator API Endpoints", () => {
 
   describe("POST /api/ai/generate-test timeout behavior", () => {
     it("should handle timeout correctly and respond with 504", async () => {
-      // Mock aiChat to delay longer than 30s or reject with AbortError/Timeout
-      mockAiChat.mockRejectedValue(new Error("Request timed out"));
+      // Mock the AI gateway to reject with a timeout error.
+      mockGenerate.mockRejectedValue(new Error("Request timed out"));
 
       const res = await request(app)
         .post("/api/ai/generate-test")

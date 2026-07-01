@@ -14,7 +14,7 @@
 
 import { z } from "zod";
 import { jsonrepair } from "jsonrepair";
-import { aiChat } from "../../lib/openai";
+import { generate } from "../../lib/ai/gateway";
 import { buildTutorSystemPrompt } from "../../lib/prompts/tutor";
 import { logger } from "../../lib/logger";
 
@@ -111,10 +111,13 @@ export async function generateLessonScript(
   opts: GenerateLessonOptions = {}
 ): Promise<LessonScript> {
   const systemPrompt = buildGenerationPrompt(topic, opts);
-  const { content } = await aiChat(
-    [{ role: "user", content: `Create the lesson for: ${topic}` }],
-    systemPrompt
-  );
+  const content = await generate({
+    model: "fast",
+    fallback: "orchestrator",
+    system: systemPrompt,
+    messages: [{ role: "user", content: `Create the lesson for: ${topic}` }],
+    feature: "lesson_script",
+  });
 
   let parsed: unknown;
   try {
@@ -169,15 +172,18 @@ export async function respondToInteraction(params: {
     language: params.language,
   });
 
-  const { content } = await aiChat(
-    [
+  const content = await generate({
+    model: "fast",
+    fallback: "orchestrator",
+    system: systemPrompt,
+    messages: [
       {
         role: "user",
         content: `The lesson asked me: "${params.question}"\nMy answer: "${answer}"\nIn ONE or two short sentences, tell me if I'm on the right track and nudge my thinking — do NOT give the full answer. End by encouraging me to continue.`,
       },
     ],
-    systemPrompt
-  );
+    feature: "lesson_interaction",
+  });
 
   return { feedback: content, proceed: true };
 }

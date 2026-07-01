@@ -14,11 +14,15 @@ import type { Server, IncomingMessage } from "http";
 import type { Store } from "express-session";
 import { type User } from "@shared/schema";
 import { storage } from "./storage";
-import { aiChat } from "./lib/openai";
+import { generate } from "./lib/ai/gateway";
 import { getPgPool, isPgReady } from "./db-pg";
 
 const AI_TUTOR_ID = 999;
 const AI_TUTOR_NAME = "AI Tutor";
+// Preserved verbatim from the legacy aiChat default so migrating the tutor
+// chat to the gateway does not change the assistant's persona/behavior.
+const AI_TUTOR_SYSTEM_PROMPT =
+  "You are an AI tutor for high school students. You're knowledgeable about physics, chemistry, mathematics, biology, and computer science. Provide clear, concise explanations. Include examples when helpful. For math problems, show step-by-step solutions. Keep explanations appropriate for high school level understanding. Be encouraging and supportive.";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -422,14 +426,20 @@ export function setupChatWebSocket(httpServer: Server, sessionStore: Store) {
                     channelId,
                   });
 
-                  const aiResponse = await aiChat([
-                    { role: "user", content: content.replace(/@AI/gi, "").trim() },
-                  ]);
+                  const aiResponse = await generate({
+                    model: "fast",
+                    fallback: "orchestrator",
+                    system: AI_TUTOR_SYSTEM_PROMPT,
+                    messages: [
+                      { role: "user", content: content.replace(/@AI/gi, "").trim() },
+                    ],
+                    feature: "tutor_chat",
+                  });
 
                   const aiMessage = await storage.createMessage({
                     channelId,
                     authorId: AI_TUTOR_ID,
-                    content: aiResponse.content,
+                    content: aiResponse,
                     type: "text",
                     isHomework: false,
                     readBy: [userId],
