@@ -11,6 +11,7 @@ import {
   pgCountGradingResults,
   pgUpdateGradingResultById,
 } from "../lib/pg-queries";
+import { resolveTenantScope } from "../lib/tenant";
 
 const router = Router();
 
@@ -21,8 +22,14 @@ router.get(
   requireSubscription("educator"),
   async (req: Request, res: Response) => {
     const user = (req as any).user;
+    const t = resolveTenantScope(user);
+    if ("error" in t) return res.status(t.error.status).json({ message: t.error.message });
     const [students, tests, pendingGrading] = await Promise.all([
-      pgCountUsers({ role: "student", schoolCode: user.school_code }),
+      pgCountUsers(
+        t.scope.isPlatformAdmin
+          ? { role: "student" }
+          : { role: "student", schoolCode: t.scope.schoolCode }
+      ),
       pgCountTests(user.id),
       pgCountGradingResults({ teacherId: user.id, status: "pending" }),
     ]);
@@ -37,7 +44,13 @@ router.get(
   requireSubscription("educator"),
   async (req: Request, res: Response) => {
     const user = (req as any).user;
-    const students = await pgFindUsers({ role: "student", schoolCode: user.school_code });
+    const t = resolveTenantScope(user);
+    if ("error" in t) return res.status(t.error.status).json({ message: t.error.message });
+    const students = await pgFindUsers(
+      t.scope.isPlatformAdmin
+        ? { role: "student" }
+        : { role: "student", schoolCode: t.scope.schoolCode }
+    );
     res.json(
       students.map((s) => ({
         id: s.id,

@@ -628,6 +628,19 @@ describe("Admin Dashboard API", () => {
 
           expect(res.status).toBe(403);
         });
+
+        it("GET /api/analytics/students denies a school_admin without a schoolCode", async () => {
+          // Regression: this endpoint used storage.getUsers("student") with no
+          // tenant scope, leaking every school's students to any teacher/admin.
+          (pgFindUsers as Mock).mockResolvedValue([{ id: 1 }, { id: 2 }]);
+
+          const res = await request(app)
+            .get("/api/analytics/students")
+            .set("Authorization", `Bearer ${noSchoolToken}`);
+
+          expect(res.status).toBe(403);
+          expect(pgFindUsers).not.toHaveBeenCalled();
+        });
       });
 
       it("should prevent school_admin from deleting a class from another school", async () => {

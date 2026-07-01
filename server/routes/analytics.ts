@@ -1,10 +1,11 @@
 import { Router, Request, Response } from "express";
 import { authenticateToken, requireVerifiedEmail } from "../middleware";
 import { storage } from "../storage";
-import { pgFindUserById, pgCountUsers } from "../lib/pg-queries";
+import { pgFindUserById, pgCountUsers, pgFindUsers } from "../lib/pg-queries";
+import { resolveTenantScope } from "../lib/tenant";
 import { isPgReady, getPgPool } from "../db-pg";
 import { logger } from "../lib/logger";
-import { aiChat } from "../lib/openai";
+import { generate } from "../lib/ai/gateway";
 import { checkAIQuota } from "../middleware/aiQuota";
 import { pgIncrementAIUsage } from "../lib/pg-queries";
 
@@ -194,11 +195,14 @@ router.post(
 
       const prompt = `You are a study coach. ${context}\nReturn the plan as a JSON object with a "days" array, where each element is { "day": number, "title": "Day Title", "tasks": [{ "task": "string", "duration": "string" }] }`;
 
-      const response = await aiChat(
-        [{ role: "user", content: prompt }],
-        "You are an expert study coach. Respond only with valid JSON."
-      );
-      const plan = JSON.parse(response.content);
+      const response = await generate({
+        model: "fast",
+        fallback: "orchestrator",
+        system: "You are an expert study coach. Respond only with valid JSON.",
+        messages: [{ role: "user", content: prompt }],
+        feature: "study_plan",
+      });
+      const plan = JSON.parse(response);
 
       await pgIncrementAIUsage({
         userId,
@@ -256,11 +260,14 @@ router.post(
 
       const prompt = `You are a learning analyst. Here is a student's test performance over the last 90 days:\n${resultSummary}\nIdentify:\n1. Subjects showing consistent improvement\n2. Subjects showing decline or stagnation\n3. One specific actionable recommendation\n4. Overall trend in 1 sentence\nBe direct. No filler phrases. Return as JSON: { "improving": ["subject"], "declining": ["subject"], "recommendation": "string", "summary": "string" }`;
 
-      const response = await aiChat(
-        [{ role: "user", content: prompt }],
-        "You are a learning analyst. Respond only with valid JSON."
-      );
-      const analysis = JSON.parse(response.content);
+      const response = await generate({
+        model: "fast",
+        fallback: "orchestrator",
+        system: "You are a learning analyst. Respond only with valid JSON.",
+        messages: [{ role: "user", content: prompt }],
+        feature: "performance_analysis",
+      });
+      const analysis = JSON.parse(response);
 
       await pgIncrementAIUsage({
         userId: studentId,
@@ -633,11 +640,24 @@ router.get("/analytics/students", authenticateToken, async (req: Request, res: R
   try {
     if (
       !req.session?.userId ||
-      !["teacher", "admin", "principal"].includes(req.session.role || "")
+      !["teacher", "admin", "principal", "school_admin"].includes(req.session.role || "")
     ) {
       return res.status(403).json({ message: "Forbidden: Insufficient permissions" });
     }
-    const students = await storage.getUsers("student");
+
+    // Tenant isolation: only the platform super-role "admin" may list students
+    // across schools. Everyone else is scoped to their own school_code, and an
+    // account without a schoolCode is denied rather than shown every school's
+    // students (the fail-open trap — storage.getUsers("student") is unscoped).
+    const requester = await pgFindUserById(req.session.userId);
+    const t = resolveTenantScope(requester);
+    if ("error" in t) return res.status(t.error.status).json({ message: t.error.message });
+
+    const students = await pgFindUsers(
+      t.scope.isPlatformAdmin
+        ? { role: "student" }
+        : { role: "student", schoolCode: t.scope.schoolCode }
+    );
     if (!students || students.length === 0) {
       return res.status(200).json([]);
     }
