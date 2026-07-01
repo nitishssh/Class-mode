@@ -10,6 +10,7 @@ import dynamicSisRouter from "./routes/dynamic-sis";
 import lifecycleRouter from "./routes/lifecycle";
 import healthRoutes from "./routes/health";
 import whatsappRoutes from "./routes/whatsapp";
+import attendanceRoutes from "./routes/attendance";
 import gdprRoutes from "./routes/gdpr";
 import billingRoutes from "./routes/billing";
 import lmsRoutes from "./routes/lms";
@@ -86,6 +87,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/gdpr", gdprRoutes);
   app.use("/api/health", healthRoutes);
   app.use("/api/whatsapp", whatsappRoutes); // public webhook (Meta calls it)
+  app.use("/api/attendance", attendanceRoutes);
   app.use("/api/onboarding", onboardingRouter);
 
   // Mount newly extracted domain routers at /api root

@@ -491,6 +491,24 @@ CREATE TABLE IF NOT EXISTS ai_usage_logs (
   created_at    timestamptz  NOT NULL DEFAULT now()
 );
 
+-- ─── Attendance ──────────────────────────────────────────────────────────────
+-- Daily attendance is the operational-lock-in loop (teachers mark it every
+-- morning). Scoped by school_code for multi-tenant isolation; one row per
+-- student per day (upsert on re-mark).
+CREATE TABLE IF NOT EXISTS attendance (
+  id           bigserial    PRIMARY KEY,
+  student_id   bigint       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  school_code  text,
+  class_name   text,
+  date         date         NOT NULL,
+  status       text         NOT NULL CHECK (status IN ('present','absent','late','excused')),
+  marked_by    bigint       REFERENCES users(id) ON DELETE SET NULL,
+  note         text,
+  created_at   timestamptz  NOT NULL DEFAULT now(),
+  updated_at   timestamptz  NOT NULL DEFAULT now(),
+  UNIQUE (student_id, date)
+);
+
 -- ─── Timetable Slots ─────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS timetable_slots (
   id             bigserial    PRIMARY KEY,
@@ -605,6 +623,9 @@ CREATE INDEX IF NOT EXISTS idx_subs_user           ON subscriptions(user_id, sta
 CREATE INDEX IF NOT EXISTS idx_subs_stripe         ON subscriptions(stripe_customer_id);
 
 CREATE INDEX IF NOT EXISTS idx_ai_usage_user       ON ai_usage_logs(user_id, feature, created_at);
+
+CREATE INDEX IF NOT EXISTS idx_attendance_class     ON attendance(school_code, class_name, date);
+CREATE INDEX IF NOT EXISTS idx_attendance_student   ON attendance(student_id, date);
 CREATE INDEX IF NOT EXISTS idx_ai_usage_workspace  ON ai_usage_logs(workspace_id);
 
 CREATE INDEX IF NOT EXISTS idx_timetable_workspace ON timetable_slots(workspace_id);

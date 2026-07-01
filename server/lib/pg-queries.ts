@@ -2184,3 +2184,110 @@ export async function pgGetResources(filters: {
     return [];
   }
 }
+
+// ─── Attendance (operational lock-in loop) ───────────────────────────────────
+
+export type AttendanceStatus = "present" | "absent" | "late" | "excused";
+
+export interface AttendanceMark {
+  studentId: number;
+  status: AttendanceStatus;
+  note?: string | null;
+}
+
+/**
+ * Upsert attendance for a set of students on a given date (one row per
+ * student/day). Scoped by schoolCode so a class's marks stay tenant-isolated.
+ * Returns the number of rows written.
+ */
+export async function pgMarkAttendance(params: {
+  schoolCode: string | null;
+  className: string | null;
+  date: string; // YYYY-MM-DD
+  markedBy: number;
+  marks: AttendanceMark[];
+}): Promise<number> {
+  if (!isPgReady() || params.marks.length === 0) return 0;
+  try {
+    let written = 0;
+    for (const m of params.marks) {
+      await getPgPool().query(
+        `INSERT INTO attendance (student_id, school_code, class_name, date, status, marked_by, note)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (student_id, date)
+         DO UPDATE SET status = EXCLUDED.status, note = EXCLUDED.note,
+                       marked_by = EXCLUDED.marked_by, updated_at = now()`,
+        [m.studentId, params.schoolCode, params.className, params.date, m.status, params.markedBy, m.note ?? null]
+      );
+      written += 1;
+    }
+    return written;
+  } catch (err) {
+    logger.error("[pg] pgMarkAttendance failed", { err: String(err) });
+    return 0;
+  }
+}
+
+/** List attendance rows for a class on a date, scoped to a school. */
+export async function pgGetAttendanceByClassDate(params: {
+  schoolCode?: string;
+  className: string;
+  date: string;
+}): Promise<any[]> {
+  if (!isPgReady()) return [];
+  try {
+    const conditions = ["a.class_name = $1", "a.date = $2"];
+    const values: any[] = [params.className, params.date];
+    if (params.schoolCode) {
+      conditions.push(`a.school_code = $${values.length + 1}`);
+      values.push(params.schoolCode);
+    }
+    const { rows } = await getPgPool().query(
+      `SELECT a.student_id AS "studentId", u.name AS "studentName", a.status,
+              a.note, a.date, a.class_name AS "className"
+         FROM attendance a
+         JOIN users u ON u.id = a.student_id
+        WHERE ${conditions.join(" AND ")}
+        ORDER BY u.name ASC`,
+      values
+    );
+    return rows;
+  } catch (err) {
+    logger.error("[pg] pgGetAttendanceByClassDate failed", { err: String(err) });
+    return [];
+  }
+}
+
+/** Per-status attendance counts for a student, scoped to a school. */
+export async function pgGetStudentAttendanceSummary(params: {
+  studentId: number;
+  schoolCode?: string;
+}): Promise<{ present: number; absent: number; late: number; excused: number; total: number }> {
+  const empty = { present: 0, absent: 0, late: 0, excused: 0, total: 0 };
+  if (!isPgReady()) return empty;
+  try {
+    const conditions = ["student_id = $1"];
+    const values: any[] = [params.studentId];
+    if (params.schoolCode) {
+      conditions.push(`school_code = $${values.length + 1}`);
+      values.push(params.schoolCode);
+    }
+    const { rows } = await getPgPool().query(
+      `SELECT status, COUNT(*)::int AS c
+         FROM attendance
+        WHERE ${conditions.join(" AND ")}
+        GROUP BY status`,
+      values
+    );
+    const out = { ...empty };
+    for (const r of rows) {
+      const status = r.status as AttendanceStatus;
+      if (status in out) (out as any)[status] = r.c;
+      out.total += r.c;
+    }
+    return out;
+  } catch (err) {
+    logger.error("[pg] pgGetStudentAttendanceSummary failed", { err: String(err) });
+    return empty;
+  }
+}
