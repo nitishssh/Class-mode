@@ -491,6 +491,25 @@ CREATE TABLE IF NOT EXISTS ai_usage_logs (
   created_at    timestamptz  NOT NULL DEFAULT now()
 );
 
+-- ─── Fees ────────────────────────────────────────────────────────────────────
+-- Fee collection is the revenue side of the operational moat (the thing school
+-- admins actually pay for). Amounts are stored in minor units (paise/cents) to
+-- avoid float rounding. Scoped by school_code for tenant isolation.
+CREATE TABLE IF NOT EXISTS fees (
+  id            bigserial    PRIMARY KEY,
+  student_id    bigint       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  school_code   text,
+  description   text         NOT NULL,
+  amount_cents  bigint       NOT NULL CHECK (amount_cents >= 0),
+  currency      text         NOT NULL DEFAULT 'INR',
+  status        text         NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','paid','waived')),
+  due_date      date,
+  paid_at       timestamptz,
+  created_by    bigint       REFERENCES users(id) ON DELETE SET NULL,
+  created_at    timestamptz  NOT NULL DEFAULT now(),
+  updated_at    timestamptz  NOT NULL DEFAULT now()
+);
+
 -- ─── Feature Usage ───────────────────────────────────────────────────────────
 -- Distribution instrumentation: one row per meaningful feature use, so we can
 -- see which features get daily use vs zero (points analytics inward). Scoped by
@@ -640,6 +659,9 @@ CREATE INDEX IF NOT EXISTS idx_attendance_class     ON attendance(school_code, c
 CREATE INDEX IF NOT EXISTS idx_attendance_student   ON attendance(student_id, date);
 
 CREATE INDEX IF NOT EXISTS idx_feature_usage        ON feature_usage(school_code, feature, created_at);
+
+CREATE INDEX IF NOT EXISTS idx_fees_school           ON fees(school_code, status);
+CREATE INDEX IF NOT EXISTS idx_fees_student          ON fees(student_id, status);
 CREATE INDEX IF NOT EXISTS idx_ai_usage_workspace  ON ai_usage_logs(workspace_id);
 
 CREATE INDEX IF NOT EXISTS idx_timetable_workspace ON timetable_slots(workspace_id);

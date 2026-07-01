@@ -2185,6 +2185,162 @@ export async function pgGetResources(filters: {
   }
 }
 
+// ─── Fees (revenue side of the operational moat) ─────────────────────────────
+
+export type FeeStatus = "pending" | "paid" | "waived";
+
+/** Create a fee for a student. Returns the new row's id, or null on failure. */
+export async function pgCreateFee(params: {
+  studentId: number;
+  schoolCode: string | null;
+  description: string;
+  amountCents: number;
+  currency?: string;
+  dueDate?: string | null;
+  createdBy: number;
+}): Promise<number | null> {
+  if (!isPgReady()) return null;
+  try {
+    const { rows } = await getPgPool().query(
+      `INSERT INTO fees (student_id, school_code, description, amount_cents, currency, due_date, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+      [
+        params.studentId,
+        params.schoolCode,
+        params.description,
+        params.amountCents,
+        params.currency ?? "INR",
+        params.dueDate ?? null,
+        params.createdBy,
+      ]
+    );
+    return rows[0]?.id ?? null;
+  } catch (err) {
+    logger.error("[pg] pgCreateFee failed", { err: String(err) });
+    return null;
+  }
+}
+
+/** List fees, filtered/scoped by school, student, and/or status. */
+export async function pgGetFees(params: {
+  schoolCode?: string;
+  studentId?: number;
+  status?: FeeStatus;
+}): Promise<any[]> {
+  if (!isPgReady()) return [];
+  try {
+    const conditions: string[] = [];
+    const values: any[] = [];
+    if (params.schoolCode) {
+      conditions.push(`f.school_code = $${values.length + 1}`);
+      values.push(params.schoolCode);
+    }
+    if (params.studentId != null) {
+      conditions.push(`f.student_id = $${values.length + 1}`);
+      values.push(params.studentId);
+    }
+    if (params.status) {
+      conditions.push(`f.status = $${values.length + 1}`);
+      values.push(params.status);
+    }
+    const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+    const { rows } = await getPgPool().query(
+      `SELECT f.id, f.student_id AS "studentId", u.name AS "studentName", f.description,
+              f.amount_cents AS "amountCents", f.currency, f.status,
+              f.due_date AS "dueDate", f.paid_at AS "paidAt"
+         FROM fees f JOIN users u ON u.id = f.student_id
+         ${where}
+        ORDER BY f.created_at DESC`,
+      values
+    );
+    return rows;
+  } catch (err) {
+    logger.error("[pg] pgGetFees failed", { err: String(err) });
+    return [];
+  }
+}
+
+/** Fetch a single fee by id (with student name), or null. */
+export async function pgGetFeeById(id: number): Promise<any | null> {
+  if (!isPgReady()) return null;
+  try {
+    const { rows } = await getPgPool().query(
+      `SELECT f.id, f.student_id AS "studentId", u.name AS "studentName", f.school_code AS "schoolCode",
+              f.description, f.amount_cents AS "amountCents", f.currency, f.status,
+              f.due_date AS "dueDate", f.paid_at AS "paidAt"
+         FROM fees f JOIN users u ON u.id = f.student_id
+        WHERE f.id = $1`,
+      [id]
+    );
+    return rows[0] ?? null;
+  } catch (err) {
+    logger.error("[pg] pgGetFeeById failed", { err: String(err) });
+    return null;
+  }
+}
+
+/**
+ * Mark a fee paid. When `schoolCode` is provided the update is scoped to that
+ * school (a school admin can't settle another school's fee). Returns true if a
+ * row was updated.
+ */
+export async function pgMarkFeePaid(id: number, schoolCode?: string): Promise<boolean> {
+  if (!isPgReady()) return false;
+  try {
+    const values: any[] = [id];
+    let scope = "";
+    if (schoolCode) {
+      scope = " AND school_code = $2";
+      values.push(schoolCode);
+    }
+    const { rowCount } = await getPgPool().query(
+      `UPDATE fees SET status = 'paid', paid_at = now(), updated_at = now()
+        WHERE id = $1${scope} AND status <> 'paid'`,
+      values
+    );
+    return (rowCount ?? 0) > 0;
+  } catch (err) {
+    logger.error("[pg] pgMarkFeePaid failed", { err: String(err) });
+    return false;
+  }
+}
+
+/** Aggregate pending vs paid totals (in minor units), scoped to a school. */
+export async function pgGetFeeSummary(params: {
+  schoolCode?: string;
+}): Promise<{ pendingCents: number; paidCents: number; pendingCount: number; paidCount: number }> {
+  const empty = { pendingCents: 0, paidCents: 0, pendingCount: 0, paidCount: 0 };
+  if (!isPgReady()) return empty;
+  try {
+    const values: any[] = [];
+    const where = params.schoolCode ? `WHERE school_code = $1` : "";
+    if (params.schoolCode) values.push(params.schoolCode);
+    const { rows } = await getPgPool().query(
+      `SELECT status,
+              COALESCE(SUM(amount_cents), 0)::bigint AS cents,
+              COUNT(*)::int AS n
+         FROM fees ${where}
+        GROUP BY status`,
+      values
+    );
+    const out = { ...empty };
+    for (const r of rows) {
+      const cents = parseInt(r.cents, 10) || 0;
+      if (r.status === "pending") {
+        out.pendingCents = cents;
+        out.pendingCount = r.n;
+      } else if (r.status === "paid") {
+        out.paidCents = cents;
+        out.paidCount = r.n;
+      }
+    }
+    return out;
+  } catch (err) {
+    logger.error("[pg] pgGetFeeSummary failed", { err: String(err) });
+    return empty;
+  }
+}
+
 // ─── Feature usage (distribution instrumentation) ────────────────────────────
 
 /**
