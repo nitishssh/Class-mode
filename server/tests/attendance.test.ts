@@ -29,6 +29,7 @@ vi.mock("../lib/pg-queries", () => ({
   pgMarkAttendance: h.mockMark,
   pgGetAttendanceByClassDate: h.mockGetByClass,
   pgGetStudentAttendanceSummary: h.mockSummary,
+  pgTrackFeatureUsage: vi.fn(),
 }));
 
 import attendanceRoutes from "../routes/attendance";

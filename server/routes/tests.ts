@@ -15,6 +15,7 @@ import {
   pgIncrementAIUsage,
   pgFindFirstWorkspaceMembership,
   pgFindUserById,
+  pgTrackFeatureUsage,
 } from "../lib/pg-queries";
 import { upload } from "../lib/upload";
 import fs from "fs";
@@ -427,6 +428,11 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
         metadata: { type: "test_generation", subject },
       });
 
+      pgTrackFeatureUsage({
+        feature: "test_generation",
+        userId,
+        schoolCode: (req.user as any)?.school_code ?? null,
+      });
       res.json(questions);
     } catch (error: any) {
       logger.error("Test generation error:", error);

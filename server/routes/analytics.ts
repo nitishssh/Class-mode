@@ -1,7 +1,12 @@
 import { Router, Request, Response } from "express";
 import { authenticateToken, requireVerifiedEmail } from "../middleware";
 import { storage } from "../storage";
-import { pgFindUserById, pgCountUsers, pgFindUsers } from "../lib/pg-queries";
+import {
+  pgFindUserById,
+  pgCountUsers,
+  pgFindUsers,
+  pgGetFeatureUsageSummary,
+} from "../lib/pg-queries";
 import { resolveTenantScope } from "../lib/tenant";
 import { isPgReady, getPgPool } from "../db-pg";
 import { logger } from "../lib/logger";
@@ -719,6 +724,35 @@ router.get("/analytics/students", authenticateToken, async (req: Request, res: R
   } catch (error) {
     console.error("[api/analytics/students] Error:", error);
     res.status(500).json({ message: "Failed to get student analytics" });
+  }
+});
+
+// GET /api/admin/feature-usage?days=30
+// Per-feature usage counts, scoped to the requester's school (platform admin
+// sees all). Answers "which features get daily use vs zero" for the pilot.
+router.get("/admin/feature-usage", authenticateToken, async (req: Request, res: Response) => {
+  try {
+    if (!req.session?.userId) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    if (!["admin", "principal", "school_admin"].includes(req.session.role || "")) {
+      return res.status(403).json({ message: "Forbidden: Admin access required" });
+    }
+
+    const days = Math.min(Math.max(parseInt(String(req.query.days ?? "30"), 10) || 30, 1), 365);
+
+    const requester = await pgFindUserById(req.session.userId);
+    const t = resolveTenantScope(requester);
+    if ("error" in t) return res.status(t.error.status).json({ message: t.error.message });
+
+    const summary = await pgGetFeatureUsageSummary({
+      schoolCode: t.scope.isPlatformAdmin ? undefined : t.scope.schoolCode,
+      sinceDays: days,
+    });
+    res.status(200).json({ range: days, features: summary });
+  } catch (error) {
+    console.error("[api/admin/feature-usage] Error:", error);
+    res.status(500).json({ message: "Failed to fetch feature usage" });
   }
 });
 

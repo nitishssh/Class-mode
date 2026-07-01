@@ -491,6 +491,18 @@ CREATE TABLE IF NOT EXISTS ai_usage_logs (
   created_at    timestamptz  NOT NULL DEFAULT now()
 );
 
+-- ─── Feature Usage ───────────────────────────────────────────────────────────
+-- Distribution instrumentation: one row per meaningful feature use, so we can
+-- see which features get daily use vs zero (points analytics inward). Scoped by
+-- school_code for tenant-isolated aggregation.
+CREATE TABLE IF NOT EXISTS feature_usage (
+  id           bigserial    PRIMARY KEY,
+  feature      text         NOT NULL,
+  user_id      bigint       REFERENCES users(id) ON DELETE SET NULL,
+  school_code  text,
+  created_at   timestamptz  NOT NULL DEFAULT now()
+);
+
 -- ─── Attendance ──────────────────────────────────────────────────────────────
 -- Daily attendance is the operational-lock-in loop (teachers mark it every
 -- morning). Scoped by school_code for multi-tenant isolation; one row per
@@ -626,6 +638,8 @@ CREATE INDEX IF NOT EXISTS idx_ai_usage_user       ON ai_usage_logs(user_id, fea
 
 CREATE INDEX IF NOT EXISTS idx_attendance_class     ON attendance(school_code, class_name, date);
 CREATE INDEX IF NOT EXISTS idx_attendance_student   ON attendance(student_id, date);
+
+CREATE INDEX IF NOT EXISTS idx_feature_usage        ON feature_usage(school_code, feature, created_at);
 CREATE INDEX IF NOT EXISTS idx_ai_usage_workspace  ON ai_usage_logs(workspace_id);
 
 CREATE INDEX IF NOT EXISTS idx_timetable_workspace ON timetable_slots(workspace_id);

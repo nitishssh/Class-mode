@@ -2185,6 +2185,58 @@ export async function pgGetResources(filters: {
   }
 }
 
+// ─── Feature usage (distribution instrumentation) ────────────────────────────
+
+/**
+ * Record a single feature use. Fire-and-forget: never throws and never blocks
+ * the caller's response — call without awaiting.
+ */
+export function pgTrackFeatureUsage(params: {
+  feature: string;
+  userId?: number | null;
+  schoolCode?: string | null;
+}): void {
+  if (!isPgReady()) return;
+  getPgPool()
+    .query(`INSERT INTO feature_usage (feature, user_id, school_code) VALUES ($1, $2, $3)`, [
+      params.feature,
+      params.userId ?? null,
+      params.schoolCode ?? null,
+    ])
+    .catch((err) => logger.error("[pg] pgTrackFeatureUsage failed", { err: String(err) }));
+}
+
+/**
+ * Per-feature usage counts over the last `sinceDays` days, scoped to a school
+ * (omit schoolCode for a platform-wide roll-up). Ordered by most-used first.
+ */
+export async function pgGetFeatureUsageSummary(params: {
+  schoolCode?: string;
+  sinceDays: number;
+}): Promise<{ feature: string; count: number; lastUsed: string | null }[]> {
+  if (!isPgReady()) return [];
+  try {
+    const conditions = ["created_at >= now() - ($1 || ' days')::interval"];
+    const values: any[] = [String(params.sinceDays)];
+    if (params.schoolCode) {
+      conditions.push(`school_code = $${values.length + 1}`);
+      values.push(params.schoolCode);
+    }
+    const { rows } = await getPgPool().query(
+      `SELECT feature, COUNT(*)::int AS count, MAX(created_at) AS "lastUsed"
+         FROM feature_usage
+        WHERE ${conditions.join(" AND ")}
+        GROUP BY feature
+        ORDER BY count DESC`,
+      values
+    );
+    return rows;
+  } catch (err) {
+    logger.error("[pg] pgGetFeatureUsageSummary failed", { err: String(err) });
+    return [];
+  }
+}
+
 // ─── Attendance (operational lock-in loop) ───────────────────────────────────
 
 export type AttendanceStatus = "present" | "absent" | "late" | "excused";

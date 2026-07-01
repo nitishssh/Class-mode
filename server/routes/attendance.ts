@@ -6,6 +6,7 @@ import {
   pgMarkAttendance,
   pgGetAttendanceByClassDate,
   pgGetStudentAttendanceSummary,
+  pgTrackFeatureUsage,
 } from "../lib/pg-queries";
 
 const router = Router();
@@ -43,14 +44,16 @@ router.post(
       return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
     }
 
+    const schoolCode = t.scope.isPlatformAdmin ? (user.school_code ?? null) : t.scope.schoolCode!;
     const written = await pgMarkAttendance({
-      schoolCode: t.scope.isPlatformAdmin ? (user.school_code ?? null) : t.scope.schoolCode!,
+      schoolCode,
       className: parsed.data.className,
       date: parsed.data.date,
       markedBy: user.id,
       marks: parsed.data.marks,
     });
 
+    pgTrackFeatureUsage({ feature: "attendance", userId: user.id, schoolCode });
     res.json({ success: true, written });
   }
 );

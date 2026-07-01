@@ -17,6 +17,7 @@ import {
   pgCountUsers,
   pgUpdateUser,
   pgDeleteUser,
+  pgGetFeatureUsageSummary,
   isPgReady,
 } from "../lib/pg-queries";
 import { getPgPool } from "../db-pg";
@@ -44,6 +45,7 @@ vi.mock("../lib/pg-queries", () => ({
   pgUpdateUser: vi.fn(),
   pgDeleteUser: vi.fn(),
   pgFindFirstWorkspaceMembership: vi.fn().mockResolvedValue(null),
+  pgGetFeatureUsageSummary: vi.fn(),
   isPgReady: vi.fn().mockReturnValue(true),
 }));
 
@@ -380,6 +382,32 @@ describe("Admin Dashboard API", () => {
     });
   });
 
+  describe("GET /api/admin/feature-usage", () => {
+    it("returns the per-feature usage summary for a platform admin", async () => {
+      (pgGetFeatureUsageSummary as Mock).mockResolvedValue([
+        { feature: "attendance", count: 42, lastUsed: "2026-07-01T00:00:00.000Z" },
+        { feature: "test_generation", count: 7, lastUsed: "2026-06-30T00:00:00.000Z" },
+      ]);
+
+      const res = await request(app)
+        .get("/api/admin/feature-usage?days=14")
+        .set("Authorization", `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.range).toBe(14);
+      expect(res.body.features).toHaveLength(2);
+      // Platform admin sees all schools — no schoolCode filter.
+      expect(pgGetFeatureUsageSummary).toHaveBeenCalledWith({ schoolCode: undefined, sinceDays: 14 });
+    });
+
+    it("returns 403 for a non-admin role", async () => {
+      const res = await request(app)
+        .get("/api/admin/feature-usage")
+        .set("Authorization", `Bearer ${unauthorizedToken}`);
+      expect(res.status).toBe(403);
+    });
+  });
+
   describe("POST /api/admin/keys", () => {
     it("should generate an API key", async () => {
       const res = await request(app)
@@ -640,6 +668,15 @@ describe("Admin Dashboard API", () => {
 
           expect(res.status).toBe(403);
           expect(pgFindUsers).not.toHaveBeenCalled();
+        });
+
+        it("GET /api/admin/feature-usage denies a school_admin without a schoolCode", async () => {
+          (pgGetFeatureUsageSummary as Mock).mockResolvedValue([]);
+          const res = await request(app)
+            .get("/api/admin/feature-usage")
+            .set("Authorization", `Bearer ${noSchoolToken}`);
+          expect(res.status).toBe(403);
+          expect(pgGetFeatureUsageSummary).not.toHaveBeenCalled();
         });
       });
 
