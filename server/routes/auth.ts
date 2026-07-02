@@ -202,6 +202,7 @@ function createDevUser(data: {
   const user: PgUser = {
     id,
     userType: "educator",
+    parentPhone: null,
     authProvider: "local-dev",
     authSubject: data.email,
     email: data.email,

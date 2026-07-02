@@ -31,6 +31,7 @@ interface Fee {
   id: number;
   studentId: number;
   studentName: string;
+  parentPhone: string | null;
   description: string;
   amountCents: number;
   currency: string;
@@ -302,7 +303,14 @@ export default function FeesPage() {
                         >
                           Mark paid
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => setRemindFee(f)}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setRemindFee(f);
+                            setPhone(f.parentPhone ?? "");
+                          }}
+                        >
                           <MessageCircle className="mr-1 h-4 w-4" /> Remind
                         </Button>
                       </>

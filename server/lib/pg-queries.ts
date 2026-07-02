@@ -24,6 +24,7 @@ export interface PgUser {
   schoolCode: string | null;
   schoolId: number | null;
   parentId: number | null;
+  parentPhone: string | null;
   grade: string | null;
   board: string | null;
   subjects: string[];
@@ -195,6 +196,7 @@ function mapUser(r: any): PgUser {
     schoolCode: r.school_code ?? null,
     schoolId: n(r.school_id),
     parentId: n(r.parent_id),
+    parentPhone: r.parent_phone ?? null,
     grade: r.grade ?? null,
     board: r.board ?? null,
     subjects: r.subjects ?? [],
@@ -543,6 +545,7 @@ export async function pgUpdateUser(id: number, data: Record<string, any>): Promi
       schoolCode: "school_code",
       schoolId: "school_id",
       parentId: "parent_id",
+      parentPhone: "parent_phone",
       grade: "grade",
       board: "board",
       subjects: "subjects",
@@ -2245,7 +2248,7 @@ export async function pgGetFees(params: {
     }
     const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
     const { rows } = await getPgPool().query(
-      `SELECT f.id, f.student_id AS "studentId", u.name AS "studentName", f.description,
+      `SELECT f.id, f.student_id AS "studentId", u.name AS "studentName", u.parent_phone AS "parentPhone", f.description,
               f.amount_cents AS "amountCents", f.currency, f.status,
               f.due_date AS "dueDate", f.paid_at AS "paidAt"
          FROM fees f JOIN users u ON u.id = f.student_id
@@ -2265,7 +2268,7 @@ export async function pgGetFeeById(id: number): Promise<any | null> {
   if (!isPgReady()) return null;
   try {
     const { rows } = await getPgPool().query(
-      `SELECT f.id, f.student_id AS "studentId", u.name AS "studentName", f.school_code AS "schoolCode",
+      `SELECT f.id, f.student_id AS "studentId", u.name AS "studentName", u.parent_phone AS "parentPhone", f.school_code AS "schoolCode",
               f.description, f.amount_cents AS "amountCents", f.currency, f.status,
               f.due_date AS "dueDate", f.paid_at AS "paidAt"
          FROM fees f JOIN users u ON u.id = f.student_id

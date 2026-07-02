@@ -39,6 +39,9 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 ALTER TABLE users ADD COLUMN IF NOT EXISTS user_type TEXT;
+-- Parent's WhatsApp number on the student row (parents rarely have accounts);
+-- used for absence notifications and fee reminders.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS parent_phone text;
 
 -- ─── Schools ─────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS schools (

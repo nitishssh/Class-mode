@@ -4,8 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.8.1.0] - 2026-07-02
+
 ### Added
 
+- **Parent loop: absence alerts on WhatsApp** — Marking a student absent now automatically WhatsApps their parent ("Attendance alert: … was marked absent today"), fire-and-forget so the teacher's save never blocks. New `parent_phone` on student records, editable inline from the attendance roster (`PATCH /api/attendance/roster/:studentId/parent-phone`, tenant-guarded). The save toast reports how many parents were notified.
+- **Fee reminders prefill the parent's number** — the fees Remind dialog auto-fills from the same `parent_phone`, so sending a reminder is one click once the number is on file.
 - **Attendance & Fees pages** — Teachers get `/attendance` (class + date picker, per-student Present/Absent/Late/Excused toggles, all-present shortcut, live summary chips); admins get `/fees` (pending/collected cards, create-fee dialog, status filter, mark-paid, WhatsApp reminder dialog). Both wired into the sidebar for every relevant role, with teacher-accessible tenant-scoped roster endpoints (`GET /api/attendance/classes`, `GET /api/attendance/roster`).
 - **Boot-time migration (opt-in)** — `AUTO_MIGRATE=true` applies the idempotent `scripts/pg-schema.sql` at startup under a Postgres advisory lock (no cross-instance DDL races). The production image ships the schema file and enables it, so deploys never run against a stale schema.
 - **Daily attendance (operational moat)** — Tenant-scoped `attendance` system-of-record: `POST/GET /api/attendance` and `GET /api/attendance/summary/:studentId`. One row per student/day (upsert on re-mark), fail-closed school scoping. The daily-use lock-in loop. (#266)
