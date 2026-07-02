@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- **Repo organization** — Docker artifacts now live under `docker/` (`Dockerfile`, all three compose files, `nginx.conf`); compose is invoked with `--project-directory .` so every relative path resolves as before. Removed stale root files: `schema.sql` (June pg_dump snapshot — `scripts/pg-schema.sql` is the source of truth; recoverable from git history), empty `diff.txt` and `proxy.log`. `.dockerignore` stays at the repo root (build-context requirement).
+
 ## [1.8.1.0] - 2026-07-02
 
 ### Added

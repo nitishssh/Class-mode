@@ -174,7 +174,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx-ssl:/etc/nginx/ssl:ro
     depends_on:
       - eduai-app
