@@ -1,5 +1,5 @@
 # docker-compose.staging.yml
-# Usage: docker compose -f docker-compose.staging.yml up -d
+# Usage: docker compose -f docker/docker-compose.staging.yml --project-directory . up -d
 name: personallearningpro-staging
 
 services:

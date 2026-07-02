@@ -339,7 +339,7 @@ curl -H "Authorization: Bearer <token>" http://localhost:5001/api/auth/me
 
 4. **SSL/TLS**: Use HTTPS in production
    - Place certificates in `./nginx-ssl/`
-   - Update `nginx.conf` with certificate paths
+   - Update `docker/nginx.conf` with certificate paths
 
 5. **Rate Limiting**: Configured per endpoint
    - `/api/ai`: 20 req/s
