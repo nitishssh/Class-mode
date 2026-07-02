@@ -430,9 +430,7 @@ export function setupChatWebSocket(httpServer: Server, sessionStore: Store) {
                     model: "fast",
                     fallback: "orchestrator",
                     system: AI_TUTOR_SYSTEM_PROMPT,
-                    messages: [
-                      { role: "user", content: content.replace(/@AI/gi, "").trim() },
-                    ],
+                    messages: [{ role: "user", content: content.replace(/@AI/gi, "").trim() }],
                     feature: "tutor_chat",
                   });
 

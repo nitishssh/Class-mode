@@ -72,7 +72,11 @@ describe("Attendance API", () => {
     h.currentUser = { id: 11, role: "teacher", school_code: null };
     const res = await request(app)
       .post("/api/attendance")
-      .send({ className: "Grade 10", date: "2026-07-01", marks: [{ studentId: 1, status: "present" }] });
+      .send({
+        className: "Grade 10",
+        date: "2026-07-01",
+        marks: [{ studentId: 1, status: "present" }],
+      });
     expect(res.status).toBe(403);
     expect(h.mockMark).not.toHaveBeenCalled();
   });
@@ -89,7 +93,11 @@ describe("Attendance API", () => {
     h.currentUser = { id: 12, role: "student", school_code: "SCHOOL123" };
     const res = await request(app)
       .post("/api/attendance")
-      .send({ className: "Grade 10", date: "2026-07-01", marks: [{ studentId: 1, status: "present" }] });
+      .send({
+        className: "Grade 10",
+        date: "2026-07-01",
+        marks: [{ studentId: 1, status: "present" }],
+      });
     expect(res.status).toBe(403);
   });
 
@@ -101,7 +109,11 @@ describe("Attendance API", () => {
     expect(res.status).toBe(200);
     expect(res.body).toHaveLength(1);
     expect(h.mockGetByClass).toHaveBeenCalledWith(
-      expect.objectContaining({ schoolCode: "SCHOOL123", className: "Grade 10", date: "2026-07-01" })
+      expect.objectContaining({
+        schoolCode: "SCHOOL123",
+        className: "Grade 10",
+        date: "2026-07-01",
+      })
     );
   });
 

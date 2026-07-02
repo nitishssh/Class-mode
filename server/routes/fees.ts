@@ -108,7 +108,10 @@ router.post(
     if (isNaN(id)) return res.status(400).json({ message: "Invalid fee id" });
 
     const ok = await pgMarkFeePaid(id, t.scope.isPlatformAdmin ? undefined : t.scope.schoolCode);
-    if (!ok) return res.status(404).json({ message: "Fee not found, not in your school, or already paid" });
+    if (!ok)
+      return res
+        .status(404)
+        .json({ message: "Fee not found, not in your school, or already paid" });
     res.json({ success: true });
   }
 );
@@ -143,7 +146,8 @@ router.post(
     const body = `Fee reminder for ${fee.studentName}: ${fee.description} — ${amount}${due}. Please complete the payment.`;
 
     const result = await whatsappService.sendMessage({ to: phone, body });
-    if (!result.success) return res.status(502).json({ message: "Failed to send reminder", error: result.error });
+    if (!result.success)
+      return res.status(502).json({ message: "Failed to send reminder", error: result.error });
     res.json({ success: true, simulated: result.simulated ?? false });
   }
 );

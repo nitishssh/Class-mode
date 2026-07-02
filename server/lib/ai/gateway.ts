@@ -180,10 +180,10 @@ export async function generate(opts: GenerateOptions): Promise<string> {
     return out;
   } catch (primaryErr) {
     if (opts.fallback && opts.fallback !== opts.model) {
-      logger.warn(
-        `[ai] primary role "${opts.model}" failed, falling back to "${opts.fallback}"`,
-        { feature: opts.feature, err: String(primaryErr) }
-      );
+      logger.warn(`[ai] primary role "${opts.model}" failed, falling back to "${opts.fallback}"`, {
+        feature: opts.feature,
+        err: String(primaryErr),
+      });
       try {
         const out = await dispatchGenerate(opts.fallback, opts);
         logAiCall(opts, opts.fallback, started, true);

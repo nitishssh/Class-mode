@@ -397,7 +397,10 @@ describe("Admin Dashboard API", () => {
       expect(res.body.range).toBe(14);
       expect(res.body.features).toHaveLength(2);
       // Platform admin sees all schools — no schoolCode filter.
-      expect(pgGetFeatureUsageSummary).toHaveBeenCalledWith({ schoolCode: undefined, sinceDays: 14 });
+      expect(pgGetFeatureUsageSummary).toHaveBeenCalledWith({
+        schoolCode: undefined,
+        sinceDays: 14,
+      });
     });
 
     it("returns 403 for a non-admin role", async () => {

@@ -102,7 +102,13 @@ describe("WhatsApp webhook", () => {
       .post("/api/whatsapp/webhook")
       .send({
         entry: [
-          { changes: [{ value: { messages: [{ from: "15551234567", type: "text", text: { body: "hi" } }] } }] },
+          {
+            changes: [
+              {
+                value: { messages: [{ from: "15551234567", type: "text", text: { body: "hi" } }] },
+              },
+            ],
+          },
         ],
       });
     expect(res.status).toBe(200);

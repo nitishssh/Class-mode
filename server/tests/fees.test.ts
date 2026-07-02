@@ -21,7 +21,8 @@ vi.mock("../middleware", () => ({
   requireRole:
     (...roles: string[]) =>
     (req: any, res: any, next: any) => {
-      if (!req.user || !roles.includes(req.user.role)) return res.status(403).json({ message: "forbidden" });
+      if (!req.user || !roles.includes(req.user.role))
+        return res.status(403).json({ message: "forbidden" });
       next();
     },
 }));
@@ -64,7 +65,12 @@ describe("Fees API", () => {
     expect(res.status).toBe(201);
     expect(res.body).toEqual({ id: 77, status: "pending" });
     expect(h.mockCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ studentId: 9, schoolCode: "SCHOOL123", amountCents: 500000, createdBy: 5 })
+      expect.objectContaining({
+        studentId: 9,
+        schoolCode: "SCHOOL123",
+        amountCents: 500000,
+        createdBy: 5,
+      })
     );
     expect(h.mockTrack).toHaveBeenCalledWith(
       expect.objectContaining({ feature: "fees", schoolCode: "SCHOOL123" })
@@ -104,7 +110,12 @@ describe("Fees API", () => {
   });
 
   it("returns the fee summary", async () => {
-    h.mockSummary.mockResolvedValue({ pendingCents: 500000, paidCents: 0, pendingCount: 1, paidCount: 0 });
+    h.mockSummary.mockResolvedValue({
+      pendingCents: 500000,
+      paidCents: 0,
+      pendingCount: 1,
+      paidCount: 0,
+    });
     const res = await request(app).get("/api/fees/summary");
     expect(res.status).toBe(200);
     expect(res.body.pendingCents).toBe(500000);
@@ -142,7 +153,13 @@ describe("Fees API", () => {
   });
 
   it("blocks reminding on a fee from another school", async () => {
-    h.mockGetFeeById.mockResolvedValue({ id: 88, schoolCode: "OTHER", studentName: "X", amountCents: 100, currency: "INR" });
+    h.mockGetFeeById.mockResolvedValue({
+      id: 88,
+      schoolCode: "OTHER",
+      studentName: "X",
+      amountCents: 100,
+      currency: "INR",
+    });
     const res = await request(app).post("/api/fees/88/remind").send({ phone: "+15551234567" });
     expect(res.status).toBe(403);
     expect(h.mockSend).not.toHaveBeenCalled();

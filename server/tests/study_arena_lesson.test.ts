@@ -55,7 +55,7 @@ describe("generateLessonScript", () => {
   });
 
   it("strips markdown code fences before parsing", async () => {
-    (mockGenerate as Mock).mockResolvedValue("```json\n" + JSON.stringify(goodScript) + "\n```",);
+    (mockGenerate as Mock).mockResolvedValue("```json\n" + JSON.stringify(goodScript) + "\n```");
     const script = await generateLessonScript("Pythagoras' theorem");
     expect(script.scenes).toHaveLength(2);
   });
