@@ -61,14 +61,18 @@ router.get(
         storage.getTasksByUser(studentId),
       ]);
 
+      // Gamification is not tracked yet — return honest zeroes rather than
+      // fabricated demo values (previously hardcoded xp:450/level:12/streak:6,
+      // which showed on brand-new real accounts). Once an XP/streak system
+      // exists, source these from the user record.
       res.json({
         profile: {
           name: user.name,
           displayName: user.displayName,
           grade: user.grade,
-          xp: 450,
-          level: 12,
-          streak: 6,
+          xp: (user as any).xp ?? 0,
+          level: (user as any).level ?? 1,
+          streak: (user as any).streak ?? 0,
         },
         subjects,
         upcomingTests: upcomingAssignments,

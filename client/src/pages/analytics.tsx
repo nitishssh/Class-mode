@@ -65,6 +65,19 @@ export default function Analytics() {
   const studentId = currentUser?.profile?.uid;
   const [analysis, setAnalysis] = useState<any>(null);
 
+  // Real class analytics, shared (by queryKey) with the Individual Students tab.
+  // Staff-only endpoint; for students it 403s and we fall back to empty KPIs.
+  const isStaff = ["teacher", "admin", "principal", "school_admin"].includes(
+    currentUser?.profile?.role || ""
+  );
+  const { data: studentSummaries, isLoading: isLoadingSummaries } = useQuery<
+    StudentAnalyticsSummary[]
+  >({
+    queryKey: ["/api/analytics/students"],
+    queryFn: () => apiRequest("GET", "/api/analytics/students").then((r) => r.json()),
+    enabled: isStaff,
+  });
+
   const analyzeMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch("/api/ai/performance-analysis", {
@@ -84,50 +97,56 @@ export default function Analytics() {
     enabled: !!studentId && currentUser?.profile?.role === "student",
   });
 
-  const testCompletionData = [
-    { name: "Completed", value: 85, color: "hsl(var(--chart-1))" },
-    { name: "In Progress", value: 10, color: "hsl(var(--chart-2))" },
-    { name: "Not Started", value: 5, color: "hsl(var(--chart-3))" },
-  ];
+  // Derive real KPIs from the class analytics. Every figure below is computed
+  // from actual student records — no fabricated placeholders.
+  const summaries = studentSummaries ?? [];
+  const assessed = summaries.filter((s) => s.recentAttempts.length > 0);
+  const classAverage =
+    assessed.length > 0
+      ? Math.round(assessed.reduce((sum, s) => sum + s.averageScore, 0) / assessed.length)
+      : null;
+  const avgCompletion =
+    assessed.length > 0
+      ? Math.round(
+          (assessed.reduce((sum, s) => sum + s.completionRate, 0) / assessed.length) * 100
+        )
+      : null;
+  const dash = "—";
+
+  const testCompletionData =
+    avgCompletion !== null
+      ? [
+          { name: "Completed", value: avgCompletion, color: "hsl(var(--chart-1))" },
+          { name: "Remaining", value: 100 - avgCompletion, color: "hsl(var(--chart-3))" },
+        ]
+      : [];
 
   const kpis = [
     {
       label: "Class Average",
-      value: "78%",
-      trend: "+4% vs last month",
-      trendUp: true,
+      value: classAverage !== null ? `${classAverage}%` : dash,
       icon: <TrendingUp className="h-5 w-5" />,
-      gradient: "from-emerald-500 to-teal-600",
       color: "text-emerald-600 dark:text-emerald-400",
       bg: "bg-emerald-500/10",
     },
     {
       label: "Total Students",
-      value: "86",
-      trend: "+5 enrolled",
-      trendUp: true,
+      value: isLoadingSummaries ? dash : summaries.length.toString(),
       icon: <Users className="h-5 w-5" />,
-      gradient: "from-blue-500 to-indigo-600",
       color: "text-blue-600 dark:text-blue-400",
       bg: "bg-blue-500/10",
     },
     {
-      label: "Tests Conducted",
-      value: "24",
-      trend: "12 this month",
-      trendUp: true,
+      label: "Students Assessed",
+      value: isLoadingSummaries ? dash : assessed.length.toString(),
       icon: <Target className="h-5 w-5" />,
-      gradient: "from-purple-500 to-violet-600",
       color: "text-purple-600 dark:text-purple-400",
       bg: "bg-purple-500/10",
     },
     {
       label: "Completion Rate",
-      value: "85%",
-      trend: "+2% vs target",
-      trendUp: true,
+      value: avgCompletion !== null ? `${avgCompletion}%` : dash,
       icon: <BarChart3 className="h-5 w-5" />,
-      gradient: "from-amber-500 to-orange-600",
       color: "text-amber-600 dark:text-amber-400",
       bg: "bg-amber-500/10",
     },
@@ -151,16 +170,6 @@ export default function Analytics() {
             <CardContent className="p-6">
               <div className="mb-4 flex items-center justify-between">
                 <div className={`rounded-lg p-2 ${kpi.bg} ${kpi.color}`}>{kpi.icon}</div>
-                <div
-                  className={`flex items-center text-xs font-bold ${kpi.trendUp ? "text-emerald-600" : "text-amber-600"}`}
-                >
-                  {kpi.trendUp ? (
-                    <ArrowUpRight className="mr-1 h-3 w-3" />
-                  ) : (
-                    <ArrowDownRight className="mr-1 h-3 w-3" />
-                  )}
-                  {kpi.trend}
-                </div>
               </div>
               <div className="font-display text-3xl font-bold text-foreground">{kpi.value}</div>
               <div className="mt-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
@@ -216,25 +225,35 @@ export default function Analytics() {
           </CardHeader>
           <CardContent>
             <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={testCompletionData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {testCompletionData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+              {testCompletionData.length === 0 ? (
+                <div className="flex h-full flex-col items-center justify-center rounded-xl border border-dashed bg-muted/20 text-center">
+                  <Target className="mb-3 h-8 w-8 text-muted-foreground/40" />
+                  <p className="text-sm text-muted-foreground">No completion data yet</p>
+                  <p className="mt-1 text-xs text-muted-foreground/60">
+                    Appears once students attempt tests.
+                  </p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={testCompletionData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {testCompletionData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </CardContent>
         </Card>

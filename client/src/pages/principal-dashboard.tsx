@@ -39,11 +39,30 @@ import {
 } from "recharts";
 
 /**
+ * Honest empty state shown (with the "Demo Data" toggle off) in place of
+ * illustrative sample content that has no real backing data yet.
+ */
+function EmptyPanel({ message, className }: { message: string; className?: string }) {
+  return (
+    <div
+      className={`flex h-full min-h-24 flex-col items-center justify-center rounded-xl border border-dashed bg-muted/20 p-4 text-center ${className ?? ""}`}
+    >
+      <p className="text-sm text-muted-foreground">{message}</p>
+      <p className="mt-1 text-xs text-muted-foreground/60">
+        Turn on “Demo Data” to preview sample content.
+      </p>
+    </div>
+  );
+}
+
+/**
  * Renders the Principal's dashboard with statistics, charts, staff and finance summaries, events, and notifications.
  */
 export default function PrincipalDashboard() {
   const { currentUser } = useFirebaseAuth();
-  const [isDemoMode, setIsDemoMode] = useState(true);
+  // Default OFF: real accounts see their actual data + honest empty states.
+  // Turning "Demo Data" on is an explicit opt-in for demos/screenshots.
+  const [isDemoMode, setIsDemoMode] = useState(false);
 
   const { data: dashboardData, isLoading: isLoadingStats } = useQuery<any>({
     queryKey: ["/api/admin/stats", { demo: isDemoMode }],
@@ -102,47 +121,131 @@ export default function PrincipalDashboard() {
               : "from-gray-400 to-gray-500",
   }));
 
-  const staffDistribution = [
-    { name: "Science", value: 25, color: "hsl(var(--chart-1))" },
-    { name: "Mathematics", value: 18, color: "hsl(var(--chart-2))" },
-    { name: "Languages", value: 20, color: "hsl(var(--chart-3))" },
-    { name: "Social Studies", value: 12, color: "hsl(var(--chart-4))" },
-    { name: "Other", value: 12, color: "hsl(var(--chart-5))" },
-  ];
+  // Everything below is illustrative sample content with no real data source.
+  // It only renders when the "Demo Data" toggle is on — with the toggle off,
+  // real accounts see honest empty states instead of fabricated figures.
+  const staffDistribution = isDemoMode
+    ? [
+        { name: "Science", value: 25, color: "hsl(var(--chart-1))" },
+        { name: "Mathematics", value: 18, color: "hsl(var(--chart-2))" },
+        { name: "Languages", value: 20, color: "hsl(var(--chart-3))" },
+        { name: "Social Studies", value: 12, color: "hsl(var(--chart-4))" },
+        { name: "Other", value: 12, color: "hsl(var(--chart-5))" },
+      ]
+    : [];
 
   const financeSummary = [
-    { label: "Annual Budget", value: dashboardData?.revenue || "₹0", status: "Approved" },
-    { label: "Spent YTD", value: isDemoMode ? "₹1.8 Cr" : "₹0", status: "75% utilized" },
-    { label: "Pending Fees", value: dashboardData?.pendingFees || "₹0", status: "8% outstanding" },
+    {
+      label: "Annual Budget",
+      value: dashboardData?.revenue || "₹0",
+      status: isDemoMode ? "Approved" : "",
+    },
+    {
+      label: "Spent YTD",
+      value: isDemoMode ? "₹1.8 Cr" : "₹0",
+      status: isDemoMode ? "75% utilized" : "",
+    },
+    {
+      label: "Pending Fees",
+      value: dashboardData?.pendingFees || "₹0",
+      status: isDemoMode ? "8% outstanding" : "",
+    },
   ];
 
-  const upcomingEvents = [
-    { title: "Annual Sports Day", date: "Mar 15", type: "Event", color: "bg-blue-500" },
-    { title: "Term 2 Exams Begin", date: "Mar 20", type: "Academic", color: "bg-amber-500" },
-    { title: "Parent-Teacher Meeting", date: "Mar 25", type: "Meeting", color: "bg-emerald-500" },
-    { title: "Science Exhibition", date: "Apr 2", type: "Event", color: "bg-purple-500" },
-  ];
+  const staffOverview = isDemoMode
+    ? [
+        {
+          label: "Total Teaching Staff",
+          value: "87",
+          icon: <BookOpen className="h-4 w-4" />,
+          color: "text-blue-600 dark:text-blue-400 bg-blue-500/10",
+        },
+        {
+          label: "Non-Teaching Staff",
+          value: "28",
+          icon: <Building2 className="h-4 w-4" />,
+          color: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10",
+        },
+        {
+          label: "Staff on Leave Today",
+          value: "4",
+          icon: <Calendar className="h-4 w-4" />,
+          color: "text-amber-600 dark:text-amber-400 bg-amber-500/10",
+        },
+        {
+          label: "Avg. Experience",
+          value: "8.5 yrs",
+          icon: <Award className="h-4 w-4" />,
+          color: "text-purple-600 dark:text-purple-400 bg-purple-500/10",
+        },
+      ]
+    : [];
 
-  const notifications = [
-    {
-      title: "Staff Leave Request",
-      desc: "3 pending approvals for next week",
-      time: "1h ago",
-      urgent: true,
-    },
-    {
-      title: "Exam Results",
-      desc: "Term 1 results compilation complete",
-      time: "3h ago",
-      urgent: false,
-    },
-    {
-      title: "Infrastructure",
-      desc: "Lab equipment delivery scheduled for Monday",
-      time: "5h ago",
-      urgent: false,
-    },
-  ];
+  const infrastructure = isDemoMode
+    ? [
+        {
+          label: "Classrooms",
+          value: "42",
+          status: "All operational",
+          icon: <School className="h-5 w-5" />,
+        },
+        {
+          label: "Labs",
+          value: "8",
+          status: "1 under maintenance",
+          icon: <BookOpen className="h-5 w-5" />,
+        },
+        {
+          label: "Library",
+          value: "15K+",
+          status: "Books available",
+          icon: <BookOpen className="h-5 w-5" />,
+        },
+        {
+          label: "Sports Facilities",
+          value: "6",
+          status: "All available",
+          icon: <Award className="h-5 w-5" />,
+        },
+      ]
+    : [];
+
+  const upcomingEvents = isDemoMode
+    ? [
+        { title: "Annual Sports Day", date: "Mar 15", type: "Event", color: "bg-blue-500" },
+        { title: "Term 2 Exams Begin", date: "Mar 20", type: "Academic", color: "bg-amber-500" },
+        {
+          title: "Parent-Teacher Meeting",
+          date: "Mar 25",
+          type: "Meeting",
+          color: "bg-emerald-500",
+        },
+        { title: "Science Exhibition", date: "Apr 2", type: "Event", color: "bg-purple-500" },
+      ]
+    : [];
+
+  const notifications = isDemoMode
+    ? [
+        {
+          title: "Staff Leave Request",
+          desc: "3 pending approvals for next week",
+          time: "1h ago",
+          urgent: true,
+        },
+        {
+          title: "Exam Results",
+          desc: "Term 1 results compilation complete",
+          time: "3h ago",
+          urgent: false,
+        },
+        {
+          title: "Infrastructure",
+          desc: "Lab equipment delivery scheduled for Monday",
+          time: "5h ago",
+          urgent: false,
+        },
+      ]
+    : [];
 
   return (
     <>
@@ -268,28 +371,32 @@ export default function PrincipalDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={staffDistribution}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        innerRadius={45}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({ name, percent }) =>
-                          `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`
-                        }
-                        labelLine={false}
-                      >
-                        {staffDistribution.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value) => `${value} staff`} />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  {staffDistribution.length === 0 ? (
+                    <EmptyPanel message="No staff distribution data yet." />
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={staffDistribution}
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={80}
+                          innerRadius={45}
+                          fill="#8884d8"
+                          dataKey="value"
+                          label={({ name, percent }) =>
+                            `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`
+                          }
+                          labelLine={false}
+                        >
+                          {staffDistribution.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value) => `${value} staff`} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -299,45 +406,24 @@ export default function PrincipalDashboard() {
                 <CardTitle className="text-lg font-semibold">Staff Overview</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {[
-                    {
-                      label: "Total Teaching Staff",
-                      value: "87",
-                      icon: <BookOpen className="h-4 w-4" />,
-                      color: "text-blue-600 dark:text-blue-400 bg-blue-500/10",
-                    },
-                    {
-                      label: "Non-Teaching Staff",
-                      value: "28",
-                      icon: <Building2 className="h-4 w-4" />,
-                      color: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10",
-                    },
-                    {
-                      label: "Staff on Leave Today",
-                      value: "4",
-                      icon: <Calendar className="h-4 w-4" />,
-                      color: "text-amber-600 dark:text-amber-400 bg-amber-500/10",
-                    },
-                    {
-                      label: "Avg. Experience",
-                      value: "8.5 yrs",
-                      icon: <Award className="h-4 w-4" />,
-                      color: "text-purple-600 dark:text-purple-400 bg-purple-500/10",
-                    },
-                  ].map((item) => (
-                    <div
-                      key={item.label}
-                      className="flex items-center justify-between rounded-lg p-3 transition-colors hover:bg-muted/50"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`rounded-lg p-2 ${item.color}`}>{item.icon}</div>
-                        <span className="text-sm">{item.label}</span>
+                {staffOverview.length === 0 ? (
+                  <EmptyPanel message="No staff overview data yet." className="h-40" />
+                ) : (
+                  <div className="space-y-3">
+                    {staffOverview.map((item) => (
+                      <div
+                        key={item.label}
+                        className="flex items-center justify-between rounded-lg p-3 transition-colors hover:bg-muted/50"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`rounded-lg p-2 ${item.color}`}>{item.icon}</div>
+                          <span className="text-sm">{item.label}</span>
+                        </div>
+                        <span className="font-semibold">{item.value}</span>
                       </div>
-                      <span className="font-semibold">{item.value}</span>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -356,9 +442,11 @@ export default function PrincipalDashboard() {
                     <span className="text-sm text-muted-foreground">{item.label}</span>
                   </div>
                   <div className="text-2xl font-bold">{item.value}</div>
-                  <Badge variant="default" className="mt-2 text-xs">
-                    {item.status}
-                  </Badge>
+                  {item.status && (
+                    <Badge variant="default" className="mt-2 text-xs">
+                      {item.status}
+                    </Badge>
+                  )}
                 </CardContent>
               </Card>
             ))}
@@ -367,45 +455,24 @@ export default function PrincipalDashboard() {
 
         {/* Infrastructure Tab */}
         <TabsContent value="infrastructure" className="animate-fade-in-up">
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            {[
-              {
-                label: "Classrooms",
-                value: "42",
-                status: "All operational",
-                icon: <School className="h-5 w-5" />,
-              },
-              {
-                label: "Labs",
-                value: "8",
-                status: "1 under maintenance",
-                icon: <BookOpen className="h-5 w-5" />,
-              },
-              {
-                label: "Library",
-                value: "15K+",
-                status: "Books available",
-                icon: <BookOpen className="h-5 w-5" />,
-              },
-              {
-                label: "Sports Facilities",
-                value: "6",
-                status: "All available",
-                icon: <Award className="h-5 w-5" />,
-              },
-            ].map((item) => (
-              <Card key={item.label} className="transition-shadow hover:shadow-md">
-                <CardContent className="p-5 text-center">
-                  <div className="mx-auto mb-3 w-fit rounded-xl bg-primary/10 p-2.5 text-primary">
-                    {item.icon}
-                  </div>
-                  <div className="text-2xl font-bold">{item.value}</div>
-                  <div className="text-sm text-muted-foreground">{item.label}</div>
-                  <div className="mt-1 text-xs text-primary/70">{item.status}</div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          {infrastructure.length === 0 ? (
+            <EmptyPanel message="No infrastructure data yet." className="h-40" />
+          ) : (
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              {infrastructure.map((item) => (
+                <Card key={item.label} className="transition-shadow hover:shadow-md">
+                  <CardContent className="p-5 text-center">
+                    <div className="mx-auto mb-3 w-fit rounded-xl bg-primary/10 p-2.5 text-primary">
+                      {item.icon}
+                    </div>
+                    <div className="text-2xl font-bold">{item.value}</div>
+                    <div className="text-sm text-muted-foreground">{item.label}</div>
+                    <div className="mt-1 text-xs text-primary/70">{item.status}</div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
@@ -422,25 +489,29 @@ export default function PrincipalDashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {upcomingEvents.map((event, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between rounded-lg p-3 transition-colors hover:bg-muted/50"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className={`h-8 w-2 rounded-full ${event.color}`} />
-                    <div>
-                      <div className="text-sm font-medium">{event.title}</div>
-                      <div className="text-xs text-muted-foreground">{event.date}</div>
+            {upcomingEvents.length === 0 ? (
+              <EmptyPanel message="No upcoming events." className="h-32" />
+            ) : (
+              <div className="space-y-3">
+                {upcomingEvents.map((event, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between rounded-lg p-3 transition-colors hover:bg-muted/50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={`h-8 w-2 rounded-full ${event.color}`} />
+                      <div>
+                        <div className="text-sm font-medium">{event.title}</div>
+                        <div className="text-xs text-muted-foreground">{event.date}</div>
+                      </div>
                     </div>
+                    <Badge variant="outline" className="text-xs">
+                      {event.type}
+                    </Badge>
                   </div>
-                  <Badge variant="outline" className="text-xs">
-                    {event.type}
-                  </Badge>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -460,29 +531,33 @@ export default function PrincipalDashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {notifications.map((notif, i) => (
-                <div
-                  key={i}
-                  className={`rounded-lg border p-3 transition-colors hover:bg-muted/50 ${notif.urgent ? "border-destructive/20 bg-destructive/5" : "bg-transparent"}`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center gap-2 text-sm font-medium">
-                        {notif.title}
-                        {notif.urgent && (
-                          <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
-                        )}
+            {notifications.length === 0 ? (
+              <EmptyPanel message="No notifications." className="h-32" />
+            ) : (
+              <div className="space-y-3">
+                {notifications.map((notif, i) => (
+                  <div
+                    key={i}
+                    className={`rounded-lg border p-3 transition-colors hover:bg-muted/50 ${notif.urgent ? "border-destructive/20 bg-destructive/5" : "bg-transparent"}`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          {notif.title}
+                          {notif.urgent && (
+                            <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground">{notif.desc}</p>
                       </div>
-                      <p className="text-sm text-muted-foreground">{notif.desc}</p>
+                      <span className="ml-2 whitespace-nowrap text-xs text-muted-foreground">
+                        {notif.time}
+                      </span>
                     </div>
-                    <span className="ml-2 whitespace-nowrap text-xs text-muted-foreground">
-                      {notif.time}
-                    </span>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

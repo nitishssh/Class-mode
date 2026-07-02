@@ -9,6 +9,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { BarChart3 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface PerformanceData {
@@ -23,20 +24,24 @@ export function PerformanceChart() {
     enabled: false, // Disabled for now until API endpoint is implemented
   });
 
-  // Mock data for UI demonstration
-  const mockData: PerformanceData[] = [
-    { subject: "Physics", classAverage: 78, schoolAverage: 72 },
-    { subject: "Chemistry", classAverage: 82, schoolAverage: 76 },
-    { subject: "Biology", classAverage: 85, schoolAverage: 79 },
-    { subject: "Math", classAverage: 74, schoolAverage: 71 },
-    { subject: "English", classAverage: 88, schoolAverage: 82 },
-  ];
-
   if (isLoading) {
     return <PerformanceChartSkeleton />;
   }
 
-  const chartData = data || mockData;
+  const chartData = data ?? [];
+
+  // Honest empty state — no fabricated benchmark data until the API exists.
+  if (chartData.length === 0) {
+    return (
+      <div className="flex h-[320px] w-full flex-col items-center justify-center rounded-xl border border-dashed bg-muted/20 text-center">
+        <BarChart3 className="mb-3 h-8 w-8 text-muted-foreground/40" />
+        <p className="text-sm text-muted-foreground">No performance data yet</p>
+        <p className="mt-1 text-xs text-muted-foreground/60">
+          Benchmarks appear once tests are graded.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="h-[320px] w-full pt-4">

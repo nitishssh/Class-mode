@@ -193,7 +193,12 @@ export default function StudentDashboard() {
           <section className="animate-fade-in-up grid grid-cols-1 gap-6 md:grid-cols-2">
             <StreakWidget
               streak={profile?.streak || 0}
-              activity={[true, true, true, true, true, true, false]}
+              // Reflect the real streak: mark the most recent N of the last 7
+              // days active. No streak → all inactive (no fabricated activity).
+              activity={Array.from(
+                { length: 7 },
+                (_, i) => i >= 7 - Math.min(profile?.streak || 0, 7)
+              )}
             />
             <XPProgressBar
               currentXP={profile?.xp || 0}

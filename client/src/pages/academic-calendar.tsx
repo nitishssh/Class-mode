@@ -74,88 +74,10 @@ const EVENT_COLORS: Record<
   },
 };
 
-const EVENTS: CalEvent[] = [
-  {
-    id: "1",
-    date: 8,
-    month: 2,
-    year: 2026,
-    title: "Physics Quiz — EM Waves",
-    type: "test",
-    subject: "Physics",
-    time: "10:00 AM",
-  },
-  {
-    id: "2",
-    date: 11,
-    month: 2,
-    year: 2026,
-    title: "Math Integration Unit Test",
-    type: "test",
-    subject: "Mathematics",
-    time: "9:00 AM",
-  },
-  {
-    id: "3",
-    date: 13,
-    month: 2,
-    year: 2026,
-    title: "Chemistry Assignment Due",
-    type: "assignment",
-    subject: "Chemistry",
-  },
-  {
-    id: "4",
-    date: 15,
-    month: 2,
-    year: 2026,
-    title: "Annual Sports Day",
-    type: "event",
-    time: "All Day",
-  },
-  {
-    id: "5",
-    date: 18,
-    month: 2,
-    year: 2026,
-    title: "Biology Mid-term Exam",
-    type: "exam",
-    subject: "Biology",
-    time: "11:00 AM",
-  },
-  { id: "6", date: 22, month: 2, year: 2026, title: "Holi (School Holiday)", type: "holiday" },
-  {
-    id: "7",
-    date: 25,
-    month: 2,
-    year: 2026,
-    title: "Computer Science Project Demo",
-    type: "assignment",
-    subject: "Computer Science",
-    time: "2:00 PM",
-  },
-  {
-    id: "8",
-    date: 28,
-    month: 2,
-    year: 2026,
-    title: "Chapter Test — English",
-    type: "test",
-    subject: "English",
-    time: "8:00 AM",
-  },
-  {
-    id: "9",
-    date: 30,
-    month: 2,
-    year: 2026,
-    title: "Chemistry Final Exam",
-    type: "exam",
-    subject: "Chemistry",
-    time: "9:00 AM",
-  },
-  { id: "10", date: 1, month: 3, year: 2026, title: "Summer Break Begins", type: "holiday" },
-];
+// No calendar/events backend exists yet, so we show a genuinely empty calendar
+// rather than fabricated exams, quizzes and holidays. Wire this to a real
+// /api/calendar/events endpoint once it exists.
+const EVENTS: CalEvent[] = [];
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = [
@@ -183,8 +105,8 @@ function getFirstDayOfMonth(year: number, month: number) {
 
 export default function AcademicCalendarPage() {
   const today = new Date();
-  const [currentYear, setCurrentYear] = useState(2026);
-  const [currentMonth, setCurrentMonth] = useState(2); // March (0-indexed)
+  const [currentYear, setCurrentYear] = useState(today.getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState<number | null>(today.getDate());
 
   const daysInMonth = getDaysInMonth(currentYear, currentMonth);
@@ -451,6 +373,11 @@ export default function AcademicCalendarPage() {
               <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                 Upcoming Events
               </h3>
+              {eventsForMonth.length === 0 && (
+                <p className="py-4 text-center text-xs text-muted-foreground">
+                  No scheduled events yet.
+                </p>
+              )}
               <div className="space-y-2">
                 {eventsForMonth
                   .filter((e) => e.date >= (selectedDate || today.getDate()))
