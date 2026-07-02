@@ -80,5 +80,7 @@ docker-compose*.yml
 
 # ── Misc ─────────────────────────────────────────────────────────
 scripts
+# …but the schema file must ship for the AUTO_MIGRATE boot migration.
+!scripts/pg-schema.sql
 migrations
 config
