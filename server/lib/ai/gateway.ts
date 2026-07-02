@@ -39,7 +39,13 @@
 
 import OpenAI from "openai";
 import { logger } from "../logger";
-import { geminiChat, streamGeminiChat } from "../gemini";
+import {
+  geminiChat,
+  streamGeminiChat,
+  generateContentFromPdf,
+  verifyGeminiAccess,
+} from "../gemini";
+import { evaluateSubjectiveAnswer } from "../openai";
 
 // ── Public types ───────────────────────────────────────────────────────────
 
@@ -60,6 +66,14 @@ export interface GenerateOptions {
   signal?: AbortSignal;
   /** Enable JSON Mode for structured output. */
   jsonMode?: boolean;
+  /**
+   * Optional fallback role tried if the primary provider throws. Mirrors the
+   * legacy `aiChat` resilience (Gemini primary → OpenAI fallback) so call sites
+   * that relied on it don't lose it when migrating to the gateway.
+   */
+  fallback?: ModelAlias;
+  /** Free-form label for cost/latency logs (e.g. "grading", "study_plan"). */
+  feature?: string;
 }
 
 /** Concrete providers the gateway knows how to dispatch to. */
@@ -159,7 +173,51 @@ function buildOpenAIMessages(opts: GenerateOptions): ChatMessage[] {
  * OpenAI / Gemini code paths. Anthropic is not yet wired.
  */
 export async function generate(opts: GenerateOptions): Promise<string> {
-  const { provider, model } = resolveModel(opts.model);
+  const started = Date.now();
+  try {
+    const out = await dispatchGenerate(opts.model, opts);
+    logAiCall(opts, opts.model, started, true);
+    return out;
+  } catch (primaryErr) {
+    if (opts.fallback && opts.fallback !== opts.model) {
+      logger.warn(`[ai] primary role "${opts.model}" failed, falling back to "${opts.fallback}"`, {
+        feature: opts.feature,
+        err: String(primaryErr),
+      });
+      try {
+        const out = await dispatchGenerate(opts.fallback, opts);
+        logAiCall(opts, opts.fallback, started, true);
+        return out;
+      } catch (fallbackErr) {
+        logAiCall(opts, opts.fallback, started, false);
+        throw fallbackErr;
+      }
+    }
+    logAiCall(opts, opts.model, started, false);
+    throw primaryErr;
+  }
+}
+
+/**
+ * Central cost/latency/observability hook. Every gateway completion passes
+ * through here — the one place to add token metering, tracing, or per-feature
+ * quota accounting (see #265). Kept cheap (a structured debug log) for now.
+ */
+function logAiCall(opts: GenerateOptions, alias: ModelAlias, startedMs: number, ok: boolean): void {
+  const { provider, model } = MODEL_REGISTRY[alias];
+  logger.info("[ai] completion", {
+    feature: opts.feature ?? "unknown",
+    role: alias,
+    provider,
+    model,
+    ms: Date.now() - startedMs,
+    ok,
+  });
+}
+
+/** Resolve a role to a concrete provider and dispatch a single completion. */
+async function dispatchGenerate(alias: ModelAlias, opts: GenerateOptions): Promise<string> {
+  const { provider, model } = resolveModel(alias);
 
   switch (provider) {
     case "gemini": {
@@ -271,6 +329,77 @@ export async function* streamGenerate(opts: GenerateOptions): AsyncIterable<stri
  * `content_chunks vector(1536)` Postgres column used for retrieval. Uses the
  * "embed" alias from MODEL_REGISTRY for the concrete model name.
  */
+/**
+ * Structured subjective-answer evaluation (score/confidence/feedback).
+ *
+ * Specialized JSON-schema call — delegates to the existing OpenAI
+ * implementation but routes through the gateway so it shares the same central
+ * observability. Behavior-preserving.
+ */
+export async function evaluateSubjective(args: {
+  studentAnswer: string;
+  question: string;
+  rubric: string;
+  maxMarks: number;
+  feature?: string;
+}): ReturnType<typeof evaluateSubjectiveAnswer> {
+  const started = Date.now();
+  const logOpts: GenerateOptions = {
+    model: "orchestrator",
+    messages: [],
+    feature: args.feature ?? "answer_evaluation",
+  };
+  try {
+    const result = await evaluateSubjectiveAnswer(
+      args.studentAnswer,
+      args.question,
+      args.rubric,
+      args.maxMarks
+    );
+    logAiCall(logOpts, "orchestrator", started, true);
+    return result;
+  } catch (err) {
+    logAiCall(logOpts, "orchestrator", started, false);
+    throw err;
+  }
+}
+
+/**
+ * Multimodal PDF → text extraction/generation. Delegates to the existing
+ * Gemini multimodal path (the gateway's text `generate` can't carry a PDF),
+ * routed through the gateway for central observability. Behavior-preserving.
+ */
+export async function generateFromPdf(
+  pdfBuffer: Buffer,
+  prompt: string,
+  opts: { signal?: AbortSignal; feature?: string } = {}
+): Promise<string> {
+  const started = Date.now();
+  const { model } = resolveModel("fast"); // gemini-2.0-flash today
+  const logOpts: GenerateOptions = {
+    model: "fast",
+    messages: [],
+    feature: opts.feature ?? "pdf_extraction",
+  };
+  try {
+    const out = await generateContentFromPdf(pdfBuffer, prompt, model, { signal: opts.signal });
+    logAiCall(logOpts, "fast", started, true);
+    return out;
+  } catch (err) {
+    logAiCall(logOpts, "fast", started, false);
+    throw err;
+  }
+}
+
+/**
+ * Startup health check for the default text-model provider (Gemini today).
+ * Delegates to the existing verifier, routed through the gateway so the app
+ * has no direct provider imports outside this module. Fire-and-forget.
+ */
+export async function healthcheck(): Promise<void> {
+  return verifyGeminiAccess();
+}
+
 export async function embed(texts: string[]): Promise<number[][]> {
   if (texts.length === 0) return [];
 

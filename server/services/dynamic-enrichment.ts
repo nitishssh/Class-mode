@@ -4,7 +4,7 @@ import {
   pgUpdateRecord,
   pgListFields
 } from "../lib/pg-dynamic-sis";
-import { geminiChat } from "../lib/gemini";
+import { generate } from "../lib/ai/gateway";
 import { DynamicField } from "@shared/schema";
 
 // Rejects URLs that point to private/loopback networks (SSRF prevention)
@@ -150,10 +150,13 @@ export class DynamicEnrichmentService {
     try {
       logger.info(`[Enrichment] Running AI for ${field.name} on record ${recordId}`);
 
-      const response = await geminiChat(
-        "You are an expert school administrator assistant. Provide concise, helpful responses based on the provided data.",
-        finalPrompt
-      );
+      const response = await generate({
+        model: "fast",
+        system:
+          "You are an expert school administrator assistant. Provide concise, helpful responses based on the provided data.",
+        messages: [{ role: "user", content: finalPrompt }],
+        feature: "sis_enrichment",
+      });
 
       const value = response.trim();
       // Save result back to the record

@@ -8,16 +8,16 @@ import {
   insertTestAttemptSchema,
   insertAnswerSchema,
 } from "@shared/schema";
-import { evaluateSubjectiveAnswer, aiChat } from "../lib/openai";
+import { generate, evaluateSubjective, generateFromPdf } from "../lib/ai/gateway";
 import { logger } from "../lib/logger";
 import { checkAIQuota } from "../middleware/aiQuota";
 import {
   pgIncrementAIUsage,
   pgFindFirstWorkspaceMembership,
   pgFindUserById,
+  pgTrackFeatureUsage,
 } from "../lib/pg-queries";
 import { upload } from "../lib/upload";
-import { generateContentFromPdf } from "../lib/gemini";
 import fs from "fs";
 import jwt from "jsonwebtoken";
 import { ACCESS_COOKIE } from "../lib/auth-workspace";
@@ -341,12 +341,12 @@ router.post(
         text = answer.ocrText;
       }
 
-      const evaluation = await evaluateSubjectiveAnswer(
-        text,
-        question.text,
-        question.aiRubric || "Score based on accuracy and completeness",
-        question.marks
-      );
+      const evaluation = await evaluateSubjective({
+        studentAnswer: text,
+        question: question.text,
+        rubric: question.aiRubric || "Score based on accuracy and completeness",
+        maxMarks: question.marks,
+      });
 
       const updatedAnswer = await storage.updateAnswer(answerId, {
         score: evaluation.score,
@@ -390,11 +390,14 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
         const timeoutId = setTimeout(() => controller.abort(), 30000); // 30-second timeout
 
         try {
-          const apiPromise = aiChat(
-            [{ role: "user", content: prompt }],
-            "You are a professional test creator. Respond only with valid JSON.",
-            { signal: controller.signal }
-          );
+          const apiPromise = generate({
+            model: "fast",
+            fallback: "orchestrator",
+            system: "You are a professional test creator. Respond only with valid JSON.",
+            messages: [{ role: "user", content: prompt }],
+            signal: controller.signal,
+            feature: "test_generation",
+          });
 
           const timeoutPromise = new Promise<never>((_, reject) => {
             controller.signal.addEventListener("abort", () =>
@@ -405,7 +408,7 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
           const response = await Promise.race([apiPromise, timeoutPromise]);
           clearTimeout(timeoutId);
 
-          questions = JSON.parse(response.content);
+          questions = JSON.parse(response);
           if (!Array.isArray(questions)) throw new Error("Not an array");
         } catch (e: any) {
           clearTimeout(timeoutId);
@@ -425,6 +428,11 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
         metadata: { type: "test_generation", subject },
       });
 
+      pgTrackFeatureUsage({
+        feature: "test_generation",
+        userId,
+        schoolCode: (req.user as any)?.school_code ?? null,
+      });
       res.json(questions);
     } catch (error: any) {
       logger.error("Test generation error:", error);
@@ -553,8 +561,9 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30-second timeout
 
       try {
-        const apiPromise = generateContentFromPdf(pdfBuffer, prompt, "gemini-2.0-flash", {
+        const apiPromise = generateFromPdf(pdfBuffer, prompt, {
           signal: controller.signal,
+          feature: "pdf_test_generation",
         });
 
         const timeoutPromise = new Promise<never>((_, reject) => {

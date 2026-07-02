@@ -1,10 +1,16 @@
 import { Router, Request, Response } from "express";
 import { authenticateToken, requireVerifiedEmail } from "../middleware";
 import { storage } from "../storage";
-import { pgFindUserById, pgCountUsers } from "../lib/pg-queries";
+import {
+  pgFindUserById,
+  pgCountUsers,
+  pgFindUsers,
+  pgGetFeatureUsageSummary,
+} from "../lib/pg-queries";
+import { resolveTenantScope } from "../lib/tenant";
 import { isPgReady, getPgPool } from "../db-pg";
 import { logger } from "../lib/logger";
-import { aiChat } from "../lib/openai";
+import { generate } from "../lib/ai/gateway";
 import { checkAIQuota } from "../middleware/aiQuota";
 import { pgIncrementAIUsage } from "../lib/pg-queries";
 
@@ -194,11 +200,14 @@ router.post(
 
       const prompt = `You are a study coach. ${context}\nReturn the plan as a JSON object with a "days" array, where each element is { "day": number, "title": "Day Title", "tasks": [{ "task": "string", "duration": "string" }] }`;
 
-      const response = await aiChat(
-        [{ role: "user", content: prompt }],
-        "You are an expert study coach. Respond only with valid JSON."
-      );
-      const plan = JSON.parse(response.content);
+      const response = await generate({
+        model: "fast",
+        fallback: "orchestrator",
+        system: "You are an expert study coach. Respond only with valid JSON.",
+        messages: [{ role: "user", content: prompt }],
+        feature: "study_plan",
+      });
+      const plan = JSON.parse(response);
 
       await pgIncrementAIUsage({
         userId,
@@ -256,11 +265,14 @@ router.post(
 
       const prompt = `You are a learning analyst. Here is a student's test performance over the last 90 days:\n${resultSummary}\nIdentify:\n1. Subjects showing consistent improvement\n2. Subjects showing decline or stagnation\n3. One specific actionable recommendation\n4. Overall trend in 1 sentence\nBe direct. No filler phrases. Return as JSON: { "improving": ["subject"], "declining": ["subject"], "recommendation": "string", "summary": "string" }`;
 
-      const response = await aiChat(
-        [{ role: "user", content: prompt }],
-        "You are a learning analyst. Respond only with valid JSON."
-      );
-      const analysis = JSON.parse(response.content);
+      const response = await generate({
+        model: "fast",
+        fallback: "orchestrator",
+        system: "You are a learning analyst. Respond only with valid JSON.",
+        messages: [{ role: "user", content: prompt }],
+        feature: "performance_analysis",
+      });
+      const analysis = JSON.parse(response);
 
       await pgIncrementAIUsage({
         userId: studentId,
@@ -420,20 +432,42 @@ router.get("/admin/stats", authenticateToken, async (req: Request, res: Response
     }
 
     if (!isPgReady()) return res.status(503).json({ message: "Database unavailable" });
+
+    const admin = await pgFindUserById(req.session.userId);
+    if (!admin) return res.status(400).json({ message: "Admin not found" });
+
+    // Tenant isolation: only the platform-level "admin" sees cross-school
+    // totals. School admins / principals are scoped to their own school; an
+    // account with no schoolCode is denied rather than shown global counts.
+    const isPlatformAdmin = admin.role === "admin";
+    if (!isPlatformAdmin && !admin.schoolCode) {
+      return res
+        .status(403)
+        .json({ message: "Forbidden: your account is not associated with a school yet" });
+    }
+    const sc = admin.schoolCode || "";
+
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const pool2 = getPgPool();
 
     const [studentCount, teacherCount, testsThisMonth, submissionsThisMonth] = await Promise.all([
-      pgCountUsers({ role: "student" }),
-      pgCountUsers({ role: "teacher" }),
+      pgCountUsers(isPlatformAdmin ? { role: "student" } : { role: "student", schoolCode: sc }),
+      pgCountUsers(isPlatformAdmin ? { role: "teacher" } : { role: "teacher", schoolCode: sc }),
       pool2
-        .query("SELECT COUNT(*) FROM tests WHERE created_at >= $1", [startOfMonth])
+        .query(
+          isPlatformAdmin
+            ? "SELECT COUNT(*) FROM tests WHERE created_at >= $1"
+            : "SELECT COUNT(*) FROM tests t JOIN users u ON t.teacher_id = u.id AND u.school_code = $2 WHERE t.created_at >= $1",
+          isPlatformAdmin ? [startOfMonth] : [startOfMonth, sc]
+        )
         .then((r) => parseInt(r.rows[0].count)),
       pool2
         .query(
-          "SELECT COUNT(*) FROM test_attempts WHERE status IN ('completed','evaluated') AND end_time >= $1",
-          [startOfMonth]
+          isPlatformAdmin
+            ? "SELECT COUNT(*) FROM test_attempts WHERE status IN ('completed','evaluated') AND end_time >= $1"
+            : "SELECT COUNT(*) FROM test_attempts ta JOIN users u ON ta.student_id = u.id AND u.school_code = $2 WHERE ta.status IN ('completed','evaluated') AND ta.end_time >= $1",
+          isPlatformAdmin ? [startOfMonth] : [startOfMonth, sc]
         )
         .then((r) => parseInt(r.rows[0].count)),
     ]);
@@ -507,8 +541,15 @@ router.get("/admin/trends", authenticateToken, async (req: Request, res: Respons
     const pool = getPgPool();
     const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - (days - 1));
 
-    // Super-admins ("admin") see all schools; everyone else is scoped to their own.
-    const scoped = admin.role !== "admin" && !!admin.schoolCode;
+    // Super-admins ("admin") see all schools; everyone else is scoped to their
+    // own. An account without a schoolCode must be denied — falling through to
+    // an unscoped query would expose every school's signups, logins and tests.
+    if (admin.role !== "admin" && !admin.schoolCode) {
+      return res
+        .status(403)
+        .json({ message: "Forbidden: your account is not associated with a school yet" });
+    }
+    const scoped = admin.role !== "admin";
     const sc = admin.schoolCode || "";
 
     const [signupRows, testRows, submissionRows, loginRows, classRows] = await Promise.all([
@@ -604,11 +645,24 @@ router.get("/analytics/students", authenticateToken, async (req: Request, res: R
   try {
     if (
       !req.session?.userId ||
-      !["teacher", "admin", "principal"].includes(req.session.role || "")
+      !["teacher", "admin", "principal", "school_admin"].includes(req.session.role || "")
     ) {
       return res.status(403).json({ message: "Forbidden: Insufficient permissions" });
     }
-    const students = await storage.getUsers("student");
+
+    // Tenant isolation: only the platform super-role "admin" may list students
+    // across schools. Everyone else is scoped to their own school_code, and an
+    // account without a schoolCode is denied rather than shown every school's
+    // students (the fail-open trap — storage.getUsers("student") is unscoped).
+    const requester = await pgFindUserById(req.session.userId);
+    const t = resolveTenantScope(requester);
+    if ("error" in t) return res.status(t.error.status).json({ message: t.error.message });
+
+    const students = await pgFindUsers(
+      t.scope.isPlatformAdmin
+        ? { role: "student" }
+        : { role: "student", schoolCode: t.scope.schoolCode }
+    );
     if (!students || students.length === 0) {
       return res.status(200).json([]);
     }
@@ -670,6 +724,35 @@ router.get("/analytics/students", authenticateToken, async (req: Request, res: R
   } catch (error) {
     console.error("[api/analytics/students] Error:", error);
     res.status(500).json({ message: "Failed to get student analytics" });
+  }
+});
+
+// GET /api/admin/feature-usage?days=30
+// Per-feature usage counts, scoped to the requester's school (platform admin
+// sees all). Answers "which features get daily use vs zero" for the pilot.
+router.get("/admin/feature-usage", authenticateToken, async (req: Request, res: Response) => {
+  try {
+    if (!req.session?.userId) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    if (!["admin", "principal", "school_admin"].includes(req.session.role || "")) {
+      return res.status(403).json({ message: "Forbidden: Admin access required" });
+    }
+
+    const days = Math.min(Math.max(parseInt(String(req.query.days ?? "30"), 10) || 30, 1), 365);
+
+    const requester = await pgFindUserById(req.session.userId);
+    const t = resolveTenantScope(requester);
+    if ("error" in t) return res.status(t.error.status).json({ message: t.error.message });
+
+    const summary = await pgGetFeatureUsageSummary({
+      schoolCode: t.scope.isPlatformAdmin ? undefined : t.scope.schoolCode,
+      sinceDays: days,
+    });
+    res.status(200).json({ range: days, features: summary });
+  } catch (error) {
+    console.error("[api/admin/feature-usage] Error:", error);
+    res.status(500).json({ message: "Failed to fetch feature usage" });
   }
 });
 

@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 
-// Mock the LLM layer so the logic is exercised without a real provider.
-const { mockAiChat } = vi.hoisted(() => ({ mockAiChat: vi.fn() }));
+// Mock the AI gateway so the logic is exercised without a real provider.
+const { mockGenerate } = vi.hoisted(() => ({ mockGenerate: vi.fn() }));
 
-vi.mock("../lib/openai", () => ({
-  aiChat: mockAiChat,
+vi.mock("../lib/ai/gateway", () => ({
+  generate: mockGenerate,
 }));
 
 import { generateLessonScript, respondToInteraction } from "../services/study-arena/lesson-script";
@@ -48,16 +48,14 @@ describe("generateLessonScript", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("parses and validates a well-formed script", async () => {
-    (mockAiChat as Mock).mockResolvedValue({ content: JSON.stringify(goodScript) });
+    (mockGenerate as Mock).mockResolvedValue(JSON.stringify(goodScript));
     const script = await generateLessonScript("Pythagoras' theorem");
     expect(script.scenes).toHaveLength(2);
     expect(script.topic).toMatch(/Pythagoras/);
   });
 
   it("strips markdown code fences before parsing", async () => {
-    (mockAiChat as Mock).mockResolvedValue({
-      content: "```json\n" + JSON.stringify(goodScript) + "\n```",
-    });
+    (mockGenerate as Mock).mockResolvedValue("```json\n" + JSON.stringify(goodScript) + "\n```");
     const script = await generateLessonScript("Pythagoras' theorem");
     expect(script.scenes).toHaveLength(2);
   });
@@ -71,7 +69,7 @@ describe("generateLessonScript", () => {
         goodScript.scenes[0],
       ],
     };
-    (mockAiChat as Mock).mockResolvedValue({ content: JSON.stringify(mixed) });
+    (mockGenerate as Mock).mockResolvedValue(JSON.stringify(mixed));
     const script = await generateLessonScript("x");
     expect(script.scenes).toHaveLength(1);
     expect(script.scenes[0].id).toBe("s1");
@@ -82,12 +80,12 @@ describe("generateLessonScript", () => {
       ...goodScript,
       scenes: [{ id: "l", actions: [{ type: "speak", agent: "teacher", text: "lecture" }] }],
     };
-    (mockAiChat as Mock).mockResolvedValue({ content: JSON.stringify(allLectures) });
+    (mockGenerate as Mock).mockResolvedValue(JSON.stringify(allLectures));
     await expect(generateLessonScript("x")).rejects.toThrow();
   });
 
   it("throws on unparseable model output", async () => {
-    (mockAiChat as Mock).mockResolvedValue({ content: "not json at all <<<" });
+    (mockGenerate as Mock).mockResolvedValue("not json at all <<<");
     await expect(generateLessonScript("x")).rejects.toThrow();
   });
 });
@@ -98,11 +96,11 @@ describe("respondToInteraction", () => {
   it("does NOT proceed on an empty answer and never calls the LLM", async () => {
     const res = await respondToInteraction({ topic: "x", question: "q", answer: "   " });
     expect(res.proceed).toBe(false);
-    expect(mockAiChat).not.toHaveBeenCalled();
+    expect(mockGenerate).not.toHaveBeenCalled();
   });
 
   it("proceeds with Socratic feedback after a genuine attempt", async () => {
-    (mockAiChat as Mock).mockResolvedValue({ content: "Good start — keep going!" });
+    (mockGenerate as Mock).mockResolvedValue("Good start — keep going!");
     const res = await respondToInteraction({
       topic: "Pythagoras",
       question: "Predict c",
@@ -110,6 +108,6 @@ describe("respondToInteraction", () => {
     });
     expect(res.proceed).toBe(true);
     expect(res.feedback).toMatch(/keep going/i);
-    expect(mockAiChat).toHaveBeenCalledOnce();
+    expect(mockGenerate).toHaveBeenCalledOnce();
   });
 });

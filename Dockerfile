@@ -85,13 +85,16 @@ RUN npm ci --omit=dev --prefer-offline --legacy-peer-deps \
     && npm cache clean --force
 
 COPY --from=build /app/dist ./dist
+# Schema file for the opt-in boot migration (AUTO_MIGRATE) — idempotent DDL.
+COPY --from=build /app/scripts/pg-schema.sql ./scripts/pg-schema.sql
 
 RUN chown -R appuser:nodejs /app
 
 USER appuser
 
 ENV NODE_ENV=production \
-    NODE_OPTIONS="--max-old-space-size=768"
+    NODE_OPTIONS="--max-old-space-size=768" \
+    AUTO_MIGRATE=true
 
 EXPOSE 5001
 

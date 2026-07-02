@@ -3,13 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { PageHeader } from "@/components/layout/page-header";
+import { StatCardGrid } from "@/components/dashboard/stat-card-grid";
 import {
   Users,
   GraduationCap,
@@ -169,37 +169,7 @@ export default function PrincipalDashboard() {
       </PageHeader>
 
       {/* Stats */}
-      <section className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {stats.map((stat, index) => (
-          <Card
-            key={stat.label}
-            className="animate-fade-in-up overflow-hidden transition-shadow hover:shadow-md"
-            style={{ animationDelay: `${index * 75}ms` }}
-          >
-            <CardContent className="relative p-5">
-              <div
-                className={`absolute right-0 top-0 h-20 w-20 bg-gradient-to-br ${stat.gradient} rounded-bl-full opacity-5`}
-              />
-              <div
-                className={`rounded-xl bg-gradient-to-br p-2.5 ${stat.gradient} mb-3 w-fit text-white shadow-sm`}
-              >
-                {stat.icon}
-              </div>
-              <div className="text-2xl font-bold tracking-tight">
-                {stat.isLoading ? (
-                  <Skeleton className="h-7 w-16" />
-                ) : stat.value === "Error" ? (
-                  <span className="text-sm text-red-500">Error</span>
-                ) : (
-                  stat.value || "0"
-                )}
-              </div>
-              <div className="text-sm text-muted-foreground">{stat.label}</div>
-              <div className="mt-1 text-xs font-medium text-primary/70">{stat.trend}</div>
-            </CardContent>
-          </Card>
-        ))}
-      </section>
+      <StatCardGrid stats={stats} />
 
       {/* Main Content Tabs */}
       <Tabs defaultValue="academic" className="mb-8">

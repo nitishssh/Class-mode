@@ -15,7 +15,7 @@ import { connectPostgres } from "./db-pg";
 import { setupChatWebSocket } from "./chat-ws";
 import { setupMessagePalWebSocket } from "./message";
 import { initCassandra } from "./lib/cassandra";
-import { verifyGeminiAccess } from "./lib/gemini";
+import { healthcheck as aiHealthcheck } from "./lib/ai/gateway";
 import { requireDb } from "./middleware";
 
 // Fix SRV resolution errors by forcing Google DNS globally
@@ -218,7 +218,7 @@ app.use(
   // Surface a missing/blocked Gemini key at boot with an actionable message
   // instead of an opaque 403 deep inside a feature. Fire-and-forget — never
   // blocks startup.
-  void verifyGeminiAccess();
+  void aiHealthcheck();
 
   // Start AI Job Workers (Study Arena)
   import("./services/study-arena/job-queue")

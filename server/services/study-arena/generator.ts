@@ -17,7 +17,7 @@ import OpenAI from "openai";
 import { nanoid } from "nanoid";
 import { logger } from "../../lib/logger";
 import { buildPrompt } from "../../lib/prompt-loader";
-import { geminiChat } from "../../lib/gemini";
+import { generate } from "../../lib/ai/gateway";
 import type {
   AgentInfo,
   SceneOutline,
@@ -304,7 +304,7 @@ function createAICallFn(): AICallFn {
   const hasOpenAI     = !!process.env.OPENAI_API_KEY;
 
   const providers: Array<{ name: string; available: boolean; call: (s: string, u: string) => Promise<string> }> = [
-    { name: "gemini",     available: hasGemini,     call: (s, u) => geminiChat(s, u) },
+    { name: "gemini",     available: hasGemini,     call: (s, u) => generate({ model: "fast", system: s, messages: [{ role: "user", content: u }], feature: "study_arena_generator" }) },
     { name: "anthropic",  available: hasAnthropic,  call: (s, u) => callAnthropicAPI(s, u, LLM_TIMEOUT_MS) },
     { name: "deepseek",   available: hasDeepSeek,   call: (s, u) => callDeepSeekAPI(s, u, LLM_TIMEOUT_MS) },
     { name: "qwen",       available: hasQwen,       call: (s, u) => callQwenAPI(s, u, LLM_TIMEOUT_MS) },

@@ -2184,3 +2184,346 @@ export async function pgGetResources(filters: {
     return [];
   }
 }
+
+// ─── Fees (revenue side of the operational moat) ─────────────────────────────
+
+export type FeeStatus = "pending" | "paid" | "waived";
+
+/** Create a fee for a student. Returns the new row's id, or null on failure. */
+export async function pgCreateFee(params: {
+  studentId: number;
+  schoolCode: string | null;
+  description: string;
+  amountCents: number;
+  currency?: string;
+  dueDate?: string | null;
+  createdBy: number;
+}): Promise<number | null> {
+  if (!isPgReady()) return null;
+  try {
+    const { rows } = await getPgPool().query(
+      `INSERT INTO fees (student_id, school_code, description, amount_cents, currency, due_date, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+      [
+        params.studentId,
+        params.schoolCode,
+        params.description,
+        params.amountCents,
+        params.currency ?? "INR",
+        params.dueDate ?? null,
+        params.createdBy,
+      ]
+    );
+    return rows[0]?.id ?? null;
+  } catch (err) {
+    logger.error("[pg] pgCreateFee failed", { err: String(err) });
+    return null;
+  }
+}
+
+/** List fees, filtered/scoped by school, student, and/or status. */
+export async function pgGetFees(params: {
+  schoolCode?: string;
+  studentId?: number;
+  status?: FeeStatus;
+}): Promise<any[]> {
+  if (!isPgReady()) return [];
+  try {
+    const conditions: string[] = [];
+    const values: any[] = [];
+    if (params.schoolCode) {
+      conditions.push(`f.school_code = $${values.length + 1}`);
+      values.push(params.schoolCode);
+    }
+    if (params.studentId != null) {
+      conditions.push(`f.student_id = $${values.length + 1}`);
+      values.push(params.studentId);
+    }
+    if (params.status) {
+      conditions.push(`f.status = $${values.length + 1}`);
+      values.push(params.status);
+    }
+    const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+    const { rows } = await getPgPool().query(
+      `SELECT f.id, f.student_id AS "studentId", u.name AS "studentName", f.description,
+              f.amount_cents AS "amountCents", f.currency, f.status,
+              f.due_date AS "dueDate", f.paid_at AS "paidAt"
+         FROM fees f JOIN users u ON u.id = f.student_id
+         ${where}
+        ORDER BY f.created_at DESC`,
+      values
+    );
+    return rows;
+  } catch (err) {
+    logger.error("[pg] pgGetFees failed", { err: String(err) });
+    return [];
+  }
+}
+
+/** Fetch a single fee by id (with student name), or null. */
+export async function pgGetFeeById(id: number): Promise<any | null> {
+  if (!isPgReady()) return null;
+  try {
+    const { rows } = await getPgPool().query(
+      `SELECT f.id, f.student_id AS "studentId", u.name AS "studentName", f.school_code AS "schoolCode",
+              f.description, f.amount_cents AS "amountCents", f.currency, f.status,
+              f.due_date AS "dueDate", f.paid_at AS "paidAt"
+         FROM fees f JOIN users u ON u.id = f.student_id
+        WHERE f.id = $1`,
+      [id]
+    );
+    return rows[0] ?? null;
+  } catch (err) {
+    logger.error("[pg] pgGetFeeById failed", { err: String(err) });
+    return null;
+  }
+}
+
+/**
+ * Mark a fee paid. When `schoolCode` is provided the update is scoped to that
+ * school (a school admin can't settle another school's fee). Returns true if a
+ * row was updated.
+ */
+export async function pgMarkFeePaid(id: number, schoolCode?: string): Promise<boolean> {
+  if (!isPgReady()) return false;
+  try {
+    const values: any[] = [id];
+    let scope = "";
+    if (schoolCode) {
+      scope = " AND school_code = $2";
+      values.push(schoolCode);
+    }
+    const { rowCount } = await getPgPool().query(
+      `UPDATE fees SET status = 'paid', paid_at = now(), updated_at = now()
+        WHERE id = $1${scope} AND status <> 'paid'`,
+      values
+    );
+    return (rowCount ?? 0) > 0;
+  } catch (err) {
+    logger.error("[pg] pgMarkFeePaid failed", { err: String(err) });
+    return false;
+  }
+}
+
+/** Aggregate pending vs paid totals (in minor units), scoped to a school. */
+export async function pgGetFeeSummary(params: {
+  schoolCode?: string;
+}): Promise<{ pendingCents: number; paidCents: number; pendingCount: number; paidCount: number }> {
+  const empty = { pendingCents: 0, paidCents: 0, pendingCount: 0, paidCount: 0 };
+  if (!isPgReady()) return empty;
+  try {
+    const values: any[] = [];
+    const where = params.schoolCode ? `WHERE school_code = $1` : "";
+    if (params.schoolCode) values.push(params.schoolCode);
+    const { rows } = await getPgPool().query(
+      `SELECT status,
+              COALESCE(SUM(amount_cents), 0)::bigint AS cents,
+              COUNT(*)::int AS n
+         FROM fees ${where}
+        GROUP BY status`,
+      values
+    );
+    const out = { ...empty };
+    for (const r of rows) {
+      const cents = parseInt(r.cents, 10) || 0;
+      if (r.status === "pending") {
+        out.pendingCents = cents;
+        out.pendingCount = r.n;
+      } else if (r.status === "paid") {
+        out.paidCents = cents;
+        out.paidCount = r.n;
+      }
+    }
+    return out;
+  } catch (err) {
+    logger.error("[pg] pgGetFeeSummary failed", { err: String(err) });
+    return empty;
+  }
+}
+
+// ─── Feature usage (distribution instrumentation) ────────────────────────────
+
+/**
+ * Record a single feature use. Fire-and-forget: never throws and never blocks
+ * the caller's response — call without awaiting.
+ */
+export function pgTrackFeatureUsage(params: {
+  feature: string;
+  userId?: number | null;
+  schoolCode?: string | null;
+}): void {
+  if (!isPgReady()) return;
+  getPgPool()
+    .query(`INSERT INTO feature_usage (feature, user_id, school_code) VALUES ($1, $2, $3)`, [
+      params.feature,
+      params.userId ?? null,
+      params.schoolCode ?? null,
+    ])
+    .catch((err) => logger.error("[pg] pgTrackFeatureUsage failed", { err: String(err) }));
+}
+
+/**
+ * Per-feature usage counts over the last `sinceDays` days, scoped to a school
+ * (omit schoolCode for a platform-wide roll-up). Ordered by most-used first.
+ */
+export async function pgGetFeatureUsageSummary(params: {
+  schoolCode?: string;
+  sinceDays: number;
+}): Promise<{ feature: string; count: number; lastUsed: string | null }[]> {
+  if (!isPgReady()) return [];
+  try {
+    const conditions = ["created_at >= now() - ($1 || ' days')::interval"];
+    const values: any[] = [String(params.sinceDays)];
+    if (params.schoolCode) {
+      conditions.push(`school_code = $${values.length + 1}`);
+      values.push(params.schoolCode);
+    }
+    const { rows } = await getPgPool().query(
+      `SELECT feature, COUNT(*)::int AS count, MAX(created_at) AS "lastUsed"
+         FROM feature_usage
+        WHERE ${conditions.join(" AND ")}
+        GROUP BY feature
+        ORDER BY count DESC`,
+      values
+    );
+    return rows;
+  } catch (err) {
+    logger.error("[pg] pgGetFeatureUsageSummary failed", { err: String(err) });
+    return [];
+  }
+}
+
+/** Distinct class names among a school's students (for roster pickers). */
+export async function pgGetClassNames(schoolCode?: string): Promise<string[]> {
+  if (!isPgReady()) return [];
+  try {
+    const values: any[] = [];
+    const scope = schoolCode ? "AND school_code = $1" : "";
+    if (schoolCode) values.push(schoolCode);
+    const { rows } = await getPgPool().query(
+      `SELECT DISTINCT class_name FROM users
+        WHERE role = 'student' AND class_name IS NOT NULL AND class_name <> '' ${scope}
+        ORDER BY class_name ASC`,
+      values
+    );
+    return rows.map((r) => r.class_name);
+  } catch (err) {
+    logger.error("[pg] pgGetClassNames failed", { err: String(err) });
+    return [];
+  }
+}
+
+// ─── Attendance (operational lock-in loop) ───────────────────────────────────
+
+export type AttendanceStatus = "present" | "absent" | "late" | "excused";
+
+export interface AttendanceMark {
+  studentId: number;
+  status: AttendanceStatus;
+  note?: string | null;
+}
+
+/**
+ * Upsert attendance for a set of students on a given date (one row per
+ * student/day). Scoped by schoolCode so a class's marks stay tenant-isolated.
+ * Returns the number of rows written.
+ */
+export async function pgMarkAttendance(params: {
+  schoolCode: string | null;
+  className: string | null;
+  date: string; // YYYY-MM-DD
+  markedBy: number;
+  marks: AttendanceMark[];
+}): Promise<number> {
+  if (!isPgReady() || params.marks.length === 0) return 0;
+  try {
+    let written = 0;
+    for (const m of params.marks) {
+      await getPgPool().query(
+        `INSERT INTO attendance (student_id, school_code, class_name, date, status, marked_by, note)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (student_id, date)
+         DO UPDATE SET status = EXCLUDED.status, note = EXCLUDED.note,
+                       marked_by = EXCLUDED.marked_by, updated_at = now()`,
+        [
+          m.studentId,
+          params.schoolCode,
+          params.className,
+          params.date,
+          m.status,
+          params.markedBy,
+          m.note ?? null,
+        ]
+      );
+      written += 1;
+    }
+    return written;
+  } catch (err) {
+    logger.error("[pg] pgMarkAttendance failed", { err: String(err) });
+    return 0;
+  }
+}
+
+/** List attendance rows for a class on a date, scoped to a school. */
+export async function pgGetAttendanceByClassDate(params: {
+  schoolCode?: string;
+  className: string;
+  date: string;
+}): Promise<any[]> {
+  if (!isPgReady()) return [];
+  try {
+    const conditions = ["a.class_name = $1", "a.date = $2"];
+    const values: any[] = [params.className, params.date];
+    if (params.schoolCode) {
+      conditions.push(`a.school_code = $${values.length + 1}`);
+      values.push(params.schoolCode);
+    }
+    const { rows } = await getPgPool().query(
+      `SELECT a.student_id AS "studentId", u.name AS "studentName", a.status,
+              a.note, a.date, a.class_name AS "className"
+         FROM attendance a
+         JOIN users u ON u.id = a.student_id
+        WHERE ${conditions.join(" AND ")}
+        ORDER BY u.name ASC`,
+      values
+    );
+    return rows;
+  } catch (err) {
+    logger.error("[pg] pgGetAttendanceByClassDate failed", { err: String(err) });
+    return [];
+  }
+}
+
+/** Per-status attendance counts for a student, scoped to a school. */
+export async function pgGetStudentAttendanceSummary(params: {
+  studentId: number;
+  schoolCode?: string;
+}): Promise<{ present: number; absent: number; late: number; excused: number; total: number }> {
+  const empty = { present: 0, absent: 0, late: 0, excused: 0, total: 0 };
+  if (!isPgReady()) return empty;
+  try {
+    const conditions = ["student_id = $1"];
+    const values: any[] = [params.studentId];
+    if (params.schoolCode) {
+      conditions.push(`school_code = $${values.length + 1}`);
+      values.push(params.schoolCode);
+    }
+    const { rows } = await getPgPool().query(
+      `SELECT status, COUNT(*)::int AS c
+         FROM attendance
+        WHERE ${conditions.join(" AND ")}
+        GROUP BY status`,
+      values
+    );
+    const out = { ...empty };
+    for (const r of rows) {
+      const status = r.status as AttendanceStatus;
+      if (status in out) (out as any)[status] = r.c;
+      out.total += r.c;
+    }
+    return out;
+  } catch (err) {
+    logger.error("[pg] pgGetStudentAttendanceSummary failed", { err: String(err) });
+    return empty;
+  }
+}

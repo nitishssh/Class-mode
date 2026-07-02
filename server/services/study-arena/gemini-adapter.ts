@@ -2,7 +2,7 @@ import { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { BaseMessage, HumanMessage, AIMessage, SystemMessage } from "@langchain/core/messages";
 import { CallbackManagerForLLMRun } from "@langchain/core/callbacks/manager";
 import { ChatResult } from "@langchain/core/outputs";
-import { geminiChat, streamGeminiChat } from "../../lib/gemini";
+import { generate, streamGenerate } from "../../lib/ai/gateway";
 import { StreamChunk } from "./ai-sdk-adapter";
 
 /**
@@ -44,7 +44,12 @@ export class GeminiLangGraphAdapter extends BaseChatModel {
       .map((m) => `${m.role}: ${m.content}`)
       .join("\n");
 
-    const content = await geminiChat(systemInstruction, userPrompt);
+    const content = await generate({
+      model: "fast",
+      system: systemInstruction,
+      messages: [{ role: "user", content: userPrompt }],
+      feature: "study_arena_director",
+    });
     const aiMessage = new AIMessage({ content });
 
     return {
@@ -65,7 +70,12 @@ export class GeminiLangGraphAdapter extends BaseChatModel {
       .join("\n");
 
     let fullContent = "";
-    const stream = streamGeminiChat(systemInstruction, userPrompt);
+    const stream = streamGenerate({
+      model: "fast",
+      system: systemInstruction,
+      messages: [{ role: "user", content: userPrompt }],
+      feature: "study_arena_director",
+    });
 
     for await (const chunk of stream) {
       fullContent += chunk;
