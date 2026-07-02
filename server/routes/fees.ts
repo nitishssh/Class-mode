@@ -12,6 +12,7 @@ import {
   type FeeStatus,
 } from "../lib/pg-queries";
 import { whatsappService } from "../services/whatsapp";
+import { publishEvent } from "../lib/events";
 
 const router = Router();
 
@@ -54,6 +55,11 @@ router.post("/", authenticateToken, requireRole(...admins), async (req: Request,
   if (!id) return res.status(500).json({ message: "Failed to create fee" });
 
   pgTrackFeatureUsage({ feature: "fees", userId: user.id, schoolCode });
+  publishEvent("fee.created", {
+    schoolCode,
+    userId: user.id,
+    payload: { feeId: id, studentId: parsed.data.studentId, amountCents: parsed.data.amountCents },
+  });
   res.status(201).json({ id, status: "pending" });
 });
 
@@ -112,6 +118,11 @@ router.post(
       return res
         .status(404)
         .json({ message: "Fee not found, not in your school, or already paid" });
+    publishEvent("fee.paid", {
+      schoolCode: t.scope.isPlatformAdmin ? null : t.scope.schoolCode!,
+      userId: user.id,
+      payload: { feeId: id },
+    });
     res.json({ success: true });
   }
 );

@@ -43,6 +43,9 @@ export class StudyArenaService extends EventEmitter {
    * The frontend should poll /job/:jobId for status.
    */
   async createClassroom(requirement: string, teacherId: number, workspaceId?: number | null): Promise<{ jobId: string }> {
+    if (!classroomQueue) {
+      throw new Error("Study Arena job queue requires Redis — set REDIS_URL");
+    }
     const jobId = nanoid(10);
 
     await classroomQueue.add(
@@ -60,6 +63,9 @@ export class StudyArenaService extends EventEmitter {
    * Poll job status from BullMQ.
    */
   async pollJob(jobId: string): Promise<JobStatus> {
+    if (!classroomQueue) {
+      throw new Error("Study Arena job queue requires Redis — set REDIS_URL");
+    }
     const job = await classroomQueue.getJob(jobId);
 
     if (!job) {
@@ -104,6 +110,7 @@ export class StudyArenaService extends EventEmitter {
   }
 
   async cancelJob(jobId: string): Promise<boolean> {
+    if (!classroomQueue) return false;
     const job = await classroomQueue.getJob(jobId);
     if (!job) return false;
     await job.remove();

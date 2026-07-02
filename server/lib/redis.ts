@@ -1,49 +1,107 @@
-import { createClient } from "redis";
-// Assuming there's a log utility, let's just use console for now if it doesn't exist
+import Redis from "ioredis";
+import { logger } from "./logger";
 
-const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
+/**
+ * Single shared Redis connection for the whole app (cache, BullMQ, event bus).
+ *
+ * Design rules, mirroring db-pg.ts:
+ * - Gated on REDIS_URL being set — absent means "Redis intentionally off":
+ *   every helper degrades to a no-op instead of spamming ECONNREFUSED.
+ * - Lazy: nothing connects at import time. Call connectRedis() from server
+ *   startup, or let the first getRedis() caller trigger it.
+ * - One client library (ioredis — required by BullMQ) instead of the previous
+ *   split between `redis` and `ioredis`.
+ */
 
-export const redisClient = createClient({
-  url: redisUrl,
-});
+let client: Redis | null = null;
+let isConnected = false;
 
-redisClient.on("error", (err) => {
-  console.warn("Redis client error:", err);
-});
+export function isRedisConfigured(): boolean {
+  return !!process.env.REDIS_URL;
+}
 
-redisClient.on("connect", () => {
-  console.log("Connected to Redis at", redisUrl);
-});
+export function isRedisReady(): boolean {
+  return isConnected;
+}
 
-export async function connectRedis() {
-  if (!redisClient.isOpen) {
-    try {
-      await redisClient.connect();
-    } catch (err) {
-      console.warn("Failed to connect to Redis. Caching will be disabled.");
-    }
+/**
+ * The shared connection, or null when Redis is not configured.
+ * Reuse this for cache reads/writes and event-bus publishing. BullMQ and
+ * blocking stream consumers must NOT share it — use newRedisConnection().
+ */
+export function getRedis(): Redis | null {
+  if (!isRedisConfigured()) return null;
+  if (!client) {
+    client = createClient("shared");
+  }
+  return client;
+}
+
+/**
+ * A dedicated connection for blocking consumers (BullMQ workers, XREADGROUP
+ * loops) — blocking commands would starve the shared client.
+ * Returns null when Redis is not configured.
+ */
+export function newRedisConnection(label: string): Redis | null {
+  if (!isRedisConfigured()) return null;
+  return createClient(label);
+}
+
+function createClient(label: string): Redis {
+  const c = new Redis(process.env.REDIS_URL as string, {
+    maxRetriesPerRequest: null,
+    lazyConnect: true,
+    retryStrategy: (times) => Math.min(times * 500, 15_000),
+  });
+  c.on("ready", () => {
+    if (label === "shared") isConnected = true;
+    logger.info(`[redis] ${label} connection ready`);
+  });
+  c.on("error", (err) => {
+    if (label === "shared") isConnected = false;
+    logger.warn(`[redis] ${label} connection error`, { err: String(err) });
+  });
+  c.on("close", () => {
+    if (label === "shared") isConnected = false;
+  });
+  return c;
+}
+
+/** Connect the shared client at startup (no-op when Redis is not configured). */
+export async function connectRedis(): Promise<void> {
+  const c = getRedis();
+  if (!c) {
+    logger.info("[redis] REDIS_URL not set — cache, job queue and event bus disabled");
+    return;
+  }
+  try {
+    await c.connect();
+  } catch (err) {
+    // retryStrategy keeps trying in the background; startup continues.
+    logger.warn("[redis] initial connect failed — will keep retrying", { err: String(err) });
   }
 }
 
-// Connect automatically in background
-connectRedis();
+// ── JSON cache helpers (API preserved for existing callers) ──────────────────
 
 export async function getCachedJSON<T>(key: string): Promise<T | null> {
-  if (!redisClient.isOpen) return null;
+  const c = getRedis();
+  if (!c || !isConnected) return null;
   try {
-    const data = await redisClient.get(key);
+    const data = await c.get(key);
     if (data) return JSON.parse(data) as T;
   } catch (err) {
-    console.warn(`Redis GET error for ${key}:`, err);
+    logger.warn(`[redis] GET failed for ${key}`, { err: String(err) });
   }
   return null;
 }
 
-export async function setCachedJSON(key: string, value: any, ttlSeconds: number = 3600) {
-  if (!redisClient.isOpen) return;
+export async function setCachedJSON(key: string, value: any, ttlSeconds = 3600): Promise<void> {
+  const c = getRedis();
+  if (!c || !isConnected) return;
   try {
-    await redisClient.setEx(key, ttlSeconds, JSON.stringify(value));
+    await c.setex(key, ttlSeconds, JSON.stringify(value));
   } catch (err) {
-    console.warn(`Redis SET error for ${key}:`, err);
+    logger.warn(`[redis] SET failed for ${key}`, { err: String(err) });
   }
 }

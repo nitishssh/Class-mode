@@ -12,8 +12,13 @@ import {
   pgFindUserById,
   pgUpdateUser,
 } from "../lib/pg-queries";
-import { whatsappService } from "../services/whatsapp";
 import { logger } from "../lib/logger";
+import { publishEvent } from "../lib/events";
+import { isRedisConfigured } from "../lib/redis";
+import {
+  handleAttendanceMarked,
+  type AttendanceMarkedPayload,
+} from "../services/notifications-consumer";
 
 const router = Router();
 
@@ -62,8 +67,10 @@ router.post(
     pgTrackFeatureUsage({ feature: "attendance", userId: user.id, schoolCode });
 
     // Close the parent loop: WhatsApp the parent of every student marked
-    // absent, when a parent phone is on file. Fire-and-forget — never delays
-    // or fails the teacher's save.
+    // absent, when a parent phone is on file. With Redis on, this goes through
+    // the durable event bus (crash between save and send no longer loses
+    // alerts); without Redis it falls back to the inline fire-and-forget send.
+    // Either way the teacher's save never blocks on delivery.
     const absentIds = new Set(
       parsed.data.marks.filter((m) => m.status === "absent").map((m) => m.studentId)
     );
@@ -74,25 +81,34 @@ router.post(
           ? { role: "student", classname: parsed.data.className }
           : { role: "student", classname: parsed.data.className, schoolCode: t.scope.schoolCode }
       );
-      const absentees = roster.filter((s) => absentIds.has(s.id) && s.parentPhone);
+      const absentees = roster
+        .filter((s) => absentIds.has(s.id) && s.parentPhone)
+        .map((s) => ({ id: s.id, name: s.name, parentPhone: s.parentPhone as string }));
       notified = absentees.length;
       if (notified > 0) {
         pgTrackFeatureUsage({ feature: "attendance_notify", userId: user.id, schoolCode });
-        void Promise.allSettled(
-          absentees.map((s) =>
-            whatsappService.sendMessage({
-              to: s.parentPhone as string,
-              body: `Attendance alert: ${s.name} was marked absent today (${parsed.data.date}), class ${parsed.data.className}. If this is unexpected, please contact the school.`,
-            })
-          )
-        ).then((results) => {
-          const failed = results.filter(
-            (r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value.success)
-          ).length;
-          if (failed > 0) {
-            logger.warn(`[attendance] ${failed}/${results.length} absence notifications failed`);
-          }
-        });
+        const payload: AttendanceMarkedPayload = {
+          className: parsed.data.className,
+          date: parsed.data.date,
+          absentees,
+        };
+        if (isRedisConfigured()) {
+          publishEvent<AttendanceMarkedPayload>("attendance.marked", {
+            schoolCode,
+            userId: user.id,
+            payload,
+          });
+        } else {
+          void handleAttendanceMarked({
+            topic: "attendance.marked",
+            at: new Date().toISOString(),
+            schoolCode,
+            userId: user.id,
+            payload,
+          }).catch((err) =>
+            logger.warn("[attendance] inline absence notification failed", { err: String(err) })
+          );
+        }
       }
     }
 

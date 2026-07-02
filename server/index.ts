@@ -12,6 +12,8 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
 import { storage } from "./storage";
 import { connectPostgres } from "./db-pg";
+import { connectRedis } from "./lib/redis";
+import { startNotificationConsumers } from "./services/notifications-consumer";
 import { setupChatWebSocket } from "./chat-ws";
 import { setupMessagePalWebSocket } from "./message";
 import { initCassandra } from "./lib/cassandra";
@@ -215,6 +217,15 @@ app.use(
   await connectPostgres();
   await initCassandra();
 
+  // Redis (cache + BullMQ + event bus) — no-op when REDIS_URL is unset.
+  await connectRedis();
+
+  // Event consumers (durable absence notifications). No-op without Redis —
+  // the attendance route falls back to inline sends.
+  if (startNotificationConsumers()) {
+    logger.info("[events] notification consumers started");
+  }
+
   // Surface a missing/blocked Gemini key at boot with an actionable message
   // instead of an opaque 403 deep inside a feature. Fire-and-forget — never
   // blocks startup.
@@ -223,15 +234,16 @@ app.use(
   // Start AI Job Workers (Study Arena)
   import("./services/study-arena/job-queue")
     .then(({ classroomWorker }) => {
-      logger.info("[StudyArena] Worker initialized");
+      if (classroomWorker) logger.info("[StudyArena] Worker initialized");
     })
     .catch((err) => {
       logger.error("[StudyArena] Failed to initialize worker:", err);
     });
 
-  // Start SIS Automation Workers
+  // Start SIS Automation Workers (needs Redis; scheduleAtRiskChecks no-ops without it)
   import("./services/whatsapp-automation")
     .then(({ automationWorker, scheduleAtRiskChecks }) => {
+      if (!automationWorker) return;
       logger.info("[SIS Automation] Worker initialized");
       // Run initial check and then every hour
       scheduleAtRiskChecks();

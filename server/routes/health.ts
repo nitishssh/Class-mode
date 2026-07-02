@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { isCassandraConnected } from "../lib/cassandra";
 import { isPgReady, getPgPool } from "../db-pg";
+import { isRedisReady, isRedisConfigured } from "../lib/redis";
 import { authenticateToken } from "../middleware";
 
 const router = Router();
@@ -35,6 +36,10 @@ router.get("/", (_req, res) => {
       cassandra: {
         connected: cassandraReady,
         configured: !!process.env.ASTRA_DB_APPLICATION_TOKEN,
+      },
+      redis: {
+        connected: isRedisReady(),
+        configured: isRedisConfigured(),
       },
     },
     auth: {
@@ -94,6 +99,10 @@ router.get("/detailed", authenticateToken, async (_req, res) => {
         configured: !!process.env.ASTRA_DB_APPLICATION_TOKEN,
         keyspace: process.env.ASTRA_DB_KEYSPACE ?? "not configured",
         fallbackToPg: !cassandraReady,
+      },
+      redis: {
+        connected: isRedisReady(),
+        configured: isRedisConfigured(),
       },
     },
     ai: {
