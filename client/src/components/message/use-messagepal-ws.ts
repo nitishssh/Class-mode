@@ -50,7 +50,7 @@ export function useMessagePalWebSocket(currentUserId?: number) {
       const host = window.location.port
         ? `${window.location.hostname}:${window.location.port}`
         : window.location.hostname;
-      const ws = new WebSocket(`${protocol}//${host}/message`);
+      const ws = new WebSocket(`${protocol}//${host}/messagepal`);
 
       ws.onopen = () => {
         console.log("Message WebSocket connected");

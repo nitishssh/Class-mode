@@ -175,7 +175,24 @@ export function broadcastGlobal(data: object) {
 // ─── Main setup function ───────────────────────────────────────────────────────
 
 export function setupChatWebSocket(httpServer: Server, sessionStore: Store) {
-  const wss = new WebSocketServer({ server: httpServer, path: "/ws/chat" });
+  // Use `noServer` and route upgrades by path ourselves. Attaching a
+  // `WebSocketServer` with the `server` option makes `ws` register an `upgrade`
+  // listener that calls `handleUpgrade` on *every* upgrade request and aborts
+  // with HTTP 400 whenever the path doesn't match (see ws/lib/websocket-server
+  // `handleUpgrade` → `abortHandshake`). On the shared dev port that destroys
+  // Vite's HMR socket (ws://localhost:5001/?token=…) and any sibling WS server.
+  // Routing by pathname and returning on mismatch lets Vite HMR and the other
+  // app WebSocket servers coexist on the same port.
+  const wss = new WebSocketServer({ noServer: true });
+
+  httpServer.on("upgrade", (request, socket, head) => {
+    const pathname = (request.url || "").split("?")[0];
+    if (pathname !== "/ws/chat") return;
+
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      wss.emit("connection", ws, request);
+    });
+  });
 
   wss.on("connection", async (ws: WebSocket, req: IncomingMessage) => {
     // Auth

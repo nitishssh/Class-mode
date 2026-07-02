@@ -253,7 +253,8 @@ export async function setupMessagePalWebSocket(httpServer: Server, sessionStore:
   });
 
   httpServer.on("upgrade", (request, socket, head) => {
-    if (request.url === "/messagepal") {
+    const pathname = (request.url || "").split("?")[0];
+    if (pathname === "/messagepal") {
       wss.handleUpgrade(request, socket, head, (ws) => {
         wss.emit("connection", ws, request);
       });
