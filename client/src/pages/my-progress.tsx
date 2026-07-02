@@ -131,7 +131,7 @@ export default function MyProgress() {
   // Format progress data for chart
   const monthlyProgressData =
     progressData?.map((item) => {
-      const [year, month] = item.month.split("-");
+      const [, month] = item.month.split("-");
       const monthNames = [
         "Jan",
         "Feb",
@@ -476,11 +476,9 @@ export default function MyProgress() {
           </h2>
           <div className="space-y-3">
             {recentPerformance.map((test, i) => {
-              const pct = (test.score / test.total) * 100;
               const meta = subjectMeta[test.subject] || subjectMeta["Physics"]; // Fallback
 
               const isImproved = test.improvement.startsWith("+");
-              const isSteady = test.improvement === "Steady";
               const isDeclined = test.improvement.startsWith("-");
 
               return (

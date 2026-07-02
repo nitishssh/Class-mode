@@ -266,7 +266,7 @@ liveRouter.get("/upcoming/:school/:class", async (req, res) => {
 
     const upcoming = classes.filter((c) => c.status === "scheduled" || c.status === "live");
     res.json(upcoming);
-  } catch (err) {
+  } catch {
     res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -283,7 +283,7 @@ liveRouter.get("/recordings/:school/:class", async (req, res) => {
 
     const recorded = classes.filter((c) => c.status === "completed" && c.recordingUrl);
     res.json(recorded);
-  } catch (err) {
+  } catch {
     res.status(500).json({ message: "Internal server error" });
   }
 });

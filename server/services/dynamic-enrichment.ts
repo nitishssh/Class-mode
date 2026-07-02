@@ -194,7 +194,7 @@ export class DynamicEnrichmentService {
         await pgUpdateRecord(recordId, { [field.name]: interpolated });
         return interpolated;
       }
-    } catch (error) {
+    } catch {
       await pgUpdateRecord(recordId, { [field.name]: "#ERROR!" });
       return "#ERROR!";
     }

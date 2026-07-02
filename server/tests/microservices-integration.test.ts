@@ -16,7 +16,6 @@ const BRIDGE_SECRET = process.env.BRIDGE_SECRET || "bridge-secret-dev";
 
 let apiClient: AxiosInstance;
 let testToken: string;
-let testUserId: string;
 let testFirebaseUid: string;
 
 describe("PersonalLearningPro Microservices Integration", () => {
@@ -42,7 +41,6 @@ describe("PersonalLearningPro Microservices Integration", () => {
     });
 
     testFirebaseUid = "test-firebase-uid-" + Date.now();
-    testUserId = "test-user-" + Date.now();
 
     testToken = jwt.sign(
       {

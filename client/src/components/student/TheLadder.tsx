@@ -42,7 +42,7 @@ const PHASES = [
 ];
 
 export function TheLadder({ className }: { className?: string }) {
-  const { data: milestones = [], isLoading } = useQuery<Milestone[]>({
+  const { data: milestones = [] } = useQuery<Milestone[]>({
     queryKey: ["/api/lifecycle/milestones/me"],
   });
 

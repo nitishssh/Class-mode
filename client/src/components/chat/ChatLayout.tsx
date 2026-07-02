@@ -108,7 +108,7 @@ const ChatLayoutInner = () => {
     }
 
     return serverConvs;
-  }, [channelsByWs, dms, currentRole]);
+  }, [channelsByWs, dms]);
 
   // ── Reset active conversation when conversations change ───────────────────
   useEffect(() => {

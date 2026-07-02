@@ -83,7 +83,6 @@ router.post(
   authenticateToken,
   requireRole("teacher", "admin"),
   async (req: Request, res: Response) => {
-    const user = (req as any).user;
     const parsed = OverrideSchema.safeParse(req.body);
     if (!parsed.success)
       return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });

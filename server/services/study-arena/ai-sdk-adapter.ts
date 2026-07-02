@@ -36,8 +36,8 @@ export class AISdkLangGraphAdapter extends BaseChatModel {
 
   async _generate(
     messages: BaseMessage[],
-    options?: this["ParsedCallOptions"],
-    runManager?: CallbackManagerForLLMRun
+    _options?: this["ParsedCallOptions"],
+    _runManager?: CallbackManagerForLLMRun
   ): Promise<ChatResult> {
     const openaiMessages = this.convertMessages(messages);
     const content = await generate({
@@ -55,7 +55,7 @@ export class AISdkLangGraphAdapter extends BaseChatModel {
 
   async *streamGenerate(
     messages: BaseMessage[],
-    options?: { signal?: AbortSignal }
+    _options?: { signal?: AbortSignal }
   ): AsyncGenerator<StreamChunk> {
     const openaiMessages = this.convertMessages(messages);
     let fullContent = "";

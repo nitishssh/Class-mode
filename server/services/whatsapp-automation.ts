@@ -22,7 +22,7 @@ export const automationQueue: Queue | null = connection
   : null;
 
 async function processAutomationJob(job: Job) {
-    const { type, userId, workspaceId, metadata } = job.data;
+    const { type, userId, workspaceId: _workspaceId, metadata } = job.data;
 
     try {
       const user = await pgFindUserById(userId);

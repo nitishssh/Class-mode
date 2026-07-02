@@ -237,7 +237,7 @@ Whiteboard: ${storeState.whiteboardOpen ? "Open" : "Closed"}
 Remember: Speak naturally. Do NOT announce actions.`;
 }
 
-export function convertMessagesToOpenAI(messages: any[], currentAgentId?: string) {
+export function convertMessagesToOpenAI(messages: any[], _currentAgentId?: string) {
   return messages.map((msg) => ({
     role: msg.role === "assistant" ? "assistant" : "user",
     content: msg.content || msg.parts?.[0]?.text || "",

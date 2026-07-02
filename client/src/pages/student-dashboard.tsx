@@ -75,24 +75,11 @@ const subjectMeta: Record<
   },
 };
 
-const getTimetableCellColor = (name: string) => {
-  const colors: Record<string, string> = {
-    Physics: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-    Chemistry: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
-    Mathematics: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
-    Biology: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-    CS: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
-    English: "bg-muted text-muted-foreground",
-    Lunch: "bg-muted text-muted-foreground font-medium",
-  };
-  return colors[name] || "bg-card text-muted-foreground";
-};
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function StudentDashboard() {
   const { currentUser } = useFirebaseAuth();
-  const [communitiesOpen, setCommunitiesOpen] = useState(false);
   const [showBadge, setShowBadge] = useState(false);
   const [earnedBadge, setEarnedBadge] = useState<{
     name: string;
@@ -123,7 +110,6 @@ export default function StudentDashboard() {
     subjects = [],
     upcomingTests = [],
     recentResults = [],
-    tasks = [],
   } = dashboardData || {};
 
   const heroSession = upcomingTests[0]
@@ -287,7 +273,7 @@ export default function StudentDashboard() {
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
-                {subjects.map((subjectName: string, index: number) => {
+                {subjects.map((subjectName: string) => {
                   const meta = subjectMeta[subjectName] || {
                     icon: <BookOpen />,
                     textColor: "text-foreground",

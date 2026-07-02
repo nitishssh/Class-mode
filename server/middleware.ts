@@ -98,7 +98,7 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
         }).permissions;
         return next();
       }
-    } catch (err) {
+    } catch {
       // DB error
     }
   }

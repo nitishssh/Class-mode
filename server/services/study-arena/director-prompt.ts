@@ -15,7 +15,7 @@ export function buildDirectorPrompt(
   triggerAgentId?: string | null,
   whiteboardLedger?: WhiteboardActionRecord[],
   userProfile?: { nickname?: string; bio?: string },
-  whiteboardOpen?: boolean
+  _whiteboardOpen?: boolean
 ): string {
   const agentList = agents
     .map((a) => `- id: "${a.id}", name: "${a.name}", role: ${a.role}, priority: ${a.priority || 0}`)
@@ -97,7 +97,7 @@ export function parseDirectorDecision(content: string): {
 
       return { nextAgentId: nextAgent, shouldEnd: false };
     }
-  } catch (e) {
+  } catch {
     console.warn("[Director] Failed to parse decision:", content.slice(0, 200));
   }
   return { nextAgentId: null, shouldEnd: true };

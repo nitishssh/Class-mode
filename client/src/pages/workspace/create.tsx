@@ -345,7 +345,6 @@ function Step3({ workspaceName, onGo }: { workspaceName: string; onGo: () => voi
 export default function WorkspaceCreate() {
   const [step, setStep] = useState(1);
   const [isCreating, setIsCreating] = useState(false);
-  const [createdId, setCreatedId] = useState<number | null>(null);
 
   // Step 1 state
   const [name, setName] = useState("");
@@ -383,7 +382,6 @@ export default function WorkspaceCreate() {
         throw new Error(body.message || "Failed to create workspace");
       }
       const workspace = await res.json();
-      setCreatedId(workspace.id ?? workspace.workspace?.id);
 
       // Send invites if any
       if (!skipInvites && invites.length > 0) {

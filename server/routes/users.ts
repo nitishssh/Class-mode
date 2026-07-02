@@ -40,7 +40,7 @@ router.get("/users/me", authenticateToken, async (req: Request, res: Response) =
       return res.status(404).json({ message: "User not found" });
     }
 
-    const { password, ...userWithoutPassword } = user;
+    const { password: _password, ...userWithoutPassword } = user;
 
     res.status(200).json(userWithoutPassword);
   } catch {

@@ -106,7 +106,6 @@ export default function LiveClassesPage() {
   };
 
   const liveNow = upcomingClasses?.filter((c) => c.status === "live") || [];
-  const scheduled = upcomingClasses?.filter((c) => c.status === "scheduled") || [];
 
   if (isLoading) {
     return (

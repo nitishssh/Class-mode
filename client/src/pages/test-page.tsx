@@ -221,7 +221,7 @@ export default function TestPage() {
     onSuccess: (data) => {
       setAttemptId(data.id);
     },
-    onError: (err: any) => {
+    onError: (_err: any) => {
       toast({
         title: "Test Attempt Started",
         description: "Your answers are being recorded.",
@@ -279,7 +279,7 @@ export default function TestPage() {
     if (test && !attemptId && !initAttemptMutation.isPending && !initAttemptMutation.isSuccess) {
       initAttemptMutation.mutate();
     }
-  }, [test, attemptId]);
+  }, [test, attemptId, initAttemptMutation]);
 
   if (isLoadingTest || isLoadingQuestions) {
     return (

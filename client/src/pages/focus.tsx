@@ -136,8 +136,8 @@ function TimerRing({ progress, color }: { progress: number; color: string }) {
       />
       <defs>
         <linearGradient id="timerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="hsl(var(--primary))" />
-          <stop offset="100%" stopColor="hsl(var(--primary) / 0.6)" />
+          <stop offset="0%" stopColor={color} />
+          <stop offset="100%" stopColor={color} stopOpacity={0.6} />
         </linearGradient>
       </defs>
     </svg>
@@ -235,7 +235,7 @@ export default function FocusPage() {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isRunning, mode, subject, currentMode.duration]);
+  }, [isRunning, mode, subject, currentMode.duration, createSessionMutation]);
 
   const switchMode = (newMode: Mode) => {
     setIsRunning(false);

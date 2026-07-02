@@ -15,7 +15,6 @@ try {
 
 let client: any | null = null;
 let isConnected = false;
-let connectionAttempts = 0;
 const MAX_CONNECTION_ATTEMPTS = 3;
 
 export function getCassandraClient(): any | null {
@@ -126,7 +125,6 @@ export async function initCassandra() {
   };
 
   for (let i = 1; i <= MAX_CONNECTION_ATTEMPTS; i++) {
-    connectionAttempts = i;
     const success = await attemptConnection(i);
     if (success) return;
 

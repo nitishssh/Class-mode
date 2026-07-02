@@ -23,12 +23,6 @@ interface IncomingEvent {
   timestamp?: string;
 }
 
-interface OutgoingEvent {
-  type: string;
-  payload: any;
-  timestamp: string;
-}
-
 // ─── State ───────────────────────────────────────────────────────────────────
 
 /** userId → Set of subscribed WebSocket clients */

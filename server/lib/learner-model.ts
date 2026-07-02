@@ -113,7 +113,6 @@ function mapMemoryNote(r: any): LearnerMemoryNote {
 
 // ─── Snapshot reader ──────────────────────────────────────────────────────────
 
-const EMPTY_SNAPSHOT: LearnerSnapshot = { mastery: [], dueReviews: [], recentMemory: [] };
 
 /**
  * Read a consistent snapshot of the learner model for a student: the full

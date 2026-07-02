@@ -23,10 +23,8 @@ const localStorageShim = {
   },
 };
 
-// @ts-ignore — inject browser globals into Node test environment
-global.localStorage = localStorageShim;
-// @ts-ignore
-global.window = { dispatchEvent: vi.fn(), addEventListener: vi.fn(), removeEventListener: vi.fn() };
+(global as any).localStorage = localStorageShim;
+(global as any).window = { dispatchEvent: vi.fn(), addEventListener: vi.fn(), removeEventListener: vi.fn() };
 
 // ── Subject under test ────────────────────────────────────────────────────────
 // Dynamic import after shims are in place so the module picks them up.

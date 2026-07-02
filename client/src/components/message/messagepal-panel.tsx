@@ -19,12 +19,6 @@ import {
 import { useMessagePalWebSocket } from "./use-messagepal-ws";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 
-interface User {
-  id: number;
-  name: string;
-  role: string;
-  avatar?: string;
-}
 
 export function MessageSidebar() {
   const [searchTerm, setSearchTerm] = useState("");

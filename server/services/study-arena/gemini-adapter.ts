@@ -34,8 +34,8 @@ export class GeminiLangGraphAdapter extends BaseChatModel {
 
   async _generate(
     messages: BaseMessage[],
-    options?: this["ParsedCallOptions"],
-    runManager?: CallbackManagerForLLMRun
+    _options?: this["ParsedCallOptions"],
+    _runManager?: CallbackManagerForLLMRun
   ): Promise<ChatResult> {
     const geminiMessages = this.convertMessages(messages);
     const systemInstruction = geminiMessages.find((m) => m.role === "system")?.content || "";
@@ -60,7 +60,7 @@ export class GeminiLangGraphAdapter extends BaseChatModel {
 
   async *streamGenerate(
     messages: BaseMessage[],
-    options?: { signal?: AbortSignal }
+    _options?: { signal?: AbortSignal }
   ): AsyncGenerator<StreamChunk> {
     const geminiMessages = this.convertMessages(messages);
     const systemInstruction = geminiMessages.find((m) => m.role === "system")?.content || "";
