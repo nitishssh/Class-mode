@@ -75,6 +75,11 @@ export function Sidebar({ className }: SidebarProps) {
       icon: <LayoutDashboard className="h-5 w-5" />,
     },
     {
+      title: "Invite Teachers",
+      href: "/onboarding/invite-teachers",
+      icon: <UserPlus className="h-5 w-5" />,
+    },
+    {
       title: "Student Directory",
       href: "/student-directory",
       icon: <GraduationCap className="h-5 w-5" />,

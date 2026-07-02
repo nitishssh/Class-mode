@@ -109,6 +109,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Legacy Workspace v2 (must be last)
   app.use("/api", workspaceRouter);
 
+  // Unmatched /api/* paths must 404 as JSON — never fall through to the SPA
+  // catch-all, which returns index.html with a 200 and makes dead endpoints
+  // look like successes to API clients.
+  app.use("/api", (req: Request, res: Response) => {
+    res.status(404).json({ message: `API route not found: ${req.method} ${req.originalUrl}` });
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

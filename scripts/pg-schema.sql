@@ -6,6 +6,10 @@
 CREATE EXTENSION IF NOT EXISTS citext;
 CREATE EXTENSION IF NOT EXISTS vector;
 
+-- Session-only bump: the ivfflat index build (content_chunks, lists=100) needs
+-- ~60MB, more than the 32MB default on the memory-capped dev container.
+SET maintenance_work_mem = '80MB';
+
 -- ─── Users ───────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS users (
   id                   bigserial    PRIMARY KEY,

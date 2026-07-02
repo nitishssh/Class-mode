@@ -55,6 +55,10 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
           emailVerified: user.emailVerified,
           firebaseUid: user.firebaseUid,
           authSubject: user.authSubject,
+          // Tenant scope: resolveTenantScope reads schoolCode — omitting it
+          // makes every school-scoped route fail closed for non-platform admins.
+          schoolCode: user.schoolCode,
+          schoolId: user.schoolId,
         };
         (req as any).workspace = workspaceContext?.workspace ?? null;
         (req as any).workspaceRole = workspaceContext?.membership.role ?? null;
@@ -82,6 +86,8 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
           emailVerified: user.emailVerified,
           firebaseUid: user.firebaseUid,
           authSubject: user.authSubject,
+          schoolCode: user.schoolCode,
+          schoolId: user.schoolId,
         };
         (req as any).workspace = workspaceContext?.workspace ?? null;
         (req as any).workspaceRole = workspaceContext?.membership.role ?? null;

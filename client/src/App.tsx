@@ -206,7 +206,7 @@ const DynamicSISBaseRoute = withLayout(
   { fullWidth: true }
 );
 const OnboardingSchoolRoute = withLayout(protect(SchoolSetup, ["school_admin"]));
-const OnboardingInvTeachRoute = withLayout(protect(InviteTeachers, ["school_admin"]));
+const OnboardingInvTeachRoute = withLayout(protect(InviteTeachers, ["school_admin", "principal"]));
 const OnboardingTeacherRoute = withLayout(protect(TeacherClassSetup, ["teacher"]));
 const OnboardingInvStdRoute = withLayout(protect(InviteStudents, ["teacher"]));
 const OnboardingRoute = withLayout(protect(OnboardingV2));

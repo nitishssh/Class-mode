@@ -2099,7 +2099,7 @@ export async function pgGetAIUsage(
     startOfMonth.setHours(0, 0, 0, 0);
 
     const { rows } = await getPgPool().query(
-      `SELECT COUNT(*) FROM usage_logs 
+      `SELECT COUNT(*) FROM ai_usage_logs
        WHERE user_id = $1 AND feature = $2 AND created_at >= $3`,
       [userId, feature, startOfMonth]
     );
@@ -2120,7 +2120,7 @@ export async function pgIncrementAIUsage(data: {
   if (!isPgReady()) return;
   try {
     await getPgPool().query(
-      `INSERT INTO usage_logs (user_id, workspace_id, feature, tokens_used, metadata)
+      `INSERT INTO ai_usage_logs (user_id, workspace_id, feature, tokens_used, metadata)
        VALUES ($1, $2, $3, $4, $5)`,
       [
         data.userId,

@@ -112,7 +112,8 @@ export function RagChatSheet({
       const errorMsg: Message = {
         id: (Date.now() + 2).toString() + "-error",
         role: "system-error",
-        content: "Failed to connect to AI Tutor. Check your internet connection and try again.",
+        content:
+          "The AI Tutor is unavailable right now. This is usually temporary — please try again in a moment.",
         retryPayload: { messageText, level },
       };
       setMessages((prev) => [...prev, errorMsg]);

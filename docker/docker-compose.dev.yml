@@ -7,7 +7,9 @@
 
 services:
   pg:
-    image: postgres:16-alpine
+    # pgvector build, not plain postgres: scripts/pg-schema.sql runs
+    # CREATE EXTENSION vector, so `npm run migrate` fails on images without it.
+    image: pgvector/pgvector:pg16
     container_name: classmode-dev-pg
     restart: unless-stopped
     environment:
@@ -36,7 +38,10 @@ services:
       - "-c"
       - "synchronous_commit=off"
     ports:
-      - "5432:5432"
+      # Host port is overridable (CLASSMODE_PG_PORT in .env) for machines where
+      # another Postgres (e.g. Homebrew) already owns 5432 — otherwise IPv4
+      # connections silently land on the wrong server.
+      - "${CLASSMODE_PG_PORT:-5432}:5432"
     volumes:
       - classmode_dev_pg:/var/lib/postgresql/data
       # Mount the schema into Postgres' first-run init dir. Runs ONCE on an

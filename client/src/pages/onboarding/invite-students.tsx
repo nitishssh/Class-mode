@@ -14,7 +14,7 @@ export default function InviteStudents() {
   const qc = useQueryClient();
   const csvRef = useRef<HTMLInputElement>(null);
 
-  const { data: classes = [] } = useQuery<any[]>({ queryKey: ["/api/classes/mine"] });
+  const { data: classes = [] } = useQuery<any[]>({ queryKey: ["/api/onboarding/classes/mine"] });
   const { data: invites = [] } = useQuery<any[]>({
     queryKey: ["/api/onboarding/invite/student/list", form.classId],
     queryFn: () =>
@@ -59,7 +59,7 @@ export default function InviteStudents() {
           studentName,
           parentEmail,
           grade,
-          classId: cls.id,
+          classId: String(cls.id),
         });
         sent++;
       } catch (err) {
@@ -71,7 +71,7 @@ export default function InviteStudents() {
     if (csvRef.current) csvRef.current.value = "";
   };
 
-  const selectedClass = (classes as any[]).find((c: any) => c.id === form.classId);
+  const selectedClass = (classes as any[]).find((c: any) => String(c.id) === form.classId);
   const canSend = form.studentName && form.parentEmail && form.grade && form.classId;
 
   return (
@@ -89,8 +89,8 @@ export default function InviteStudents() {
           <button
             key={cls.id}
             type="button"
-            onClick={() => setForm((f) => ({ ...f, classId: cls.id, grade: cls.grade }))}
-            className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${form.classId === cls.id ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-muted"}`}
+            onClick={() => setForm((f) => ({ ...f, classId: String(cls.id), grade: cls.grade }))}
+            className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${form.classId === String(cls.id) ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-muted"}`}
           >
             {cls.name}
           </button>

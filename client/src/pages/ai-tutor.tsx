@@ -95,7 +95,7 @@ export default function AiTutor({ initialTopic }: AiTutorProps = {}) {
               />
             </div>
           }
-          onCtaClick={() => handleAction("Physics", "chat")}
+          onCtaClick={() => handleAction(subjects[0].name, "chat")}
         />
       </section>
 

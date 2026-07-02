@@ -16,15 +16,15 @@ export default function TeacherClassSetup() {
   const qc = useQueryClient();
   const [, setLocation] = useLocation();
 
-  const { data: classes = [] } = useQuery<any[]>({ queryKey: ["/api/classes/mine"] });
+  const { data: classes = [] } = useQuery<any[]>({ queryKey: ["/api/onboarding/classes/mine"] });
 
   const createMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/classes", form),
+    mutationFn: () => apiRequest("POST", "/api/onboarding/classes", form),
     onSuccess: () => {
       markQuestComplete("quest:create-class");
       toast({ title: "Class created!" });
       setForm({ name: "", grade: "" });
-      qc.invalidateQueries({ queryKey: ["/api/classes/mine"] });
+      qc.invalidateQueries({ queryKey: ["/api/onboarding/classes/mine"] });
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
