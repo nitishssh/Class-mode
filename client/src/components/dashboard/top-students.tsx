@@ -17,18 +17,20 @@ export function TopStudents() {
     enabled: false, // Disabled for now until API endpoint is implemented
   });
 
-  // Mock data for UI demonstration
-  const mockStudents: TopStudentProps[] = [
-    { id: 1, name: "Jatin Mehta", class: "10-A", score: 96 },
-    { id: 2, name: "Priya Sharma", class: "10-B", score: 94 },
-    { id: 3, name: "Akash Singh", class: "10-A", score: 91 },
-  ];
-
   if (isLoading) {
     return <TopStudentsSkeleton />;
   }
 
-  const displayStudents = students || mockStudents;
+  const displayStudents = students ?? [];
+
+  // Honest empty state — no fabricated leaderboard until the API exists.
+  if (displayStudents.length === 0) {
+    return (
+      <div className="py-8 text-center text-sm text-muted-foreground">
+        No student rankings yet.
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

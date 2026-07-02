@@ -29,12 +29,11 @@ export const XPProgressBar: React.FC<XPProgressBarProps> = ({
               <span className="text-3xl font-black leading-none text-foreground">
                 Level {level}
               </span>
-              <span className="text-sm font-semibold italic text-muted-foreground">Master</span>
             </div>
           </div>
           <div className="text-right">
             <div className="text-lg font-bold leading-none text-foreground">{currentXP} XP</div>
-            <div className="text-xs font-medium text-muted-foreground">earned today</div>
+            <div className="text-xs font-medium text-muted-foreground">total XP</div>
           </div>
         </div>
 
