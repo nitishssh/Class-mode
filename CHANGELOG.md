@@ -6,12 +6,22 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- **Daily attendance (operational moat)** — Tenant-scoped `attendance` system-of-record: `POST/GET /api/attendance` and `GET /api/attendance/summary/:studentId`. One row per student/day (upsert on re-mark), fail-closed school scoping. The daily-use lock-in loop. (#266)
+- **Fee collection + WhatsApp reminders** — Tenant-scoped `fees` (amounts in minor units; pending/paid/waived) with `POST/GET /api/fees`, `/summary`, `/:id/mark-paid`, and `/:id/remind` (sends a fee reminder over the WhatsApp channel). Cross-school guarded. (#269)
+- **WhatsApp Business Cloud API integration** — Real Meta Graph API outbound send (falls back to simulation without creds) plus the public inbound webhook (`GET/POST /api/whatsapp/webhook`) with the Meta verification handshake. Configure via `WHATSAPP_ACCESS_TOKEN` / `WHATSAPP_PHONE_NUMBER_ID` / `WHATSAPP_VERIFY_TOKEN`. (#213)
+- **Feature-usage dashboard** — `feature_usage` tracking + `GET /api/admin/feature-usage` (fail-closed tenant-scoped) to see which features get daily use vs zero; attendance and test-generation instrumented as the first tracked features. (#270)
 - **Learner Mastery & Spaced-Repetition dashboard** — New **Progress** tab in the Learn Hub (`/learn?mode=progress`) shows students their per-concept BKT mastery levels, confidence, and SM-2 review schedule (due-now vs. upcoming review cards). Backed by `GET /api/learn/mastery`, which reads the single-writer learner model (`learner_mastery` + `review_schedule`).
 - **Gemini provider boot health check** — At startup the server now verifies the Google API key with a lightweight probe and logs a loud, actionable warning when the key is missing or **blocked** (`API_KEY_SERVICE_BLOCKED`), instead of surfacing an opaque 403 deep inside a feature.
 - **Web search for AI agents** — New `webSearch` service + `POST /api/ai/web-search`. Works keyless out of the box via DuckDuckGo and transparently upgrades to Tavily or Serper when `TAVILY_API_KEY` / `SERPER_API_KEY` is configured. Completes the last open item in the Study Arena roadmap.
 
+### Changed
+
+- **AI gateway is now the sole chokepoint** — Every AI call (grading, tutor chat, test/lesson generation, study-arena director, SIS enrichment, answer evaluation, PDF extraction) routes through `server/lib/ai/gateway.ts`; no module imports `lib/openai` / `lib/gemini` directly anymore. Adds central per-feature observability and Gemini→OpenAI fallback, and makes model/provider swaps a one-line registry change. (#265, #268)
+- **Dashboard cleanup** — Removed dead duplicate pages (`study-arena`, `study-plan`) and extracted a shared `StatCardGrid` component. (#264)
+
 ### Fixed
 
+- **Cross-school leaks on student listings** — `GET /api/analytics/students` (previously fully unscoped) and the educator dashboard/students endpoints now fail closed via a shared `resolveTenantScope` guard, matching the admin-dashboard fix.
 - **Grading failures no longer masked** — When grading errored, the failure-record write in `gradeSubmission`'s catch block could itself throw (e.g. DB unavailable) and overwrite the real error. That secondary write is now best-effort, so the original cause propagates.
 - **Pilot simulation harness** — `scripts/simulate-pilot-school.ts` now connects to PostgreSQL before grading (fixing the "pool not initialized" failure in the predictive report) and renders the detailed-grading section from the correct field.
 
