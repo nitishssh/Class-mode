@@ -1,26 +1,27 @@
 import { Queue, Worker, Job } from "bullmq";
-import Redis from "ioredis";
+import { newRedisConnection } from "../lib/redis";
 import { whatsappService } from "./whatsapp";
-import { 
-  pgFindUserById 
+import {
+  pgFindUserById
 } from "../lib/pg-queries";
 import { getPgPool, isPgReady } from "../db-pg";
 import { logger } from "../lib/logger";
 
-const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
-const connection = new Redis(REDIS_URL, { maxRetriesPerRequest: null });
+// Gated on REDIS_URL via the shared lib — with Redis off, queue/worker are
+// null and the at-risk scheduler no-ops instead of spamming ECONNREFUSED.
+const connection = newRedisConnection("sis-automation");
 
-export const automationQueue = new Queue("sis-automation", {
-  connection: connection as any,
-  defaultJobOptions: {
-    removeOnComplete: true,
-    removeOnFail: false,
-  },
-});
+export const automationQueue: Queue | null = connection
+  ? new Queue("sis-automation", {
+      connection: connection as any,
+      defaultJobOptions: {
+        removeOnComplete: true,
+        removeOnFail: false,
+      },
+    })
+  : null;
 
-export const automationWorker = new Worker(
-  "sis-automation",
-  async (job: Job) => {
+async function processAutomationJob(job: Job) {
     const { type, userId, workspaceId, metadata } = job.data;
 
     try {
@@ -50,13 +51,15 @@ export const automationWorker = new Worker(
       logger.error("[SIS Automation] Job failed", { error: String(error), jobId: job.id });
       throw error;
     }
-  },
-  { connection: connection as any }
-);
+}
+
+export const automationWorker: Worker | null = connection
+  ? new Worker("sis-automation", processAutomationJob, { connection: connection as any })
+  : null;
 
 // Scheduler to check for at-risk students every hour
 export async function scheduleAtRiskChecks() {
-  if (!isPgReady()) return;
+  if (!isPgReady() || !automationQueue) return;
 
   const pool = getPgPool();
   const threeDaysAgo = new Date();

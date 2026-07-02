@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.8.2.0] - 2026-07-03
+
+### Added
+
+- **Domain event bus (Redis Streams)** — `server/lib/events.ts`: append-only topics with consumer groups, explicit acks, dead-consumer reclaim (XAUTOCLAIM) and bounded history. Kafka-shaped interface so a future Kafka migration is a driver swap, not a rearchitecture — Kafka itself was deliberately not added (single-service pilot; Streams give the same guarantees on infra we already run). Topics: `attendance.marked`, `fee.created`, `fee.paid`.
+- **Durable absence alerts** — with Redis on, parent WhatsApp notifications flow through the event bus: a crash between the register save and the sends no longer loses alerts (verified: event published while the app was down was delivered on restart). Without Redis, the previous inline fire-and-forget send remains as fallback.
+- Health endpoints now report `redis: { connected, configured }`.
+
+### Changed
+
+- **Redis consolidation** — one shared, lazy, gated ioredis client (`server/lib/redis.ts`) replaces the previous split (`redis` pkg in lib + ad-hoc `ioredis` connections in BullMQ services). With `REDIS_URL` unset, everything degrades gracefully instead of the old behavior — two services unconditionally dialing localhost:6379 and spamming ECONNREFUSED at boot. Study Arena / SIS-automation queues now surface a clear "requires Redis" error instead of hanging. Dropped the now-unused `redis` npm package.
+
 ### Changed
 
 - **Repo organization** — Docker artifacts now live under `docker/` (`Dockerfile`, all three compose files, `nginx.conf`); compose is invoked with `--project-directory .` so every relative path resolves as before. Removed stale root files: `schema.sql` (June pg_dump snapshot — `scripts/pg-schema.sql` is the source of truth; recoverable from git history), empty `diff.txt` and `proxy.log`. `.dockerignore` stays at the repo root (build-context requirement).

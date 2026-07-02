@@ -25,18 +25,13 @@ vi.mock("../db-pg", () => {
   };
 });
 
-// Mock Redis globally
+// Mock Redis globally — mirrors the "Redis not configured" surface of
+// server/lib/redis.ts so tests exercise the graceful-degradation paths.
 vi.mock("../lib/redis", () => ({
-  redisClient: {
-    on: vi.fn(),
-    isOpen: false,
-    connect: vi.fn().mockResolvedValue(undefined),
-    get: vi.fn().mockResolvedValue(null),
-    setEx: vi.fn().mockResolvedValue(undefined),
-    set: vi.fn().mockResolvedValue(undefined),
-    del: vi.fn().mockResolvedValue(undefined),
-    quit: vi.fn().mockResolvedValue(undefined),
-  },
+  isRedisConfigured: vi.fn().mockReturnValue(false),
+  isRedisReady: vi.fn().mockReturnValue(false),
+  getRedis: vi.fn().mockReturnValue(null),
+  newRedisConnection: vi.fn().mockReturnValue(null),
   connectRedis: vi.fn().mockResolvedValue(undefined),
   getCachedJSON: vi.fn().mockResolvedValue(null),
   setCachedJSON: vi.fn().mockResolvedValue(undefined),

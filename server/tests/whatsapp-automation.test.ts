@@ -18,14 +18,18 @@ vi.mock("../db-pg", () => ({
   getPgPool: vi.fn(),
 }));
 
-vi.mock("ioredis", () => {
-  return {
-    default: class Redis {
-      on = vi.fn();
-      quit = vi.fn();
-    },
-  };
-});
+// Override the global "Redis off" mock from setup.ts: this suite exercises
+// the queue/worker paths, so pretend Redis is configured — bullmq itself is
+// mocked below, so the connection object is never really used.
+vi.mock("../lib/redis", () => ({
+  newRedisConnection: vi.fn().mockReturnValue({ on: vi.fn(), quit: vi.fn() }),
+  isRedisConfigured: vi.fn().mockReturnValue(true),
+  isRedisReady: vi.fn().mockReturnValue(true),
+  getRedis: vi.fn().mockReturnValue(null),
+  connectRedis: vi.fn().mockResolvedValue(undefined),
+  getCachedJSON: vi.fn().mockResolvedValue(null),
+  setCachedJSON: vi.fn().mockResolvedValue(undefined),
+}));
 
 const { workerProcess } = vi.hoisted(() => ({ workerProcess: { fn: null as any } }));
 
