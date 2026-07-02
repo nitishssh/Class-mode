@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.8.3.0] - 2026-07-03
+
+### Fixed
+
+- **No more fabricated data on real accounts** — dashboards, analytics, and the calendar previously showed hardcoded sample content (e.g. "Level 12 / 450 XP / 6 day streak" on brand-new student accounts, "Class average 78% / Jatin Mehta 96%", "Annual Sports Day", seeded exams and holidays) regardless of any demo setting. Real schools now see their actual data or an honest empty state.
+  - Student dashboard: XP, level, and streak come from the account instead of being hardcoded server-side; the streak dots reflect the real streak; the XP card no longer mislabels total XP as "earned today" or shows a fake "Master" rank.
+  - Analytics: class average, student counts, and completion rate are computed from real student records (with a clear empty state when there's nothing to show yet); the performance chart and "top students" no longer fall back to sample rows.
+  - Calendar: shows a genuinely empty schedule (no invented exams/quizzes/holidays) and opens on the current month.
+
+### Changed
+
+- **Principal dashboard "Demo Data" is now off by default** and actually hides everything sample when toggled off — upcoming events, notifications, staff distribution/overview, finance status, and infrastructure are all sample content gated behind the toggle, replaced by honest empty panels when it's off. Turning it on is an explicit opt-in for demos and screenshots.
+
 ## [1.8.2.0] - 2026-07-03
 
 ### Added
