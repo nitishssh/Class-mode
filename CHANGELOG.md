@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- **Attendance & Fees pages** — Teachers get `/attendance` (class + date picker, per-student Present/Absent/Late/Excused toggles, all-present shortcut, live summary chips); admins get `/fees` (pending/collected cards, create-fee dialog, status filter, mark-paid, WhatsApp reminder dialog). Both wired into the sidebar for every relevant role, with teacher-accessible tenant-scoped roster endpoints (`GET /api/attendance/classes`, `GET /api/attendance/roster`).
+- **Boot-time migration (opt-in)** — `AUTO_MIGRATE=true` applies the idempotent `scripts/pg-schema.sql` at startup under a Postgres advisory lock (no cross-instance DDL races). The production image ships the schema file and enables it, so deploys never run against a stale schema.
 - **Daily attendance (operational moat)** — Tenant-scoped `attendance` system-of-record: `POST/GET /api/attendance` and `GET /api/attendance/summary/:studentId`. One row per student/day (upsert on re-mark), fail-closed school scoping. The daily-use lock-in loop. (#266)
 - **Fee collection + WhatsApp reminders** — Tenant-scoped `fees` (amounts in minor units; pending/paid/waived) with `POST/GET /api/fees`, `/summary`, `/:id/mark-paid`, and `/:id/remind` (sends a fee reminder over the WhatsApp channel). Cross-school guarded. (#269)
 - **WhatsApp Business Cloud API integration** — Real Meta Graph API outbound send (falls back to simulation without creds) plus the public inbound webhook (`GET/POST /api/whatsapp/webhook`) with the Meta verification handshake. Configure via `WHATSAPP_ACCESS_TOKEN` / `WHATSAPP_PHONE_NUMBER_ID` / `WHATSAPP_VERIFY_TOKEN`. (#213)
