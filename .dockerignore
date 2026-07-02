@@ -1,6 +1,8 @@
 # ══════════════════════════════════════════════════════════════════
 #  .dockerignore — PersonalLearningPro
 #  Keep build context small and never leak secrets into images.
+#  Stays at the repo root (NOT docker/): it must live at the build-context
+#  root, and all builds use the repo root as context (-f docker/Dockerfile).
 # ══════════════════════════════════════════════════════════════════
 
 # ── Dependencies (always rebuilt inside the image) ────────────────

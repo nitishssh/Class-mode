@@ -17,6 +17,8 @@ steps:
       - "VITE_FIREBASE_MESSAGING_SENDER_ID=${_VITE_FIREBASE_MESSAGING_SENDER_ID}"
       - "--build-arg"
       - "VITE_FIREBASE_MEASUREMENT_ID=${_VITE_FIREBASE_MEASUREMENT_ID}"
+      - "-f"
+      - "docker/Dockerfile"
       - "."
 
   # ─── Push Docker Image ──────────────────────────────────────────────────────

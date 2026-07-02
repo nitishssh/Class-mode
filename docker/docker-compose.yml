@@ -1,5 +1,5 @@
 # ══════════════════════════════════════════════════════════════════
-#  docker-compose.yml — PersonalLearningPro
+#  docker/docker-compose.yml — PersonalLearningPro (run from repo root with --project-directory .)
 #
 #  Unified orchestration for:
 #    - EduAI (main web app + backend)       [default]
@@ -9,9 +9,10 @@
 #    - Messaging: Astra DB cloud (cassandra-driver, no local container)
 #    - All databases are remote: PostgreSQL + Astra DB cloud (no local DB containers)
 #
-#  Usage:
-#    Development:  docker compose up
-#    Production:   docker compose --profile prod up
+#  Usage (from the repo root — paths inside resolve from --project-directory):
+#    Development:  docker compose -f docker/docker-compose.yml --project-directory . up
+#    Production:   docker compose -f docker/docker-compose.yml --project-directory . --profile prod up
+#    (or simply: npm run db:up / db:down / db:reset)
 # ══════════════════════════════════════════════════════════════════
 
 name: personallearningpro
@@ -45,7 +46,7 @@ services:
     build:
       context: .
       target: development
-      dockerfile: Dockerfile
+      dockerfile: docker/Dockerfile
       args:
         NODE_VERSION: "22-alpine"
     container_name: eduai-dev
@@ -195,7 +196,7 @@ services:
     build:
       context: .
       target: production
-      dockerfile: Dockerfile
+      dockerfile: docker/Dockerfile
       args:
         NODE_VERSION: "22-alpine"
     container_name: eduai-prod

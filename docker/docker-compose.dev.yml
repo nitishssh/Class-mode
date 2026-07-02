@@ -1,9 +1,9 @@
 # Local development Postgres ONLY.
 # Memory-capped at 384MB so it won't eat your laptop's RAM.
-# Start:  docker-compose -f docker-compose.dev.yml up -d
-# Stop:   docker-compose -f docker-compose.dev.yml down
-# Reset:  docker-compose -f docker-compose.dev.yml down -v   (drops volume!)
-# Logs:   docker-compose -f docker-compose.dev.yml logs -f pg
+# Start:  docker compose -f docker/docker-compose.dev.yml --project-directory . up -d
+# Stop:   docker compose -f docker/docker-compose.dev.yml --project-directory . down
+# Reset:  docker compose -f docker/docker-compose.dev.yml --project-directory . down -v   (drops volume!)
+# Logs:   docker compose -f docker/docker-compose.dev.yml --project-directory . logs -f pg
 
 services:
   pg:

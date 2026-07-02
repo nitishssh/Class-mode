@@ -147,7 +147,7 @@ Single `package.json` (no monorepo tool). Key directories:
 ## Deployment
 
 - **Production**: GCP Cloud Run via Cloud Build (`cloudbuild.yaml`). Secrets from Secret Manager.
-- **Docker**: Multi-stage (`deps → development → build → production`). See `docker-compose.yml`.
+- **Docker**: Multi-stage (`deps → development → build → production`). See `docker/docker-compose.yml`.
 - **CI/CD**: `.github/workflows/cd.yml` builds the image on push to `main`, pushes to Artifact Registry, and deploys to Cloud Run.
 - **Terraform**: `terraform-gcp/` manages Cloud Run service, IAM, and Secret Manager bindings.
 
