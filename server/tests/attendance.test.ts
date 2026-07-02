@@ -8,6 +8,10 @@ const h = vi.hoisted(() => ({
   mockMark: vi.fn(),
   mockGetByClass: vi.fn(),
   mockSummary: vi.fn(),
+  mockFindUsers: vi.fn(),
+  mockFindUserById: vi.fn(),
+  mockUpdateUser: vi.fn(),
+  mockSend: vi.fn(),
 }));
 
 vi.mock("../middleware", () => ({
@@ -30,6 +34,14 @@ vi.mock("../lib/pg-queries", () => ({
   pgGetAttendanceByClassDate: h.mockGetByClass,
   pgGetStudentAttendanceSummary: h.mockSummary,
   pgTrackFeatureUsage: vi.fn(),
+  pgGetClassNames: vi.fn(),
+  pgFindUsers: h.mockFindUsers,
+  pgFindUserById: h.mockFindUserById,
+  pgUpdateUser: h.mockUpdateUser,
+}));
+
+vi.mock("../services/whatsapp", () => ({
+  whatsappService: { sendMessage: h.mockSend },
 }));
 
 import attendanceRoutes from "../routes/attendance";
@@ -47,6 +59,7 @@ describe("Attendance API", () => {
     vi.clearAllMocks();
     app = makeApp();
     h.currentUser = { id: 10, role: "teacher", school_code: "SCHOOL123" };
+    h.mockFindUsers.mockResolvedValue([]);
   });
 
   it("marks attendance scoped to the teacher's school", async () => {
@@ -62,7 +75,7 @@ describe("Attendance API", () => {
         ],
       });
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ success: true, written: 2 });
+    expect(res.body).toEqual({ success: true, written: 2, notified: 0 });
     expect(h.mockMark).toHaveBeenCalledWith(
       expect.objectContaining({ schoolCode: "SCHOOL123", className: "Grade 10", markedBy: 10 })
     );
@@ -128,5 +141,82 @@ describe("Attendance API", () => {
     expect(res.status).toBe(200);
     expect(res.body.total).toBe(9);
     expect(h.mockSummary).toHaveBeenCalledWith({ studentId: 1, schoolCode: "SCHOOL123" });
+  });
+
+  it("notifies the parent of an absent student on WhatsApp", async () => {
+    h.mockMark.mockResolvedValue(2);
+    h.mockFindUsers.mockResolvedValue([
+      { id: 1, name: "Asha", parentPhone: "+919876543210" },
+      { id: 2, name: "Ravi", parentPhone: null },
+    ]);
+    h.mockSend.mockResolvedValue({ success: true });
+
+    const res = await request(app)
+      .post("/api/attendance")
+      .send({
+        className: "Grade 10",
+        date: "2026-07-02",
+        marks: [
+          { studentId: 1, status: "absent" },
+          { studentId: 2, status: "absent" },
+        ],
+      });
+
+    expect(res.status).toBe(200);
+    // Only Asha has a parent phone — exactly one message, to that number.
+    expect(res.body.notified).toBe(1);
+    expect(h.mockSend).toHaveBeenCalledTimes(1);
+    expect(h.mockSend).toHaveBeenCalledWith(
+      expect.objectContaining({ to: "+919876543210", body: expect.stringContaining("Asha") })
+    );
+  });
+
+  it("does not notify anyone when no student is absent", async () => {
+    h.mockMark.mockResolvedValue(1);
+    const res = await request(app)
+      .post("/api/attendance")
+      .send({
+        className: "Grade 10",
+        date: "2026-07-02",
+        marks: [{ studentId: 1, status: "present" }],
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.notified).toBe(0);
+    expect(h.mockSend).not.toHaveBeenCalled();
+  });
+
+  describe("PATCH /roster/:studentId/parent-phone", () => {
+    it("sets the parent phone for a student in the teacher's school", async () => {
+      h.mockFindUserById.mockResolvedValue({
+        id: 1,
+        role: "student",
+        schoolCode: "SCHOOL123",
+      });
+      h.mockUpdateUser.mockResolvedValue({ id: 1, parentPhone: "+919876543210" });
+
+      const res = await request(app)
+        .patch("/api/attendance/roster/1/parent-phone")
+        .send({ phone: "+91 98765 43210" });
+
+      expect(res.status).toBe(200);
+      expect(h.mockUpdateUser).toHaveBeenCalledWith(1, { parentPhone: "+91 98765 43210" });
+    });
+
+    it("blocks setting a phone on another school's student", async () => {
+      h.mockFindUserById.mockResolvedValue({ id: 2, role: "student", schoolCode: "OTHER" });
+      const res = await request(app)
+        .patch("/api/attendance/roster/2/parent-phone")
+        .send({ phone: "+919876543210" });
+      expect(res.status).toBe(403);
+      expect(h.mockUpdateUser).not.toHaveBeenCalled();
+    });
+
+    it("rejects an invalid phone", async () => {
+      const res = await request(app)
+        .patch("/api/attendance/roster/1/parent-phone")
+        .send({ phone: "not-a-phone!!" });
+      expect(res.status).toBe(400);
+      expect(h.mockUpdateUser).not.toHaveBeenCalled();
+    });
   });
 });

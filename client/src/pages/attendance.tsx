@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { CalendarCheck, Check, Loader2, Users, X } from "lucide-react";
+import { CalendarCheck, Check, Loader2, Phone, Users, X } from "lucide-react";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ type Status = "present" | "absent" | "late" | "excused";
 interface RosterStudent {
   id: number;
   name: string;
+  parentPhone: string | null;
 }
 
 interface AttendanceRow {
@@ -54,6 +55,8 @@ export default function AttendancePage() {
   const [className, setClassName] = useState<string>("");
   const [date, setDate] = useState<string>(todayISO());
   const [marks, setMarks] = useState<Record<number, Status>>({});
+  const [editingPhoneId, setEditingPhoneId] = useState<number | null>(null);
+  const [phoneDraft, setPhoneDraft] = useState("");
 
   const { data: classes = [], isLoading: classesLoading } = useQuery<string[]>({
     queryKey: ["/api/attendance/classes"],
@@ -104,8 +107,13 @@ export default function AttendancePage() {
       const res = await apiRequest("POST", "/api/attendance", payload);
       return res.json();
     },
-    onSuccess: (data: { written: number }) => {
-      toast({ title: "Attendance saved", description: `${data.written} students marked.` });
+    onSuccess: (data: { written: number; notified?: number }) => {
+      toast({
+        title: "Attendance saved",
+        description:
+          `${data.written} students marked.` +
+          (data.notified ? ` ${data.notified} parent(s) notified on WhatsApp.` : ""),
+      });
       queryClient.invalidateQueries({
         queryKey: [`/api/attendance?className=${encodeURIComponent(className)}&date=${date}`],
       });
@@ -116,6 +124,25 @@ export default function AttendancePage() {
         description: err.message,
         variant: "destructive",
       }),
+  });
+
+  const phoneMutation = useMutation({
+    mutationFn: async ({ studentId, phone }: { studentId: number; phone: string }) => {
+      const res = await apiRequest("PATCH", `/api/attendance/roster/${studentId}/parent-phone`, {
+        phone,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      setEditingPhoneId(null);
+      setPhoneDraft("");
+      queryClient.invalidateQueries({
+        queryKey: [`/api/attendance/roster?className=${encodeURIComponent(className)}`],
+      });
+      toast({ title: "Parent phone saved" });
+    },
+    onError: (err: Error) =>
+      toast({ title: "Failed to save phone", description: err.message, variant: "destructive" }),
   });
 
   const markAll = (status: Status) => {
@@ -130,7 +157,7 @@ export default function AttendancePage() {
     <div className="space-y-6 p-4 md:p-6">
       <PageHeader
         title="Attendance"
-        subtitle="Mark daily attendance for your class — the register lives here, not on paper."
+        subtitle="Mark daily attendance — parents of absent students are notified on WhatsApp automatically when a number is on file."
       />
 
       <Card>
@@ -206,7 +233,51 @@ export default function AttendancePage() {
             <ul className="divide-y rounded-md border">
               {roster.map((s) => (
                 <li key={s.id} className="flex flex-wrap items-center gap-2 px-3 py-2">
-                  <span className="min-w-40 flex-1 font-medium">{s.name}</span>
+                  <div className="min-w-40 flex-1">
+                    <span className="font-medium">{s.name}</span>
+                    <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                      {editingPhoneId === s.id ? (
+                        <>
+                          <Input
+                            className="h-6 w-40 text-xs"
+                            placeholder="+91 98765 43210"
+                            value={phoneDraft}
+                            autoFocus
+                            onChange={(e) => setPhoneDraft(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter")
+                                phoneMutation.mutate({ studentId: s.id, phone: phoneDraft });
+                              if (e.key === "Escape") setEditingPhoneId(null);
+                            }}
+                          />
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 px-2 text-xs"
+                            disabled={phoneMutation.isPending}
+                            onClick={() =>
+                              phoneMutation.mutate({ studentId: s.id, phone: phoneDraft })
+                            }
+                          >
+                            Save
+                          </Button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          className="flex items-center gap-1 hover:text-foreground"
+                          title="Parent's WhatsApp number — used for absence alerts and fee reminders"
+                          onClick={() => {
+                            setEditingPhoneId(s.id);
+                            setPhoneDraft(s.parentPhone ?? "");
+                          }}
+                        >
+                          <Phone className="h-3 w-3" />
+                          {s.parentPhone || "Add parent phone"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   <div className="flex gap-1">
                     {STATUS_OPTIONS.map((opt) => (
                       <Button
