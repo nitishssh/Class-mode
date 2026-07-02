@@ -2393,6 +2393,26 @@ export async function pgGetFeatureUsageSummary(params: {
   }
 }
 
+/** Distinct class names among a school's students (for roster pickers). */
+export async function pgGetClassNames(schoolCode?: string): Promise<string[]> {
+  if (!isPgReady()) return [];
+  try {
+    const values: any[] = [];
+    const scope = schoolCode ? "AND school_code = $1" : "";
+    if (schoolCode) values.push(schoolCode);
+    const { rows } = await getPgPool().query(
+      `SELECT DISTINCT class_name FROM users
+        WHERE role = 'student' AND class_name IS NOT NULL AND class_name <> '' ${scope}
+        ORDER BY class_name ASC`,
+      values
+    );
+    return rows.map((r) => r.class_name);
+  } catch (err) {
+    logger.error("[pg] pgGetClassNames failed", { err: String(err) });
+    return [];
+  }
+}
+
 // ─── Attendance (operational lock-in loop) ───────────────────────────────────
 
 export type AttendanceStatus = "present" | "absent" | "late" | "excused";
@@ -2425,7 +2445,15 @@ export async function pgMarkAttendance(params: {
          ON CONFLICT (student_id, date)
          DO UPDATE SET status = EXCLUDED.status, note = EXCLUDED.note,
                        marked_by = EXCLUDED.marked_by, updated_at = now()`,
-        [m.studentId, params.schoolCode, params.className, params.date, m.status, params.markedBy, m.note ?? null]
+        [
+          m.studentId,
+          params.schoolCode,
+          params.className,
+          params.date,
+          m.status,
+          params.markedBy,
+          m.note ?? null,
+        ]
       );
       written += 1;
     }

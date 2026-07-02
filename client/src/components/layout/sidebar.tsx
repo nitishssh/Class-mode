@@ -29,6 +29,8 @@ import {
   UserCheck,
   UserPlus,
   Link2,
+  CalendarCheck,
+  Receipt,
 } from "lucide-react";
 
 interface NavItem {
@@ -77,6 +79,8 @@ export function Sidebar({ className }: SidebarProps) {
       href: "/student-directory",
       icon: <GraduationCap className="h-5 w-5" />,
     },
+    { title: "Attendance", href: "/attendance", icon: <CalendarCheck className="h-5 w-5" /> },
+    { title: "Fees", href: "/fees", icon: <Receipt className="h-5 w-5" /> },
     { title: "Analytics", href: "/analytics", icon: <BarChart className="h-5 w-5" /> },
     { title: "Live Classes", href: "/live-classes", icon: <Video className="h-5 w-5" /> },
     { title: "No-Code SIS", href: "/dynamic-sis", icon: <Database className="h-5 w-5" /> },
@@ -106,6 +110,8 @@ export function Sidebar({ className }: SidebarProps) {
       href: "/student-directory",
       icon: <GraduationCap className="h-5 w-5" />,
     },
+    { title: "Attendance", href: "/attendance", icon: <CalendarCheck className="h-5 w-5" /> },
+    { title: "Fees", href: "/fees", icon: <Receipt className="h-5 w-5" /> },
     { title: "Analytics", href: "/analytics", icon: <BarChart className="h-5 w-5" /> },
     { title: "No-Code SIS", href: "/dynamic-sis", icon: <Database className="h-5 w-5" /> },
     { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
@@ -124,6 +130,8 @@ export function Sidebar({ className }: SidebarProps) {
       href: "/student-directory",
       icon: <GraduationCap className="h-5 w-5" />,
     },
+    { title: "Attendance", href: "/attendance", icon: <CalendarCheck className="h-5 w-5" /> },
+    { title: "Fees", href: "/fees", icon: <Receipt className="h-5 w-5" /> },
     { title: "Analytics", href: "/analytics", icon: <BarChart className="h-5 w-5" /> },
     { title: "No-Code SIS", href: "/dynamic-sis", icon: <Database className="h-5 w-5" /> },
     { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
@@ -141,6 +149,7 @@ export function Sidebar({ className }: SidebarProps) {
       href: "/teacher-dashboard",
       icon: <LayoutDashboard className="h-5 w-5" />,
     },
+    { title: "Attendance", href: "/attendance", icon: <CalendarCheck className="h-5 w-5" /> },
     { title: "Create Test", href: "/create-test", icon: <FileQuestion className="h-5 w-5" /> },
     { title: "Scan & Grade", href: "/ocr-scan", icon: <ScanBarcode className="h-5 w-5" /> },
     { title: "Grading", href: "/grading", icon: <ClipboardCheck className="h-5 w-5" /> },

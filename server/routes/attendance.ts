@@ -7,6 +7,8 @@ import {
   pgGetAttendanceByClassDate,
   pgGetStudentAttendanceSummary,
   pgTrackFeatureUsage,
+  pgGetClassNames,
+  pgFindUsers,
 } from "../lib/pg-queries";
 
 const router = Router();
@@ -107,6 +109,49 @@ router.get(
       schoolCode: t.scope.isPlatformAdmin ? undefined : t.scope.schoolCode,
     });
     res.json(summary);
+  }
+);
+
+/**
+ * GET /api/attendance/classes — distinct class names in the requester's school
+ * (teacher-accessible, unlike the admin-only /api/admin/classes).
+ */
+router.get(
+  "/classes",
+  authenticateToken,
+  requireRole("teacher", "admin", "principal", "school_admin"),
+  async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const t = resolveTenantScope(user);
+    if ("error" in t) return res.status(t.error.status).json({ message: t.error.message });
+
+    const classes = await pgGetClassNames(t.scope.isPlatformAdmin ? undefined : t.scope.schoolCode);
+    res.json(classes);
+  }
+);
+
+/**
+ * GET /api/attendance/roster?className= — students of a class in the
+ * requester's school (teacher-accessible roster for marking attendance).
+ */
+router.get(
+  "/roster",
+  authenticateToken,
+  requireRole("teacher", "admin", "principal", "school_admin"),
+  async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const t = resolveTenantScope(user);
+    if ("error" in t) return res.status(t.error.status).json({ message: t.error.message });
+
+    const className = String(req.query.className || "");
+    if (!className) return res.status(400).json({ message: "className is required" });
+
+    const students = await pgFindUsers(
+      t.scope.isPlatformAdmin
+        ? { role: "student", classname: className }
+        : { role: "student", classname: className, schoolCode: t.scope.schoolCode }
+    );
+    res.json(students.map((s) => ({ id: s.id, name: s.name })));
   }
 );
 

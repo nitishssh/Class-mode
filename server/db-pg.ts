@@ -1,4 +1,6 @@
 import { Pool, type PoolClient } from "pg";
+import { readFileSync, existsSync } from "fs";
+import { join } from "path";
 import { logger } from "./lib/logger";
 
 let pool: Pool | null = null;
@@ -45,7 +47,56 @@ const CORE_TABLES = [
   "workspace_invites",
   "invites",
   "channels",
+  "attendance",
+  "fees",
+  "feature_usage",
 ] as const;
+
+// ── Opt-in boot-time migration ────────────────────────────────────────────────
+// With AUTO_MIGRATE=true, applies scripts/pg-schema.sql (idempotent
+// CREATE TABLE IF NOT EXISTS) at startup under a Postgres advisory lock, so
+// concurrently booting instances can't race the DDL. Off by default to
+// preserve the manual `npm run migrate` workflow.
+const MIGRATE_LOCK_KEY = 727_001;
+
+async function autoMigrateIfEnabled(): Promise<void> {
+  if (!pool || process.env.AUTO_MIGRATE !== "true") return;
+
+  const schemaPath = join(process.cwd(), "scripts", "pg-schema.sql");
+  if (!existsSync(schemaPath)) {
+    logger.warn(
+      `[pg] AUTO_MIGRATE=true but ${schemaPath} not found — skipping boot migration. ` +
+        `Ensure the schema file is shipped with the image.`
+    );
+    return;
+  }
+
+  const client = await pool.connect();
+  let locked = false;
+  try {
+    // Non-blocking lock: if another instance holds it, it is already applying
+    // the same idempotent schema — skip instead of queueing DDL behind it.
+    const { rows } = await client.query<{ ok: boolean }>("SELECT pg_try_advisory_lock($1) AS ok", [
+      MIGRATE_LOCK_KEY,
+    ]);
+    locked = rows[0]?.ok === true;
+    if (!locked) {
+      logger.info("[pg] Boot migration skipped — another instance holds the migration lock");
+      return;
+    }
+    const sql = readFileSync(schemaPath, "utf8");
+    await client.query(sql);
+    logger.info("[pg] Boot migration applied (AUTO_MIGRATE)");
+  } catch (err) {
+    // Never take down startup — drift warnings below will still fire.
+    logger.error("[pg] Boot migration failed", { err: String(err) });
+  } finally {
+    if (locked) {
+      await client.query("SELECT pg_advisory_unlock($1)", [MIGRATE_LOCK_KEY]).catch(() => {});
+    }
+    client.release();
+  }
+}
 
 async function warnOnMissingCoreTables(): Promise<void> {
   if (!pool) return;
@@ -102,13 +153,17 @@ export async function connectPostgres(): Promise<void> {
     isPgConnected = true;
     logger.info("[pg] PostgreSQL connected");
 
+    // Opt-in boot migration (AUTO_MIGRATE=true): applies the idempotent
+    // scripts/pg-schema.sql under a try-advisory-lock so racing instances
+    // can't stack DDL. Off by default — `npm run migrate` stays the manual path.
+    await autoMigrateIfEnabled();
+
     // Schema drift guard: a DB provisioned from a stale dump (or never migrated)
     // can be missing tables the app needs — workspace_invites in particular has
     // been absent in environments not run through scripts/pg-schema.sql, which
-    // makes the whole workspace-invite flow 500 with no obvious cause. We don't
-    // apply DDL here (the bundled prod server doesn't ship the .sql file, and
-    // racing instances shouldn't ALTER on boot); instead we surface a loud,
-    // actionable warning so the operator runs the migration.
+    // makes the whole workspace-invite flow 500 with no obvious cause. Without
+    // AUTO_MIGRATE we don't apply DDL here; we surface a loud, actionable
+    // warning so the operator runs the migration.
     await warnOnMissingCoreTables();
 
     // Graceful shutdown

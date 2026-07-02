@@ -59,6 +59,8 @@ import WorkspaceSettings from "@/pages/workspace/settings";
 import WorkspaceCreate from "@/pages/workspace/create";
 import JoinWorkspace from "@/pages/workspace/join";
 import OnboardingV2 from "@/pages/onboarding-v2";
+import AttendancePage from "@/pages/attendance";
+import FeesPage from "@/pages/fees";
 import { useOnboardingGuard } from "@/hooks/use-onboarding-guard";
 import { getDashboardPath } from "@/lib/role-routes";
 import { WorkspaceProvider } from "@/contexts/workspace-context";
@@ -170,6 +172,10 @@ const GradingRoute = withLayout(protect(EducatorGrading, ["teacher"]));
 const MyStudentsRoute = withLayout(protect(EducatorStudents, ["teacher"]));
 const OcrScanRoute = withLayout(protect(OcrScan, ["teacher", "student", "parent"]));
 const AnalyticsRoute = withLayout(protect(Analytics));
+const AttendanceRoute = withLayout(
+  protect(AttendancePage, ["teacher", "principal", "school_admin", "admin"])
+);
+const FeesRoute = withLayout(protect(FeesPage, ["principal", "school_admin", "admin"]));
 const LearnRoute = withLayout(protect(LearnPage, ["student"]));
 const StudentDirRoute = withLayout(protect(StudentDirectory, ["teacher", "principal", "admin"]));
 const MessagesRoute = withLayout(protect(Messages), { fullWidth: true });
@@ -352,6 +358,8 @@ function App() {
       <Route path="/my-students" component={MyStudentsRoute} />
       <Route path="/ocr-scan" component={OcrScanRoute} />
       <Route path="/analytics" component={AnalyticsRoute} />
+      <Route path="/attendance" component={AttendanceRoute} />
+      <Route path="/fees" component={FeesRoute} />
       <Route path="/learn" component={LearnRoute} />
       {/* Legacy: the standalone AI Tutor now lives inside the unified Learn hub. */}
       <Route path="/ai-tutor">
