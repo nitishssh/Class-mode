@@ -62,6 +62,7 @@ vi.mock("../storage", () => ({
     createUser: vi.fn(),
     getWorkspaces: vi.fn().mockResolvedValue([]),
     getChannelsByWorkspace: vi.fn().mockResolvedValue([]),
+    getTasksByUser: vi.fn().mockResolvedValue([]),
   },
 }));
 
@@ -714,6 +715,28 @@ describe("Admin Dashboard API", () => {
 
         expect(res.status).toBe(403);
       });
+    });
+  });
+
+  describe("GET /api/dashboards/student (gamification honesty)", () => {
+    // unauthorizedToken is userId 1 / role student — a verified student
+    // requesting their OWN dashboard, which is authorized.
+    it("returns honest zeroed XP/level/streak for accounts with no gamification data", async () => {
+      // Regression: this endpoint previously hardcoded xp:450/level:12/streak:6,
+      // so brand-new real accounts saw fabricated "Level 12 / 450 XP / 6 day
+      // streak". There is no XP system yet, so it must return 0/1/0.
+      (getPgPool().query as Mock).mockResolvedValue({ rows: [] });
+
+      const res = await request(app)
+        .get("/api/dashboards/student")
+        .set("Authorization", `Bearer ${unauthorizedToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.profile).toMatchObject({ xp: 0, level: 1, streak: 0 });
+      // The old fabricated values must never reappear.
+      expect(res.body.profile.xp).not.toBe(450);
+      expect(res.body.profile.level).not.toBe(12);
+      expect(res.body.profile.streak).not.toBe(6);
     });
   });
 });
