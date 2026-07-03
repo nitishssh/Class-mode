@@ -1,9 +1,12 @@
 import { Router, Request, Response } from "express";
 import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { authenticateToken } from "../middleware";
 import { storage } from "../storage";
 import {
   insertSchoolClassSchema,
+  insertUserSchema,
   updateSchoolClassSchema,
   updateSchoolSchema,
   updateUserSchema,
@@ -200,16 +203,19 @@ router.post("/users", authenticateToken, async (req: Request, res: Response) => 
 
     const admin = await pgFindUserById(req.session.userId);
 
-    // In a real implementation we would validate the body using Zod schema
-    const newUserData = req.body;
+    const adminCreateUserSchema = insertUserSchema.omit({ password: true });
+    const parsed = adminCreateUserSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Invalid request body", errors: parsed.error.errors });
+    }
 
-    // Generate a placeholder password hash
-    const placeholderHash = "placeholder_hash";
+    // Hash a random token so the account is locked until the user sets a password
+    const lockedHash = await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 12);
 
     const user = await storage.createUser({
-      ...newUserData,
-      password: placeholderHash,
-      schoolCode: admin?.schoolCode || newUserData.schoolCode,
+      ...parsed.data,
+      password: lockedHash,
+      schoolCode: admin?.schoolCode || parsed.data.school_code,
     });
 
     res.status(201).json(user);
@@ -304,7 +310,7 @@ router.delete("/users/:id", authenticateToken, async (req: Request, res: Respons
       });
       return res
         .status(403)
-        .json({ message: "Forbidden: You can only manage users in your own school" });
+        .json({ message: "Forbidden: You can only manage classes in your own school" });
     }
 
     const success = await pgDeleteUser(userId);

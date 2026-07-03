@@ -4,6 +4,7 @@ if (process.env.NODE_ENV === "production") {
 }
 
 import "dotenv/config";
+import bcrypt from "bcryptjs";
 import { connectPostgres } from "../db-pg";
 import { storage } from "../storage";
 import {
@@ -23,9 +24,10 @@ async function seedPilotData() {
 
   console.log("Seeding Pilot Admin User...");
 
+  const rawPassword = process.env.PILOT_ADMIN_PASSWORD ?? "PilotPassword123!";
   const pilotData: InsertUser = {
     username: "nitish_admin",
-    password: "PilotPassword123!",
+    password: await bcrypt.hash(rawPassword, 12),
     email: "nitiskumar44470@gmail.com",
     name: "Nitish Admin",
     role: "admin",
@@ -141,7 +143,7 @@ async function seedPilotData() {
   console.log("--------------------------------------------------");
   console.log("Pilot Data Seeding Complete!");
   console.log(`Login Username: ${pilotData.username}`);
-  console.log(`Login Password: ${pilotData.password}`);
+  console.log(`Login Password: (the value of PILOT_ADMIN_PASSWORD, or "PilotPassword123!" if unset)`);
   console.log("--------------------------------------------------");
 
   process.exit(0);
