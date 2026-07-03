@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.8.3.1] - 2026-07-04
+
+### Fixed
+
+- **WhatsApp sends no longer report phantom success in production** — when `WHATSAPP_ACCESS_TOKEN` / `WHATSAPP_PHONE_NUMBER_ID` were unset, `sendMessage` returned `success: true` (simulated) in every environment, so a misconfigured production deploy looked healthy while every parent absence alert silently went nowhere. In production, a missing-credential send now fails loud (`success: false` + error log); simulation is preserved outside production so dev/test/CI keep working offline. (`server/services/whatsapp.ts`)
+
+### Added
+
+- First test coverage for the parent-notification path — `handleAttendanceMarked` (one send per absentee, empty-roster no-op, and partial/outright send failures logged not thrown) and the production fail-loud behavior above. (`server/tests/notifications_consumer.test.ts`, `server/tests/whatsapp_integration.test.ts`)
+
 ## [1.8.3.0] - 2026-07-03
 
 ### Fixed
