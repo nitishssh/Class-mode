@@ -21,6 +21,18 @@ describe("WhatsAppService.sendMessage", () => {
     expect(svc.isConfigured()).toBe(false);
   });
 
+  it("fails loud instead of simulating when credentials are missing in production", async () => {
+    delete process.env.WHATSAPP_ACCESS_TOKEN;
+    delete process.env.WHATSAPP_PHONE_NUMBER_ID;
+    process.env.NODE_ENV = "production";
+    const svc = new WhatsAppService();
+    const res = await svc.sendMessage({ to: "+15551234567", body: "hi" });
+    // A misconfigured prod deploy must not report a phantom success.
+    expect(res.success).toBe(false);
+    expect(res.simulated).toBeUndefined();
+    expect(res.error).toMatch(/not configured/i);
+  });
+
   it("rejects an empty recipient", async () => {
     const svc = new WhatsAppService();
     const res = await svc.sendMessage({ to: "", body: "hi" });
