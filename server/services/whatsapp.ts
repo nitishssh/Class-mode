@@ -50,6 +50,17 @@ export class WhatsAppService {
       if (!cleanTo) throw new Error("Invalid recipient phone number");
 
       if (!this.isConfigured()) {
+        // Fail loud in production: a missing-credential send used to return
+        // success:true (simulated), so a misconfigured prod deploy looked
+        // healthy while every parent alert silently went nowhere. Outside
+        // production, simulation stays so dev/test/CI keep working offline.
+        if (process.env.NODE_ENV === "production") {
+          logger.error(
+            `[WhatsApp] BLOCKED send to ${cleanTo} — no credentials configured in production. ` +
+              `Set WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID.`
+          );
+          return { success: false, error: "WhatsApp not configured" };
+        }
         logger.warn(
           `[WhatsApp] No credentials configured — simulating send to ${cleanTo}: ${msg.body.substring(0, 50)}...`
         );
