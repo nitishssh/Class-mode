@@ -1,72 +1,50 @@
 import { motion } from "framer-motion";
-import {
-  Clock,
-  AlertCircle,
-  BookX,
-  ZapOff,
-  ShieldCheck,
-  Map,
-  BookOpen,
-  Target,
-  Plane,
-} from "lucide-react";
+import { PhoneMissed, Wallet, FileStack, EyeOff, ClipboardList, Zap, BellRing } from "lucide-react";
 
 const painPoints = [
   {
-    icon: Clock,
-    title: "Information Overload",
-    desc: "Drowning in notes, textbooks, and videos? 80% of study time is spent just deciding *what* to study.",
+    icon: PhoneMissed,
+    title: "Parents find out at 4 PM",
+    desc: "An absence marked at 8 AM travels by phone tree — if someone remembers to call. Most days, nobody does.",
     color: "text-red-400",
   },
   {
-    icon: AlertCircle,
-    title: "The 'Wall' of Anxiety",
-    desc: "That sinking feeling when you open a book and realize you don't know where to start. ✈️ Procrastination is just fear in disguise.",
+    icon: Wallet,
+    title: "Fee dues live in a notebook",
+    desc: "Someone flips the pages, makes a list, and starts calling families one by one. Every month. Again.",
     color: "text-orange-400",
   },
   {
-    icon: BookX,
-    title: "Forgotten by Friday",
-    desc: "Reading isn't learning. Without active recall, 70% of what you study today is gone by next week.",
+    icon: FileStack,
+    title: "Records scattered everywhere",
+    desc: "Attendance in registers, fees in a ledger, parents on teachers' personal WhatsApp. Nothing talks to anything.",
     color: "text-rose-400",
   },
   {
-    icon: ZapOff,
-    title: "Static Learning",
-    desc: "One-size-fits-all textbooks don't care about *your* speed. You're either bored or left behind.",
+    icon: EyeOff,
+    title: "You see it at month-end",
+    desc: "By the time a report reaches your desk, the month is over. You're running today's school on last month's news.",
     color: "text-amber-400",
   },
 ];
 
 const steps = [
   {
-    icon: ShieldCheck,
-    label: "Assess",
-    desc: "Quick diagnostic to find your strengths & gaps",
+    icon: ClipboardList,
+    label: "Tell us about your school",
+    desc: "Two minutes in the form below — your classes, your student count, what hurts most.",
     color: "bg-secondary",
   },
   {
-    icon: Map,
-    label: "Personal Plan",
-    desc: "AI builds your custom study roadmap",
+    icon: Zap,
+    label: "We set you up the same day",
+    desc: "We load your classes and students. Teachers get a link on the phones they already carry. That's the whole rollout.",
     color: "bg-primary",
   },
   {
-    icon: BookOpen,
-    label: "Learn",
-    desc: "AI tutor, flashcards & bite-sized lessons",
-    color: "bg-secondary",
-  },
-  {
-    icon: Target,
-    label: "Practice",
-    desc: "Smart quizzes that adapt to your level",
-    color: "bg-primary",
-  },
-  {
-    icon: Plane,
-    label: "Launch",
-    desc: "Ace your exam and reach your goals",
+    icon: BellRing,
+    label: "Parents hear from you tomorrow",
+    desc: "8:00 AM register, 8:03 AM WhatsApp. From the very first morning.",
     color: "bg-secondary",
   },
 ];
@@ -87,14 +65,15 @@ export const Turbulence = () => {
           className="mx-auto mb-20 max-w-3xl text-center"
         >
           <span className="mb-4 inline-block rounded-full border border-red-500/20 bg-red-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-red-400">
-            ⚠️ Standard Learning Warning
+            ⚠️ 8:00 AM, any school day
           </span>
           <h2 className="mb-6 text-4xl font-extrabold tracking-tight text-zinc-50 dark:text-foreground md:text-6xl">
-            Studying in the <span className="text-red-500">Clouds?</span>
+            The register knows. <span className="text-red-500">Nobody else does.</span>
           </h2>
           <p className="text-lg leading-relaxed text-zinc-300 dark:text-muted-foreground md:text-xl">
-            Most students are studying blind. No plan, no feedback, just pure chaos. It&apos;s not
-            that you&apos;re not working hard—it&apos;s that your navigation system is broken.
+            Riya&apos;s seat is empty. Her teacher marks the register and moves on — thirty
+            students, four periods, no time to call anyone. Her mother will find out at 4 PM. If
+            someone remembers.
           </p>
         </motion.div>
 
@@ -130,8 +109,9 @@ export const Turbulence = () => {
           className="mt-20 text-center"
         >
           <div className="inline-flex flex-col items-center">
-            <p className="mb-4 text-sm italic text-zinc-400 dark:text-muted-foreground">
-              Ready for clear skies?
+            <p className="mb-4 max-w-md text-sm italic text-zinc-400 dark:text-muted-foreground">
+              It&apos;s not that your school isn&apos;t working hard. The news just travels slower
+              than the day. The same morning can go differently —
             </p>
             <div className="h-12 w-1 animate-bounce rounded-full bg-gradient-to-b from-red-500 to-primary"></div>
           </div>
@@ -150,10 +130,13 @@ export const Journey = () => (
         viewport={{ once: true }}
         className="mb-16 text-center"
       >
-        <h2 className="mb-3 text-3xl font-extrabold md:text-4xl">Your Strategic Navigator 🧭</h2>
-        <p className="mx-auto max-w-xl text-lg text-muted-foreground">
-          We strip away the chaos. Here&apos;s your automated path from confusion to complete
-          mastery.
+        <h2 className="mb-3 text-3xl font-extrabold md:text-4xl">
+          Getting there is three steps. Not a project.
+        </h2>
+        <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+          Class Mode was built inside a real school — teachers with thirty students and four
+          periods, an office with one register. It runs on the phones your staff already carry. No
+          server room, no consultant, no training day.
         </p>
       </motion.div>
 
@@ -178,7 +161,9 @@ export const Journey = () => (
                 <div className="sketch-border sketch-shadow inline-block max-w-sm rounded-2xl bg-background p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_20px_hsl(var(--secondary)/0.5)]">
                   <div className="mb-1 flex items-center gap-2">
                     <step.icon size={18} className="text-foreground" />
-                    <span className="font-heading text-sm font-bold">{step.label}</span>
+                    <span className="font-heading text-sm font-bold">
+                      {i + 1}. {step.label}
+                    </span>
                   </div>
                   <p className="text-sm text-muted-foreground">{step.desc}</p>
                 </div>
@@ -193,6 +178,20 @@ export const Journey = () => (
           ))}
         </div>
       </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className="mt-16 text-center"
+      >
+        <a
+          href="#contact"
+          className="sketch-border sketch-shadow-yellow hover-tilt inline-flex items-center gap-2 rounded-full bg-primary px-8 py-3.5 font-heading text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98]"
+        >
+          Start with step one →
+        </a>
+      </motion.div>
     </div>
   </section>
 );

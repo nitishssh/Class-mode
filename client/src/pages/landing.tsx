@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useTranslation } from "@/lib/i18n";
 import {
   Hero,
-  NotebookFeature,
-  OnboardingFeatures,
   Turbulence,
   Journey,
   DemoWidget,
@@ -23,15 +22,20 @@ const Navbar = () => {
   const [, setLocation] = useLocation();
 
   const links = [
-    { key: "landing.howItWorks", label: "How it Works", href: "#journey" },
-    { key: "landing.features", label: "Features", href: "#features" },
+    { key: "landing.howItWorks", label: "How it Works", href: "#demo" },
+    { key: "landing.gettingStarted", label: "Getting Started", href: "#journey" },
     { key: "landing.forSchools", label: "For Schools", href: "#for-schools" },
     { key: "landing.pricing", label: "Pricing", href: "#pricing" },
     { key: "landing.contact", label: "Contact", href: "#contact" },
   ];
 
   return (
-    <nav className="fixed left-0 right-0 top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
+    <motion.nav
+      initial={{ y: -64, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="fixed left-0 right-0 top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md"
+    >
       <div className="container flex h-16 items-center justify-between">
         <a href="#" className="font-heading text-xl font-bold tracking-tight">
           {t("landing.class", "Class ")}
@@ -54,43 +58,58 @@ const Navbar = () => {
             size="sm"
             onClick={() => setLocation("/login")}
           >
-            {t("landing.getMyPlan", "Get My Plan")}
+            {t("landing.signIn", "Sign in")}
           </Button>
           <ThemeToggle />
         </div>
 
         {/* Mobile toggle */}
-        <button className="md:hidden" onClick={() => setOpen(!open)}>
+        <button
+          className="md:hidden"
+          aria-label={open ? "Close menu" : "Open menu"}
+          aria-expanded={open}
+          onClick={() => setOpen(!open)}
+        >
           {open ? <X size={24} /> : <Menu size={24} />}
         </button>
       </div>
 
       {/* Mobile menu */}
-      {open && (
-        <div className="space-y-3 border-b border-border bg-background px-6 pb-4 md:hidden">
-          {links.map((l) => (
-            <a
-              key={l.href}
-              href={l.href}
-              className="block text-sm font-medium text-muted-foreground"
-              onClick={() => setOpen(false)}
-            >
-              {t(l.key, l.label)}
-            </a>
-          ))}
-          <Button
-            className="sketch-border sketch-shadow-yellow w-full rounded-full bg-primary font-heading text-sm text-primary-foreground hover:bg-primary/90"
-            size="sm"
-            onClick={() => {
-              setOpen(false);
-              setLocation("/login");
-            }}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: "easeInOut" }}
+            className="overflow-hidden border-b border-border bg-background md:hidden"
           >
-            {t("landing.getStarted", "Get Started")}
-          </Button>
-        </div>
-      )}
-    </nav>
+            <div className="space-y-3 px-6 pb-4">
+              {links.map((l) => (
+                <a
+                  key={l.href}
+                  href={l.href}
+                  className="block text-sm font-medium text-muted-foreground"
+                  onClick={() => setOpen(false)}
+                >
+                  {t(l.key, l.label)}
+                </a>
+              ))}
+              <Button
+                className="sketch-border sketch-shadow-yellow w-full rounded-full bg-primary font-heading text-sm text-primary-foreground hover:bg-primary/90"
+                size="sm"
+                onClick={() => {
+                  setOpen(false);
+                  setLocation("/login");
+                }}
+              >
+                {t("landing.signIn", "Sign in")}
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.nav>
   );
 };
 
@@ -98,7 +117,13 @@ const Navbar = () => {
 const Footer = () => {
   const { t } = useTranslation();
   return (
-    <footer className="border-t border-border bg-card/30 py-12">
+    <motion.footer
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+      className="border-t border-border bg-card/30 py-12"
+    >
       <div className="container">
         {/* Footer Divider */}
         <div className="mb-8 flex justify-center">
@@ -116,17 +141,20 @@ const Footer = () => {
               <span className="text-primary">{t("landing.mode", "Mode")}</span> ✨
             </p>
             <p className="text-muted-foreground">
-              {t("landing.tagline", "AI-powered personalised learning for every student.")}
+              {t(
+                "landing.tagline",
+                "The operating system for your school — attendance, fees, parent alerts, and AI learning."
+              )}
             </p>
           </div>
           <div>
             <p className="mb-2 font-heading font-bold">{t("landing.quickLinks", "Quick Links")}</p>
             <div className="space-y-1 text-muted-foreground">
-              <a href="#journey" className="block transition-colors hover:text-foreground">
+              <a href="#demo" className="block transition-colors hover:text-foreground">
                 {t("landing.howItWorks", "How it Works")}
               </a>
-              <a href="#features" className="block transition-colors hover:text-foreground">
-                {t("landing.features", "Features")}
+              <a href="#journey" className="block transition-colors hover:text-foreground">
+                {t("landing.gettingStarted", "Getting Started")}
               </a>
               <a href="#for-schools" className="block transition-colors hover:text-foreground">
                 {t("landing.forSchools", "For Schools")}
@@ -167,26 +195,27 @@ const Footer = () => {
           {t("landing.copyright", "All rights reserved. Built with 💛 for learners everywhere.")}
         </div>
       </div>
-    </footer>
+    </motion.footer>
   );
 };
 
 const LandingPage = () => (
-  <div className="min-h-screen bg-background text-foreground selection:bg-primary/20">
-    <Navbar />
-    <main>
-      <Hero />
-      <Turbulence />
-      <Journey />
-      <NotebookFeature />
-      <OnboardingFeatures />
-      <WhatSchoolGains />
-      <DemoWidget />
-      <Pricing />
-      <ContactForm />
-    </main>
-    <Footer />
-  </div>
+  // Respect the visitor's OS-level reduced-motion preference for all framer-motion animations
+  <MotionConfig reducedMotion="user">
+    <div className="min-h-screen bg-background text-foreground selection:bg-primary/20">
+      <Navbar />
+      <main>
+        <Hero />
+        <Turbulence />
+        <DemoWidget />
+        <Journey />
+        <WhatSchoolGains />
+        <Pricing />
+        <ContactForm />
+      </main>
+      <Footer />
+    </div>
+  </MotionConfig>
 );
 
 export default LandingPage;
