@@ -9,6 +9,7 @@ import workspaceRouter from "./routes/workspace";
 import dynamicSisRouter from "./routes/dynamic-sis";
 import lifecycleRouter from "./routes/lifecycle";
 import healthRoutes from "./routes/health";
+import leadsRouter from "./routes/leads";
 import whatsappRoutes from "./routes/whatsapp";
 import attendanceRoutes from "./routes/attendance";
 import feesRoutes from "./routes/fees";
@@ -87,6 +88,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/lifecycle", authenticateToken, lifecycleRouter);
   app.use("/api/gdpr", gdprRoutes);
   app.use("/api/health", healthRoutes);
+  app.use("/api/leads", leadsRouter); // public landing-page contact form
   app.use("/api/whatsapp", whatsappRoutes); // public webhook (Meta calls it)
   app.use("/api/attendance", attendanceRoutes);
   app.use("/api/fees", feesRoutes);

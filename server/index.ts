@@ -210,6 +210,14 @@ app.use(
   "/api/ocr",
   rateLimit({ windowMs: 60_000, max: 5, message: { error: "Too many OCR requests" } })
 );
+app.use(
+  "/api/leads",
+  rateLimit({
+    windowMs: 60_000,
+    max: 5,
+    message: { error: "Too many submissions, please try again in a minute" },
+  })
+);
 
 // ── DB health guard ───────────────────────────────────────────────────────────
 (async () => {
