@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { Link } from "wouter";
 import {
   Clock,
   Layers,
@@ -152,12 +153,38 @@ export const WhatSchoolGains = () => {
           ))}
         </div>
 
+        {/* Deep-dive links — full feature walkthroughs per audience */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mt-12 flex flex-col items-center gap-4 text-center"
+        >
+          <p className="text-base font-medium text-muted-foreground">
+            Want the full breakdown, feature by feature?
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Link
+              href="/for-parents"
+              className="sketch-border hover-tilt inline-flex items-center gap-2 rounded-full bg-card px-6 py-3 font-heading text-sm font-semibold text-foreground transition-all hover:bg-card/70"
+            >
+              For Parents →
+            </Link>
+            <Link
+              href="/for-schools"
+              className="sketch-border hover-tilt inline-flex items-center gap-2 rounded-full bg-card px-6 py-3 font-heading text-sm font-semibold text-foreground transition-all hover:bg-card/70"
+            >
+              For Principals &amp; Boards →
+            </Link>
+          </div>
+        </motion.div>
+
         {/* Institutional CTA — routes principals to the contact form */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="mt-16 flex flex-col items-center gap-4 text-center"
+          className="mt-10 flex flex-col items-center gap-4 text-center"
         >
           <p className="text-lg font-medium text-muted-foreground">
             Ready to bring Class Mode to your school?

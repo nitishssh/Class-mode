@@ -394,3 +394,63 @@ export async function sendWelcomeEmail(email: string, name: string) {
     text: `Hi ${name},\n\nWelcome to Class Mode!\n\nThe boundaries of your potential have just been redefined.\n\nGet started by logging in and setting up your workspace profile.\n\n— The Class Mode Team`,
   });
 }
+
+export interface LeadNotificationPayload {
+  id: number;
+  name: string;
+  school?: string;
+  email?: string;
+  phone?: string;
+  role?: string;
+  message?: string;
+}
+
+/**
+ * Notifies the team about a new landing-page contact lead.
+ * Recipient comes from LEADS_NOTIFY_EMAIL (falls back to SMTP_USER); when
+ * neither is set the notification is skipped — the lead itself is already
+ * persisted in the leads table.
+ */
+export async function sendLeadNotification(lead: LeadNotificationPayload) {
+  const to = process.env.LEADS_NOTIFY_EMAIL || process.env.SMTP_USER;
+  if (!to) {
+    logger.warn(
+      "[mailer] LEADS_NOTIFY_EMAIL / SMTP_USER not configured — skipping lead notification email."
+    );
+    return;
+  }
+
+  const fields: Array<[string, string | undefined]> = [
+    ["Name", lead.name],
+    ["School", lead.school],
+    ["Email", lead.email],
+    ["Phone", lead.phone],
+    ["Role", lead.role],
+    ["Message", lead.message],
+  ];
+  const present = fields.filter(([, value]) => value);
+
+  const detailRows = present
+    .map(
+      ([label, value]) =>
+        `<tr><td style="padding: 6px 16px 6px 0; color: #64748b; font-size: 14px; vertical-align: top; white-space: nowrap;"><strong>${label}</strong></td>` +
+        `<td style="padding: 6px 0; color: #1e1b4b; font-size: 14px;">${escapeHtml(value)}</td></tr>`
+    )
+    .join("");
+
+  await transporter.sendMail({
+    from: FROM,
+    to,
+    subject: `New pilot lead: ${lead.name}${lead.school ? ` (${lead.school})` : ""}`,
+    html: brandEmailHtml(
+      "New Contact Form Lead",
+      `Lead #${lead.id} just came in from the landing page contact form:<br><br>` +
+        `<table style="border-collapse: collapse;">${detailRows}</table><br>` +
+        "Reach out within 24 hours to keep the promise made on the landing page."
+    ),
+    text:
+      `New landing-page lead #${lead.id}:\n\n` +
+      present.map(([label, value]) => `${label}: ${value}`).join("\n") +
+      "\n\n— Class Mode",
+  });
+}
