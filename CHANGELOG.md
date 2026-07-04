@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.8.4.0] - 2026-07-04
+
+### Changed
+
+- **New buyer-focused landing page that tells a story instead of listing features** — the page now walks a principal through one school morning: the hero shows attendance marked at 8:02 and Mum's WhatsApp reply by 8:03 (animated register → phone → live-dashboard mockup), the problem section names the paper-register pain, and an interactive WhatsApp AI-tutor simulator lets visitors play scripted study conversations (typing indicators, per-topic threads). Pricing is now an honest "Founding School Pilot — Free" card and the contact form asks school-specific questions. (`client/src/components/landing/*`, `client/src/pages/landing.tsx`)
+- Page title, meta description, and new Open Graph tags now pitch attendance/fees/parent alerts instead of generic AI learning, so shared links preview the buyer story. (`client/index.html`)
+- Landing animations respect the visitor's reduced-motion preference, pause while off-screen (hero storyboard loop, ambient glows), and the demo conversation starts when scrolled into view instead of finishing before anyone sees it.
+
+### Fixed
+
+- Footer tagline now actually shows the new school-operations copy — a stale i18n dictionary entry was silently overriding it. Orphaned landing keys removed, new ones added. (`client/src/lib/i18n.tsx`)
+- Contact-form feedback is now visible: sonner toasts (validation errors, success message) never rendered anywhere in the app because no sonner `<Toaster/>` was mounted. (`client/src/App.tsx`)
+- Phone-first form usability: 16px inputs stop iOS Safari zoom-jumping on focus, pinch-zoom is no longer blocked (`maximum-scale` removed), and fields gained labels + autocomplete for mobile autofill.
+- Tutor chat renders bold/italic markers as real formatting instead of literal asterisks, and no longer yanks the reader to the bottom while they're rereading an earlier message.
+- WhatsApp chat wallpaper is now a first-party bundled asset instead of a hotlink to a third-party GitHub image that could vanish; both mockups use authentic WhatsApp header colors.
+- Heading fonts load the weights they use (DM Sans 700/800, Crimson Pro italic — no more faux-bold), the unused Inter/Kalam font download is gone, and anchor links no longer hide section tops under the fixed navbar.
+- Accessibility: decorative mockups and background images are hidden from screen readers, the mobile menu button announces its state, and a React duplicate-key bug in the hero chat animation is fixed.
+
+### Added
+
+- Playwright coverage for the landing page (14 tests): hero CTAs, demo playback and mid-conversation topic switching, contact-form validation branches, and the mobile menu. (`e2e/web/landing.spec.ts`)
+
+### Removed
+
+- Dead student-focused landing sections (`features.tsx`) and their orphaned notebook CSS.
+
 ## [1.8.3.1] - 2026-07-04
 
 ### Fixed
