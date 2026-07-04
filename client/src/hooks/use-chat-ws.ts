@@ -86,6 +86,7 @@ export function useChatWs({ onEvent, activeChannelId }: UseChatWsOptions) {
   const isMounted = useRef(true);
   const activeChannelRef = useRef<number | undefined>(activeChannelId);
   const scheduleReconnectRef = useRef<(() => void) | null>(null);
+  const sendRawRef = useRef<(data: object) => boolean>(() => false);
 
   const [state, dispatch] = useReducer(wsReducer, {
     status: "idle",
@@ -117,13 +118,22 @@ export function useChatWs({ onEvent, activeChannelId }: UseChatWsOptions) {
     [state.status]
   );
 
+  useEffect(() => {
+    sendRawRef.current = sendRaw;
+  }, [sendRaw]);
+
   // ── Connect ─────────────────────────────────────────────────────────────────
+  // Must stay stable across state.status changes (no sendRaw dep) or the mount
+  // effect below re-fires on every connect/disconnect transition and abandons
+  // in-flight sockets. Reference sendRaw via sendRawRef instead.
   const connect = useCallback(async () => {
     if (!isMounted.current) return;
 
     const fbUser = currentUser.user;
-    const isConnected = wsRef.current?.readyState === WebSocket.OPEN;
-    if (!fbUser || isConnected) return;
+    const readyState = wsRef.current?.readyState;
+    const isConnectingOrOpen =
+      readyState === WebSocket.CONNECTING || readyState === WebSocket.OPEN;
+    if (!fbUser || isConnectingOrOpen) return;
 
     dispatch({ type: "connecting" });
 
@@ -153,12 +163,12 @@ export function useChatWs({ onEvent, activeChannelId }: UseChatWsOptions) {
           dispatch({ type: "connected", userId: event.userId ?? 0 });
           // Join channel if one is already active
           if (activeChannelRef.current) {
-            sendRaw({ type: "join_channel", channelId: activeChannelRef.current });
+            sendRawRef.current({ type: "join_channel", channelId: activeChannelRef.current });
           }
           // Flush pending messages
           while (pendingQueue.current.length > 0) {
             const msg = pendingQueue.current.shift();
-            if (msg) sendRaw(msg);
+            if (msg) sendRawRef.current(msg);
           }
         }
 
@@ -177,7 +187,7 @@ export function useChatWs({ onEvent, activeChannelId }: UseChatWsOptions) {
       dispatch({ type: "disconnected" });
       scheduleReconnectRef.current?.();
     };
-  }, [currentUser.user, sendRaw]);
+  }, [currentUser.user]);
 
   // ── Reconnect with exponential backoff ──────────────────────────────────────
   const scheduleReconnect = useCallback(() => {
