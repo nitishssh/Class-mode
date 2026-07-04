@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600&family=DM+Sans:wght@300;400;500;600&display=swap");
+/* Fonts are loaded via <link> in client/index.html (discovered earlier than a CSS @import). */
 
 @tailwind base;
 @tailwind components;
@@ -192,6 +192,8 @@
 
   html {
     scroll-behavior: smooth;
+    /* Keep anchor targets clear of the fixed h-16 navbar */
+    scroll-padding-top: 4.5rem;
   }
 
   body {
@@ -464,52 +466,5 @@
 
   .teal-glow {
     box-shadow: 0 0 20px hsl(var(--secondary) / 0.3);
-  }
-
-  /* Notebook Feature Styles */
-  .notebook-bg {
-    background-color: #f8f9fa;
-  }
-
-  .dark .notebook-bg {
-    background-color: hsl(var(--background));
-  }
-
-  .notebook-page {
-    background: #fffdf6;
-    border-radius: 12px;
-    box-shadow:
-      12px 14px 0px rgba(0, 0, 0, 0.08),
-      0 0 40px rgba(0, 0, 0, 0.05);
-    background-image: repeating-linear-gradient(to bottom, #fffdf6, #fffdf6 31px, #dde6ff 32px);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-  }
-
-  .dark .notebook-page {
-    background: #111111;
-    box-shadow:
-      12px 14px 0px rgba(0, 0, 0, 0.5),
-      0 0 40px rgba(0, 0, 0, 0.5);
-    background-image: repeating-linear-gradient(to bottom, #111111, #111111 31px, #2a2a2a 32px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .notebook-card {
-    background: #fffdf6;
-    border-radius: 14px;
-    padding: 24px;
-    box-shadow: 4px 6px 0px #000;
-    transition:
-      transform 0.3s ease,
-      box-shadow 0.3s ease;
-    background-image: repeating-linear-gradient(to bottom, #fffdf6, #fffdf6 28px, #dde6ff 29px);
-    border: 1px solid #000;
-  }
-
-  .dark .notebook-card {
-    background: #161618;
-    box-shadow: 4px 6px 0px hsl(var(--primary));
-    background-image: repeating-linear-gradient(to bottom, #161618, #161618 28px, #333333 29px);
-    border: 1px solid hsl(var(--primary));
   }
 }

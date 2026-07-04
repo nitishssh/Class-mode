@@ -12,30 +12,30 @@ import {
 const metrics = [
   {
     icon: Clock,
-    metric: "5+ hrs/week",
-    title: "saved per teacher",
-    desc: "grading, test creation, attendance automation",
+    metric: "One tap",
+    title: "attendance → parent alert",
+    desc: "absent students' parents get a WhatsApp in minutes, not at day's end",
     color: "bg-blue-500/10 text-blue-500",
   },
   {
     icon: Layers,
-    metric: "1 platform",
-    title: "replacing 4–6 tools",
-    desc: "no more spreadsheets, separate LMS, messaging apps",
+    metric: "One platform",
+    title: "not 4–6 tools",
+    desc: "attendance, fees, messaging, and lessons in one place — no spreadsheets or separate apps",
     color: "bg-orange-500/10 text-orange-500",
   },
   {
     icon: LineChart,
-    metric: "Real-time",
-    title: "visibility",
-    desc: "principals and boards see live data, not month-old reports",
+    metric: "Live",
+    title: "not month-old reports",
+    desc: "principals see today's attendance and fees as they happen",
     color: "bg-green-500/10 text-green-500",
   },
   {
     icon: Rocket,
-    metric: "3× faster",
-    title: "from enrolment to first lesson",
-    desc: "no IT tickets, no training required",
+    metric: "Same-day",
+    title: "setup, no IT",
+    desc: "add a class and start marking attendance — no tickets, no training",
     color: "bg-purple-500/10 text-purple-500",
   },
 ];
@@ -72,10 +72,11 @@ export const WhatSchoolGains = () => {
           className="mb-16 text-center"
         >
           <h2 className="mb-4 text-4xl font-extrabold text-foreground md:text-5xl">
-            What your school <span className="text-primary">actually gains.</span>
+            Your school, <span className="text-primary">one month in.</span>
           </h2>
           <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-            Measurable impact across every level of your institution.
+            Parents who stopped worrying. Fees that chase themselves. A dashboard you check with
+            your morning chai. Here&apos;s what changes:
           </p>
         </motion.div>
 
@@ -113,7 +114,9 @@ export const WhatSchoolGains = () => {
           viewport={{ once: true }}
           className="mb-10 text-center"
         >
-          <h3 className="text-3xl font-extrabold text-foreground">Role-by-role breakdown</h3>
+          <h3 className="text-3xl font-extrabold text-foreground">
+            And everyone gets their mornings back
+          </h3>
         </motion.div>
 
         <div className="grid gap-6 sm:grid-cols-3">

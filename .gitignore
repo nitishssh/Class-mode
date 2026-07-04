@@ -36,3 +36,7 @@ send_test_email.ts
 .gstack/
 
 .commandcode/
+
+# Playwright outputs
+test-results/
+playwright-report/

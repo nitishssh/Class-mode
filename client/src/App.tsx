@@ -3,6 +3,7 @@ import { Switch, Route, Redirect, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
+import { Toaster as SonnerToaster } from "sonner";
 import { ThemeProvider } from "@/contexts/theme-context";
 import { FirebaseAuthProvider, useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { Button } from "@/components/ui/button";
@@ -418,6 +419,7 @@ export default function Root() {
             <I18nProvider>
               <App />
               <Toaster />
+              <SonnerToaster richColors position="top-center" />
             </I18nProvider>
           </WorkspaceProvider>
         </FirebaseAuthProvider>
