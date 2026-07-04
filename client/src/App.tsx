@@ -47,6 +47,8 @@ import ResourcesPage from "@/pages/resources-page";
 import TestPage from "@/pages/test-page";
 import TestsList from "@/pages/tests-list";
 import Landing from "@/pages/landing";
+import ForParents from "@/pages/for-parents";
+import ForSchools from "@/pages/for-schools";
 import LoginPage from "@/pages/login";
 import AcceptInvite from "@/pages/accept-invite";
 import VerifyEmailPage from "@/pages/verify-email";
@@ -311,6 +313,10 @@ function App() {
       {/* ── Public routes — no auth required ─────────────────────── */}
       <Route path="/">{profile ? <Redirect to="/dashboard" /> : <Landing />}</Route>
 
+      {/* Public marketing subpages — accessible to everyone, logged in or not */}
+      <Route path="/for-parents" component={ForParents} />
+      <Route path="/for-schools" component={ForSchools} />
+
       {/* /login: show login page; if already authenticated go to dashboard (or verify-email if unverified) */}
       <Route path="/login">
         {profile ? (
@@ -419,6 +425,7 @@ export default function Root() {
             <I18nProvider>
               <App />
               <Toaster />
+              {/* sonner-based toasts (landing contact form, DataGrid) */}
               <SonnerToaster richColors position="top-center" />
             </I18nProvider>
           </WorkspaceProvider>
