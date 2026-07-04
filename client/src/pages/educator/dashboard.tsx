@@ -4,18 +4,42 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, ClipboardCheck, TrendingUp, BookOpen } from "lucide-react";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { isPermissionError } from "@/lib/queryClient";
+import { PermissionDenied } from "@/components/ui/permission-denied";
 
 export default function EducatorDashboard() {
   useFirebaseAuth();
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error } = useQuery<any>({
     queryKey: ["/api/educator/dashboard"],
-    queryFn: async () => {
-      const res = await fetch("/api/educator/dashboard");
-      return res.json();
-    },
   });
 
   if (isLoading) return <div className="p-8">Loading...</div>;
+
+  if (isPermissionError(error)) {
+    return (
+      <div className="min-h-screen bg-background">
+        <PageHeader
+          title="Educator Dashboard"
+          subtitle="Manage your classes and track student progress"
+        />
+        <div className="p-4">
+          <PermissionDenied message="You don't have permission to view this dashboard." />
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-background">
+        <PageHeader
+          title="Educator Dashboard"
+          subtitle="Manage your classes and track student progress"
+        />
+        <p className="p-4 text-muted-foreground">Failed to load dashboard. Please try again.</p>
+      </div>
+    );
+  }
 
   const { stats, recentTests } = data?.data || {};
 

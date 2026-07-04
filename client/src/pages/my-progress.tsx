@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, isPermissionError } from "@/lib/queryClient";
 import {
   Trophy,
   Clock,
@@ -102,6 +102,7 @@ export default function MyProgress() {
     data: progressData,
     isLoading: isLoadingProgress,
     isError: isErrorProgress,
+    error: progressError,
   } = useQuery<Array<{ month: string; avgScore: number }>>({
     queryKey: ["/api/progress/student", studentId],
     queryFn: () => apiRequest("GET", `/api/progress/student/${studentId}`).then((r) => r.json()),
@@ -311,7 +312,11 @@ export default function MyProgress() {
             ) : isErrorProgress ? (
               <div className="flex h-full flex-col items-center justify-center gap-2">
                 <AlertCircle className="h-8 w-8 text-muted-foreground/50" />
-                <p className="text-sm text-muted-foreground">Failed to load progress data</p>
+                <p className="text-sm text-muted-foreground">
+                  {isPermissionError(progressError)
+                    ? "You don't have permission to view this progress data."
+                    : "Failed to load progress data"}
+                </p>
               </div>
             ) : monthlyProgressData.length < 2 ? (
               <div className="flex h-full flex-col items-center justify-center gap-2">

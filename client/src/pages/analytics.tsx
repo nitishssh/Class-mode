@@ -11,7 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, isPermissionError } from "@/lib/queryClient";
+import { PermissionDenied } from "@/components/ui/permission-denied";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { PageHeader } from "@/components/layout/page-header";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
@@ -33,6 +34,7 @@ function IndividualStudentsTab() {
     data: students,
     isLoading,
     isError,
+    error,
   } = useQuery<StudentAnalyticsSummary[]>({
     queryKey: ["/api/analytics/students"],
     queryFn: () => apiRequest("GET", "/api/analytics/students").then((r) => r.json()),
@@ -45,6 +47,12 @@ function IndividualStudentsTab() {
           <Skeleton key={i} className="h-16 w-full rounded-xl" />
         ))}
       </div>
+    );
+  }
+
+  if (isPermissionError(error)) {
+    return (
+      <PermissionDenied message="You don't have permission to view individual student analytics." />
     );
   }
 
@@ -107,9 +115,7 @@ export default function Analytics() {
       : null;
   const avgCompletion =
     assessed.length > 0
-      ? Math.round(
-          (assessed.reduce((sum, s) => sum + s.completionRate, 0) / assessed.length) * 100
-        )
+      ? Math.round((assessed.reduce((sum, s) => sum + s.completionRate, 0) / assessed.length) * 100)
       : null;
   const dash = "—";
 
