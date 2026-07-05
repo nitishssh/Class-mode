@@ -13,7 +13,11 @@ import {
   Eye,
   Smartphone,
 } from "lucide-react";
-import { AudiencePage, type AudienceFeature, type AudienceOutcome } from "@/components/landing/audience";
+import {
+  AudiencePage,
+  type AudienceFeature,
+  type AudienceOutcome,
+} from "@/components/landing/audience";
 
 const outcomes: AudienceOutcome[] = [
   { icon: Eye, metric: "Real-time", label: "visibility into your child's day" },

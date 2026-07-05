@@ -113,7 +113,6 @@ function mapMemoryNote(r: any): LearnerMemoryNote {
 
 // ─── Snapshot reader ──────────────────────────────────────────────────────────
 
-
 /**
  * Read a consistent snapshot of the learner model for a student: the full
  * mastery vector, the reviews that are currently due, and the most recent
