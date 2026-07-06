@@ -19,6 +19,7 @@ import { setupMessagePalWebSocket } from "./message";
 import { initCassandra } from "./lib/cassandra";
 import { healthcheck as aiHealthcheck } from "./lib/ai/gateway";
 import { requireDb } from "./middleware";
+import { ApiError } from "./lib/http-errors";
 
 // Fix SRV resolution errors by forcing Google DNS globally
 try {
@@ -283,23 +284,54 @@ app.use(
     serveStatic(app);
   }
 
-  // Error handler must be LAST
-  app.use(
-    (
-      err: { status?: number; statusCode?: number; message?: string; code?: string },
-      req: Request,
-      res: Response,
-      _next: NextFunction
-    ) => {
-      const status = err.status || err.statusCode || 500;
-      const message =
-        process.env.NODE_ENV === "production" && status === 500
-          ? "Something went wrong"
-          : err.message || "Internal Server Error";
-      logger.error(`[${status}] ${req.method} ${req.path} — ${err.message}`);
-      res.status(status).json({ error: message, code: err.code || null });
+  // ── Centralized error handler (must be LAST, and must keep 4 args) ─────────
+  // Almost all routes still catch their own errors and reply directly with
+  // `{ message }` / `{ error }` shapes (unchanged, out of scope here). This
+  // handler is the fallback for anything that reaches `next(err)` or throws
+  // past a route/middleware — unknown errors, ApiError instances thrown by
+  // newer code, and framework-level failures (e.g. body-parser, CORS). It
+  // always logs the full error server-side, but only ever returns a single,
+  // consistent, client-safe JSON shape: `{ error: { message, code? } }`.
+  app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
+    // Let Express's built-in handler deal with it if headers are already
+    // out the door — writing a second response would throw ERR_HTTP_HEADERS_SENT.
+    if (res.headersSent) {
+      return next(err);
     }
-  );
+
+    const asHttpError = err as {
+      status?: number;
+      statusCode?: number;
+      message?: string;
+      code?: string;
+      stack?: string;
+    };
+    const status =
+      err instanceof ApiError
+        ? err.statusCode
+        : asHttpError?.status || asHttpError?.statusCode || 500;
+    const isServerError = status >= 500;
+    const code = err instanceof ApiError ? err.code : asHttpError?.code;
+
+    // Always log the full error (with stack) server-side, regardless of environment.
+    logger.error(`[${status}] ${req.method} ${req.path}`, err);
+
+    // Never leak stack traces or internal error details to the client. In
+    // production, unexpected 500s get a generic message; operational
+    // errors (4xx, or an explicit ApiError) already have a client-safe
+    // message and are passed through as-is.
+    const message =
+      isServerError && process.env.NODE_ENV === "production"
+        ? "Something went wrong"
+        : asHttpError?.message || "Internal Server Error";
+
+    res.status(status).json({
+      error: {
+        message,
+        ...(code ? { code } : {}),
+      },
+    });
+  });
 
   // Use port strictly if provided by Render/environment, otherwise default to 5001
   // this serves both the API and the client.
