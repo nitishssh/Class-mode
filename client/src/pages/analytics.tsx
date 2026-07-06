@@ -107,9 +107,7 @@ export default function Analytics() {
       : null;
   const avgCompletion =
     assessed.length > 0
-      ? Math.round(
-          (assessed.reduce((sum, s) => sum + s.completionRate, 0) / assessed.length) * 100
-        )
+      ? Math.round((assessed.reduce((sum, s) => sum + s.completionRate, 0) / assessed.length) * 100)
       : null;
   const dash = "—";
 

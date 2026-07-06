@@ -26,11 +26,11 @@ The fixes exist in code but were never re-QA'd. Prove them before building anyth
 
 ## Phase 1 — Fix remaining verified blockers (2–3 days)
 
-1. **API 404 guard (ISSUE-009)** — unknown `/api/*` paths fall into the SPA catch-all and return 200 + index.html, masking every missing/renamed route. Add `app.all("/api/*", → 404 JSON)` before the catch-alls in `server/vite.ts:48` (dev) and `server/vite.ts:90` (prod). *Do this first — it un-masks everything else.*
+1. **API 404 guard (ISSUE-009)** — unknown `/api/*` paths fall into the SPA catch-all and return 200 + index.html, masking every missing/renamed route. Add `app.all("/api/*", → 404 JSON)` before the catch-alls in `server/vite.ts:48` (dev) and `server/vite.ts:90` (prod). _Do this first — it un-masks everything else._
 2. **WebSocket handshake 400 (ISSUE-004)** — Messages page stuck on "Connecting…". Debug upgrade/auth in `server/message/index.ts`. If not quickly fixable, hide Messages nav for beta rather than ship a visibly broken feature.
 3. **Dev migration pgvector (ISSUE-002)** — `npm run migrate` fails on `CREATE EXTENSION vector`; switch dev compose image to `pgvector/pgvector:pg16` (docker/docker-compose.yml) so onboarding doesn't hang locally.
 4. **Silent 403s (ISSUE-005)** — Fees/attendance render permission errors as "No data yet" empty states. Distinguish 403 from empty in the shared query/error handling on the client.
-5. **Staff invite path (ISSUE-006)** — verify a principal can invite teachers *after* onboarding (workspace invites exist; confirm it's reachable from the principal/school-admin dashboard and add the entry point if not).
+5. **Staff invite path (ISSUE-006)** — verify a principal can invite teachers _after_ onboarding (workspace invites exist; confirm it's reachable from the principal/school-admin dashboard and add the entry point if not).
 
 ## Phase 2 — Finish the data migration (1–2 days)
 
@@ -54,8 +54,8 @@ Beta users writing real attendance/fee data on a half-migrated store is the bigg
 
 Playwright specs (only 4 exist today; none cover the flows that were broken):
 
-- [ ] `school-onboarding.spec.ts` — signup → verify → onboard → dashboard loads with no 403s *(regression guard for ISSUE-001/010)*
-- [ ] `teacher-class-flow.spec.ts` — create class → invite student → student joins *(guard for ISSUE-008)*
+- [ ] `school-onboarding.spec.ts` — signup → verify → onboard → dashboard loads with no 403s _(regression guard for ISSUE-001/010)_
+- [ ] `teacher-class-flow.spec.ts` — create class → invite student → student joins _(guard for ISSUE-008)_
 - [ ] `attendance.spec.ts` — mark absent → alert dispatch recorded
 - [ ] `tenant-isolation.spec.ts` — two schools in parallel; school A never sees school B data
 - [ ] Wire these into `ci.yml`
@@ -64,7 +64,7 @@ Playwright specs (only 4 exist today; none cover the flows that were broken):
 
 1. Deploy everything above; verify rollout (new-route JSON flip + uptime reset, per deploy runbook)
 2. Run `/qa` against production; target health ≥ 85 (was 78)
-3. Seed nothing — the pilot school onboards through the real signup flow (that *is* the test)
+3. Seed nothing — the pilot school onboards through the real signup flow (that _is_ the test)
 4. WhatsApp: keep outbound fail-loud (v1.8.3.1) only. Per the demand-first decision, do **not** build the inbound webhook/automated Meta pipe until a principal validates willingness-to-pay
 5. Onboard 1 pilot school (50–200 students), set up a feedback channel, check `/api/health/detailed` + error dashboard daily for the first 2 weeks
 
@@ -76,14 +76,14 @@ Billing UI (Stripe backend done), study-plan drag-reschedule, recurring live cla
 
 ## Timeline
 
-| Phase | Effort | Cumulative |
-|---|---|---|
-| 0 — Re-verify | ½ day | Day 1 |
-| 1 — Blockers | 2–3 days | Day 4 |
-| 2 — Migration | 1–2 days | Day 6 |
-| 3 — Hardening | 2 days | Day 8 |
-| 4 — E2E tests | 2 days | Day 10 |
-| 5 — Launch + monitor | 1 week | ~Day 17 |
+| Phase                | Effort   | Cumulative |
+| -------------------- | -------- | ---------- |
+| 0 — Re-verify        | ½ day    | Day 1      |
+| 1 — Blockers         | 2–3 days | Day 4      |
+| 2 — Migration        | 1–2 days | Day 6      |
+| 3 — Hardening        | 2 days   | Day 8      |
+| 4 — E2E tests        | 2 days   | Day 10     |
+| 5 — Launch + monitor | 1 week   | ~Day 17    |
 
 **≈2 working weeks to a school actively using the product.** Phases 2–4 can partially overlap if needed.
 
