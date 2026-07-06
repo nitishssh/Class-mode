@@ -143,7 +143,9 @@ async function seedPilotData() {
   console.log("--------------------------------------------------");
   console.log("Pilot Data Seeding Complete!");
   console.log(`Login Username: ${pilotData.username}`);
-  console.log(`Login Password: (the value of PILOT_ADMIN_PASSWORD, or "PilotPassword123!" if unset)`);
+  console.log(
+    `Login Password: (the value of PILOT_ADMIN_PASSWORD, or "PilotPassword123!" if unset)`
+  );
   console.log("--------------------------------------------------");
 
   process.exit(0);

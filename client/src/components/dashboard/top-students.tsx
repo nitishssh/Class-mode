@@ -26,9 +26,7 @@ export function TopStudents() {
   // Honest empty state — no fabricated leaderboard until the API exists.
   if (displayStudents.length === 0) {
     return (
-      <div className="py-8 text-center text-sm text-muted-foreground">
-        No student rankings yet.
-      </div>
+      <div className="py-8 text-center text-sm text-muted-foreground">No student rankings yet.</div>
     );
   }
 
