@@ -215,7 +215,7 @@ router.post("/users", authenticateToken, async (req: Request, res: Response) => 
     const user = await storage.createUser({
       ...parsed.data,
       password: lockedHash,
-      schoolCode: admin?.schoolCode || parsed.data.school_code,
+      school_code: admin?.schoolCode || parsed.data.school_code,
     });
 
     res.status(201).json(user);
