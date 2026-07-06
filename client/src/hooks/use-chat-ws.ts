@@ -131,8 +131,7 @@ export function useChatWs({ onEvent, activeChannelId }: UseChatWsOptions) {
 
     const fbUser = currentUser.user;
     const readyState = wsRef.current?.readyState;
-    const isConnectingOrOpen =
-      readyState === WebSocket.CONNECTING || readyState === WebSocket.OPEN;
+    const isConnectingOrOpen = readyState === WebSocket.CONNECTING || readyState === WebSocket.OPEN;
     if (!fbUser || isConnectingOrOpen) return;
 
     dispatch({ type: "connecting" });
