@@ -18,7 +18,7 @@ import { setupChatWebSocket } from "./chat-ws";
 import { setupMessagePalWebSocket } from "./message";
 import { initCassandra } from "./lib/cassandra";
 import { healthcheck as aiHealthcheck } from "./lib/ai/gateway";
-import { requireDb } from "./middleware";
+import { requireDb, requestId } from "./middleware";
 
 // Fix SRV resolution errors by forcing Google DNS globally
 try {
@@ -38,6 +38,12 @@ process.on("unhandledRejection", (reason: unknown) => {
 
 const app = express();
 app.set("trust proxy", 1);
+
+// Request-ID correlation must run before anything that logs, so every log
+// line for this request (and the error-handler's JSON response) can be
+// tied together and traced through Cloud Logging / Error Reporting.
+app.use(requestId);
+
 app.use(
   express.json({
     // Stash the raw request body for the Stripe webhook so signature
@@ -286,7 +292,12 @@ app.use(
   // Error handler must be LAST
   app.use(
     (
-      err: { status?: number; statusCode?: number; message?: string; code?: string },
+      err: {
+        status?: number;
+        statusCode?: number;
+        message?: string;
+        code?: string;
+      } & Partial<Error>,
       req: Request,
       res: Response,
       _next: NextFunction
@@ -296,8 +307,11 @@ app.use(
         process.env.NODE_ENV === "production" && status === 500
           ? "Something went wrong"
           : err.message || "Internal Server Error";
-      logger.error(`[${status}] ${req.method} ${req.path} — ${err.message}`);
-      res.status(status).json({ error: message, code: err.code || null });
+      // Pass the original error (not just its message) so the stack trace
+      // reaches the logger — required for GCP Error Reporting's
+      // auto-detection, and useful for local debugging either way.
+      logger.error(`[${status}] ${req.method} ${req.path} — ${err.message}`, err);
+      res.status(status).json({ error: message, code: err.code || null, requestId: req.id });
     }
   );
 
