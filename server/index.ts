@@ -18,7 +18,7 @@ import { setupChatWebSocket } from "./chat-ws";
 import { setupMessagePalWebSocket } from "./message";
 import { initCassandra } from "./lib/cassandra";
 import { healthcheck as aiHealthcheck } from "./lib/ai/gateway";
-import { requireDb } from "./middleware";
+import { requireDb, requestId } from "./middleware";
 import { ApiError } from "./lib/http-errors";
 
 // Fix SRV resolution errors by forcing Google DNS globally
@@ -39,6 +39,12 @@ process.on("unhandledRejection", (reason: unknown) => {
 
 const app = express();
 app.set("trust proxy", 1);
+
+// Request-ID correlation must run before anything that logs, so every log
+// line for this request (and the error-handler's JSON response) can be
+// tied together and traced through Cloud Logging / Error Reporting.
+app.use(requestId);
+
 app.use(
   express.json({
     // Stash the raw request body for the Stripe webhook so signature
@@ -291,7 +297,7 @@ app.use(
   // past a route/middleware — unknown errors, ApiError instances thrown by
   // newer code, and framework-level failures (e.g. body-parser, CORS). It
   // always logs the full error server-side, but only ever returns a single,
-  // consistent, client-safe JSON shape: `{ error: { message, code? } }`.
+  // consistent, client-safe JSON shape: `{ error: { message, code?, requestId? } }`.
   app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
     // Let Express's built-in handler deal with it if headers are already
     // out the door — writing a second response would throw ERR_HTTP_HEADERS_SENT.
@@ -313,7 +319,9 @@ app.use(
     const isServerError = status >= 500;
     const code = err instanceof ApiError ? err.code : asHttpError?.code;
 
-    // Always log the full error (with stack) server-side, regardless of environment.
+    // Pass the original error (not just its message) so the stack trace
+    // reaches the logger — required for GCP Error Reporting's
+    // auto-detection, and useful for local debugging either way.
     logger.error(`[${status}] ${req.method} ${req.path}`, err);
 
     // Never leak stack traces or internal error details to the client. In
@@ -329,6 +337,7 @@ app.use(
       error: {
         message,
         ...(code ? { code } : {}),
+        ...(req.id ? { requestId: req.id } : {}),
       },
     });
   });
