@@ -15,7 +15,11 @@ import {
   LineChart,
   ShieldCheck,
 } from "lucide-react";
-import { AudiencePage, type AudienceFeature, type AudienceOutcome } from "@/components/landing/audience";
+import {
+  AudiencePage,
+  type AudienceFeature,
+  type AudienceOutcome,
+} from "@/components/landing/audience";
 
 const outcomes: AudienceOutcome[] = [
   { icon: Clock, metric: "5+ hrs/week", label: "saved per teacher" },

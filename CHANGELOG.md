@@ -46,7 +46,9 @@ All notable changes to this project will be documented in this file.
 - Dead student-focused landing sections (`features.tsx`) and their orphaned notebook CSS.
 
 =======
->>>>>>> 2e292bf (chore: bump version to 1.8.4.0 and update changelog)
+
+> > > > > > > 2e292bf (chore: bump version to 1.8.4.0 and update changelog)
+
 ## [1.8.3.1] - 2026-07-04
 
 ### Fixed

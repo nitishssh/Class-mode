@@ -326,7 +326,11 @@ export const AudiencePage: ComponentType<AudiencePageProps> = ({
             <motion.h2 {...fadeUp} className="text-3xl font-extrabold md:text-4xl">
               {ctaHeading}
             </motion.h2>
-            <motion.p {...fadeUp} transition={{ delay: 0.05 }} className="text-lg text-muted-foreground">
+            <motion.p
+              {...fadeUp}
+              transition={{ delay: 0.05 }}
+              className="text-lg text-muted-foreground"
+            >
               {ctaSub}
             </motion.p>
             <motion.a

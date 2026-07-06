@@ -8,7 +8,13 @@ import {
 } from "../services/notifications-consumer";
 
 function event(payload: AttendanceMarkedPayload): DomainEvent<AttendanceMarkedPayload> {
-  return { topic: "attendance.marked", at: new Date().toISOString(), schoolCode: "SCH1", userId: 1, payload };
+  return {
+    topic: "attendance.marked",
+    at: new Date().toISOString(),
+    schoolCode: "SCH1",
+    userId: 1,
+    payload,
+  };
 }
 
 describe("absenceMessage", () => {

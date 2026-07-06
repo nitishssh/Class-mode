@@ -75,7 +75,6 @@ const subjectMeta: Record<
   },
 };
 
-
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function StudentDashboard() {
@@ -105,12 +104,7 @@ export default function StudentDashboard() {
     return <DashboardSkeleton />;
   }
 
-  const {
-    profile,
-    subjects = [],
-    upcomingTests = [],
-    recentResults = [],
-  } = dashboardData || {};
+  const { profile, subjects = [], upcomingTests = [], recentResults = [] } = dashboardData || {};
 
   const heroSession = upcomingTests[0]
     ? {

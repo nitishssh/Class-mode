@@ -22,8 +22,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PermissionDenied } from "@/components/ui/permission-denied";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, isPermissionError } from "@/lib/queryClient";
 
 type FeeStatus = "pending" | "paid" | "waived";
 
@@ -79,7 +80,7 @@ export default function FeesPage() {
   const [dueDate, setDueDate] = useState("");
 
   const feesUrl = statusFilter === "all" ? "/api/fees" : `/api/fees?status=${statusFilter}`;
-  const { data: fees = [], isLoading } = useQuery<Fee[]>({ queryKey: [feesUrl] });
+  const { data: fees = [], isLoading, error: feesError } = useQuery<Fee[]>({ queryKey: [feesUrl] });
   const { data: summary } = useQuery<FeeSummary>({ queryKey: ["/api/fees/summary"] });
   const { data: students = [] } = useQuery<StudentOption[]>({
     queryKey: ["/api/users?role=student"],
@@ -273,6 +274,12 @@ export default function FeesPage() {
             <div className="flex items-center justify-center py-10 text-muted-foreground">
               <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading fees…
             </div>
+          ) : isPermissionError(feesError) ? (
+            <PermissionDenied message="You don't have permission to view fee records." />
+          ) : feesError ? (
+            <p className="py-10 text-center text-muted-foreground">
+              Failed to load fees. Please try again.
+            </p>
           ) : fees.length === 0 ? (
             <p className="py-10 text-center text-muted-foreground">
               No fees yet. Create the first one with “New fee”.
