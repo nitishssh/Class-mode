@@ -483,7 +483,7 @@ describe("Admin Dashboard API", () => {
         const res = await request(app)
           .post("/api/users")
           .set("Authorization", `Bearer ${adminToken}`)
-          .send({ name: "New User", role: "student", email: "new@test.com" });
+          .send({ name: "New User", username: "newuser", role: "student", email: "new@test.com" });
 
         expect(res.status).toBe(201);
         expect(res.body).toEqual(newUser);
