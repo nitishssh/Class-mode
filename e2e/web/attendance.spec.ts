@@ -89,7 +89,12 @@ test.describe("Attendance — mark absent dispatches a parent alert", () => {
       // regression guard: the absence-alert pipeline ran end to end.
       expect(body.notified).toBe(1);
 
-      await expect(page.getByText("Attendance saved")).toBeVisible({ timeout: 10000 });
+      // Scoped with `exact: true` — a screen-reader live-region announcement
+      // ("Attendance saved1 students marked. 1...") also contains this text
+      // as a substring, which trips Playwright's strict-mode locator check.
+      await expect(page.getByText("Attendance saved", { exact: true })).toBeVisible({
+        timeout: 10000,
+      });
       await expect(page.getByText("1 parent(s) notified on WhatsApp")).toBeVisible();
     });
   });

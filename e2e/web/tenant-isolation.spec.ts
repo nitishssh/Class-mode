@@ -16,6 +16,13 @@ test.describe("Tenant isolation — school A never sees school B's data", () => 
   }: {
     browser: Browser;
   }) => {
+    // Two full school onboardings (signup → verify → onboard → class →
+    // invite → accept, twice) took 23s of the default 30s test timeout even
+    // on a local machine — comfortably passes locally but leaves too little
+    // margin for a colder/slower CI runner (first-time e2e-tests job: fresh
+    // Postgres, fresh Vite build, fresh Chromium download all in one job).
+    test.setTimeout(90_000);
+
     const suffix = Date.now();
     const schoolA = {
       teacherEmail: uniqueEmail(`tenant-a-${suffix}`),
