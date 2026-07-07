@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { signUp, verifyEmail, uniqueEmail, TEST_PASSWORD, BASE_URL } from "./helpers/auth";
 import { completeOnboarding } from "./helpers/onboarding";
-import { getLatestInviteToken, getUserByEmail, backfillStudentClassAssignment } from "./helpers/db";
+import { getLatestInviteToken } from "./helpers/db";
 
 // Regression guard for the attendance → parent-alert loop (Beta Launch Plan
 // Phase 4): marking a student absent must record the mark AND dispatch (or,
@@ -56,12 +56,6 @@ test.describe("Attendance — mark absent dispatches a parent alert", () => {
       await passwordInputs.nth(1).fill(TEST_PASSWORD);
       await page.getByRole("button", { name: "Create Account" }).click();
       await expect(page).toHaveURL(/.*\/(login|teacher-dashboard)/, { timeout: 10000 });
-    });
-
-    await test.step("backfill the student's class/school assignment (see KNOWN BUG WORKAROUND in helpers/db.ts)", async () => {
-      const teacher = await getUserByEmail(teacherEmail);
-      if (!teacher?.schoolCode) throw new Error("Teacher has no schoolCode after onboarding");
-      await backfillStudentClassAssignment(parentEmail, className, teacher.schoolCode);
     });
 
     await test.step("teacher records the student's parent phone number", async () => {

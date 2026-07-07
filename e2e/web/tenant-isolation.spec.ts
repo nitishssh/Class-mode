@@ -1,7 +1,7 @@
 import { test, expect, Browser } from "@playwright/test";
 import { signUp, verifyEmail, uniqueEmail, TEST_PASSWORD, BASE_URL } from "./helpers/auth";
 import { completeOnboarding } from "./helpers/onboarding";
-import { getLatestInviteToken, getUserByEmail, backfillStudentClassAssignment } from "./helpers/db";
+import { getLatestInviteToken } from "./helpers/db";
 
 // Regression guard for the fail-closed tenant isolation invariant
 // (server/lib/tenant.ts's resolveTenantScope, hardened in PR #305 to
@@ -78,10 +78,6 @@ test.describe("Tenant isolation — school A never sees school B's data", () => 
       await passwordInputs.nth(1).fill(TEST_PASSWORD);
       await page.getByRole("button", { name: "Create Account" }).click();
       await expect(page).toHaveURL(/.*\/(login|teacher-dashboard)/, { timeout: 10000 });
-
-      const teacher = await getUserByEmail(school.teacherEmail);
-      if (!teacher?.schoolCode) throw new Error(`${school.workspaceName} teacher has no schoolCode`);
-      await backfillStudentClassAssignment(school.parentEmail, school.className, teacher.schoolCode);
 
       // accept-invite never logs the current session out — this browser
       // context's cookie still belongs to the teacher who's driving it, so

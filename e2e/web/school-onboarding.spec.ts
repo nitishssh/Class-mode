@@ -49,9 +49,7 @@ test.describe("School onboarding — signup to dashboard", () => {
 
     await test.step("student directory loads without a 403", async () => {
       await page.goto(`${BASE_URL}/student-directory`);
-      await expect(
-        page.getByRole("heading", { name: "Student Directory" }).first()
-      ).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Student Directory" }).first()).toBeVisible();
       await expect(page.getByText("Access restricted")).not.toBeVisible();
     });
   });

@@ -20,10 +20,7 @@ export interface SignedUpAccount {
  * onboarding wizard is where they pick principal/teacher/school_admin as
  * their onboarding role (see canChooseOnboardingRole).
  */
-export async function signUp(
-  page: Page,
-  account: SignedUpAccount
-): Promise<void> {
+export async function signUp(page: Page, account: SignedUpAccount): Promise<void> {
   await page.goto(`${BASE_URL}/login`);
   await page.getByRole("button", { name: "Register now" }).click();
   await page.locator('input[name="name"]').fill(account.name);
@@ -63,21 +60,12 @@ export async function login(page: Page, email: string, password: string): Promis
 /**
  * Generates an email guaranteed unique across test runs.
  *
- * KNOWN BUG WORKAROUND (see follow-up task filed against
- * server/lib/pg-queries.ts's pgUpsertSchool): a school's `code` is derived
- * by slicing the owner's uid (== email, for local-password accounts) to its
- * first 20 RAW characters and THEN stripping non-alphanumerics — so two
- * emails sharing the same first-20-raw-characters prefix collide onto the
- * identical school_code, silently merging two schools into one tenant
- * (`ON CONFLICT (code) DO UPDATE` reuses the first school's row). A prefix
- * like "attendance-teacher-" followed by a numeric suffix never reaches
- * that 20-char boundary before the differentiating digits do, so every E2E
- * run collided onto the same code ("ATTENDANCETEACHER1") and accumulated
- * classes/students across runs instead of getting a fresh tenant each time.
- *
- * Putting the random component FIRST keeps every generated email's
- * first-20-raw-characters prefix unique, which sidesteps the collision
- * without needing the product code fixed first.
+ * Putting the random component first keeps every generated email visually
+ * distinct at a glance in test output/DB queries. This previously also
+ * worked around a pgUpsertSchool school-code collision (fixed: school codes
+ * now strip non-alphanumerics before slicing, with a collision-retry
+ * suffix — see server/lib/pg-queries.ts's makeUniqueSchoolCode), so it's no
+ * longer load-bearing for tenant isolation, just a readability nicety.
  */
 export function uniqueEmail(prefix: string): string {
   const unique = `${Date.now()}${Math.floor(Math.random() * 100000)}`;
