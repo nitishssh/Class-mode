@@ -89,13 +89,17 @@ test.describe("Attendance — mark absent dispatches a parent alert", () => {
       // regression guard: the absence-alert pipeline ran end to end.
       expect(body.notified).toBe(1);
 
-      // Scoped with `exact: true` — a screen-reader live-region announcement
-      // ("Attendance saved1 students marked. 1...") also contains this text
-      // as a substring, which trips Playwright's strict-mode locator check.
+      // Both scoped with `exact: true` — a screen-reader live-region
+      // announcement ("Attendance saved1 students marked. 1 parent(s)
+      // notified on WhatsApp...") concatenates the toast title and body, so
+      // it contains each of these as a substring too, which trips
+      // Playwright's strict-mode locator check against the toast itself.
       await expect(page.getByText("Attendance saved", { exact: true })).toBeVisible({
         timeout: 10000,
       });
-      await expect(page.getByText("1 parent(s) notified on WhatsApp")).toBeVisible();
+      await expect(
+        page.getByText("1 students marked. 1 parent(s) notified on WhatsApp.", { exact: true })
+      ).toBeVisible();
     });
   });
 });
