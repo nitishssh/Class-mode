@@ -319,6 +319,16 @@ router.post("/invite/accept", async (req: Request, res: Response) => {
     return res.status(403).json({ message: "This invite was sent to a different email address." });
   }
 
+  // Resolve the school (and, for student invites, the class) up front so the
+  // new/updated account is scoped from the moment it exists — previously only
+  // pgUpsertMembership below recorded this link, leaving users.school_code and
+  // users.class_name null forever. A null school_code makes resolveTenantScope
+  // fail closed on every tenant-scoped route (attendance, fees, student
+  // directory), and a null class_name hides the student from their class's
+  // attendance roster (pgGetClassNames / GET /roster both filter on it).
+  const school = invite.schoolId ? await pgFindSchoolById(invite.schoolId) : null;
+  const cls = invite.classId ? await pgFindSchoolClassById(parseInt(invite.classId, 10)) : null;
+
   // Create (or update) a local-password account. The password is hashed and
   // stored in Postgres so the user can sign in via the standard local login —
   // previously this minted a Firebase user with the PG passwordHash set to the
@@ -333,6 +343,8 @@ router.post("/invite/accept", async (req: Request, res: Response) => {
       role: invite.role,
       status: "active",
       emailVerified: true,
+      schoolCode: school?.code ?? null,
+      className: cls?.name ?? null,
     });
     pgUser = (await pgFindUserById(pgUser.id)) ?? pgUser;
   } else {
@@ -347,7 +359,8 @@ router.post("/invite/accept", async (req: Request, res: Response) => {
       role: invite.role,
       status: "active",
       emailVerified: true,
-      schoolCode: null,
+      schoolCode: school?.code ?? null,
+      className: cls?.name ?? null,
     });
   }
 
@@ -356,16 +369,13 @@ router.post("/invite/accept", async (req: Request, res: Response) => {
   );
 
   // Link membership
-  if (invite.schoolId) {
-    const school = await pgFindSchoolById(invite.schoolId);
-    if (school) {
-      await pgUpsertMembership({
-        userId: pgUser.id,
-        schoolCode: school.code,
-        status: "active",
-        roleKey: invite.role,
-      });
-    }
+  if (school) {
+    await pgUpsertMembership({
+      userId: pgUser.id,
+      schoolCode: school.code,
+      status: "active",
+      roleKey: invite.role,
+    });
   }
 
   await pgAcceptInvite(parsed.data.token);
