@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.8.5.0] - 2026-07-05
+
+### Added
+
+- **Landing page contact form now captures pilot requests** — School leaders and educators can submit their name, school, contact info, and learning goals via the landing page. Submissions are persisted to a `leads` table and the team is notified automatically by email so no request falls through the cracks.
+- **Feature explainers for parents and principals** — New public pages `/for-parents` and `/for-schools` walk through every Class Mode feature from each audience's perspective: parents see progress insights, attendance alerts, AI tutor, and fees; principals see live dashboards, at-risk flags, teacher productivity tools, and institution-wide KPIs. Deep-dive links from the main landing page make these easy to find.
+
+### Changed
+
+- **Landing page navigation** now includes direct links to the audience-specific feature pages so visitors can read what matters to their role before signing up.
+
+### Fixed
+
+- **Contact form success messages now display** — the form was calling toast notifications but the Sonner toast provider was never mounted, so submission confirmations silently no-op'd. Sonner Toaster is now wired into the app root.
+
 ## [1.8.4.0] - 2026-07-04
 
 ### Changed

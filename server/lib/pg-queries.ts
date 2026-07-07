@@ -709,6 +709,30 @@ export async function pgFindSchoolById(id: number): Promise<PgSchool | null> {
   }
 }
 
+// Derives a school code from a signup uid (email for local-password
+// accounts), then disambiguates against real collisions. Stripping
+// non-alphanumeric characters BEFORE slicing (not after) matters: emails
+// sharing a long human-readable prefix followed by a short disambiguating
+// suffix (e.g. `attendance-teacher-<epoch-ms>-<rand>@...`) previously all
+// truncated to the same raw 20-char slice, producing identical codes for
+// unrelated schools — and since the INSERT below does
+// `ON CONFLICT (code) DO UPDATE SET name = ...`, a collision silently
+// merged two schools' data under one row/id. The retry loop below closes
+// the remaining gap for uids whose first 20 stripped characters still
+// collide, mirroring makeUniqueSlug's pattern in server/routes/auth.ts.
+async function makeUniqueSchoolCode(uid: string): Promise<string> {
+  const base =
+    uid
+      .replace(/[^a-z0-9]/gi, "")
+      .toUpperCase()
+      .slice(0, 20) || "SCH";
+  for (let i = 0; i < 20; i++) {
+    const candidate = i === 0 ? base : `${base}${i + 1}`;
+    if (!(await pgFindSchoolByCode(candidate))) return candidate;
+  }
+  return `${base}${Date.now()}`;
+}
+
 export async function pgUpsertSchool(data: {
   uid: string;
   name: string;
@@ -720,11 +744,6 @@ export async function pgUpsertSchool(data: {
   onboardingComplete?: boolean;
 }): Promise<PgSchool> {
   const pool = getPgPool();
-  const code =
-    data.uid
-      .slice(0, 20)
-      .replace(/[^a-z0-9]/gi, "")
-      .toUpperCase() || "SCH";
   const existing = await pgFindSchoolByCreatedByUid(data.uid);
   if (existing) {
     const { rows } = await pool.query(
@@ -743,6 +762,7 @@ export async function pgUpsertSchool(data: {
     );
     return mapSchool(rows[0]);
   }
+  const code = await makeUniqueSchoolCode(data.uid);
   const { rows } = await pool.query(
     `INSERT INTO schools (code, name, city, board, grades_offered, logo, approximate_students, created_by_uid, onboarding_complete)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)

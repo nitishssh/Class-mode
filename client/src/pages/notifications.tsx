@@ -20,7 +20,8 @@ import {
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, isPermissionError } from "@/lib/queryClient";
+import { PermissionDenied } from "@/components/ui/permission-denied";
 
 type NotificationType = "test" | "result" | "announcement" | "message" | "achievement" | "reminder";
 
@@ -165,20 +166,25 @@ export default function NotificationsPage() {
           className="animate-fade-in-up"
           breadcrumbs={[{ label: "Dashboard", href: "/" }, { label: "Notifications" }]}
         />
-        <Card className="mt-6">
-          <CardContent className="flex flex-col items-center justify-center gap-3 p-16 text-center">
-            <div className="rounded-2xl bg-destructive/10 p-4">
-              <AlertCircle className="h-8 w-8 text-destructive" />
-            </div>
-            <p className="font-semibold">Failed to load notifications</p>
-            <p className="text-sm text-muted-foreground">
-              {error instanceof Error ? error.message : "Something went wrong."}
-            </p>
-            <Button variant="outline" size="sm" onClick={() => refetch()}>
-              Try again
-            </Button>
-          </CardContent>
-        </Card>
+        {isPermissionError(error) ? (
+          <PermissionDenied
+            className="mt-6"
+            message="You don't have permission to view notifications."
+          />
+        ) : (
+          <Card className="mt-6">
+            <CardContent className="flex flex-col items-center justify-center gap-3 p-16 text-center">
+              <div className="rounded-2xl bg-destructive/10 p-4">
+                <AlertCircle className="h-8 w-8 text-destructive" />
+              </div>
+              <p className="font-semibold">Failed to load notifications</p>
+              <p className="text-sm text-muted-foreground">Something went wrong.</p>
+              <Button variant="outline" size="sm" onClick={() => refetch()}>
+                Try again
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </>
     );
   }

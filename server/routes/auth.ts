@@ -81,6 +81,11 @@ const signupLimiter = rateLimit({
   message: tooMany("Too many signup attempts. Please try again later."),
   standardHeaders: true,
   legacyHeaders: false,
+  // Matches the existing convention for the /api/auth limiter in
+  // server/index.ts: brute-force protection only matters in production.
+  // E2E/CI runs sign up multiple real accounts per run against a single IP
+  // (localhost) and easily exceed 5/hour with no test override otherwise.
+  skip: () => process.env.NODE_ENV !== "production",
 });
 
 const verifyLimiter = rateLimit({

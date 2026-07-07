@@ -21,5 +21,8 @@ declare module "express-serve-static-core" {
       email?: string;
       [key: string]: unknown;
     };
+    // Per-request correlation ID — set by requestId middleware (server/middleware.ts).
+    // Propagated from an inbound x-request-id header when present, otherwise generated.
+    id?: string;
   }
 }

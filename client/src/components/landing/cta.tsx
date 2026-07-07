@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import { Check, Send, CheckCheck, BookOpen, Brain, Sparkles, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
+import { apiRequest } from "@/lib/queryClient";
 import schoolMeeting from "@/assets/school-meeting.png";
 import waDoodle from "@/assets/whatsapp-doodle.png";
 
@@ -554,24 +555,37 @@ export const Pricing = () => {
   );
 };
 
-export const ContactForm = () => {
-  const [form, setForm] = useState({
-    name: "",
-    school: "",
-    email: "",
-    phone: "",
-    role: "",
-    message: "",
-  });
+const emptyContactForm = { name: "", school: "", email: "", phone: "", role: "", message: "" };
 
-  const handleSubmit = (e: React.FormEvent) => {
+export const ContactForm = () => {
+  const [form, setForm] = useState(emptyContactForm);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!form.name.trim() || (!form.phone.trim() && !form.email.trim())) {
-      toast.error("Please share your name and a phone number or email.");
+      toast.error("Please fill in your name and a phone number or email.");
       return;
     }
-    toast.success("Thank you! We'll call you within 24 hours. ✨");
-    setForm({ name: "", school: "", email: "", phone: "", role: "", message: "" });
+    setSubmitting(true);
+    try {
+      await apiRequest("POST", "/api/leads", form);
+      toast.success("Thank you! We'll be in touch shortly. ✨");
+      setForm(emptyContactForm);
+    } catch (err) {
+      // apiRequest throws "<status>: <body>" — surface the server's message when present
+      let message = "Couldn't send your message. Please try again.";
+      const raw = err instanceof Error ? err.message : "";
+      try {
+        const body = JSON.parse(raw.replace(/^\d{3}:\s*/, ""));
+        message = body?.message || body?.error || message;
+      } catch {
+        // non-JSON body (network failure etc.) — keep the generic message
+      }
+      toast.error(message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // text-base (16px) keeps iOS Safari from auto-zooming on focus
@@ -629,36 +643,27 @@ export const ContactForm = () => {
             />
             <input
               type="text"
-              name="organization"
-              autoComplete="organization"
-              placeholder="School name"
-              aria-label="School name"
+              placeholder="School / Institution (optional)"
               value={form.school}
               onChange={(e) => setForm({ ...form, school: e.target.value })}
+              className={inputClasses}
+              maxLength={200}
+            />
+            <input
+              type="email"
+              placeholder="Email address"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
               className={inputClasses}
               maxLength={150}
             />
             <input
               type="tel"
-              name="tel"
-              autoComplete="tel"
-              placeholder="Phone / WhatsApp number"
-              aria-label="Phone or WhatsApp number"
+              placeholder="Phone number"
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
               className={inputClasses}
               maxLength={20}
-            />
-            <input
-              type="email"
-              name="email"
-              autoComplete="email"
-              placeholder="Email (optional)"
-              aria-label="Email (optional)"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className={inputClasses}
-              maxLength={255}
             />
             <select
               aria-label="I am a…"
@@ -684,9 +689,10 @@ export const ContactForm = () => {
               type="submit"
               className="sketch-border sketch-shadow-yellow hover-tilt w-full rounded-full bg-primary font-heading text-primary-foreground hover:bg-primary/90"
               size="lg"
+              disabled={submitting}
             >
               <Send size={16} className="mr-2" />
-              Request my pilot
+              {submitting ? "Sending…" : "Send Message"}
             </Button>
             <p className="text-center text-xs text-muted-foreground">
               We won&apos;t share your data. Privacy first. 🔒

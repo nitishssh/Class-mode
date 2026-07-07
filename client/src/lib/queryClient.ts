@@ -21,10 +21,28 @@ export function getServerToken(): string | null {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+// Thrown by apiRequest/getQueryFn for any non-2xx response. Carries the HTTP
+// status so callers (e.g. pages checking a react-query `error`) can tell a
+// 403 (permission denied) apart from a 404/500/etc, rather than treating
+// every failed fetch as an indistinguishable empty state.
+export class ApiError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
+export function isPermissionError(error: unknown): error is ApiError {
+  return error instanceof ApiError && error.status === 403;
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    throw new ApiError(res.status, `${res.status}: ${text}`);
   }
 }
 

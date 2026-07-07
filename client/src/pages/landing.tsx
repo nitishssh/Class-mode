@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,12 @@ const Navbar = () => {
     { key: "landing.contact", label: "Contact", href: "#contact" },
   ];
 
+  // Internal marketing subpages (own routes, not in-page anchors)
+  const pageLinks = [
+    { label: "For Parents", href: "/for-parents" },
+    { label: "For Principals", href: "/for-schools" },
+  ];
+
   return (
     <motion.nav
       initial={{ y: -64, opacity: 0 }}
@@ -52,6 +58,15 @@ const Navbar = () => {
             >
               {t(l.key, l.label)}
             </a>
+          ))}
+          {pageLinks.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {l.label}
+            </Link>
           ))}
           <Button
             className="sketch-border sketch-shadow-yellow hover-tilt rounded-full bg-primary font-heading text-sm text-primary-foreground hover:bg-primary/90"
@@ -94,6 +109,16 @@ const Navbar = () => {
                 >
                   {t(l.key, l.label)}
                 </a>
+              ))}
+              {pageLinks.map((l) => (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  className="block text-sm font-medium text-muted-foreground"
+                  onClick={() => setOpen(false)}
+                >
+                  {l.label}
+                </Link>
               ))}
               <Button
                 className="sketch-border sketch-shadow-yellow w-full rounded-full bg-primary font-heading text-sm text-primary-foreground hover:bg-primary/90"

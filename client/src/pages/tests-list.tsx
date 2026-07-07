@@ -21,6 +21,8 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isPermissionError } from "@/lib/queryClient";
+import { PermissionDenied } from "@/components/ui/permission-denied";
 import type { Test } from "@shared/schema";
 
 type TestStatus = "upcoming" | "available" | "completed" | "overdue";
@@ -158,6 +160,7 @@ export default function TestsListPage() {
     data: serverTests,
     isLoading,
     isError,
+    error: testsError,
     refetch,
   } = useQuery<ServerTest[]>({
     queryKey: ["/api/tests"],
@@ -216,21 +219,25 @@ export default function TestsListPage() {
           className="animate-fade-in-up"
           breadcrumbs={[{ label: "Dashboard", href: "/" }, { label: "Tests" }]}
         />
-        <Card>
-          <CardContent className="flex flex-col items-center gap-4 p-16 text-center">
-            <div className="rounded-2xl bg-destructive/10 p-4">
-              <AlertTriangle className="h-8 w-8 text-destructive" />
-            </div>
-            <p className="font-semibold">Failed to load tests</p>
-            <p className="text-sm text-muted-foreground">
-              Something went wrong while fetching your tests.
-            </p>
-            <Button onClick={() => refetch()} variant="outline" className="gap-2">
-              <RefreshCw className="h-4 w-4" />
-              Retry
-            </Button>
-          </CardContent>
-        </Card>
+        {isPermissionError(testsError) ? (
+          <PermissionDenied message="You don't have permission to view tests." />
+        ) : (
+          <Card>
+            <CardContent className="flex flex-col items-center gap-4 p-16 text-center">
+              <div className="rounded-2xl bg-destructive/10 p-4">
+                <AlertTriangle className="h-8 w-8 text-destructive" />
+              </div>
+              <p className="font-semibold">Failed to load tests</p>
+              <p className="text-sm text-muted-foreground">
+                Something went wrong while fetching your tests.
+              </p>
+              <Button onClick={() => refetch()} variant="outline" className="gap-2">
+                <RefreshCw className="h-4 w-4" />
+                Retry
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </>
     );
   }

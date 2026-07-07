@@ -14,8 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PermissionDenied } from "@/components/ui/permission-denied";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, isPermissionError } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 
 type Status = "present" | "absent" | "late" | "excused";
@@ -67,7 +68,11 @@ export default function AttendancePage() {
     if (!className && classes.length > 0) setClassName(classes[0]);
   }, [classes, className]);
 
-  const { data: roster = [], isLoading: rosterLoading } = useQuery<RosterStudent[]>({
+  const {
+    data: roster = [],
+    isLoading: rosterLoading,
+    error: rosterError,
+  } = useQuery<RosterStudent[]>({
     queryKey: [`/api/attendance/roster?className=${encodeURIComponent(className)}`],
     enabled: !!className,
   });
@@ -220,6 +225,12 @@ export default function AttendancePage() {
             <div className="flex items-center justify-center py-10 text-muted-foreground">
               <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading roster…
             </div>
+          ) : isPermissionError(rosterError) ? (
+            <PermissionDenied message="You don't have permission to view this class roster." />
+          ) : rosterError ? (
+            <p className="py-10 text-center text-muted-foreground">
+              Failed to load roster. Please try again.
+            </p>
           ) : roster.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 py-10 text-center text-muted-foreground">
               <Users className="h-8 w-8" />

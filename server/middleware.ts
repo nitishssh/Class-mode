@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { type Request, type Response, type NextFunction } from "express";
 import { isPgReady } from "./db-pg";
 import "express-session";
@@ -8,6 +9,7 @@ import {
   verifyAccessToken,
   decodeAccessTokenUnsafe,
 } from "./lib/auth-workspace";
+import { requestContext } from "./lib/request-context";
 
 declare module "express-session" {
   interface SessionData {
@@ -20,6 +22,19 @@ declare module "express-session" {
     googleSignInState?: string;
     googleSignInWorkspaceName?: string;
   }
+}
+
+// ── Request ID correlation ───────────────────────────────────────────────────
+// Propagates an inbound `x-request-id` (e.g. from a load balancer or client)
+// or generates a fresh one, so a single user flow can be traced across log
+// lines and, on error, correlated between the client-visible response and
+// Cloud Logging. Must run before any middleware that logs.
+export function requestId(req: Request, res: Response, next: NextFunction) {
+  const inbound = req.headers["x-request-id"];
+  const id = (Array.isArray(inbound) ? inbound[0] : inbound) || randomUUID();
+  req.id = id;
+  res.setHeader("X-Request-Id", id);
+  requestContext.run({ requestId: id }, next);
 }
 
 function isDevAuthWithoutDbEnabled(req: Request): boolean {

@@ -890,3 +890,21 @@ CREATE INDEX IF NOT EXISTS idx_review_schedule_due      ON review_schedule(stude
 CREATE INDEX IF NOT EXISTS idx_interaction_log_student  ON interaction_log(student_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_memory_notes_student     ON memory_notes(student_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS content_chunks_embedding_idx ON content_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+
+-- ─── Landing-page leads (public contact form) ─────────────────────────────────
+-- Pilot/contact requests submitted from the marketing site. No tenant scope:
+-- these arrive before a school exists in the system.
+
+CREATE TABLE IF NOT EXISTS leads (
+  id          bigserial    PRIMARY KEY,
+  name        text         NOT NULL,
+  school      text,
+  email       text,
+  phone       text,
+  role        text,
+  message     text,
+  source      text         NOT NULL DEFAULT 'landing_contact',
+  created_at  timestamptz  NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_leads_created ON leads(created_at DESC);

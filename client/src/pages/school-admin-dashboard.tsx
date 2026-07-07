@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { useFirebaseAuth as useAuth } from "@/contexts/firebase-auth-context";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, isPermissionError } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Users,
@@ -49,6 +49,7 @@ export default function SchoolAdminDashboard() {
     data: students,
     isLoading: isLoadingStudents,
     isError: isErrorStudents,
+    error: studentsError,
   } = useQuery<User[]>({
     queryKey: ["/api/users", { role: "student" }],
     queryFn: () => apiRequest("GET", "/api/users?role=student").then((r) => r.json()),
@@ -108,7 +109,16 @@ export default function SchoolAdminDashboard() {
               {isLoadingStudents ? (
                 <Skeleton className="h-7 w-16" />
               ) : isErrorStudents ? (
-                <span className="text-sm text-red-500">Error</span>
+                <span
+                  className="text-sm text-red-500"
+                  title={
+                    isPermissionError(studentsError)
+                      ? "You don't have permission to view student counts."
+                      : "Failed to load student count."
+                  }
+                >
+                  {isPermissionError(studentsError) ? "No access" : "Error"}
+                </span>
               ) : (
                 students?.length?.toLocaleString() || "0"
               )}

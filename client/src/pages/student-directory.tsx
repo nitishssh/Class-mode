@@ -28,7 +28,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Header } from "@/components/layout/header";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { getInitials } from "@/lib/utils";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, isPermissionError } from "@/lib/queryClient";
+import { PermissionDenied } from "@/components/ui/permission-denied";
 
 interface Student {
   id: number;
@@ -99,6 +100,7 @@ export default function StudentDirectory() {
     data: rawStudents,
     isLoading,
     isError,
+    error: studentsError,
     refetch,
   } = useQuery<ServerUser[]>({
     queryKey: ["/api/users", { role: "student" }],
@@ -160,13 +162,19 @@ export default function StudentDirectory() {
         )}
 
         {/* Error state */}
-        {isError && (
-          <div className="py-12 text-center">
-            <p className="mb-4 text-muted-foreground">Failed to load students. Please try again.</p>
-            <Button variant="outline" onClick={() => refetch()}>
-              Retry
-            </Button>
-          </div>
+        {isError && isPermissionError(studentsError) ? (
+          <PermissionDenied message="You don't have permission to view the student directory." />
+        ) : (
+          isError && (
+            <div className="py-12 text-center">
+              <p className="mb-4 text-muted-foreground">
+                Failed to load students. Please try again.
+              </p>
+              <Button variant="outline" onClick={() => refetch()}>
+                Retry
+              </Button>
+            </div>
+          )
         )}
 
         {/* Main content */}

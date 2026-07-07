@@ -18,7 +18,8 @@ import { setupChatWebSocket } from "./chat-ws";
 import { setupMessagePalWebSocket } from "./message";
 import { initCassandra } from "./lib/cassandra";
 import { healthcheck as aiHealthcheck } from "./lib/ai/gateway";
-import { requireDb } from "./middleware";
+import { requireDb, requestId } from "./middleware";
+import { ApiError } from "./lib/http-errors";
 
 // Fix SRV resolution errors by forcing Google DNS globally
 try {
@@ -38,6 +39,12 @@ process.on("unhandledRejection", (reason: unknown) => {
 
 const app = express();
 app.set("trust proxy", 1);
+
+// Request-ID correlation must run before anything that logs, so every log
+// line for this request (and the error-handler's JSON response) can be
+// tied together and traced through Cloud Logging / Error Reporting.
+app.use(requestId);
+
 app.use(
   express.json({
     // Stash the raw request body for the Stripe webhook so signature
@@ -210,6 +217,14 @@ app.use(
   "/api/ocr",
   rateLimit({ windowMs: 60_000, max: 5, message: { error: "Too many OCR requests" } })
 );
+app.use(
+  "/api/leads",
+  rateLimit({
+    windowMs: 60_000,
+    max: 5,
+    message: { error: "Too many submissions, please try again in a minute" },
+  })
+);
 
 // ── DB health guard ───────────────────────────────────────────────────────────
 (async () => {
@@ -275,23 +290,57 @@ app.use(
     serveStatic(app);
   }
 
-  // Error handler must be LAST
-  app.use(
-    (
-      err: { status?: number; statusCode?: number; message?: string; code?: string },
-      req: Request,
-      res: Response,
-      _next: NextFunction
-    ) => {
-      const status = err.status || err.statusCode || 500;
-      const message =
-        process.env.NODE_ENV === "production" && status === 500
-          ? "Something went wrong"
-          : err.message || "Internal Server Error";
-      logger.error(`[${status}] ${req.method} ${req.path} — ${err.message}`);
-      res.status(status).json({ error: message, code: err.code || null });
+  // ── Centralized error handler (must be LAST, and must keep 4 args) ─────────
+  // Almost all routes still catch their own errors and reply directly with
+  // `{ message }` / `{ error }` shapes (unchanged, out of scope here). This
+  // handler is the fallback for anything that reaches `next(err)` or throws
+  // past a route/middleware — unknown errors, ApiError instances thrown by
+  // newer code, and framework-level failures (e.g. body-parser, CORS). It
+  // always logs the full error server-side, but only ever returns a single,
+  // consistent, client-safe JSON shape: `{ error: { message, code?, requestId? } }`.
+  app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
+    // Let Express's built-in handler deal with it if headers are already
+    // out the door — writing a second response would throw ERR_HTTP_HEADERS_SENT.
+    if (res.headersSent) {
+      return next(err);
     }
-  );
+
+    const asHttpError = err as {
+      status?: number;
+      statusCode?: number;
+      message?: string;
+      code?: string;
+      stack?: string;
+    };
+    const status =
+      err instanceof ApiError
+        ? err.statusCode
+        : asHttpError?.status || asHttpError?.statusCode || 500;
+    const isServerError = status >= 500;
+    const code = err instanceof ApiError ? err.code : asHttpError?.code;
+
+    // Pass the original error (not just its message) so the stack trace
+    // reaches the logger — required for GCP Error Reporting's
+    // auto-detection, and useful for local debugging either way.
+    logger.error(`[${status}] ${req.method} ${req.path}`, err);
+
+    // Never leak stack traces or internal error details to the client. In
+    // production, unexpected 500s get a generic message; operational
+    // errors (4xx, or an explicit ApiError) already have a client-safe
+    // message and are passed through as-is.
+    const message =
+      isServerError && process.env.NODE_ENV === "production"
+        ? "Something went wrong"
+        : asHttpError?.message || "Internal Server Error";
+
+    res.status(status).json({
+      error: {
+        message,
+        ...(code ? { code } : {}),
+        ...(req.id ? { requestId: req.id } : {}),
+      },
+    });
+  });
 
   // Use port strictly if provided by Render/environment, otherwise default to 5001
   // this serves both the API and the client.
