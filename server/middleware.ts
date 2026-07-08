@@ -57,7 +57,10 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
       const user = await pgFindUserById(payload.userId);
       if (user && !["suspended", "rejected"].includes(user.status)) {
         const workspaceContext = await pgFindFirstWorkspaceMembership(user.id);
-        if (req.session) {
+        // Mobile clients (X-Client: mobile) are token-only: never bind an
+        // express-session for them — RN's native cookie jar would keep the
+        // session alive after logout (W-1 contract).
+        if (req.session && req.headers["x-client"] !== "mobile") {
           req.session.userId = user.id;
           req.session.role = user.role;
           req.session.firebaseUid = user.firebaseUid || user.authSubject;
@@ -87,8 +90,8 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
     }
   }
 
-  // 2. Try Session
-  if (req.session?.userId) {
+  // 2. Try Session (never for mobile clients — token-only per W-1)
+  if (req.session?.userId && req.headers["x-client"] !== "mobile") {
     try {
       const user = await pgFindUserById(req.session.userId);
       if (user && !["suspended", "rejected"].includes(user.status)) {

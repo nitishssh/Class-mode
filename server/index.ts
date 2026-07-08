@@ -173,7 +173,15 @@ app.use(
     // tripping it during normal testing. The per-route limiters inside
     // server/routes/auth.ts (signupLimiter, loginLimiter, etc.) still
     // give us per-action brute-force protection in dev.
-    skip: () => process.env.NODE_ENV !== "production",
+    //
+    // /me and /refresh are exempt: they carry their own token-level
+    // protection, and a school's worth of mobile devices shares one NAT IP —
+    // 30 teachers cold-starting the app at 8:55am would trip a 10/min/IP
+    // limit on infrastructure, not abuse (W-1).
+    skip: (req) =>
+      process.env.NODE_ENV !== "production" ||
+      req.path === "/me" ||
+      req.path === "/refresh",
   })
 );
 

@@ -36,6 +36,7 @@ vi.mock("../storage", () => ({
   storage: {
     createSession: vi.fn(),
     getSessionByRefreshToken: vi.fn(),
+    consumeSessionByRefreshToken: vi.fn(),
     deleteSession: vi.fn(),
     deleteAllUserSessions: vi.fn(),
     createOtp: vi.fn(),
@@ -221,5 +222,105 @@ describe("custom auth routes", () => {
 
     expect(res.status).toBe(201);
     expect(res.body.user.emailVerified).toBe(false);
+  });
+});
+
+describe("W-1 mobile client auth contract (X-Client: mobile)", () => {
+  let app: express.Express;
+
+  const teacher = {
+    id: 2,
+    email: "member@example.com",
+    password: "",
+    name: "Member",
+    displayName: "Member",
+    role: "teacher",
+    status: "active",
+    emailVerified: true,
+    subjects: [],
+  };
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    app = express();
+    app.use(express.json());
+    app.use(
+      session({
+        secret: "test-secret",
+        resave: false,
+        saveUninitialized: false,
+      })
+    );
+    app.use("/api/auth", authRouter);
+    (storage.createSession as any).mockResolvedValue({ id: 99 });
+    (pgFindFirstWorkspaceMembership as any).mockResolvedValue(null);
+    teacher.password = await bcrypt.hash("secret123", 4);
+    (pgFindUserByEmail as any).mockResolvedValue(teacher);
+    (pgFindUserById as any).mockResolvedValue(teacher);
+  });
+
+  it("mobile login returns refreshToken in the body and sets NO cookies", async () => {
+    const res = await request(app)
+      .post("/api/auth/login")
+      .set("X-Client", "mobile")
+      .send({ email: "member@example.com", password: "secret123" });
+
+    expect(res.status).toBe(200);
+    expect(typeof res.body.token).toBe("string");
+    expect(typeof res.body.refreshToken).toBe("string");
+    expect(res.body.refreshToken.length).toBeGreaterThan(20);
+    expect(res.headers["set-cookie"]).toBeUndefined();
+  });
+
+  it("web login keeps the cookie contract: no refreshToken in body, cookies set", async () => {
+    const res = await request(app)
+      .post("/api/auth/login")
+      .send({ email: "member@example.com", password: "secret123" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.refreshToken).toBeUndefined();
+    const cookies = (res.headers["set-cookie"] ?? []) as unknown as string[];
+    expect(cookies.join(";")).toContain("access_token=");
+    expect(cookies.join(";")).toContain("refresh_token=");
+  });
+
+  it("mobile refresh accepts the token from the body and rotates it", async () => {
+    (storage.consumeSessionByRefreshToken as any).mockResolvedValue({
+      id: 99,
+      userId: 2,
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+
+    const res = await request(app)
+      .post("/api/auth/refresh")
+      .set("X-Client", "mobile")
+      .send({ refreshToken: "stored-refresh-token" });
+
+    expect(res.status).toBe(200);
+    expect(typeof res.body.token).toBe("string");
+    expect(typeof res.body.refreshToken).toBe("string");
+    expect(res.body.refreshToken).not.toBe("stored-refresh-token");
+    expect(res.headers["set-cookie"]).toBeUndefined();
+    expect(storage.consumeSessionByRefreshToken).toHaveBeenCalledTimes(1);
+  });
+
+  it("mobile refresh without a body token is 401 (no cookie fallback confusion)", async () => {
+    const res = await request(app)
+      .post("/api/auth/refresh")
+      .set("X-Client", "mobile")
+      .send({});
+    expect(res.status).toBe(401);
+  });
+
+  it("mobile logout deletes the session identified by the body refreshToken", async () => {
+    (storage.getSessionByRefreshToken as any).mockResolvedValue({ id: 99, userId: 2 });
+
+    const res = await request(app)
+      .post("/api/auth/logout")
+      .set("X-Client", "mobile")
+      .send({ refreshToken: "stored-refresh-token" });
+
+    expect(res.status).toBe(200);
+    expect(storage.deleteSession).toHaveBeenCalledWith(99);
   });
 });

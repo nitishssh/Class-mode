@@ -273,6 +273,31 @@ function devAuthPayload(user: PgUser) {
   });
 }
 
+// ── Mobile client contract (W-1) ────────────────────────────────────────────
+// The mobile app cannot use httpOnly cookies: it stores tokens in the device
+// keychain and sends `Authorization: Bearer`. Requests carrying
+// `X-Client: mobile` get (a) NO auth/session cookies — React Native's native
+// cookie jar would otherwise resurrect sessions after logout — and (b) the
+// refresh token in the JSON body (login/signup/refresh), accepted back via
+// the refresh/logout request body.
+function isMobileClient(req: Request): boolean {
+  return req.headers["x-client"] === "mobile";
+}
+
+/** Extra response fields for mobile clients: the body-transported refresh token. */
+function mobileTokenFields(req: Request, tokens: { refreshToken: string }) {
+  return isMobileClient(req) ? { refreshToken: tokens.refreshToken } : {};
+}
+
+/** Refresh token from the request: body for mobile clients, cookie otherwise. */
+function incomingRefreshToken(req: Request): string | undefined {
+  if (isMobileClient(req)) {
+    const fromBody = (req.body as { refreshToken?: unknown } | undefined)?.refreshToken;
+    if (typeof fromBody === "string" && fromBody.length > 0) return fromBody;
+  }
+  return req.cookies?.refresh_token;
+}
+
 async function createDevLoginSession(req: Request, res: Response, user: PgUser) {
   const refreshToken = randomToken();
   const session: DevSession = {
@@ -283,13 +308,15 @@ async function createDevLoginSession(req: Request, res: Response, user: PgUser) 
   };
   devSessionsByRefreshHash.set(session.refreshTokenHash, session);
 
-  await new Promise<void>((resolve, reject) => {
-    req.session.regenerate((err) => (err ? reject(err) : resolve()));
-  });
+  if (!isMobileClient(req)) {
+    await new Promise<void>((resolve, reject) => {
+      req.session.regenerate((err) => (err ? reject(err) : resolve()));
+    });
 
-  req.session.userId = user.id;
-  req.session.role = user.role;
-  req.session.firebaseUid = user.firebaseUid || user.authSubject;
+    req.session.userId = user.id;
+    req.session.role = user.role;
+    req.session.firebaseUid = user.firebaseUid || user.authSubject;
+  }
 
   const devWs = devWorkspacesByUserId.get(user.id);
   const accessToken = issueAccessToken({
@@ -301,8 +328,10 @@ async function createDevLoginSession(req: Request, res: Response, user: PgUser) 
     workspaceId: devWs?.workspace.id ?? null,
     workspaceRole: devWs?.membership.role ?? null,
   });
-  res.cookie(ACCESS_COOKIE, accessToken, ACCESS_COOKIE_OPTS);
-  res.cookie(REFRESH_COOKIE, refreshToken, REFRESH_COOKIE_OPTS);
+  if (!isMobileClient(req)) {
+    res.cookie(ACCESS_COOKIE, accessToken, ACCESS_COOKIE_OPTS);
+    res.cookie(REFRESH_COOKIE, refreshToken, REFRESH_COOKIE_OPTS);
+  }
   return { accessToken, refreshToken, sessionId: session.id };
 }
 
@@ -318,16 +347,19 @@ async function createLoginSession(req: Request, res: Response, userId: number) {
 
   // Fix session fixation: regenerate the session ID before binding user identity.
   // This ensures a session established before login can't be reused after authentication.
-  await new Promise<void>((resolve, reject) => {
-    req.session.regenerate((err) => (err ? reject(err) : resolve()));
-  });
+  // Mobile clients get no express-session at all (see isMobileClient).
+  if (!isMobileClient(req)) {
+    await new Promise<void>((resolve, reject) => {
+      req.session.regenerate((err) => (err ? reject(err) : resolve()));
+    });
+  }
 
   // Fetch user + workspace in parallel to populate session and embed in token.
   const [user, workspaceContext] = await Promise.all([
     pgFindUserById(userId),
     pgFindFirstWorkspaceMembership(userId),
   ]);
-  if (user && req.session) {
+  if (user && req.session && !isMobileClient(req)) {
     req.session.userId = user.id;
     req.session.role = user.role;
     req.session.firebaseUid = user.firebaseUid || user.authSubject;
@@ -342,8 +374,10 @@ async function createLoginSession(req: Request, res: Response, userId: number) {
     workspaceId: workspaceContext?.workspace.id ?? null,
     workspaceRole: workspaceContext?.membership.role ?? null,
   });
-  res.cookie(ACCESS_COOKIE, accessToken, ACCESS_COOKIE_OPTS);
-  res.cookie(REFRESH_COOKIE, refreshToken, REFRESH_COOKIE_OPTS);
+  if (!isMobileClient(req)) {
+    res.cookie(ACCESS_COOKIE, accessToken, ACCESS_COOKIE_OPTS);
+    res.cookie(REFRESH_COOKIE, refreshToken, REFRESH_COOKIE_OPTS);
+  }
   return { accessToken, refreshToken, sessionId: session.id };
 }
 
@@ -789,7 +823,9 @@ router.post("/login", loginLimiter, async (req: Request, res: Response) => {
       }
       user.lastLoginAt = new Date();
       const tokens = await createDevLoginSession(req, res, user);
-      return res.status(200).json({ token: tokens.accessToken, ...devAuthPayload(user) });
+      return res
+        .status(200)
+        .json({ token: tokens.accessToken, ...mobileTokenFields(req, tokens), ...devAuthPayload(user) });
     }
 
     const user = await pgFindUserByEmail(parsed.data.email);
@@ -822,7 +858,7 @@ router.post("/login", loginLimiter, async (req: Request, res: Response) => {
       return res.status(403).json({ message: "Account is not active" });
     }
 
-    const { accessToken } = await createLoginSession(req, res, user.id);
+    const tokens = await createLoginSession(req, res, user.id);
     await pgSetUserLastLogin(user.id);
     recordAuditEvent({
       actorUserId: user.id,
@@ -830,7 +866,11 @@ router.post("/login", loginLimiter, async (req: Request, res: Response) => {
       eventType: AUDIT_EVENTS.USER_LOGIN,
       payload: { ip: req.ip, ua: req.headers["user-agent"] },
     });
-    return res.status(200).json({ token: accessToken, ...(await currentAuthPayload(user.id)) });
+    return res.status(200).json({
+      token: tokens.accessToken,
+      ...mobileTokenFields(req, tokens),
+      ...(await currentAuthPayload(user.id)),
+    });
   } catch (err) {
     logger.error("[auth/login] Error", { error: String(err) });
     return res.status(500).json({ message: "Login failed" });
@@ -839,7 +879,7 @@ router.post("/login", loginLimiter, async (req: Request, res: Response) => {
 
 router.post("/refresh", async (req: Request, res: Response) => {
   try {
-    const refreshToken = req.cookies?.refresh_token;
+    const refreshToken = incomingRefreshToken(req);
     if (!refreshToken) return res.status(401).json({ message: "Refresh token required" });
 
     if (isDevAuthWithoutDbEnabled()) {
@@ -856,7 +896,7 @@ router.post("/refresh", async (req: Request, res: Response) => {
         return res.status(401).json({ message: "Authentication required" });
       }
       const tokens = await createDevLoginSession(req, res, user);
-      return res.status(200).json({ token: tokens.accessToken });
+      return res.status(200).json({ token: tokens.accessToken, ...mobileTokenFields(req, tokens) });
     }
 
     // Atomic rotation: DELETE ... RETURNING ensures only one of N concurrent
@@ -874,7 +914,7 @@ router.post("/refresh", async (req: Request, res: Response) => {
     }
 
     const tokens = await createLoginSession(req, res, user.id);
-    return res.status(200).json({ token: tokens.accessToken });
+    return res.status(200).json({ token: tokens.accessToken, ...mobileTokenFields(req, tokens) });
   } catch (err) {
     logger.error("[auth/refresh] Error", { error: String(err) });
     return res.status(500).json({ message: "Token refresh failed" });
@@ -905,7 +945,7 @@ router.get("/me", async (req: Request, res: Response) => {
 });
 
 router.post("/logout", async (req: Request, res: Response) => {
-  const refreshToken = req.cookies?.refresh_token;
+  const refreshToken = incomingRefreshToken(req);
   if (isDevAuthWithoutDbEnabled()) {
     if (refreshToken) devSessionsByRefreshHash.delete(tokenHash(refreshToken));
     clearAuthCookies(req, res);
