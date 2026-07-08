@@ -11,6 +11,7 @@ const h = vi.hoisted(() => ({
   mockSummary: vi.fn(),
   mockTrack: vi.fn(),
   mockSend: vi.fn(),
+  mockFindUserById: vi.fn(),
 }));
 
 vi.mock("../middleware", () => ({
@@ -34,6 +35,7 @@ vi.mock("../lib/pg-queries", () => ({
   pgMarkFeePaid: h.mockMarkPaid,
   pgGetFeeSummary: h.mockSummary,
   pgTrackFeatureUsage: h.mockTrack,
+  pgFindUserById: h.mockFindUserById,
 }));
 
 vi.mock("../services/whatsapp", () => ({
@@ -55,6 +57,26 @@ describe("Fees API", () => {
     vi.clearAllMocks();
     app = makeApp();
     h.currentUser = { id: 5, role: "school_admin", school_code: "SCHOOL123" };
+    // Default: the target student belongs to the admin's school (W-6 check).
+    h.mockFindUserById.mockResolvedValue({ id: 9, role: "student", schoolCode: "SCHOOL123" });
+  });
+
+  it("blocks creating a fee for another school's student (403, no create)", async () => {
+    h.mockFindUserById.mockResolvedValue({ id: 9, role: "student", schoolCode: "OTHER" });
+    const res = await request(app)
+      .post("/api/fees")
+      .send({ studentId: 9, description: "Term 1", amountCents: 500000 });
+    expect(res.status).toBe(403);
+    expect(h.mockCreate).not.toHaveBeenCalled();
+  });
+
+  it("404s when the fee target is not a student", async () => {
+    h.mockFindUserById.mockResolvedValue({ id: 9, role: "teacher", schoolCode: "SCHOOL123" });
+    const res = await request(app)
+      .post("/api/fees")
+      .send({ studentId: 9, description: "Term 1", amountCents: 500000 });
+    expect(res.status).toBe(404);
+    expect(h.mockCreate).not.toHaveBeenCalled();
   });
 
   it("creates a fee scoped to the admin's school", async () => {

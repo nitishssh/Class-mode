@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import express from "express";
 import request from "supertest";
 
@@ -57,9 +57,22 @@ describe("Attendance API", () => {
   let app: express.Express;
   beforeEach(() => {
     vi.clearAllMocks();
+    // Pin the clock (Date only — real timers stay live for supertest) so the
+    // W-6 marking window [today-3, today] is deterministic.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-07-02T10:00:00Z"));
     app = makeApp();
     h.currentUser = { id: 10, role: "teacher", school_code: "SCHOOL123" };
-    h.mockFindUsers.mockResolvedValue([]);
+    // Default roster: the students the tests mark. W-6 fails closed on any
+    // mark whose studentId is missing from this list.
+    h.mockFindUsers.mockResolvedValue([
+      { id: 1, name: "Asha", parentPhone: "+919876543210" },
+      { id: 2, name: "Ravi", parentPhone: null },
+    ]);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("marks attendance scoped to the teacher's school", async () => {
@@ -79,6 +92,66 @@ describe("Attendance API", () => {
     expect(h.mockMark).toHaveBeenCalledWith(
       expect.objectContaining({ schoolCode: "SCHOOL123", className: "Grade 10", markedBy: 10 })
     );
+    // Roster membership was checked against the teacher's own school.
+    expect(h.mockFindUsers).toHaveBeenCalledWith({
+      role: "student",
+      classname: "Grade 10",
+      schoolCode: "SCHOOL123",
+    });
+  });
+
+  it("rejects marks for a student outside the teacher's class/school (403, no write)", async () => {
+    const res = await request(app)
+      .post("/api/attendance")
+      .send({
+        className: "Grade 10",
+        date: "2026-07-01",
+        marks: [
+          { studentId: 1, status: "present" },
+          { studentId: 999, status: "absent" }, // another school's student
+        ],
+      });
+    expect(res.status).toBe(403);
+    expect(h.mockMark).not.toHaveBeenCalled();
+    expect(h.mockSend).not.toHaveBeenCalled();
+  });
+
+  it("rejects a future-dated mark (400, no write)", async () => {
+    const res = await request(app)
+      .post("/api/attendance")
+      .send({
+        className: "Grade 10",
+        date: "2026-07-04",
+        marks: [{ studentId: 1, status: "present" }],
+      });
+    expect(res.status).toBe(400);
+    expect(h.mockMark).not.toHaveBeenCalled();
+  });
+
+  it("rejects a mark older than the 3-day backfill window (400, no write)", async () => {
+    const res = await request(app)
+      .post("/api/attendance")
+      .send({
+        className: "Grade 10",
+        date: "2026-06-27",
+        marks: [{ studentId: 1, status: "present" }],
+      });
+    expect(res.status).toBe(400);
+    expect(h.mockMark).not.toHaveBeenCalled();
+  });
+
+  it("lets a platform admin backfill outside the window", async () => {
+    h.currentUser = { id: 1, role: "admin", school_code: null };
+    h.mockMark.mockResolvedValue(1);
+    const res = await request(app)
+      .post("/api/attendance")
+      .send({
+        className: "Grade 10",
+        date: "2026-06-01",
+        marks: [{ studentId: 1, status: "excused" }],
+      });
+    expect(res.status).toBe(200);
+    expect(h.mockMark).toHaveBeenCalled();
   });
 
   it("fails closed for a teacher with no school (403, no write)", async () => {
@@ -183,6 +256,27 @@ describe("Attendance API", () => {
     expect(res.status).toBe(200);
     expect(res.body.notified).toBe(0);
     expect(h.mockSend).not.toHaveBeenCalled();
+  });
+
+  describe("GET /roster", () => {
+    it("includes parentPhone for web clients", async () => {
+      const res = await request(app).get("/api/attendance/roster").query({ className: "Grade 10" });
+      expect(res.status).toBe(200);
+      expect(res.body[0]).toEqual({ id: 1, name: "Asha", parentPhone: "+919876543210" });
+    });
+
+    it("strips parentPhone for mobile clients (W-6: no guardian PII in device cache)", async () => {
+      const res = await request(app)
+        .get("/api/attendance/roster")
+        .set("X-Client", "mobile")
+        .query({ className: "Grade 10" });
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual([
+        { id: 1, name: "Asha" },
+        { id: 2, name: "Ravi" },
+      ]);
+      for (const row of res.body) expect(row).not.toHaveProperty("parentPhone");
+    });
   });
 
   describe("PATCH /roster/:studentId/parent-phone", () => {

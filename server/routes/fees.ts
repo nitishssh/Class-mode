@@ -9,6 +9,7 @@ import {
   pgMarkFeePaid,
   pgGetFeeSummary,
   pgTrackFeatureUsage,
+  pgFindUserById,
   type FeeStatus,
 } from "../lib/pg-queries";
 import { whatsappService } from "../services/whatsapp";
@@ -41,6 +42,16 @@ router.post("/", authenticateToken, requireRole(...admins), async (req: Request,
 
   const parsed = CreateFeeSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
+
+  // W-6: the fee must target a student of the requester's school — otherwise a
+  // school admin could attach fees to another school's students.
+  const student = await pgFindUserById(parsed.data.studentId);
+  if (!student || student.role !== "student") {
+    return res.status(404).json({ message: "Student not found" });
+  }
+  if (!t.scope.isPlatformAdmin && student.schoolCode !== t.scope.schoolCode) {
+    return res.status(403).json({ message: "Forbidden: student belongs to another school" });
+  }
 
   const schoolCode = t.scope.isPlatformAdmin ? (user.school_code ?? null) : t.scope.schoolCode!;
   const id = await pgCreateFee({
