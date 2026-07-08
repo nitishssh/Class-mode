@@ -100,6 +100,22 @@ describe("Attendance API", () => {
     });
   });
 
+  it("returns 500 (not success:true) when the attendance write fails (W-2a)", async () => {
+    h.mockMark.mockRejectedValue(new Error("db connection lost"));
+    const res = await request(app)
+      .post("/api/attendance")
+      .send({
+        className: "Grade 10",
+        date: "2026-07-01",
+        marks: [{ studentId: 1, status: "present" }],
+      });
+    expect(res.status).toBe(500);
+    expect(res.body.success).toBeUndefined();
+    expect(res.body.message).toMatch(/retry/i);
+    // No absence alert may fire for a save that never happened.
+    expect(h.mockSend).not.toHaveBeenCalled();
+  });
+
   it("rejects marks for a student outside the teacher's class/school (403, no write)", async () => {
     const res = await request(app)
       .post("/api/attendance")

@@ -112,13 +112,28 @@ router.post(
     }
 
     const schoolCode = t.scope.isPlatformAdmin ? (user.school_code ?? null) : t.scope.schoolCode!;
-    const written = await pgMarkAttendance({
-      schoolCode,
-      className: parsed.data.className,
-      date: parsed.data.date,
-      markedBy: user.id,
-      marks: parsed.data.marks,
-    });
+    // W-2a: a failed write must be a failed response. pgMarkAttendance now
+    // throws on DB errors (it used to swallow them and return 0, which made
+    // the route reply success:true for a save that never happened — an
+    // offline client would dequeue and lose the day's marking).
+    let written: number;
+    try {
+      written = await pgMarkAttendance({
+        schoolCode,
+        className: parsed.data.className,
+        date: parsed.data.date,
+        markedBy: user.id,
+        marks: parsed.data.marks,
+      });
+    } catch (err) {
+      logger.error("[attendance] mark write failed", {
+        userId: user.id,
+        className: parsed.data.className,
+        date: parsed.data.date,
+        error: String(err),
+      });
+      return res.status(500).json({ message: "Attendance save failed — please retry" });
+    }
 
     pgTrackFeatureUsage({ feature: "attendance", userId: user.id, schoolCode });
 

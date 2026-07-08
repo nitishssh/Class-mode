@@ -2459,31 +2459,50 @@ export async function pgMarkAttendance(params: {
   marks: AttendanceMark[];
 }): Promise<number> {
   if (!isPgReady() || params.marks.length === 0) return 0;
+
+  // W-2a: one batched statement in one transaction, and failures PROPAGATE.
+  // The old per-row loop swallowed errors and returned 0 while the route
+  // replied success:true — the mobile offline queue would dequeue a lost
+  // day of marking on that "success". All-or-nothing keeps `written` honest.
+  //
+  // Dedupe by studentId (last mark wins): a multi-row ON CONFLICT DO UPDATE
+  // errors if the same (student_id, date) appears twice in one statement.
+  const deduped = [...new Map(params.marks.map((m) => [m.studentId, m])).values()];
+
+  const values: unknown[] = [];
+  const rows = deduped.map((m, i) => {
+    const o = i * 7;
+    values.push(
+      m.studentId,
+      params.schoolCode,
+      params.className,
+      params.date,
+      m.status,
+      params.markedBy,
+      m.note ?? null
+    );
+    return `($${o + 1}, $${o + 2}, $${o + 3}, $${o + 4}, $${o + 5}, $${o + 6}, $${o + 7})`;
+  });
+
+  const client = await getPgPool().connect();
   try {
-    let written = 0;
-    for (const m of params.marks) {
-      await getPgPool().query(
-        `INSERT INTO attendance (student_id, school_code, class_name, date, status, marked_by, note)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
-         ON CONFLICT (student_id, date)
-         DO UPDATE SET status = EXCLUDED.status, note = EXCLUDED.note,
-                       marked_by = EXCLUDED.marked_by, updated_at = now()`,
-        [
-          m.studentId,
-          params.schoolCode,
-          params.className,
-          params.date,
-          m.status,
-          params.markedBy,
-          m.note ?? null,
-        ]
-      );
-      written += 1;
-    }
-    return written;
+    await client.query("BEGIN");
+    const result = await client.query(
+      `INSERT INTO attendance (student_id, school_code, class_name, date, status, marked_by, note)
+       VALUES ${rows.join(", ")}
+       ON CONFLICT (student_id, date)
+       DO UPDATE SET status = EXCLUDED.status, note = EXCLUDED.note,
+                     marked_by = EXCLUDED.marked_by, updated_at = now()`,
+      values
+    );
+    await client.query("COMMIT");
+    return result.rowCount ?? deduped.length;
   } catch (err) {
+    await client.query("ROLLBACK").catch(() => undefined);
     logger.error("[pg] pgMarkAttendance failed", { err: String(err) });
-    return 0;
+    throw err;
+  } finally {
+    client.release();
   }
 }
 
