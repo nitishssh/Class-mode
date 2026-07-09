@@ -155,9 +155,7 @@ export const schoolAttendanceSummaryResponseSchema = z
   })
   .passthrough();
 export type SchoolAttendanceClassSummary = z.infer<typeof schoolAttendanceClassSummarySchema>;
-export type SchoolAttendanceSummaryResponse = z.infer<
-  typeof schoolAttendanceSummaryResponseSchema
->;
+export type SchoolAttendanceSummaryResponse = z.infer<typeof schoolAttendanceSummaryResponseSchema>;
 
 // POST /api/attendance request body (mirror of the server's MarkSchema).
 export const markAttendanceRequestSchema = z.object({
