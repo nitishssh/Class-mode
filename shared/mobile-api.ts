@@ -199,6 +199,26 @@ export const parentChildrenResponseSchema = z
 export type ParentChildrenResponse = z.infer<typeof parentChildrenResponseSchema>;
 export type ParentChild = z.infer<typeof parentChildSchema>;
 
+export const parentAttendanceHistoryRowSchema = z
+  .object({
+    date: z.string(),
+    status: attendanceStatusSchema,
+    note: z.string().nullish(),
+    className: z.string().nullish(),
+  })
+  .passthrough();
+
+export const parentChildAttendanceHistoryResponseSchema = z
+  .object({
+    studentId: z.number().int(),
+    attendance: z.array(parentAttendanceHistoryRowSchema),
+  })
+  .passthrough();
+export type ParentAttendanceHistoryRow = z.infer<typeof parentAttendanceHistoryRowSchema>;
+export type ParentChildAttendanceHistoryResponse = z.infer<
+  typeof parentChildAttendanceHistoryResponseSchema
+>;
+
 export const parentFeeSchema = z
   .object({
     id: z.number().int(),
