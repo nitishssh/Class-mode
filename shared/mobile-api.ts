@@ -132,6 +132,33 @@ export const attendanceRowSchema = z
 export const attendanceListResponseSchema = z.array(attendanceRowSchema);
 export type AttendanceRow = z.infer<typeof attendanceRowSchema>;
 
+// GET /api/attendance/school-summary?date= — principal/school-admin live view.
+export const schoolAttendanceClassSummarySchema = z
+  .object({
+    className: z.string(),
+    totalStudents: z.number().int().nonnegative(),
+    markedStudents: z.number().int().nonnegative(),
+    present: z.number().int().nonnegative(),
+    absent: z.number().int().nonnegative(),
+    late: z.number().int().nonnegative(),
+    excused: z.number().int().nonnegative(),
+    unmarked: z.number().int().nonnegative(),
+  })
+  .passthrough();
+
+export const schoolAttendanceSummaryResponseSchema = z
+  .object({
+    date: z.string(),
+    totals: schoolAttendanceClassSummarySchema.omit({ className: true }),
+    classes: z.array(schoolAttendanceClassSummarySchema),
+    unmarkedClasses: z.array(z.string()),
+  })
+  .passthrough();
+export type SchoolAttendanceClassSummary = z.infer<typeof schoolAttendanceClassSummarySchema>;
+export type SchoolAttendanceSummaryResponse = z.infer<
+  typeof schoolAttendanceSummaryResponseSchema
+>;
+
 // POST /api/attendance request body (mirror of the server's MarkSchema).
 export const markAttendanceRequestSchema = z.object({
   className: z.string().min(1),
@@ -172,6 +199,26 @@ export const parentChildrenResponseSchema = z
 export type ParentChildrenResponse = z.infer<typeof parentChildrenResponseSchema>;
 export type ParentChild = z.infer<typeof parentChildSchema>;
 
+export const parentAttendanceHistoryRowSchema = z
+  .object({
+    date: z.string(),
+    status: attendanceStatusSchema,
+    note: z.string().nullish(),
+    className: z.string().nullish(),
+  })
+  .passthrough();
+
+export const parentChildAttendanceHistoryResponseSchema = z
+  .object({
+    studentId: z.number().int(),
+    attendance: z.array(parentAttendanceHistoryRowSchema),
+  })
+  .passthrough();
+export type ParentAttendanceHistoryRow = z.infer<typeof parentAttendanceHistoryRowSchema>;
+export type ParentChildAttendanceHistoryResponse = z.infer<
+  typeof parentChildAttendanceHistoryResponseSchema
+>;
+
 export const parentFeeSchema = z
   .object({
     id: z.number().int(),
@@ -195,3 +242,47 @@ export const parentChildFeeSummarySchema = z
   })
   .passthrough();
 export type ParentChildFeeSummary = z.infer<typeof parentChildFeeSummarySchema>;
+
+// GET /api/fees, GET /api/fees/summary, POST /api/fees for staff fee workflows.
+export const feeStatusSchema = z.enum(["pending", "paid", "waived"]);
+
+export const staffFeeSchema = z
+  .object({
+    id: z.number().int(),
+    studentId: z.number().int(),
+    studentName: z.string(),
+    parentPhone: z.string().nullish(),
+    description: z.string(),
+    amountCents: z.number().int(),
+    currency: z.string(),
+    status: feeStatusSchema,
+    dueDate: z.string().nullish(),
+    paidAt: z.string().nullish(),
+  })
+  .passthrough();
+
+export const staffFeesResponseSchema = z.array(staffFeeSchema);
+export const staffFeeSummarySchema = z
+  .object({
+    pendingCents: z.number().int(),
+    paidCents: z.number().int(),
+    pendingCount: z.number().int(),
+    paidCount: z.number().int(),
+  })
+  .passthrough();
+export const createFeeResponseSchema = z
+  .object({
+    id: z.number().int(),
+    status: feeStatusSchema,
+  })
+  .passthrough();
+export const actionSuccessResponseSchema = z
+  .object({
+    success: z.boolean(),
+    simulated: z.boolean().optional(),
+  })
+  .passthrough();
+
+export type StaffFee = z.infer<typeof staffFeeSchema>;
+export type StaffFeeSummary = z.infer<typeof staffFeeSummarySchema>;
+export type FeeStatus = z.infer<typeof feeStatusSchema>;

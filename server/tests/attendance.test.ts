@@ -8,6 +8,7 @@ const h = vi.hoisted(() => ({
   mockMark: vi.fn(),
   mockGetByClass: vi.fn(),
   mockSummary: vi.fn(),
+  mockSchoolSummary: vi.fn(),
   mockFindUsers: vi.fn(),
   mockFindUserById: vi.fn(),
   mockUpdateUser: vi.fn(),
@@ -35,6 +36,7 @@ vi.mock("../lib/pg-queries", () => ({
   pgMarkAttendance: h.mockMark,
   pgGetAttendanceByClassDate: h.mockGetByClass,
   pgGetStudentAttendanceSummary: h.mockSummary,
+  pgGetSchoolAttendanceSummary: h.mockSchoolSummary,
   pgGetClassNames: vi.fn(),
   pgFindUsers: h.mockFindUsers,
   pgFindUserById: h.mockFindUserById,
@@ -244,6 +246,63 @@ describe("Attendance API", () => {
     expect(res.status).toBe(200);
     expect(res.body.total).toBe(9);
     expect(h.mockSummary).toHaveBeenCalledWith({ studentId: 1, schoolCode: "SCHOOL123" });
+  });
+
+  it("returns a principal school summary scoped to the principal's school", async () => {
+    h.currentUser = { id: 22, role: "principal", school_code: "SCHOOL123" };
+    h.mockSchoolSummary.mockResolvedValue({
+      date: "2026-07-02",
+      totals: {
+        totalStudents: 4,
+        markedStudents: 3,
+        present: 2,
+        absent: 1,
+        late: 0,
+        excused: 0,
+        unmarked: 1,
+      },
+      classes: [
+        {
+          className: "Grade 10",
+          totalStudents: 4,
+          markedStudents: 3,
+          present: 2,
+          absent: 1,
+          late: 0,
+          excused: 0,
+          unmarked: 1,
+        },
+      ],
+      unmarkedClasses: ["Grade 10"],
+    });
+
+    const res = await request(app)
+      .get("/api/attendance/school-summary")
+      .query({ date: "2026-07-02" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.unmarkedClasses).toEqual(["Grade 10"]);
+    expect(h.mockSchoolSummary).toHaveBeenCalledWith({
+      schoolCode: "SCHOOL123",
+      date: "2026-07-02",
+    });
+  });
+
+  it("fails closed for a principal school summary with no school", async () => {
+    h.currentUser = { id: 22, role: "principal", school_code: null };
+    const res = await request(app)
+      .get("/api/attendance/school-summary")
+      .query({ date: "2026-07-02" });
+    expect(res.status).toBe(403);
+    expect(h.mockSchoolSummary).not.toHaveBeenCalled();
+  });
+
+  it("rejects school summary access for teachers", async () => {
+    const res = await request(app)
+      .get("/api/attendance/school-summary")
+      .query({ date: "2026-07-02" });
+    expect(res.status).toBe(403);
+    expect(h.mockSchoolSummary).not.toHaveBeenCalled();
   });
 
   it("notifies the parent of an absent student on WhatsApp", async () => {

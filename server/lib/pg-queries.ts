@@ -2600,6 +2600,24 @@ export interface AttendanceMark {
   note?: string | null;
 }
 
+export interface SchoolAttendanceClassSummary {
+  className: string;
+  totalStudents: number;
+  markedStudents: number;
+  present: number;
+  absent: number;
+  late: number;
+  excused: number;
+  unmarked: number;
+}
+
+export interface SchoolAttendanceSummary {
+  date: string;
+  totals: Omit<SchoolAttendanceClassSummary, "className">;
+  classes: SchoolAttendanceClassSummary[];
+  unmarkedClasses: string[];
+}
+
 /**
  * Upsert attendance for a set of students on a given date (one row per
  * student/day). Scoped by schoolCode so a class's marks stay tenant-isolated.
@@ -2693,6 +2711,91 @@ export async function pgGetAttendanceByClassDate(params: {
   } catch (err) {
     logger.error("[pg] pgGetAttendanceByClassDate failed", { err: String(err) });
     return [];
+  }
+}
+
+/** Principal/school-admin live dashboard: one row per class for one date. */
+export async function pgGetSchoolAttendanceSummary(params: {
+  schoolCode?: string;
+  date: string;
+}): Promise<SchoolAttendanceSummary> {
+  const emptyTotals = {
+    totalStudents: 0,
+    markedStudents: 0,
+    present: 0,
+    absent: 0,
+    late: 0,
+    excused: 0,
+    unmarked: 0,
+  };
+  const empty = {
+    date: params.date,
+    totals: { ...emptyTotals },
+    classes: [],
+    unmarkedClasses: [],
+  };
+  if (!isPgReady()) return empty;
+  try {
+    const conditions = ["u.role = 'student'", "u.class_name IS NOT NULL", "u.class_name <> ''"];
+    const values: any[] = [params.date];
+    if (params.schoolCode) {
+      conditions.push(`u.school_code = $${values.length + 1}`);
+      values.push(params.schoolCode);
+    }
+
+    const { rows } = await getPgPool().query(
+      `SELECT u.class_name AS "className",
+              COUNT(u.id)::int AS "totalStudents",
+              COUNT(a.student_id)::int AS "markedStudents",
+              COUNT(*) FILTER (WHERE a.status = 'present')::int AS present,
+              COUNT(*) FILTER (WHERE a.status = 'absent')::int AS absent,
+              COUNT(*) FILTER (WHERE a.status = 'late')::int AS late,
+              COUNT(*) FILTER (WHERE a.status = 'excused')::int AS excused
+         FROM users u
+         LEFT JOIN attendance a ON a.student_id = u.id AND a.date = $1
+        WHERE ${conditions.join(" AND ")}
+        GROUP BY u.class_name
+        ORDER BY u.class_name ASC`,
+      values
+    );
+
+    const classes = rows.map((r): SchoolAttendanceClassSummary => {
+      const totalStudents = Number(r.totalStudents) || 0;
+      const markedStudents = Number(r.markedStudents) || 0;
+      return {
+        className: r.className,
+        totalStudents,
+        markedStudents,
+        present: Number(r.present) || 0,
+        absent: Number(r.absent) || 0,
+        late: Number(r.late) || 0,
+        excused: Number(r.excused) || 0,
+        unmarked: Math.max(totalStudents - markedStudents, 0),
+      };
+    });
+
+    const totals = classes.reduce(
+      (acc, row) => ({
+        totalStudents: acc.totalStudents + row.totalStudents,
+        markedStudents: acc.markedStudents + row.markedStudents,
+        present: acc.present + row.present,
+        absent: acc.absent + row.absent,
+        late: acc.late + row.late,
+        excused: acc.excused + row.excused,
+        unmarked: acc.unmarked + row.unmarked,
+      }),
+      { ...emptyTotals }
+    );
+
+    return {
+      date: params.date,
+      totals,
+      classes,
+      unmarkedClasses: classes.filter((row) => row.unmarked > 0).map((row) => row.className),
+    };
+  } catch (err) {
+    logger.error("[pg] pgGetSchoolAttendanceSummary failed", { err: String(err) });
+    return empty;
   }
 }
 
