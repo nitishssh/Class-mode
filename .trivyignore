@@ -1,1 +1,20 @@
 DS002
+
+# ── Triage 2026-07-10 (issue #300) ────────────────────────────────────
+# Both CVEs below live in the npm CLI's bundled dependencies inside the
+# node:22-alpine base image (/usr/local/lib/node_modules/npm/...), NOT in
+# app dependencies (npm audit --omit=dev: 0 vulns). The production
+# container never executes npm at runtime (CMD ["node","dist/index.js"];
+# healthcheck uses wget), so they are unreachable in the running image.
+# They disappear once the node:22-alpine base ships an npm that bundles
+# the fixed versions — the exp dates force re-triage if that hasn't
+# happened by then.
+
+# picomatch 4.0.3 ReDoS via crafted extglob patterns (fixed 4.0.4) —
+# only reachable when npm itself processes globs at build time.
+CVE-2026-33671 exp:2026-10-31
+
+# sigstore 3.1.0 certificateOIDs verification constraints silently
+# dropped (fixed 4.1.1) — only reachable during npm's own signature
+# verification at build time.
+CVE-2026-48815 exp:2026-10-31
