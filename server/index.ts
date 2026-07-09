@@ -179,9 +179,7 @@ app.use(
     // 30 teachers cold-starting the app at 8:55am would trip a 10/min/IP
     // limit on infrastructure, not abuse (W-1).
     skip: (req) =>
-      process.env.NODE_ENV !== "production" ||
-      req.path === "/me" ||
-      req.path === "/refresh",
+      process.env.NODE_ENV !== "production" || req.path === "/me" || req.path === "/refresh",
   })
 );
 
