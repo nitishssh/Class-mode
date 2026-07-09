@@ -5,8 +5,13 @@ if (!process.env.STRIPE_SECRET_KEY) {
   logger.warn("STRIPE_SECRET_KEY is not set. Billing features will be disabled.");
 }
 
-// Fallback dummy key to prevent initialization error
-const stripeKey = process.env.STRIPE_SECRET_KEY || "sk_test_" + "4eC39HqLyjWDarjtT1zdp7dc";
+// Fallback dummy key to prevent initialization error. Deliberately NOT a
+// key-shaped string: Stripe's public docs key used here previously gets
+// constant-folded into dist/index.js by esbuild and trips Trivy's
+// stripe-secret-token CRITICAL secret finding (issue #300). Any Stripe call
+// made with this placeholder fails with an auth error, which is the correct
+// behavior when STRIPE_SECRET_KEY is unset (billing is disabled anyway).
+const stripeKey = process.env.STRIPE_SECRET_KEY || "sk_test_dummy";
 
 export const stripe = new Stripe(stripeKey, {
   apiVersion: "2023-10-16" as any,
