@@ -222,3 +222,47 @@ export const parentChildFeeSummarySchema = z
   })
   .passthrough();
 export type ParentChildFeeSummary = z.infer<typeof parentChildFeeSummarySchema>;
+
+// GET /api/fees, GET /api/fees/summary, POST /api/fees for staff fee workflows.
+export const feeStatusSchema = z.enum(["pending", "paid", "waived"]);
+
+export const staffFeeSchema = z
+  .object({
+    id: z.number().int(),
+    studentId: z.number().int(),
+    studentName: z.string(),
+    parentPhone: z.string().nullish(),
+    description: z.string(),
+    amountCents: z.number().int(),
+    currency: z.string(),
+    status: feeStatusSchema,
+    dueDate: z.string().nullish(),
+    paidAt: z.string().nullish(),
+  })
+  .passthrough();
+
+export const staffFeesResponseSchema = z.array(staffFeeSchema);
+export const staffFeeSummarySchema = z
+  .object({
+    pendingCents: z.number().int(),
+    paidCents: z.number().int(),
+    pendingCount: z.number().int(),
+    paidCount: z.number().int(),
+  })
+  .passthrough();
+export const createFeeResponseSchema = z
+  .object({
+    id: z.number().int(),
+    status: feeStatusSchema,
+  })
+  .passthrough();
+export const actionSuccessResponseSchema = z
+  .object({
+    success: z.boolean(),
+    simulated: z.boolean().optional(),
+  })
+  .passthrough();
+
+export type StaffFee = z.infer<typeof staffFeeSchema>;
+export type StaffFeeSummary = z.infer<typeof staffFeeSummarySchema>;
+export type FeeStatus = z.infer<typeof feeStatusSchema>;
