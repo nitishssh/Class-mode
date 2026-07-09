@@ -72,7 +72,7 @@ test.describe("Attendance — mark absent dispatches a parent alert", () => {
       await expect(page.getByText(parentPhone)).toBeVisible({ timeout: 10000 });
     });
 
-    await test.step("marking the student absent saves attendance and notifies the parent", async () => {
+    await test.step("marking the student absent saves attendance and reports alert status honestly", async () => {
       const attendanceResponse = page.waitForResponse(
         (res) => res.url().includes("/api/attendance") && res.request().method() === "POST"
       );
@@ -83,23 +83,23 @@ test.describe("Attendance — mark absent dispatches a parent alert", () => {
 
       expect(body.success).toBe(true);
       expect(body.written).toBe(1);
-      // No WhatsApp credentials are configured in this test environment, so
-      // the send is simulated (server/services/whatsapp.ts) rather than a
-      // live Graph API call — but `notified` still counts it, which is the
-      // regression guard: the absence-alert pipeline ran end to end.
-      expect(body.notified).toBe(1);
+      // No WhatsApp credentials are configured in this test environment, and
+      // since W-2a the API reports that honestly instead of counting
+      // simulated sends: dispatch is skipped and the alerts block says so.
+      // Dispatch itself (configured, send succeeds/fails) is covered by
+      // server/tests/attendance.test.ts with a mocked WhatsApp service.
+      expect(body.notified).toBe(0);
+      expect(body.alerts).toEqual({ channel: "whatsapp", enabled: false, attempted: 0 });
 
       // Both scoped with `exact: true` — a screen-reader live-region
-      // announcement ("Attendance saved1 students marked. 1 parent(s)
-      // notified on WhatsApp...") concatenates the toast title and body, so
-      // it contains each of these as a substring too, which trips
-      // Playwright's strict-mode locator check against the toast itself.
+      // announcement ("Attendance saved1 students marked.") concatenates the
+      // toast title and body, so it contains each of these as a substring
+      // too, which trips Playwright's strict-mode locator check against the
+      // toast itself. With alerts disabled the toast omits the WhatsApp line.
       await expect(page.getByText("Attendance saved", { exact: true })).toBeVisible({
         timeout: 10000,
       });
-      await expect(
-        page.getByText("1 students marked. 1 parent(s) notified on WhatsApp.", { exact: true })
-      ).toBeVisible();
+      await expect(page.getByText("1 students marked.", { exact: true })).toBeVisible();
     });
   });
 });
