@@ -6,6 +6,7 @@ import {
   pgMarkAttendance,
   pgGetAttendanceByClassDate,
   pgGetStudentAttendanceSummary,
+  pgGetSchoolAttendanceSummary,
   pgTrackFeatureUsage,
   pgGetClassNames,
   pgFindUsers,
@@ -189,6 +190,32 @@ router.post(
       notified,
       alerts: { channel: "whatsapp", enabled: alertsEnabled, attempted: notified },
     });
+  }
+);
+
+/**
+ * GET /api/attendance/school-summary?date= — principal/school-admin live view:
+ * class coverage, absent counts, and unmarked-class nudges for one school day.
+ */
+router.get(
+  "/school-summary",
+  authenticateToken,
+  requireRole("admin", "principal", "school_admin"),
+  async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const t = resolveTenantScope(user);
+    if ("error" in t) return res.status(t.error.status).json({ message: t.error.message });
+
+    const date = String(req.query.date || "");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ message: "date (YYYY-MM-DD) is required" });
+    }
+
+    const summary = await pgGetSchoolAttendanceSummary({
+      schoolCode: t.scope.isPlatformAdmin ? undefined : t.scope.schoolCode,
+      date,
+    });
+    res.json(summary);
   }
 );
 

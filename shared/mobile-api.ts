@@ -132,6 +132,33 @@ export const attendanceRowSchema = z
 export const attendanceListResponseSchema = z.array(attendanceRowSchema);
 export type AttendanceRow = z.infer<typeof attendanceRowSchema>;
 
+// GET /api/attendance/school-summary?date= — principal/school-admin live view.
+export const schoolAttendanceClassSummarySchema = z
+  .object({
+    className: z.string(),
+    totalStudents: z.number().int().nonnegative(),
+    markedStudents: z.number().int().nonnegative(),
+    present: z.number().int().nonnegative(),
+    absent: z.number().int().nonnegative(),
+    late: z.number().int().nonnegative(),
+    excused: z.number().int().nonnegative(),
+    unmarked: z.number().int().nonnegative(),
+  })
+  .passthrough();
+
+export const schoolAttendanceSummaryResponseSchema = z
+  .object({
+    date: z.string(),
+    totals: schoolAttendanceClassSummarySchema.omit({ className: true }),
+    classes: z.array(schoolAttendanceClassSummarySchema),
+    unmarkedClasses: z.array(z.string()),
+  })
+  .passthrough();
+export type SchoolAttendanceClassSummary = z.infer<typeof schoolAttendanceClassSummarySchema>;
+export type SchoolAttendanceSummaryResponse = z.infer<
+  typeof schoolAttendanceSummaryResponseSchema
+>;
+
 // POST /api/attendance request body (mirror of the server's MarkSchema).
 export const markAttendanceRequestSchema = z.object({
   className: z.string().min(1),
