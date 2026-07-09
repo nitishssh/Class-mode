@@ -19,12 +19,14 @@ import {
   handleAttendanceMarked,
   type AttendanceMarkedPayload,
 } from "../services/notifications-consumer";
+import { whatsappService } from "../services/whatsapp";
 
 const router = Router();
 
 const MarkSchema = z.object({
   className: z.string().min(1),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "date must be YYYY-MM-DD"),
+  markedAt: z.string().datetime().optional(),
   marks: z
     .array(
       z.object({
@@ -97,9 +99,7 @@ router.post(
         : { role: "student", classname: parsed.data.className, schoolCode: t.scope.schoolCode }
     );
     const rosterIds = new Set(roster.map((s) => s.id));
-    const foreignIds = parsed.data.marks
-      .map((m) => m.studentId)
-      .filter((id) => !rosterIds.has(id));
+    const foreignIds = parsed.data.marks.map((m) => m.studentId).filter((id) => !rosterIds.has(id));
     if (foreignIds.length > 0) {
       logger.warn("[attendance] rejected marks for students outside tenant scope", {
         userId: user.id,
@@ -122,6 +122,7 @@ router.post(
         schoolCode,
         className: parsed.data.className,
         date: parsed.data.date,
+        markedAt: parsed.data.markedAt,
         markedBy: user.id,
         marks: parsed.data.marks,
       });
@@ -136,17 +137,21 @@ router.post(
     }
 
     pgTrackFeatureUsage({ feature: "attendance", userId: user.id, schoolCode });
+    if (req.headers["x-client"] === "mobile") {
+      pgTrackFeatureUsage({ feature: "attendance_mobile", userId: user.id, schoolCode });
+    }
 
     // Close the parent loop: WhatsApp the parent of every student marked
     // absent, when a parent phone is on file. With Redis on, this goes through
     // the durable event bus (crash between save and send no longer loses
     // alerts); without Redis it falls back to the inline fire-and-forget send.
     // Either way the teacher's save never blocks on delivery.
+    const alertsEnabled = whatsappService.isConfigured();
     const absentIds = new Set(
       parsed.data.marks.filter((m) => m.status === "absent").map((m) => m.studentId)
     );
     let notified = 0;
-    if (absentIds.size > 0) {
+    if (alertsEnabled && absentIds.size > 0) {
       const absentees = roster
         .filter((s) => absentIds.has(s.id) && s.parentPhone)
         .map((s) => ({ id: s.id, name: s.name, parentPhone: s.parentPhone as string }));
@@ -178,7 +183,12 @@ router.post(
       }
     }
 
-    res.json({ success: true, written, notified });
+    res.json({
+      success: true,
+      written,
+      notified,
+      alerts: { channel: "whatsapp", enabled: alertsEnabled, attempted: notified },
+    });
   }
 );
 

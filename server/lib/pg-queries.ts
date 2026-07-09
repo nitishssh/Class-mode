@@ -2364,6 +2364,160 @@ export async function pgGetFeeSummary(params: {
   }
 }
 
+export interface ParentChildStatus {
+  id: number;
+  name: string;
+  className: string | null;
+  schoolCode: string | null;
+  today: {
+    date: string;
+    status: AttendanceStatus | null;
+    markedAt: string | null;
+  };
+}
+
+export interface ParentChildAttendanceRow {
+  date: string;
+  status: AttendanceStatus;
+  note: string | null;
+  className: string | null;
+}
+
+export interface ParentChildFeeSummary {
+  pendingCents: number;
+  paidCents: number;
+  pendingCount: number;
+  paidCount: number;
+  fees: any[];
+}
+
+/** Children linked to a parent, including one date's attendance status. */
+export async function pgGetParentChildrenWithStatus(params: {
+  parentId: number;
+  date: string;
+}): Promise<ParentChildStatus[]> {
+  if (!isPgReady()) return [];
+  try {
+    const { rows } = await getPgPool().query(
+      `SELECT u.id, u.name, u.class_name AS "className", u.school_code AS "schoolCode",
+              a.status, a.updated_at AS "markedAt"
+         FROM users u
+         LEFT JOIN attendance a ON a.student_id = u.id AND a.date = $2
+        WHERE u.parent_id = $1 AND u.role = 'student'
+        ORDER BY u.name ASC`,
+      [params.parentId, params.date]
+    );
+    return rows.map((r) => ({
+      id: n(r.id)!,
+      name: r.name ?? "",
+      className: r.className ?? null,
+      schoolCode: r.schoolCode ?? null,
+      today: {
+        date: params.date,
+        status: (r.status as AttendanceStatus | null) ?? null,
+        markedAt: r.markedAt ? new Date(r.markedAt).toISOString() : null,
+      },
+    }));
+  } catch (err) {
+    logger.error("[pg] pgGetParentChildrenWithStatus failed", { err: String(err) });
+    return [];
+  }
+}
+
+/** Attendance history for one child, guarded by parent_id to prevent IDOR. */
+export async function pgGetParentChildAttendanceHistory(params: {
+  parentId: number;
+  studentId: number;
+  from?: string;
+  to?: string;
+  limit?: number;
+}): Promise<ParentChildAttendanceRow[] | null> {
+  if (!isPgReady()) return [];
+  try {
+    const ownership = await getPgPool().query(
+      `SELECT 1 FROM users WHERE id = $1 AND parent_id = $2 AND role = 'student'`,
+      [params.studentId, params.parentId]
+    );
+    if (!ownership.rowCount) return null;
+
+    const conditions = ["student_id = $1"];
+    const values: any[] = [params.studentId];
+    if (params.from) {
+      conditions.push(`date >= $${values.length + 1}`);
+      values.push(params.from);
+    }
+    if (params.to) {
+      conditions.push(`date <= $${values.length + 1}`);
+      values.push(params.to);
+    }
+    const limit = Math.min(Math.max(params.limit ?? 60, 1), 180);
+    values.push(limit);
+    const { rows } = await getPgPool().query(
+      `SELECT date, status, note, class_name AS "className"
+         FROM attendance
+        WHERE ${conditions.join(" AND ")}
+        ORDER BY date DESC
+        LIMIT $${values.length}`,
+      values
+    );
+    return rows.map((r) => ({
+      date: String(r.date).slice(0, 10),
+      status: r.status as AttendanceStatus,
+      note: r.note ?? null,
+      className: r.className ?? null,
+    }));
+  } catch (err) {
+    logger.error("[pg] pgGetParentChildAttendanceHistory failed", { err: String(err) });
+    return [];
+  }
+}
+
+/** Fee totals/details for one child, guarded by parent_id to prevent IDOR. */
+export async function pgGetParentChildFeeSummary(params: {
+  parentId: number;
+  studentId: number;
+}): Promise<ParentChildFeeSummary | null> {
+  const empty: ParentChildFeeSummary = {
+    pendingCents: 0,
+    paidCents: 0,
+    pendingCount: 0,
+    paidCount: 0,
+    fees: [],
+  };
+  if (!isPgReady()) return empty;
+  try {
+    const ownership = await getPgPool().query(
+      `SELECT 1 FROM users WHERE id = $1 AND parent_id = $2 AND role = 'student'`,
+      [params.studentId, params.parentId]
+    );
+    if (!ownership.rowCount) return null;
+
+    const { rows } = await getPgPool().query(
+      `SELECT id, description, amount_cents AS "amountCents", currency, status,
+              due_date AS "dueDate", paid_at AS "paidAt"
+         FROM fees
+        WHERE student_id = $1
+        ORDER BY created_at DESC`,
+      [params.studentId]
+    );
+    const out = { ...empty, fees: rows };
+    for (const fee of rows) {
+      const cents = Number(fee.amountCents) || 0;
+      if (fee.status === "pending") {
+        out.pendingCents += cents;
+        out.pendingCount += 1;
+      } else if (fee.status === "paid") {
+        out.paidCents += cents;
+        out.paidCount += 1;
+      }
+    }
+    return out;
+  } catch (err) {
+    logger.error("[pg] pgGetParentChildFeeSummary failed", { err: String(err) });
+    return empty;
+  }
+}
+
 // ─── Feature usage (distribution instrumentation) ────────────────────────────
 
 /**
@@ -2455,6 +2609,7 @@ export async function pgMarkAttendance(params: {
   schoolCode: string | null;
   className: string | null;
   date: string; // YYYY-MM-DD
+  markedAt?: string;
   markedBy: number;
   marks: AttendanceMark[];
 }): Promise<number> {
@@ -2469,9 +2624,10 @@ export async function pgMarkAttendance(params: {
   // errors if the same (student_id, date) appears twice in one statement.
   const deduped = [...new Map(params.marks.map((m) => [m.studentId, m])).values()];
 
+  const markedAt = params.markedAt ?? new Date().toISOString();
   const values: unknown[] = [];
   const rows = deduped.map((m, i) => {
-    const o = i * 7;
+    const o = i * 8;
     values.push(
       m.studentId,
       params.schoolCode,
@@ -2479,24 +2635,28 @@ export async function pgMarkAttendance(params: {
       params.date,
       m.status,
       params.markedBy,
-      m.note ?? null
+      m.note ?? null,
+      markedAt
     );
-    return `($${o + 1}, $${o + 2}, $${o + 3}, $${o + 4}, $${o + 5}, $${o + 6}, $${o + 7})`;
+    return `($${o + 1}, $${o + 2}, $${o + 3}, $${o + 4}, $${o + 5}, $${o + 6}, $${o + 7}, $${o + 8})`;
   });
 
   const client = await getPgPool().connect();
   try {
     await client.query("BEGIN");
-    const result = await client.query(
-      `INSERT INTO attendance (student_id, school_code, class_name, date, status, marked_by, note)
+    await client.query(
+      `INSERT INTO attendance (student_id, school_code, class_name, date, status, marked_by, note, updated_at)
        VALUES ${rows.join(", ")}
        ON CONFLICT (student_id, date)
        DO UPDATE SET status = EXCLUDED.status, note = EXCLUDED.note,
-                     marked_by = EXCLUDED.marked_by, updated_at = now()`,
+                     marked_by = EXCLUDED.marked_by, updated_at = EXCLUDED.updated_at
+       WHERE attendance.updated_at <= EXCLUDED.updated_at`,
       values
     );
     await client.query("COMMIT");
-    return result.rowCount ?? deduped.length;
+    // A skipped stale replay is still safely handled: it did not clobber a
+    // newer web/mobile correction, and the mobile queue may dequeue it.
+    return deduped.length;
   } catch (err) {
     await client.query("ROLLBACK").catch(() => undefined);
     logger.error("[pg] pgMarkAttendance failed", { err: String(err) });

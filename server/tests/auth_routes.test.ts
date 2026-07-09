@@ -14,6 +14,7 @@ import {
   pgSetUserLastLogin,
   pgUpsertWorkspaceMembership,
 } from "../lib/pg-queries";
+import { tokenHash } from "../lib/auth-workspace";
 import { storage } from "../storage";
 
 vi.mock("../lib/mailer", () => ({
@@ -30,6 +31,10 @@ vi.mock("../lib/audit", () => ({
     INVITE_ACCEPTED: "invite_accepted",
   },
   recordAuditEvent: vi.fn(),
+}));
+
+vi.mock("../services/whatsapp", () => ({
+  whatsappService: { isConfigured: vi.fn(() => false) },
 }));
 
 vi.mock("../storage", () => ({
@@ -179,6 +184,7 @@ describe("custom auth routes", () => {
     expect(res.status).toBe(200);
     // In test env NODE_ENV != "production", so local password is enabled by default.
     expect(res.body.localPasswordAuthEnabled).toBe(true);
+    expect(res.body.alerts).toEqual({ channel: "whatsapp", enabled: false });
   });
 
   it("hides /dev/last-otp outside dev-without-db mode", async () => {
@@ -308,8 +314,60 @@ describe("W-1 mobile client auth contract (X-Client: mobile)", () => {
     const res = await request(app)
       .post("/api/auth/refresh")
       .set("X-Client", "mobile")
+      .set("Cookie", ["refresh_token=ambient-cookie-token"])
       .send({});
     expect(res.status).toBe(401);
+    expect(res.headers["set-cookie"]).toBeUndefined();
+    expect(storage.consumeSessionByRefreshToken).not.toHaveBeenCalled();
+  });
+
+  it("mobile refresh body token takes precedence over any ambient cookie", async () => {
+    (storage.consumeSessionByRefreshToken as any).mockResolvedValue({
+      id: 99,
+      userId: 2,
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+
+    const res = await request(app)
+      .post("/api/auth/refresh")
+      .set("X-Client", "mobile")
+      .set("Cookie", ["refresh_token=ambient-cookie-token"])
+      .send({ refreshToken: "stored-refresh-token" });
+
+    expect(res.status).toBe(200);
+    expect(typeof res.body.refreshToken).toBe("string");
+    expect(res.headers["set-cookie"]).toBeUndefined();
+    expect(storage.consumeSessionByRefreshToken).toHaveBeenCalledTimes(1);
+    expect(storage.consumeSessionByRefreshToken).toHaveBeenCalledWith(
+      tokenHash("stored-refresh-token")
+    );
+  });
+
+  it("mobile refresh rotation allows only one winner and emits no cookies for winner or loser", async () => {
+    (storage.consumeSessionByRefreshToken as any)
+      .mockResolvedValueOnce({
+        id: 99,
+        userId: 2,
+        expiresAt: new Date(Date.now() + 60_000),
+      })
+      .mockResolvedValueOnce(null);
+
+    const responses = await Promise.all([
+      request(app)
+        .post("/api/auth/refresh")
+        .set("X-Client", "mobile")
+        .send({ refreshToken: "stored-refresh-token" }),
+      request(app)
+        .post("/api/auth/refresh")
+        .set("X-Client", "mobile")
+        .send({ refreshToken: "stored-refresh-token" }),
+    ]);
+
+    expect(responses.map((res) => res.status).sort()).toEqual([200, 401]);
+    for (const res of responses) {
+      expect(res.headers["set-cookie"]).toBeUndefined();
+    }
+    expect(storage.consumeSessionByRefreshToken).toHaveBeenCalledTimes(2);
   });
 
   it("mobile logout deletes the session identified by the body refreshToken", async () => {
@@ -321,6 +379,7 @@ describe("W-1 mobile client auth contract (X-Client: mobile)", () => {
       .send({ refreshToken: "stored-refresh-token" });
 
     expect(res.status).toBe(200);
+    expect(res.headers["set-cookie"]).toBeUndefined();
     expect(storage.deleteSession).toHaveBeenCalledWith(99);
   });
 });

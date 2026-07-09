@@ -12,6 +12,8 @@ const h = vi.hoisted(() => ({
   mockFindUserById: vi.fn(),
   mockUpdateUser: vi.fn(),
   mockSend: vi.fn(),
+  mockWhatsappConfigured: vi.fn(),
+  mockTrack: vi.fn(),
 }));
 
 vi.mock("../middleware", () => ({
@@ -33,15 +35,15 @@ vi.mock("../lib/pg-queries", () => ({
   pgMarkAttendance: h.mockMark,
   pgGetAttendanceByClassDate: h.mockGetByClass,
   pgGetStudentAttendanceSummary: h.mockSummary,
-  pgTrackFeatureUsage: vi.fn(),
   pgGetClassNames: vi.fn(),
   pgFindUsers: h.mockFindUsers,
   pgFindUserById: h.mockFindUserById,
   pgUpdateUser: h.mockUpdateUser,
+  pgTrackFeatureUsage: h.mockTrack,
 }));
 
 vi.mock("../services/whatsapp", () => ({
-  whatsappService: { sendMessage: h.mockSend },
+  whatsappService: { sendMessage: h.mockSend, isConfigured: h.mockWhatsappConfigured },
 }));
 
 import attendanceRoutes from "../routes/attendance";
@@ -63,6 +65,7 @@ describe("Attendance API", () => {
     vi.setSystemTime(new Date("2026-07-02T10:00:00Z"));
     app = makeApp();
     h.currentUser = { id: 10, role: "teacher", school_code: "SCHOOL123" };
+    h.mockWhatsappConfigured.mockReturnValue(true);
     // Default roster: the students the tests mark. W-6 fails closed on any
     // mark whose studentId is missing from this list.
     h.mockFindUsers.mockResolvedValue([
@@ -82,15 +85,26 @@ describe("Attendance API", () => {
       .send({
         className: "Grade 10",
         date: "2026-07-01",
+        markedAt: "2026-07-01T04:30:00.000Z",
         marks: [
           { studentId: 1, status: "present" },
           { studentId: 2, status: "absent", note: "sick" },
         ],
       });
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ success: true, written: 2, notified: 0 });
+    expect(res.body).toEqual({
+      success: true,
+      written: 2,
+      notified: 0,
+      alerts: { channel: "whatsapp", enabled: true, attempted: 0 },
+    });
     expect(h.mockMark).toHaveBeenCalledWith(
-      expect.objectContaining({ schoolCode: "SCHOOL123", className: "Grade 10", markedBy: 10 })
+      expect.objectContaining({
+        schoolCode: "SCHOOL123",
+        className: "Grade 10",
+        markedAt: "2026-07-01T04:30:00.000Z",
+        markedBy: 10,
+      })
     );
     // Roster membership was checked against the teacher's own school.
     expect(h.mockFindUsers).toHaveBeenCalledWith({
@@ -254,6 +268,7 @@ describe("Attendance API", () => {
     expect(res.status).toBe(200);
     // Only Asha has a parent phone — exactly one message, to that number.
     expect(res.body.notified).toBe(1);
+    expect(res.body.alerts).toEqual({ channel: "whatsapp", enabled: true, attempted: 1 });
     expect(h.mockSend).toHaveBeenCalledTimes(1);
     expect(h.mockSend).toHaveBeenCalledWith(
       expect.objectContaining({ to: "+919876543210", body: expect.stringContaining("Asha") })
@@ -271,7 +286,47 @@ describe("Attendance API", () => {
       });
     expect(res.status).toBe(200);
     expect(res.body.notified).toBe(0);
+    expect(res.body.alerts).toEqual({ channel: "whatsapp", enabled: true, attempted: 0 });
     expect(h.mockSend).not.toHaveBeenCalled();
+  });
+
+  it("reports alerts disabled and skips dispatch when WhatsApp is not configured", async () => {
+    h.mockWhatsappConfigured.mockReturnValue(false);
+    h.mockMark.mockResolvedValue(1);
+
+    const res = await request(app)
+      .post("/api/attendance")
+      .send({
+        className: "Grade 10",
+        date: "2026-07-02",
+        marks: [{ studentId: 1, status: "absent" }],
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.notified).toBe(0);
+    expect(res.body.alerts).toEqual({ channel: "whatsapp", enabled: false, attempted: 0 });
+    expect(h.mockSend).not.toHaveBeenCalled();
+  });
+
+  it("tags mobile attendance saves separately for the demand gate", async () => {
+    h.mockMark.mockResolvedValue(1);
+
+    const res = await request(app)
+      .post("/api/attendance")
+      .set("X-Client", "mobile")
+      .send({
+        className: "Grade 10",
+        date: "2026-07-02",
+        marks: [{ studentId: 1, status: "present" }],
+      });
+
+    expect(res.status).toBe(200);
+    expect(h.mockTrack).toHaveBeenCalledWith(
+      expect.objectContaining({ feature: "attendance", schoolCode: "SCHOOL123" })
+    );
+    expect(h.mockTrack).toHaveBeenCalledWith(
+      expect.objectContaining({ feature: "attendance_mobile", schoolCode: "SCHOOL123" })
+    );
   });
 
   describe("GET /roster", () => {

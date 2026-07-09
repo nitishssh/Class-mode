@@ -40,6 +40,7 @@ import {
   type PgWorkspaceMembership,
 } from "../lib/pg-queries";
 import { sendEmailVerification, sendPasswordReset, sendWelcomeEmail } from "../lib/mailer";
+import { whatsappService } from "../services/whatsapp";
 
 const router = Router();
 
@@ -294,6 +295,7 @@ function incomingRefreshToken(req: Request): string | undefined {
   if (isMobileClient(req)) {
     const fromBody = (req.body as { refreshToken?: unknown } | undefined)?.refreshToken;
     if (typeof fromBody === "string" && fromBody.length > 0) return fromBody;
+    return undefined;
   }
   return req.cookies?.refresh_token;
 }
@@ -382,6 +384,7 @@ async function createLoginSession(req: Request, res: Response, userId: number) {
 }
 
 function clearAuthCookies(req: Request, res: Response) {
+  if (isMobileClient(req)) return;
   res.clearCookie(ACCESS_COOKIE, ACCESS_COOKIE_OPTS);
   res.clearCookie(REFRESH_COOKIE, REFRESH_COOKIE_OPTS);
   req.session?.destroy(() => undefined);
@@ -437,6 +440,7 @@ router.get("/config", (_req: Request, res: Response) => {
   res.status(200).json({
     localPasswordAuthEnabled: isLocalPasswordAuthEnabled(),
     devAuthWithoutDb: isDevAuthWithoutDbEnabled(),
+    alerts: { channel: "whatsapp", enabled: whatsappService.isConfigured() },
   });
 });
 
@@ -823,9 +827,11 @@ router.post("/login", loginLimiter, async (req: Request, res: Response) => {
       }
       user.lastLoginAt = new Date();
       const tokens = await createDevLoginSession(req, res, user);
-      return res
-        .status(200)
-        .json({ token: tokens.accessToken, ...mobileTokenFields(req, tokens), ...devAuthPayload(user) });
+      return res.status(200).json({
+        token: tokens.accessToken,
+        ...mobileTokenFields(req, tokens),
+        ...devAuthPayload(user),
+      });
     }
 
     const user = await pgFindUserByEmail(parsed.data.email);
