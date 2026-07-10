@@ -14,6 +14,7 @@ import { storage } from "./storage";
 import { connectPostgres } from "./db-pg";
 import { connectRedis } from "./lib/redis";
 import { startNotificationConsumers } from "./services/notifications-consumer";
+import { startExpoPushSender } from "./services/expo-push-sender";
 import { setupChatWebSocket } from "./chat-ws";
 import { setupMessagePalWebSocket } from "./message";
 import { initCassandra } from "./lib/cassandra";
@@ -245,6 +246,9 @@ app.use(
   // the attendance route falls back to inline sends.
   if (startNotificationConsumers()) {
     logger.info("[events] notification consumers started");
+  }
+  if (startExpoPushSender()) {
+    logger.info("[expo-push] sender started");
   }
 
   // Surface a missing/blocked Gemini key at boot with an actionable message

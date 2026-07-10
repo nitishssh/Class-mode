@@ -288,8 +288,10 @@ export const actionSuccessResponseSchema = z
   .object({
     success: z.boolean(),
     simulated: z.boolean().optional(),
+    message: z.string().optional(),
   })
   .passthrough();
+export type ActionSuccessResponse = z.infer<typeof actionSuccessResponseSchema>;
 
 export type StaffFee = z.infer<typeof staffFeeSchema>;
 export type StaffFeeSummary = z.infer<typeof staffFeeSummarySchema>;

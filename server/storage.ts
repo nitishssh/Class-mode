@@ -193,6 +193,12 @@ export interface IProductivityStorage {
   deleteTask(id: number, userId: number): Promise<boolean>;
   createNotification(n: InsertNotification): Promise<AppNotification>;
   getNotificationsByUser(userId: number): Promise<AppNotification[]>;
+  getPendingPushNotifications(limit?: number): Promise<AppNotification[]>;
+  markNotificationPushAttempt(
+    id: number,
+    status: "sent" | "failed",
+    details?: Record<string, unknown>
+  ): Promise<AppNotification | undefined>;
   markNotificationRead(id: number, userId: number): Promise<AppNotification | undefined>;
   dismissNotification(id: number, userId: number): Promise<boolean>;
   markAllNotificationsRead(userId: number): Promise<boolean>;
@@ -1640,6 +1646,56 @@ export class PgStorage implements IStorage {
       [userId]
     );
     return rows.map(mapNotification);
+  }
+
+  async getPendingPushNotifications(limit = 50): Promise<AppNotification[]> {
+    const { rows } = await this.pool.query(
+      `SELECT *
+       FROM notifications
+       WHERE is_read=false
+         AND (
+           meta IS NULL OR
+           meta = '' OR
+           (
+             meta NOT LIKE '%"status":"sent"%'
+             AND meta NOT LIKE '%"status": "sent"%'
+           )
+         )
+       ORDER BY created_at ASC
+       LIMIT $1`,
+      [limit]
+    );
+    return rows.map(mapNotification);
+  }
+
+  async markNotificationPushAttempt(
+    id: number,
+    status: "sent" | "failed",
+    details: Record<string, unknown> = {}
+  ): Promise<AppNotification | undefined> {
+    const push = {
+      status,
+      attemptedAt: new Date().toISOString(),
+      ...details,
+    };
+    const { rows } = await this.pool.query(
+      `UPDATE notifications
+       SET meta =
+         jsonb_set(
+           CASE
+             WHEN meta IS NULL OR meta = '' THEN '{}'::jsonb
+             WHEN meta LIKE '{%' THEN meta::jsonb
+             ELSE jsonb_build_object('legacyMeta', meta)
+           END,
+           '{push}',
+           $2::jsonb,
+           true
+         )::text
+       WHERE id=$1
+       RETURNING *`,
+      [id, JSON.stringify(push)]
+    );
+    return rows[0] ? mapNotification(rows[0]) : undefined;
   }
 
   async markNotificationRead(id: number, userId: number): Promise<AppNotification | undefined> {
