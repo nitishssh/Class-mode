@@ -4,10 +4,12 @@ import { authenticateToken } from "../middleware";
 import { requireRole } from "../middleware";
 import {
   pgFindUsers,
+  pgFindUserById,
   pgFindGradingResults,
   pgGetParentChildrenWithStatus,
   pgGetParentChildAttendanceHistory,
   pgGetParentChildFeeSummary,
+  pgUpdateUser,
 } from "../lib/pg-queries";
 import { storage } from "../storage";
 
@@ -32,6 +34,11 @@ const HistoryQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(180).optional(),
 });
 
+const ClaimSchema = z.object({
+  code: z.string().min(3).max(80),
+  parentPhone: z.string().min(6).max(32),
+});
+
 function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
@@ -39,6 +46,27 @@ function today(): string {
 function parseStudentId(raw: string): number | null {
   const id = Number.parseInt(raw, 10);
   return Number.isFinite(id) && id > 0 ? id : null;
+}
+
+function parseClaimCode(raw: string): { schoolCode: string; studentId: number } | null {
+  const normalized = raw.trim().toUpperCase().replace(/\s+/g, "");
+  const code = normalized.startsWith("CM-") ? normalized.slice(3) : normalized;
+  const match = code.match(/^(.+)-(\d+)$/);
+  if (!match) return null;
+  const studentId = parseStudentId(match[2]);
+  return studentId ? { schoolCode: match[1], studentId } : null;
+}
+
+function phoneTail(raw: string | null | undefined): string | null {
+  const digits = (raw ?? "").replace(/\D/g, "");
+  if (digits.length < 6) return null;
+  return digits.slice(-10);
+}
+
+function phonesMatch(input: string, stored: string | null | undefined): boolean {
+  const inputTail = phoneTail(input);
+  const storedTail = phoneTail(stored);
+  return Boolean(inputTail && storedTail && inputTail === storedTail);
 }
 
 router.get(
@@ -55,6 +83,54 @@ router.get(
     const date = parsed.data.date ?? today();
     const children = await pgGetParentChildrenWithStatus({ parentId: user.id, date });
     res.json({ date, children });
+  }
+);
+
+router.post(
+  "/claim",
+  authenticateToken,
+  requireRole("parent"),
+  async (req: Request, res: Response) => {
+    const parsedBody = ClaimSchema.safeParse(req.body);
+    if (!parsedBody.success) {
+      return res.status(400).json({ errors: parsedBody.error.flatten().fieldErrors });
+    }
+
+    const parsedCode = parseClaimCode(parsedBody.data.code);
+    if (!parsedCode) {
+      return res.status(400).json({ message: "Invalid claim code" });
+    }
+
+    const student = await pgFindUserById(parsedCode.studentId);
+    if (
+      !student ||
+      student.role !== "student" ||
+      (student.schoolCode ?? "").toUpperCase() !== parsedCode.schoolCode
+    ) {
+      return res.status(404).json({ message: "Wrong claim code" });
+    }
+
+    if (!student.parentPhone) {
+      return res
+        .status(409)
+        .json({ message: "School has not added a parent phone for this child" });
+    }
+
+    if (!phonesMatch(parsedBody.data.parentPhone, student.parentPhone)) {
+      return res.status(403).json({ message: "Phone does not match school record" });
+    }
+
+    if (student.parentId != null) {
+      return res.status(409).json({ message: "Child is already linked to a parent account" });
+    }
+
+    const user = (req as any).user;
+    const updated = await pgUpdateUser(student.id, { parentId: user.id });
+    if (!updated) {
+      return res.status(500).json({ message: "Could not link child" });
+    }
+
+    res.json({ success: true, studentId: student.id });
   }
 );
 

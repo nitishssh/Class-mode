@@ -197,6 +197,16 @@ export const parentChildrenResponseSchema = z
 export type ParentChildrenResponse = z.infer<typeof parentChildrenResponseSchema>;
 export type ParentChild = z.infer<typeof parentChildSchema>;
 
+// POST /api/parent/claim — parent links a child using a school-issued code
+// plus the phone number already stored on the student record.
+export const parentClaimResponseSchema = z
+  .object({
+    success: z.boolean(),
+    studentId: z.number().int(),
+  })
+  .passthrough();
+export type ParentClaimResponse = z.infer<typeof parentClaimResponseSchema>;
+
 export const parentAttendanceHistoryRowSchema = z
   .object({
     date: z.string(),

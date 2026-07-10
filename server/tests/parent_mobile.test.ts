@@ -5,10 +5,12 @@ import request from "supertest";
 const h = vi.hoisted(() => ({
   currentUser: null as any,
   mockFindUsers: vi.fn(),
+  mockFindUserById: vi.fn(),
   mockFindGradingResults: vi.fn(),
   mockChildren: vi.fn(),
   mockAttendanceHistory: vi.fn(),
   mockFeeSummary: vi.fn(),
+  mockUpdateUser: vi.fn(),
   mockGetTasksByUser: vi.fn(),
 }));
 
@@ -29,10 +31,12 @@ vi.mock("../middleware", () => ({
 
 vi.mock("../lib/pg-queries", () => ({
   pgFindUsers: h.mockFindUsers,
+  pgFindUserById: h.mockFindUserById,
   pgFindGradingResults: h.mockFindGradingResults,
   pgGetParentChildrenWithStatus: h.mockChildren,
   pgGetParentChildAttendanceHistory: h.mockAttendanceHistory,
   pgGetParentChildFeeSummary: h.mockFeeSummary,
+  pgUpdateUser: h.mockUpdateUser,
 }));
 
 vi.mock("../storage", () => ({
@@ -165,6 +169,87 @@ describe("Parent mobile endpoints", () => {
     const res = await request(app).get("/api/parent/children/999/fees");
 
     expect(res.status).toBe(404);
+  });
+
+  it("links a child when the school-issued code and parent phone match", async () => {
+    h.mockFindUserById.mockResolvedValue({
+      id: 7,
+      role: "student",
+      schoolCode: "SCHOOL123",
+      parentPhone: "+91 98765 43210",
+      parentId: null,
+    });
+    h.mockUpdateUser.mockResolvedValue({ id: 7, parentId: 42 });
+
+    const res = await request(app)
+      .post("/api/parent/claim")
+      .send({ code: "CM-SCHOOL123-7", parentPhone: "9876543210" });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ success: true, studentId: 7 });
+    expect(h.mockFindUserById).toHaveBeenCalledWith(7);
+    expect(h.mockUpdateUser).toHaveBeenCalledWith(7, { parentId: 42 });
+  });
+
+  it("rejects a malformed child claim code", async () => {
+    const res = await request(app)
+      .post("/api/parent/claim")
+      .send({ code: "not-a-code", parentPhone: "9876543210" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe("Invalid claim code");
+    expect(h.mockFindUserById).not.toHaveBeenCalled();
+  });
+
+  it("rejects a wrong child claim code", async () => {
+    h.mockFindUserById.mockResolvedValue({
+      id: 7,
+      role: "student",
+      schoolCode: "OTHER",
+      parentPhone: "9876543210",
+      parentId: null,
+    });
+
+    const res = await request(app)
+      .post("/api/parent/claim")
+      .send({ code: "SCHOOL123-7", parentPhone: "9876543210" });
+
+    expect(res.status).toBe(404);
+    expect(h.mockUpdateUser).not.toHaveBeenCalled();
+  });
+
+  it("rejects a child claim when the parent phone does not match", async () => {
+    h.mockFindUserById.mockResolvedValue({
+      id: 7,
+      role: "student",
+      schoolCode: "SCHOOL123",
+      parentPhone: "9876543210",
+      parentId: null,
+    });
+
+    const res = await request(app)
+      .post("/api/parent/claim")
+      .send({ code: "SCHOOL123-7", parentPhone: "9999999999" });
+
+    expect(res.status).toBe(403);
+    expect(h.mockUpdateUser).not.toHaveBeenCalled();
+  });
+
+  it("rejects a child claim when the child is already linked", async () => {
+    h.mockFindUserById.mockResolvedValue({
+      id: 7,
+      role: "student",
+      schoolCode: "SCHOOL123",
+      parentPhone: "9876543210",
+      parentId: 99,
+    });
+
+    const res = await request(app)
+      .post("/api/parent/claim")
+      .send({ code: "SCHOOL123-7", parentPhone: "9876543210" });
+
+    expect(res.status).toBe(409);
+    expect(h.mockUpdateUser).not.toHaveBeenCalled();
   });
 
   it("rejects non-parent roles", async () => {
