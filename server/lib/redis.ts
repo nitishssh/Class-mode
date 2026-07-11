@@ -52,6 +52,11 @@ function createClient(label: string): Redis {
     maxRetriesPerRequest: null,
     lazyConnect: true,
     retryStrategy: (times) => Math.min(times * 500, 15_000),
+    // Managed Redis (e.g. Azure) drops idle connections after ~10 minutes;
+    // TCP keepalive prevents the first-command-after-idle stall. TLS is
+    // enabled automatically when REDIS_URL uses the rediss:// scheme.
+    keepAlive: 15_000,
+    connectTimeout: 10_000,
   });
   c.on("ready", () => {
     if (label === "shared") isConnected = true;

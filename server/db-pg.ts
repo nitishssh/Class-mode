@@ -135,6 +135,9 @@ export async function connectPostgres(): Promise<void> {
       connectionTimeoutMillis: parseInt(process.env.PG_CONNECTION_TIMEOUT_MS || "5000", 10),
       statement_timeout: 10000,
       query_timeout: 10000,
+      // Managed Postgres (e.g. Azure Flexible Server) requires TLS. Certs chain
+      // to public roots in Node's bundled CA store, so no CA file is needed.
+      ssl: process.env.PG_SSL === "true" ? { rejectUnauthorized: true } : undefined,
     });
 
     pool.on("error", (err) => {

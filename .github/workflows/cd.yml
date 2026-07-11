@@ -7,9 +7,8 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: nitishkumar-ai/class-mode/personallearningpro
-  GCP_REGION: asia-south1
-  GCP_SERVICE: personallearningpro
-  GCP_REPO: plp-repo
+  AZURE_RESOURCE_GROUP: classmode-rg
+  AZURE_CONTAINERAPP: classmode-app
 
 jobs:
   build-and-push-image:
@@ -85,7 +84,7 @@ jobs:
         with:
           sarif_file: "trivy-results.sarif"
 
-  deploy-gcp:
+  deploy-azure:
     needs: build-and-push-image
     runs-on: ubuntu-latest
     environment: production
@@ -94,22 +93,16 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - name: Authenticate to Google Cloud (Workload Identity — no static keys)
-        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+      - name: Authenticate to Azure (OIDC federated credential — no static keys)
+        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2
         with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Set up gcloud CLI
-        uses: google-github-actions/setup-gcloud@6189d56e4096ee891640bb02ac264be376592d6a # v2
-
-      - name: Submit build and deploy via Cloud Build
+      - name: Deploy new image to Azure Container Apps
         run: |
-          gcloud builds submit \
-            --config cloudbuild.yaml \
-            --substitutions=_TAG=${{ github.sha }} \
-            --project=${{ secrets.GCP_PROJECT_ID }} \
-            --async
+          az containerapp update \
+            --name ${{ env.AZURE_CONTAINERAPP }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
