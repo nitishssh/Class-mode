@@ -67,7 +67,7 @@ export async function scheduleAtRiskChecks() {
 
   // 1. Check for inactivity
   const inactiveStudents = await pool.query(
-    "SELECT id, workspace_id FROM users WHERE role = 'student' AND (last_login_at < $1 OR (last_login_at IS NULL AND created_at < $1))",
+    "SELECT u.id, wm.workspace_id FROM users u LEFT JOIN workspace_memberships wm ON wm.user_id = u.id WHERE u.role = 'student' AND (u.last_login_at < $1 OR (u.last_login_at IS NULL AND u.created_at < $1))",
     [threeDaysAgo]
   );
 
