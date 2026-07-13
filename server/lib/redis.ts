@@ -16,6 +16,14 @@ import { logger } from "./logger";
 let client: Redis | null = null;
 let isConnected = false;
 
+/**
+ * BullMQ key prefix for every Queue/Worker in the app. The braces are a Redis
+ * Cluster hash tag: they force all bull:* keys into one hash slot so BullMQ's
+ * multi-key Lua scripts work on clustered Redis (Azure Managed Redis rejects
+ * them with CROSSSLOT otherwise). Harmless on non-clustered Redis.
+ */
+export const BULLMQ_PREFIX = "{bull}";
+
 export function isRedisConfigured(): boolean {
   return !!process.env.REDIS_URL;
 }

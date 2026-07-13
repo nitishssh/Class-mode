@@ -1,5 +1,5 @@
 import { Queue, Worker, Job } from "bullmq";
-import { newRedisConnection } from "../lib/redis";
+import { newRedisConnection, BULLMQ_PREFIX } from "../lib/redis";
 import { whatsappService } from "./whatsapp";
 import {
   pgFindUserById
@@ -14,6 +14,7 @@ const connection = newRedisConnection("sis-automation");
 export const automationQueue: Queue | null = connection
   ? new Queue("sis-automation", {
       connection: connection as any,
+      prefix: BULLMQ_PREFIX,
       defaultJobOptions: {
         removeOnComplete: true,
         removeOnFail: false,
@@ -54,7 +55,10 @@ async function processAutomationJob(job: Job) {
 }
 
 export const automationWorker: Worker | null = connection
-  ? new Worker("sis-automation", processAutomationJob, { connection: connection as any })
+  ? new Worker("sis-automation", processAutomationJob, {
+      connection: connection as any,
+      prefix: BULLMQ_PREFIX,
+    })
   : null;
 
 // Scheduler to check for at-risk students every hour

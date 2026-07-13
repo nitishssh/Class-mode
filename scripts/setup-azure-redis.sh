@@ -21,6 +21,7 @@ az redisenterprise create \
   --resource-group "$RESOURCE_GROUP" \
   --location "$LOCATION" \
   --sku "Balanced_B0" \
+  --public-network-access Enabled \
   --no-database
 
 echo "Creating database (Redis Streams + BullMQ friendly: NoEviction)…"
@@ -30,10 +31,11 @@ az redisenterprise database create \
   --client-protocol Encrypted \
   --clustering-policy EnterpriseCluster \
   --eviction-policy NoEviction \
+  --access-keys-auth Enabled \
   --port 10000
 
 HOST=$(az redisenterprise show -g "$RESOURCE_GROUP" --cluster-name "$CLUSTER_NAME" --query hostName -o tsv)
-KEY=$(az redisenterprise database list-keys -g "$RESOURCE_GROUP" --cluster-name "$CLUSTER_NAME" --database-name default --query primaryKey -o tsv)
+KEY=$(az redisenterprise database list-keys -g "$RESOURCE_GROUP" --cluster-name "$CLUSTER_NAME" --query primaryKey -o tsv)
 
 echo ""
 echo "✅ Redis ready."
