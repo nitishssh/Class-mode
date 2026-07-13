@@ -2,7 +2,10 @@ import "dotenv/config";
 import { storage } from "../server/storage";
 import { initCassandra } from "../server/lib/cassandra";
 
+import { connectPostgres } from "../server/db-pg";
+
 async function test() {
+  await connectPostgres();
   console.log("Starting Cassandra-only test...");
 
   // Initialize Cassandra

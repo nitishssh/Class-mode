@@ -1,5 +1,5 @@
 import { Queue, Worker, Job } from "bullmq";
-import { newRedisConnection } from "../lib/redis";
+import { newRedisConnection, BULLMQ_PREFIX } from "../lib/redis";
 import { whatsappService } from "./whatsapp";
 import {
   pgFindUserById
@@ -14,6 +14,7 @@ const connection = newRedisConnection("sis-automation");
 export const automationQueue: Queue | null = connection
   ? new Queue("sis-automation", {
       connection: connection as any,
+      prefix: BULLMQ_PREFIX,
       defaultJobOptions: {
         removeOnComplete: true,
         removeOnFail: false,
@@ -54,7 +55,10 @@ async function processAutomationJob(job: Job) {
 }
 
 export const automationWorker: Worker | null = connection
-  ? new Worker("sis-automation", processAutomationJob, { connection: connection as any })
+  ? new Worker("sis-automation", processAutomationJob, {
+      connection: connection as any,
+      prefix: BULLMQ_PREFIX,
+    })
   : null;
 
 // Scheduler to check for at-risk students every hour
@@ -67,7 +71,7 @@ export async function scheduleAtRiskChecks() {
 
   // 1. Check for inactivity
   const inactiveStudents = await pool.query(
-    "SELECT id, workspace_id FROM users WHERE role = 'student' AND (last_login_at < $1 OR (last_login_at IS NULL AND created_at < $1))",
+    "SELECT u.id, wm.workspace_id FROM users u LEFT JOIN workspace_memberships wm ON wm.user_id = u.id WHERE u.role = 'student' AND (u.last_login_at < $1 OR (u.last_login_at IS NULL AND u.created_at < $1))",
     [threeDaysAgo]
   );
 

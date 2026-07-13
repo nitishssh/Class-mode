@@ -1,5 +1,5 @@
 import { Queue, Worker, Job } from "bullmq";
-import { newRedisConnection, isRedisConfigured } from "../../lib/redis";
+import { newRedisConnection, isRedisConfigured, BULLMQ_PREFIX } from "../../lib/redis";
 import { generateFullClassroom } from "./generator";
 import {
   pgCreateAIClassroom,
@@ -18,6 +18,7 @@ const connection = newRedisConnection("bullmq");
 export const classroomQueue: Queue | null = connection
   ? new Queue("classroom-generation", {
       connection: connection as any,
+      prefix: BULLMQ_PREFIX,
       defaultJobOptions: {
         attempts: 3,
         backoff: {
@@ -81,6 +82,7 @@ async function processJob(job: Job) {
 export const classroomWorker: Worker | null = connection
   ? new Worker("classroom-generation", processJob, {
       connection: connection as any,
+      prefix: BULLMQ_PREFIX,
       concurrency: 5,
     })
   : null;

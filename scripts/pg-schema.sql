@@ -3,8 +3,17 @@
 -- Run via: npx tsx scripts/pg-migrate.ts
 -- All statements are idempotent (IF NOT EXISTS / ON CONFLICT DO NOTHING).
 
-CREATE EXTENSION IF NOT EXISTS citext;
-CREATE EXTENSION IF NOT EXISTS vector;
+-- Skip CREATE EXTENSION when already installed: managed Postgres (Azure) rejects
+-- CREATE EXTENSION for non-trusted extensions from the app role even with
+-- IF NOT EXISTS, so the extensions are pre-created by the admin during provisioning.
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'citext') THEN
+    CREATE EXTENSION citext;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector') THEN
+    CREATE EXTENSION vector;
+  END IF;
+END $$;
 
 -- Session-only bump: the ivfflat index build (content_chunks, lists=100) needs
 -- ~60MB, more than the 32MB default on the memory-capped dev container.

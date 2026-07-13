@@ -140,17 +140,15 @@ const withProtection = <P extends object>(
 
     if (allowedRoles && !allowedRoles.includes(profile.role)) {
       return (
-        <Layout>
-          <div className="mt-20 flex flex-col items-center justify-center space-y-4 p-8 text-center">
-            <h2 className="text-2xl font-bold text-destructive">
-              {t("app.accessDenied", "Access Denied")}
-            </h2>
-            <p className="text-muted-foreground">
-              {t("app.noPermission", "You do not have permission to view this page.")}
-            </p>
-            <Button onClick={() => window.history.back()}>{t("app.goBack", "Go Back")}</Button>
-          </div>
-        </Layout>
+        <div className="mt-20 flex flex-col items-center justify-center space-y-4 p-8 text-center">
+          <h2 className="text-2xl font-bold text-destructive">
+            {t("app.accessDenied", "Access Denied")}
+          </h2>
+          <p className="text-muted-foreground">
+            {t("app.noPermission", "You do not have permission to view this page.")}
+          </p>
+          <Button onClick={() => window.history.back()}>{t("app.goBack", "Go Back")}</Button>
+        </div>
       );
     }
 

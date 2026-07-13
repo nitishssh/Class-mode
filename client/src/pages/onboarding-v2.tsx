@@ -394,6 +394,7 @@ export default function OnboardingV2() {
   const { toast } = useToast();
   const {
     currentUser: { profile },
+    refreshSession,
   } = useFirebaseAuth();
   // Resume from saved progress if the user dropped off mid-flow. Clamp to
   // steps 1-6 so we never restore directly onto the celebration screen (7).
@@ -458,7 +459,8 @@ export default function OnboardingV2() {
       // The onboarding guard reads onboardingComplete from this query's cache.
       // Invalidate it so the guard sees the fresh "complete" state and doesn't
       // bounce the user back into onboarding after they land on the dashboard.
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      await refreshSession();
       clearOnboardingProgress(profile?.uid);
       nextStep();
     } catch (error) {

@@ -16,6 +16,14 @@ import { logger } from "./logger";
 let client: Redis | null = null;
 let isConnected = false;
 
+/**
+ * BullMQ key prefix for every Queue/Worker in the app. The braces are a Redis
+ * Cluster hash tag: they force all bull:* keys into one hash slot so BullMQ's
+ * multi-key Lua scripts work on clustered Redis (Azure Managed Redis rejects
+ * them with CROSSSLOT otherwise). Harmless on non-clustered Redis.
+ */
+export const BULLMQ_PREFIX = "{bull}";
+
 export function isRedisConfigured(): boolean {
   return !!process.env.REDIS_URL;
 }
@@ -52,6 +60,11 @@ function createClient(label: string): Redis {
     maxRetriesPerRequest: null,
     lazyConnect: true,
     retryStrategy: (times) => Math.min(times * 500, 15_000),
+    // Managed Redis (e.g. Azure) drops idle connections after ~10 minutes;
+    // TCP keepalive prevents the first-command-after-idle stall. TLS is
+    // enabled automatically when REDIS_URL uses the rediss:// scheme.
+    keepAlive: 15_000,
+    connectTimeout: 10_000,
   });
   c.on("ready", () => {
     if (label === "shared") isConnected = true;
