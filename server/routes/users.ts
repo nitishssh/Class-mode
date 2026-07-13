@@ -56,7 +56,7 @@ router.get("/school/teachers", authenticateToken, async (req: Request, res: Resp
   try {
     if (
       !req.session?.userId ||
-      ((req.session.role || "") !== "school_admin" && (req.session.role || "") !== "admin")
+      !["school_admin", "principal", "admin"].includes(req.session.role || "")
     ) {
       return res
         .status(403)
@@ -87,7 +87,7 @@ router.post(
     try {
       if (
         !req.session?.userId ||
-        ((req.session.role || "") !== "school_admin" && (req.session.role || "") !== "admin")
+        !["school_admin", "principal", "admin"].includes(req.session.role || "")
       ) {
         return res
           .status(403)
