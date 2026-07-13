@@ -1,8 +1,18 @@
 # GCP → Azure Migration Runbook
 
-Status: **in progress** (branch `azure-migration`). GCP keeps serving
-classmode.inmodel.in until the Phase 5 cutover; nothing on GCP is touched
-except a temporary Cloud SQL firewall change during data migration.
+Status: **complete** (2026-07-14). Azure serves https://classmode.inmodel.in
+(Container Apps + PG Flexible Server + Managed Redis, resource group
+`classmode-rg`). Data migrated with verified-identical row counts; final dump
+archived in Azure Blob (`classmodeuploads/backups`) and locally. GCP frozen
+(public access removed) and project `plp-prod-2026` deleted — 30-day
+pending-deletion window was the last-resort net.
+
+Execution notes vs. the original plan: Cloud Run now rejects
+`--max-instances=0`, so the freeze used IAM (remove `allUsers` invoker);
+Managed Redis needed `--public-network-access Enabled` and
+`--access-keys-auth Enabled`; `azure.extensions` needed `CITEXT,VECTOR`; the
+schema guards `CREATE EXTENSION` behind a `pg_extension` check; BullMQ uses a
+`{bull}` hash-tag prefix for clustered Redis.
 
 ## Target architecture
 
