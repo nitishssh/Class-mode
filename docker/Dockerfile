@@ -75,6 +75,9 @@ RUN npm ci --omit=dev --prefer-offline --legacy-peer-deps \
 COPY --from=build /app/dist ./dist
 # Schema file for the opt-in boot migration (AUTO_MIGRATE) — idempotent DDL.
 COPY --from=build /app/scripts/pg-schema.sql ./scripts/pg-schema.sql
+# Study Arena prompt templates — read from disk at runtime by
+# server/lib/prompt-loader.ts (process.cwd()/server/lib/prompts/...).
+COPY --from=build /app/server/lib/prompts ./server/lib/prompts
 
 RUN chown -R appuser:nodejs /app
 
