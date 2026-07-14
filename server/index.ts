@@ -99,7 +99,9 @@ app.use(
                 "https://*.googleapis.com",
                 "https://*.run.app",
               ],
-              fontSrc: ["'self'", "https://fonts.gstatic.com"],
+              // data: — the client bundle inlines a woff2 as a data URI;
+              // without it the browser blocks the font on every page load.
+              fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
               objectSrc: ["'none'"],
               upgradeInsecureRequests: [],
             },
