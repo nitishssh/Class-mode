@@ -86,6 +86,9 @@ router.post("/create", await checkAIQuota("ai_classroom"), async (req: Request, 
       message: "Classroom generation started (Native)",
     });
   } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: "Invalid input", issues: error.errors });
+    }
     logger.error("Error creating classroom:", error);
     res.status(500).json({
       error: (error as Error).message || "Failed to create classroom",
