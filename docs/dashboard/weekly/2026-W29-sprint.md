@@ -1,7 +1,7 @@
 # W29 Sprint Board — 13–19 Jul 2026 (plan day 0–5)
 
 **One job this week: walk out of the pilot school with a written answer.**
-Live board: claude.ai artifact "Class-mode — Week 29 Register" (visual twin of this file; this file is the durable source of truth — tick boxes here, commit on Friday).
+Live boards: **GitHub Project** https://github.com/users/NitishKumar-ai/projects/10 (issues #330–#341, milestone "W29") · claude.ai artifact "Class-mode — Week 29 Register". GitHub is the tracking source of truth now — close issues as you go; this file + the Friday commit are the weekly snapshot.
 
 **Deadline clock:** WTP first attempt **Fri Jul 17** · day-14 preconditions Jul 29 · day-30 fail line Aug 14 · day-40 checkpoint ~Aug 24 · streak must start Sep 8.
 **Baseline (prod, W29):** attendance 0 · active teachers 0 · fees 0 · accounts 14/0/3 · 2 live bugs queued. Zeros stay zeros.
