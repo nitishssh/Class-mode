@@ -1,0 +1,22 @@
+{
+  "isoWeek": "2026-W29",
+  "generatedAt": "2026-07-15T14:04:47.687Z",
+  "weekStart": "2026-07-13",
+  "weekEnd": "2026-07-20",
+  "attendance": {
+    "activeTeachers": 0,
+    "rowsWritten": 0,
+    "classDaysMarked": 0,
+    "distinctSchoolDays": 0
+  },
+  "fees": {
+    "activeStaff": 0,
+    "rowsCreated": 0
+  },
+  "featureUsage": [],
+  "totals": {
+    "users": 14,
+    "teachers": 0,
+    "students": 3
+  }
+}

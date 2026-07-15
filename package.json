@@ -18,6 +18,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "deploy:gcp": "gcloud builds submit --config cloudbuild.yaml",
+    "metrics:weekly": "tsx scripts/metrics-weekly.ts",
+    "report:weekly": "tsx scripts/metrics-weekly.ts --report",
     "jules": "node scripts/jules.mjs"
   },
   "dependencies": {
