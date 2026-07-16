@@ -95,7 +95,9 @@ test.describe("Attendance — mark absent dispatches a parent alert", () => {
       // announcement ("Attendance saved1 students marked.") concatenates the
       // toast title and body, so it contains each of these as a substring
       // too, which trips Playwright's strict-mode locator check against the
-      // toast itself. With alerts disabled the toast omits the WhatsApp line.
+      // toast itself. The toast never claims parents were notified — alert
+      // dispatch is async and the automated WhatsApp pipe is paused, so any
+      // "notified on WhatsApp" line would be fabricated (issue #335).
       await expect(page.getByText("Attendance saved", { exact: true })).toBeVisible({
         timeout: 10000,
       });

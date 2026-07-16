@@ -112,12 +112,13 @@ export default function AttendancePage() {
       const res = await apiRequest("POST", "/api/attendance", payload);
       return res.json();
     },
-    onSuccess: (data: { written: number; notified?: number }) => {
+    onSuccess: (data: { written: number }) => {
+      // Honesty invariant: never claim parents were notified — absence-alert
+      // delivery is asynchronous and the automated WhatsApp pipe is paused,
+      // so a "notified" claim here would be fabricated (issue #335).
       toast({
         title: "Attendance saved",
-        description:
-          `${data.written} students marked.` +
-          (data.notified ? ` ${data.notified} parent(s) notified on WhatsApp.` : ""),
+        description: `${data.written} students marked.`,
       });
       queryClient.invalidateQueries({
         queryKey: [`/api/attendance?className=${encodeURIComponent(className)}&date=${date}`],
@@ -162,7 +163,7 @@ export default function AttendancePage() {
     <div className="space-y-6 p-4 md:p-6">
       <PageHeader
         title="Attendance"
-        subtitle="Mark daily attendance — parents of absent students are notified on WhatsApp automatically when a number is on file."
+        subtitle="Mark daily attendance for each class."
       />
 
       <Card>
@@ -277,7 +278,7 @@ export default function AttendancePage() {
                         <button
                           type="button"
                           className="flex items-center gap-1 hover:text-foreground"
-                          title="Parent's WhatsApp number — used for absence alerts and fee reminders"
+                          title="Parent's phone number — used for fee reminders"
                           onClick={() => {
                             setEditingPhoneId(s.id);
                             setPhoneDraft(s.parentPhone ?? "");
