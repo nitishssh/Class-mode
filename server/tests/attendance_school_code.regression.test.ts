@@ -42,6 +42,7 @@ vi.mock("../lib/pg-queries", () => ({
   pgGetAttendanceByClassDate: vi.fn(),
   pgGetStudentAttendanceSummary: vi.fn(),
   pgGetSchoolAttendanceSummary: vi.fn(),
+  pgGetAbsenteesByDate: vi.fn(),
   pgGetClassNames: vi.fn(),
   pgFindUsers: h.mockFindUsers,
   pgFindUserById: vi.fn(),

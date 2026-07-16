@@ -7,6 +7,7 @@ import {
   pgGetAttendanceByClassDate,
   pgGetStudentAttendanceSummary,
   pgGetSchoolAttendanceSummary,
+  pgGetAbsenteesByDate,
   pgTrackFeatureUsage,
   pgGetClassNames,
   pgFindUsers,
@@ -133,8 +134,7 @@ router.post(
           schools: [...schools],
         });
         return res.status(400).json({
-          message:
-            "Cannot resolve a single school for these students — attendance not saved",
+          message: "Cannot resolve a single school for these students — attendance not saved",
         });
       }
       schoolCode = resolved;
@@ -244,6 +244,43 @@ router.get(
       date,
     });
     res.json(summary);
+  }
+);
+
+/**
+ * GET /api/attendance/absentees?date=YYYY-MM-DD — the day's absentee call
+ * list (student, class, parent phone) across all classes of one school.
+ * School-scoped; a platform admin must name a school via ?schoolCode=.
+ * Per spec E5 a query failure is a 500, never an empty list.
+ */
+router.get(
+  "/absentees",
+  authenticateToken,
+  requireRole("admin", "principal", "school_admin"),
+  async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const t = resolveTenantScope(user);
+    if ("error" in t) return res.status(t.error.status).json({ message: t.error.message });
+
+    const date = String(req.query.date || "");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ message: "date (YYYY-MM-DD) is required" });
+    }
+
+    const schoolCode = t.scope.isPlatformAdmin
+      ? String(req.query.schoolCode || "")
+      : t.scope.schoolCode!;
+    if (!schoolCode) {
+      return res.status(400).json({ message: "schoolCode is required" });
+    }
+
+    try {
+      const absentees = await pgGetAbsenteesByDate({ schoolCode, date });
+      return res.json({ date, count: absentees.length, absentees });
+    } catch (err) {
+      logger.error("[attendance] absentee list failed", { err: String(err) });
+      return res.status(500).json({ message: "Absentee list could not be generated" });
+    }
   }
 );
 

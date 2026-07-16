@@ -2832,3 +2832,77 @@ export async function pgGetStudentAttendanceSummary(params: {
     return empty;
   }
 }
+
+// ─── Day's absentee list + data export (offer commitments; spec E5) ─────────
+// E5: these report helpers take a REQUIRED schoolCode and THROW on failure —
+// never []-on-error, so an outage reads as an error, not an empty school.
+
+export interface AbsenteeRow {
+  studentId: number;
+  studentName: string;
+  className: string | null;
+  parentPhone: string | null;
+  note: string | null;
+}
+
+/** All students marked absent on one date, with parent phone for follow-up calls. */
+export async function pgGetAbsenteesByDate(params: {
+  schoolCode: string;
+  date: string;
+}): Promise<AbsenteeRow[]> {
+  const { rows } = await getPgPool().query(
+    `SELECT a.student_id AS "studentId", u.name AS "studentName",
+            a.class_name AS "className", u.parent_phone AS "parentPhone", a.note
+       FROM attendance a
+       JOIN users u ON u.id = a.student_id
+      WHERE a.school_code = $1 AND a.date = $2 AND a.status = 'absent'
+      ORDER BY a.class_name ASC NULLS LAST, u.name ASC`,
+    [params.schoolCode, params.date]
+  );
+  return rows;
+}
+
+/** Raw attendance rows for CSV export, optionally bounded by [from, to]. */
+export async function pgExportAttendanceRows(params: {
+  schoolCode: string;
+  from?: string;
+  to?: string;
+}): Promise<any[]> {
+  const conditions = ["a.school_code = $1"];
+  const values: any[] = [params.schoolCode];
+  if (params.from) {
+    conditions.push(`a.date >= $${values.length + 1}`);
+    values.push(params.from);
+  }
+  if (params.to) {
+    conditions.push(`a.date <= $${values.length + 1}`);
+    values.push(params.to);
+  }
+  const { rows } = await getPgPool().query(
+    `SELECT a.date::text AS date, a.class_name AS "className", u.name AS "studentName",
+            a.status, a.note, m.name AS "markedBy"
+       FROM attendance a
+       JOIN users u ON u.id = a.student_id
+       LEFT JOIN users m ON m.id = a.marked_by
+      WHERE ${conditions.join(" AND ")}
+      ORDER BY a.date ASC, a.class_name ASC NULLS LAST, u.name ASC`,
+    values
+  );
+  return rows;
+}
+
+/** Raw fee rows for CSV export (E4: record fields only — no invented receipt data). */
+export async function pgExportFeeRows(params: { schoolCode: string }): Promise<any[]> {
+  const { rows } = await getPgPool().query(
+    `SELECT u.name AS "studentName", u.class_name AS "className", f.description,
+            f.amount_cents AS "amountCents", f.currency, f.status,
+            f.due_date::text AS "dueDate", f.paid_at::text AS "paidAt",
+            f.created_at::text AS "createdAt"
+       FROM fees f
+       JOIN users u ON u.id = f.student_id
+      WHERE f.school_code = $1
+      ORDER BY f.created_at ASC`,
+    [params.schoolCode]
+  );
+  return rows;
+}

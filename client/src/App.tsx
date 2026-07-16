@@ -63,6 +63,7 @@ import WorkspaceCreate from "@/pages/workspace/create";
 import JoinWorkspace from "@/pages/workspace/join";
 import OnboardingV2 from "@/pages/onboarding-v2";
 import AttendancePage from "@/pages/attendance";
+import AbsenteesPage from "@/pages/absentees";
 import FeesPage from "@/pages/fees";
 import { useOnboardingGuard } from "@/hooks/use-onboarding-guard";
 import { getDashboardPath } from "@/lib/role-routes";
@@ -177,6 +178,7 @@ const AttendanceRoute = withLayout(
   protect(AttendancePage, ["teacher", "principal", "school_admin", "admin"])
 );
 const FeesRoute = withLayout(protect(FeesPage, ["principal", "school_admin", "admin"]));
+const AbsenteesRoute = withLayout(protect(AbsenteesPage, ["principal", "school_admin", "admin"]));
 const LearnRoute = withLayout(protect(LearnPage, ["student"]));
 const StudentDirRoute = withLayout(protect(StudentDirectory, ["teacher", "principal", "admin"]));
 const MessagesRoute = withLayout(protect(Messages), { fullWidth: true });
@@ -365,6 +367,7 @@ function App() {
       <Route path="/analytics" component={AnalyticsRoute} />
       <Route path="/attendance" component={AttendanceRoute} />
       <Route path="/fees" component={FeesRoute} />
+      <Route path="/absentees" component={AbsenteesRoute} />
       <Route path="/learn" component={LearnRoute} />
       {/* Legacy: the standalone AI Tutor now lives inside the unified Learn hub. */}
       <Route path="/ai-tutor">
