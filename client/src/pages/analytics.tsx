@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { PerformanceChart } from "@/components/dashboard/performance-chart";
 import { TopStudents } from "@/components/dashboard/top-students";
@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { apiRequest, isPermissionError } from "@/lib/queryClient";
+import { trackFeatureView } from "@/lib/track-usage";
 import { PermissionDenied } from "@/components/ui/permission-denied";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { PageHeader } from "@/components/layout/page-header";
@@ -72,6 +73,11 @@ export default function Analytics() {
   const { currentUser } = useFirebaseAuth();
   const studentId = currentUser?.profile?.uid;
   const [analysis, setAnalysis] = useState<any>(null);
+
+  // Distribution instrumentation (#337): one report_view per page visit.
+  useEffect(() => {
+    trackFeatureView("report_view");
+  }, []);
 
   // Real class analytics, shared (by queryKey) with the Individual Students tab.
   // Staff-only endpoint; for students it 403s and we fall back to empty KPIs.

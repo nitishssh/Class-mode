@@ -17,6 +17,7 @@ import {
 import { PermissionDenied } from "@/components/ui/permission-denied";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, isPermissionError } from "@/lib/queryClient";
+import { trackFeatureView } from "@/lib/track-usage";
 import { cn } from "@/lib/utils";
 
 type Status = "present" | "absent" | "late" | "excused";
@@ -58,6 +59,11 @@ export default function AttendancePage() {
   const [marks, setMarks] = useState<Record<number, Status>>({});
   const [editingPhoneId, setEditingPhoneId] = useState<number | null>(null);
   const [phoneDraft, setPhoneDraft] = useState("");
+
+  // Distribution instrumentation (#337): one attendance_view per page visit.
+  useEffect(() => {
+    trackFeatureView("attendance_view");
+  }, []);
 
   const { data: classes = [], isLoading: classesLoading } = useQuery<string[]>({
     queryKey: ["/api/attendance/classes"],
