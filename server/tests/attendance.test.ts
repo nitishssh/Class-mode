@@ -174,6 +174,11 @@ describe("Attendance API", () => {
 
   it("lets a platform admin backfill outside the window", async () => {
     h.currentUser = { id: 1, role: "admin", school_code: null };
+    // #336: admin writes derive school_code from the marked students.
+    h.mockFindUsers.mockResolvedValue([
+      { id: 1, name: "Asha", parentPhone: "+919876543210", schoolCode: "SCHOOL123" },
+      { id: 2, name: "Ravi", parentPhone: null, schoolCode: "SCHOOL123" },
+    ]);
     h.mockMark.mockResolvedValue(1);
     const res = await request(app)
       .post("/api/attendance")
@@ -183,7 +188,7 @@ describe("Attendance API", () => {
         marks: [{ studentId: 1, status: "excused" }],
       });
     expect(res.status).toBe(200);
-    expect(h.mockMark).toHaveBeenCalled();
+    expect(h.mockMark).toHaveBeenCalledWith(expect.objectContaining({ schoolCode: "SCHOOL123" }));
   });
 
   it("fails closed for a teacher with no school (403, no write)", async () => {
