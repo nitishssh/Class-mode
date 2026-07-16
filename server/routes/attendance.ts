@@ -61,8 +61,10 @@ function attendanceDateWindow(now = Date.now()): { minDate: string; maxDate: str
 
 /**
  * POST /api/attendance — a teacher/admin marks attendance for a class on a date.
- * Tenant-scoped: writes are stamped with the marker's school_code; an account
- * without a school is denied (fail-closed).
+ * Tenant-scoped: school-bound roles stamp writes with their own school_code;
+ * platform admins derive it from the students being marked (#336). A write
+ * whose school_code cannot be resolved is rejected (fail-closed) — attendance
+ * rows must never persist with a NULL school_code.
  */
 router.post(
   "/",
@@ -112,7 +114,33 @@ router.post(
         .json({ message: "Forbidden: some students are not in this class in your school" });
     }
 
-    const schoolCode = t.scope.isPlatformAdmin ? (user.school_code ?? null) : t.scope.schoolCode!;
+    // #336 (B2): a platform-admin account has no school of its own — stamping
+    // the marker's school_code produced NULL attendance rows that no
+    // school-scoped read could ever see. Derive the school from the students
+    // being marked instead, and fail closed (400) when it does not resolve to
+    // exactly one school. Non-admin writes keep their validated tenant scope.
+    let schoolCode: string;
+    if (t.scope.isPlatformAdmin) {
+      const markedIds = new Set(parsed.data.marks.map((m) => m.studentId));
+      const schools = new Set(
+        roster.filter((s) => markedIds.has(s.id)).map((s) => s.schoolCode ?? null)
+      );
+      const resolved = schools.size === 1 ? [...schools][0] : null;
+      if (!resolved) {
+        logger.warn("[attendance] admin mark rejected: unresolvable school_code", {
+          userId: user.id,
+          className: parsed.data.className,
+          schools: [...schools],
+        });
+        return res.status(400).json({
+          message:
+            "Cannot resolve a single school for these students — attendance not saved",
+        });
+      }
+      schoolCode = resolved;
+    } else {
+      schoolCode = t.scope.schoolCode!;
+    }
     // W-2a: a failed write must be a failed response. pgMarkAttendance now
     // throws on DB errors (it used to swallow them and return 0, which made
     // the route reply success:true for a save that never happened — an
