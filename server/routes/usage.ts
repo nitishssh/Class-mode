@@ -1,0 +1,44 @@
+import { Router, Request, Response } from "express";
+import { authenticateToken } from "../middleware";
+import { resolveTenantScope } from "../lib/tenant";
+import { pgTrackFeatureUsage } from "../lib/pg-queries";
+
+const router = Router();
+
+/**
+ * Client-reported view events (spec E1: reuse feature_usage — no new table).
+ *
+ * Only namespaced `*_view` feature strings are accepted here. Write actions
+ * (attendance marking, fee payments, test creation, …) are tracked
+ * server-side inside their own route handlers via pgTrackFeatureUsage, so
+ * this allowlist keeps clients from inventing arbitrary feature rows.
+ */
+const VIEW_FEATURES = new Set(["attendance_view", "report_view"]);
+
+/**
+ * POST /api/usage — record a single page-view feature usage event.
+ *
+ * Tenant-scoped: school_code always comes from the authenticated user, never
+ * the request body. School-scoped accounts without a school are denied
+ * (fail-closed) so feature_usage rows never carry a NULL school_code for
+ * school-bound users; only the platform super-admin may record without one.
+ */
+router.post("/", authenticateToken, (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const feature = typeof req.body?.feature === "string" ? req.body.feature : "";
+  if (!VIEW_FEATURES.has(feature)) {
+    return res.status(400).json({ message: "Unknown feature" });
+  }
+
+  const t = resolveTenantScope(user);
+  if ("error" in t) return res.status(t.error.status).json({ message: t.error.message });
+  const schoolCode = t.scope.isPlatformAdmin
+    ? (user.schoolCode ?? user.school_code ?? null)
+    : t.scope.schoolCode!;
+
+  // Fire-and-forget: pgTrackFeatureUsage never throws and never blocks.
+  pgTrackFeatureUsage({ feature, userId: user.id, schoolCode });
+  return res.status(202).json({ success: true });
+});
+
+export default router;
