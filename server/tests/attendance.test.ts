@@ -69,6 +69,9 @@ describe("Attendance API", () => {
     app = makeApp();
     h.currentUser = { id: 10, role: "teacher", school_code: "SCHOOL123" };
     h.mockWhatsappConfigured.mockReturnValue(true);
+    // #335 follow-up: dispatch requires BOTH configured creds AND the explicit
+    // opt-in flag — configuring creds alone must never enable sends.
+    process.env.WHATSAPP_ALERTS_ENABLED = "true";
     // Default roster: the students the tests mark. W-6 fails closed on any
     // mark whose studentId is missing from this list.
     h.mockFindUsers.mockResolvedValue([
@@ -79,6 +82,18 @@ describe("Attendance API", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    delete process.env.WHATSAPP_ALERTS_ENABLED;
+  });
+
+  it("keeps alerts disabled when creds exist but WHATSAPP_ALERTS_ENABLED is unset", async () => {
+    delete process.env.WHATSAPP_ALERTS_ENABLED;
+    h.mockMark.mockResolvedValue(1);
+    const res = await request(app)
+      .post("/api/attendance")
+      .send({ className: "Grade 10", date: "2026-07-02", marks: [{ studentId: 1, status: "absent" }] });
+    expect(res.status).toBe(200);
+    expect(res.body.alerts).toEqual({ channel: "whatsapp", enabled: false, attempted: 0 });
+    expect(h.mockSend).not.toHaveBeenCalled();
   });
 
   it("marks attendance scoped to the teacher's school", async () => {
