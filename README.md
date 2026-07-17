@@ -138,8 +138,8 @@ npm run db:reset   # wipe volumes and start fresh (drops all local data)
 ### 🔑 Required Environment Variables
 
 ```env
-# PostgreSQL (Required)
-DATABASE_URL=postgres://user:pass@localhost:5432/eduai_pg
+# PostgreSQL (Required) — prepend your credentials as user:password@ before the host
+POSTGRESQL_URL=postgres://localhost:5432/eduai_pg
 
 # MongoDB (Optional — for legacy content storage)
 MONGODB_URL=mongodb://localhost:27017/eduai

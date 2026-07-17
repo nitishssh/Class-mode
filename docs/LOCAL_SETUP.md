@@ -123,7 +123,8 @@ USE_INICLAW=false
 # Firebase compat (backward compat only)
 ENABLE_FIREBASE_AUTH_COMPAT=true
 
-# WhatsApp Business Cloud API (outbound messaging; sends are simulated without creds)
+# WhatsApp Business Cloud API (outbound messaging; without creds, sends are
+# simulated in dev/test and fail loud in production)
 WHATSAPP_ACCESS_TOKEN=
 WHATSAPP_PHONE_NUMBER_ID=
 WHATSAPP_VERIFY_TOKEN=
@@ -180,6 +181,8 @@ npm run lint         # ESLint
 npm run lint:fix     # ESLint with auto-fix
 npm run format       # Prettier
 npm run build        # Production build
+npm run metrics:weekly  # Compute weekly adoption metrics
+npm run report:weekly   # Weekly metrics in report form
 ```
 
 ## Troubleshooting
