@@ -96,6 +96,10 @@ Single `package.json` (no monorepo tool). Key directories:
 | `server/routes/users.ts`        | Domain router for user management                  |
 | `server/routes/chat.ts`         | Domain router for chat endpoints                   |
 | `server/routes/timetable.ts`    | Native period-based timetable                      |
+| `server/routes/attendance.ts`   | Attendance marking, summaries, day's absentee list |
+| `server/routes/fees.ts`         | Fee records and payment status                     |
+| `server/routes/export.ts`       | Attendance/fees CSV export (school-scoped)         |
+| `server/routes/usage.ts`        | Client-reported page-view usage events             |
 | `server/message/routes.ts`      | MessagePal WebSocket + REST                        |
 
 ## Key client files

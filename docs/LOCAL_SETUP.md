@@ -122,6 +122,14 @@ USE_INICLAW=false
 
 # Firebase compat (backward compat only)
 ENABLE_FIREBASE_AUTH_COMPAT=true
+
+# WhatsApp Business Cloud API (outbound messaging; sends are simulated without creds)
+WHATSAPP_ACCESS_TOKEN=
+WHATSAPP_PHONE_NUMBER_ID=
+WHATSAPP_VERIFY_TOKEN=
+# Automated absence alerts to parents are OFF unless this is "true" —
+# credentials alone never enable them.
+WHATSAPP_ALERTS_ENABLED=false
 ```
 
 ## 5. Start the Development Server

@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.9.0.0] - 2026-07-17
+
+### Added
+
+- **Day's absentee call list** (`/absentees`): principals and school admins see every student marked absent today, grouped by class, with tap-to-call parent phone numbers, a printable view, and a date picker. The list refreshes automatically every minute while teachers are still marking.
+- **School data export**: download attendance (with optional date range) and fee records as Excel-compatible CSV files — vernacular names open correctly in Excel, and exported cells are hardened against spreadsheet formula injection.
+- Usage instrumentation: attendance and report page visits by staff are now recorded, powering the weekly adoption metrics.
+
+### Changed
+
+- Attendance page copy is now honest about parent notifications: no automation claims while automated WhatsApp alerts remain off. Server-side alert dispatch is additionally gated behind an explicit `WHATSAPP_ALERTS_ENABLED` flag so configuring credentials alone can never silently enable messages to parents.
+- Weekly metrics now count attendance by the school day it describes (not the day it was typed), and exclude internal/founder and test activity from adoption numbers.
+
+### Fixed
+
+- Admin-marked attendance no longer saves rows without a school code — the school is derived from the students being marked, and unresolvable writes are rejected instead of silently orphaned.
+- Attendance and export date inputs reject impossible dates (e.g. 2026-02-31) with a clear error instead of a server failure.
+- "Today" on the absentees page now uses the device's local date — previously it showed yesterday's list until 5:30 AM IST.
+
 ## [1.8.5.0] - 2026-07-05
 
 ### Added
