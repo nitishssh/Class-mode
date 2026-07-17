@@ -1,0 +1,3 @@
+NAME=classmode
+PORT=5433
+IMAGE=pgvector/pgvector:pg16

@@ -1,0 +1,105 @@
+graph TD
+  subgraph CLIENTS["Clients"]
+    WEB["Web SPA<br/>React18 + Vite + shadcn"]
+    MOB["Mobile App<br/>Expo (classmode-mobile)"]
+    ROLES["Roles: Admin / Educator<br/>Student / Parent"]
+  end
+
+  subgraph EDGE["Edge / Delivery — GCP Cloud Run (asia-south1)"]
+    CR["Express server<br/>serves SPA + /api<br/>classmode.inmodel.in"]
+  end
+
+  subgraph MW["Express Middleware Chain"]
+    SEC["requestId · helmet/CSP · CORS<br/>session · rate-limit"]
+    AUTH["JWT auth · verified-email<br/>requireSubscription · aiQuota · tenant"]
+  end
+
+  subgraph API["Domain API Routers (/api)"]
+    COREAPI["auth · workspace · users<br/>dynamic-sis · tests · grading"]
+    AIAPI["ai-chat · ai-classroom<br/>study-arena-beta"]
+    COLLAB["chat · messagepal · live<br/>educator · parent · resources"]
+    OPSAPI["attendance · fees · billing · lms<br/>whatsapp · leads · notifications · ocr"]
+  end
+
+  subgraph RT["Real-time"]
+    WS["WebSocket servers<br/>chat-ws + MessagePal"]
+    VIDEO["Daily.co video<br/>/api/live rooms + tokens"]
+  end
+
+  subgraph AILAYER["AI Layer"]
+    GATEWAY["AI Gateway<br/>MODEL_REGISTRY: orchestrator/fast/grader/embed"]
+    ORCH["Tutor Orchestrator<br/>sole writer to learner model"]
+    LEARN["Learner Model<br/>Knowledge Tracing · SM-2 · memory"]
+    RAG["RAG<br/>chunk + retrieve (pgvector)"]
+    ARENA["Study Arena Director<br/>LangGraph · generator · exports"]
+    GRADE["Grading Service"]
+  end
+
+  subgraph WORKERS["Background Workers"]
+    JOBS["BullMQ workers<br/>notifications · expo-push<br/>whatsapp-automation · nudge · arena jobs"]
+  end
+
+  subgraph DATA["Data Stores"]
+    PG[("PostgreSQL<br/>~55 tables: users, tests,<br/>SIS, fees, learner_mastery,<br/>content_chunks/pgvector")]
+    CASS[("Cassandra / Astra DB<br/>chat history")]
+    REDIS[("Redis<br/>queue · AI jobs · cache")]
+  end
+
+  subgraph EXT["External Integrations"]
+    GEMINI["Gemini 2.0 Flash (primary)"]
+    OPENAI["OpenAI GPT-4o (fallback)"]
+    GOOG["Google OAuth + Classroom"]
+    STRIPE["Stripe billing"]
+    META["WhatsApp / Meta"]
+    EXPO["Expo Push"]
+    SEARCH["Web Search<br/>Tavily / Serper"]
+  end
+
+  subgraph CICD["CI/CD + Infra"]
+    GH["GitHub Actions CD<br/>Docker → GHCR"]
+    CB["Cloud Build → Cloud Run deploy"]
+    SM["Secret Manager · AUTO_MIGRATE<br/>Trivy / CodeQL scans"]
+  end
+
+  WEB --> CR
+  MOB --> CR
+  ROLES -.-> WEB
+  CR --> SEC --> AUTH --> API
+  CR --> WS
+  CR --> VIDEO
+
+  AIAPI --> GATEWAY
+  COREAPI --> GATEWAY
+  GATEWAY --> ORCH
+  ORCH --> LEARN
+  ORCH --> RAG
+  AIAPI --> ARENA
+  COREAPI --> GRADE
+  ARENA --> GATEWAY
+  GRADE --> GATEWAY
+  ARENA --> JOBS
+
+  GATEWAY --> GEMINI
+  GATEWAY --> OPENAI
+  ORCH --> SEARCH
+  ARENA --> SEARCH
+
+  COREAPI --> PG
+  COLLAB --> PG
+  OPSAPI --> PG
+  LEARN --> PG
+  RAG --> PG
+  WS --> CASS
+  JOBS --> REDIS
+  ARENA --> REDIS
+
+  AUTH --> GOOG
+  OPSAPI --> STRIPE
+  OPSAPI --> META
+  JOBS --> META
+  JOBS --> EXPO
+  COLLAB --> GOOG
+  VIDEO --> DAILY["Daily.co API"]
+
+  GH --> CB --> CR
+  SM -.-> CR

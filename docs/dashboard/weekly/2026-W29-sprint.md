@@ -8,18 +8,18 @@ Live boards: **GitHub Project** https://github.com/users/NitishKumar-ai/projects
 
 ## Demand — the school (CEO hat, ~50%)
 
-- [ ] **S1 (P0)** Call the principal, book the visit — DoD: date+time on calendar, before Friday
-- [ ] **S2 (P0)** Draft the one-page paid-pilot offer — DoD: ₹20/student/mo, term, manual-vs-automated stated, signature line, printed
+- [ ] **S1 (P0)** Call the principal, book the visit — DoD: date+time on calendar, before Friday — *SLIPPED Thu 16 Jul; must happen Fri morning, visit itself is the Friday deadline*
+- [x] **S2 (P0)** Draft the one-page paid-pilot offer — DoD: ₹20/student/mo, term, manual-vs-automated stated, signature line, printed — *done 16 Jul: `docs/dashboard/pilot-offer.md` + one-page A4 PDF ready to print*
 - [ ] **S3 (P0)** Workflow audit at the school (1 hr) — DoD: paper-vs-app map; register's actual marks; what school pays today; who signs
 - [ ] **S4 (P0)** The ask: WTP close attempt, offer on the table — DoD: verbatim written answer + named signer, same day
 - [ ] **S5 (P1)** List 3–5 candidate schools for the parallel test — DoD: names + intro paths in the playbook file
 
 ## Build — the product (CTO hat, ~30%)
 
-- [ ] **B1 (P0)** Fix fabricated WhatsApp toast on attendance page — DoD: no automation claims in UI copy; test updated; deployed + health check verified — *before the visit*
-- [ ] **B2 (P1)** Fix NULL school_code on admin attendance writes — DoD: regression test green (8e3d2b8 pattern); deployed
-- [ ] **B3 (P1)** Wire attendance_view / report_view usage events — DoD: feature_usage rows from real navigation
-- [ ] **B4 (P2)** Push dashboard commit + verify rollout — DoD: CD green AND health check flipped
+- [ ] **B1 (P0)** Fix fabricated WhatsApp toast on attendance page — DoD: no automation claims in UI copy; test updated; deployed + health check verified — *before the visit* — *16 Jul: fixed + e2e green on `w29-build-merge`; DEPLOY PENDING*
+- [ ] **B2 (P1)** Fix NULL school_code on admin attendance writes — DoD: regression test green (8e3d2b8 pattern); deployed — *16 Jul: root-caused (admin stamped own null school), fail-closed fix + 4-test regression suite green on `w29-build-merge`; DEPLOY PENDING*
+- [ ] **B3 (P1)** Wire attendance_view / report_view usage events — DoD: feature_usage rows from real navigation — *16 Jul: POST /api/usage + client wiring done, rows verified from real e2e navigation on `w29-build-merge`; DEPLOY PENDING*
+- [ ] **B4 (P2)** Push dashboard commit + verify rollout — DoD: CD green AND health check flipped — *16 Jul: superseded by `w29-build-merge` (B1+B2+B3, 429 unit + 17 e2e green) — one push deploys everything*
 
 ## Ops — the company (COO hat, ~20%)
 
