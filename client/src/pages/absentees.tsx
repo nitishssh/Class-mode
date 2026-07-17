@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { todayISO } from "@/lib/dates";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,10 +21,6 @@ interface AbsenteesResponse {
   absentees: AbsenteeRow[];
 }
 
-function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 /**
  * The day's absentee call list: every student marked absent today, with the
  * parent phone number, grouped by class. This is the manual follow-up
@@ -33,8 +30,13 @@ function todayISO(): string {
 export default function AbsenteesPage() {
   const [date, setDate] = useState(todayISO());
 
+  // A call list must be live: teachers are still marking while the office
+  // calls, so bypass the app-wide 5-minute staleTime for this query.
   const { data, isLoading, isError } = useQuery<AbsenteesResponse>({
     queryKey: [`/api/attendance/absentees?date=${date}`],
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchInterval: 60_000,
   });
 
   const byClass = new Map<string, AbsenteeRow[]>();
@@ -77,15 +79,15 @@ export default function AbsenteesPage() {
       {isLoading && <p className="text-muted-foreground">Loading…</p>}
       {isError && (
         <p className="text-destructive">
-          Absentee list could not be loaded. Try again — the list is never silently empty.
+          Couldn't load the absentee list. Check your connection and try again.
         </p>
       )}
 
       {data && data.count === 0 && (
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">
-            No students marked absent on {data.date}. If attendance hasn't been marked yet, this
-            list will fill in as teachers mark it.
+            No students marked absent on {data.date}. If teachers are still marking, this list
+            refreshes automatically every minute.
           </CardContent>
         </Card>
       )}
@@ -114,8 +116,8 @@ export default function AbsenteesPage() {
                       </div>
                       {r.parentPhone ? (
                         <a
-                          href={`tel:${r.parentPhone}`}
-                          className="flex items-center gap-1 text-sm text-primary hover:underline"
+                          href={`tel:${r.parentPhone.replace(/[^+\d]/g, "")}`}
+                          className="-my-1 flex min-h-11 items-center gap-1 rounded-md px-3 text-sm text-primary hover:bg-accent hover:underline"
                         >
                           <Phone className="h-4 w-4" /> {r.parentPhone}
                         </a>

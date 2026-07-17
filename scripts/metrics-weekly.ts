@@ -18,8 +18,13 @@ import { connectPostgres, getPgPool } from "../server/db-pg";
  * - "active teacher" per workflow = distinct users.id that authored a domain
  *   row in the ISO week (attendance.marked_by / fees.created_by).
  * - "school day marked" = distinct (school_code, class_name, date) with >= 1
- *   attendance row dated inside the week.
+ *   attendance row DATED (attendance.date) inside the week — backfilled marks
+ *   count toward the school day they describe, not the day they were typed.
+ *   Fees have no domain date for activity, so fee metrics use created_at.
  * - feature_usage events are counted per feature name, distinct users per week.
+ *   Rows with NULL school_code (platform admin / founder activity) and rows
+ *   from E2E% seed schools are EXCLUDED — internal activity must never read
+ *   as school adoption (demo-data honesty invariant).
  * - Decision threshold (from the plan): wedge weekly-active-teachers below 50%
  *   of the baseline week for 2 consecutive weeks => adoption failing, act.
  */
@@ -61,7 +66,10 @@ function isoWeekOf(d: Date): { isoWeek: string; weekStart: Date; weekEnd: Date }
 
 const ymd = (d: Date) => d.toISOString().slice(0, 10);
 
-async function collect(weekStart: string, weekEnd: string): Promise<Omit<Snapshot, "isoWeek" | "generatedAt" | "weekStart" | "weekEnd">> {
+async function collect(
+  weekStart: string,
+  weekEnd: string
+): Promise<Omit<Snapshot, "isoWeek" | "generatedAt" | "weekStart" | "weekEnd">> {
   const pool = getPgPool();
   const q = async <T = any>(sql: string, params: unknown[] = []): Promise<T[]> => {
     // No []-on-error fallback (spec E5): a failed query kills the run loudly.
@@ -75,7 +83,7 @@ async function collect(weekStart: string, weekEnd: string): Promise<Omit<Snapsho
             COUNT(DISTINCT (school_code, class_name, date))::int                AS class_days_marked,
             COUNT(DISTINCT date)::int                                           AS distinct_school_days
        FROM attendance
-      WHERE created_at >= $1 AND created_at < $2`,
+      WHERE date >= $1::date AND date < $2::date`,
     [weekStart, weekEnd]
   );
 
@@ -93,6 +101,8 @@ async function collect(weekStart: string, weekEnd: string): Promise<Omit<Snapsho
             COUNT(DISTINCT user_id)::int  AS distinct_users
        FROM feature_usage
       WHERE created_at >= $1 AND created_at < $2
+        AND school_code IS NOT NULL
+        AND school_code NOT LIKE 'E2E%'
       GROUP BY feature
       ORDER BY events DESC`,
     [weekStart, weekEnd]
@@ -135,22 +145,44 @@ function renderTable(s: Snapshot, prior: Snapshot[]): string {
   const baseline = prior[0];
   const prev = prior[prior.length - 1];
   const delta = (cur: number, past?: number) =>
-    past === undefined ? "—" : past === 0 ? (cur > 0 ? "new" : "0") : `${cur >= past ? "+" : ""}${(((cur - past) / past) * 100).toFixed(0)}%`;
+    past === undefined
+      ? "—"
+      : past === 0
+        ? cur > 0
+          ? "new"
+          : "0"
+        : `${cur >= past ? "+" : ""}${(((cur - past) / past) * 100).toFixed(0)}%`;
 
   const lines: string[] = [];
   lines.push(`# Weekly metrics — ${s.isoWeek} (${s.weekStart} → ${s.weekEnd}, exclusive)`);
   lines.push("");
-  lines.push(`| Metric | This week | vs prev | vs baseline${baseline ? ` (${baseline.isoWeek})` : ""} |`);
+  lines.push(
+    `| Metric | This week | vs prev | vs baseline${baseline ? ` (${baseline.isoWeek})` : ""} |`
+  );
   lines.push(`|--------|-----------|---------|-------------|`);
-  lines.push(`| Attendance: active teachers | ${s.attendance.activeTeachers} | ${delta(s.attendance.activeTeachers, prev?.attendance.activeTeachers)} | ${delta(s.attendance.activeTeachers, baseline?.attendance.activeTeachers)} |`);
-  lines.push(`| Attendance: rows written | ${s.attendance.rowsWritten} | ${delta(s.attendance.rowsWritten, prev?.attendance.rowsWritten)} | ${delta(s.attendance.rowsWritten, baseline?.attendance.rowsWritten)} |`);
-  lines.push(`| Attendance: class-days marked | ${s.attendance.classDaysMarked} | ${delta(s.attendance.classDaysMarked, prev?.attendance.classDaysMarked)} | ${delta(s.attendance.classDaysMarked, baseline?.attendance.classDaysMarked)} |`);
-  lines.push(`| Fees: active staff | ${s.fees.activeStaff} | ${delta(s.fees.activeStaff, prev?.fees.activeStaff)} | ${delta(s.fees.activeStaff, baseline?.fees.activeStaff)} |`);
-  lines.push(`| Fees: rows created | ${s.fees.rowsCreated} | ${delta(s.fees.rowsCreated, prev?.fees.rowsCreated)} | ${delta(s.fees.rowsCreated, baseline?.fees.rowsCreated)} |`);
+  lines.push(
+    `| Attendance: active teachers | ${s.attendance.activeTeachers} | ${delta(s.attendance.activeTeachers, prev?.attendance.activeTeachers)} | ${delta(s.attendance.activeTeachers, baseline?.attendance.activeTeachers)} |`
+  );
+  lines.push(
+    `| Attendance: rows written | ${s.attendance.rowsWritten} | ${delta(s.attendance.rowsWritten, prev?.attendance.rowsWritten)} | ${delta(s.attendance.rowsWritten, baseline?.attendance.rowsWritten)} |`
+  );
+  lines.push(
+    `| Attendance: class-days marked | ${s.attendance.classDaysMarked} | ${delta(s.attendance.classDaysMarked, prev?.attendance.classDaysMarked)} | ${delta(s.attendance.classDaysMarked, baseline?.attendance.classDaysMarked)} |`
+  );
+  lines.push(
+    `| Fees: active staff | ${s.fees.activeStaff} | ${delta(s.fees.activeStaff, prev?.fees.activeStaff)} | ${delta(s.fees.activeStaff, baseline?.fees.activeStaff)} |`
+  );
+  lines.push(
+    `| Fees: rows created | ${s.fees.rowsCreated} | ${delta(s.fees.rowsCreated, prev?.fees.rowsCreated)} | ${delta(s.fees.rowsCreated, baseline?.fees.rowsCreated)} |`
+  );
   for (const u of s.featureUsage.slice(0, 10)) {
-    lines.push(`| feature_usage: ${u.feature} | ${u.events} ev / ${u.distinctUsers} users | — | — |`);
+    lines.push(
+      `| feature_usage: ${u.feature} | ${u.events} ev / ${u.distinctUsers} users | — | — |`
+    );
   }
-  lines.push(`| Accounts (users/teachers/students) | ${s.totals.users} / ${s.totals.teachers} / ${s.totals.students} | — | — |`);
+  lines.push(
+    `| Accounts (users/teachers/students) | ${s.totals.users} / ${s.totals.teachers} / ${s.totals.students} | — | — |`
+  );
   lines.push("");
 
   // Decision threshold (plan objective 3): wedge WAT < 50% of baseline, 2 consecutive weeks.
@@ -159,9 +191,13 @@ function renderTable(s: Snapshot, prior: Snapshot[]): string {
     const thisBelow = s.attendance.activeTeachers < bar;
     const prevBelow = prev.attendance.activeTeachers < bar;
     if (thisBelow && prevBelow) {
-      lines.push(`> **THRESHOLD BREACHED:** attendance weekly-active-teachers below 50% of baseline (${baseline.attendance.activeTeachers}) for 2 consecutive weeks. Per the plan: adoption is failing — act, don't average it away.`);
+      lines.push(
+        `> **THRESHOLD BREACHED:** attendance weekly-active-teachers below 50% of baseline (${baseline.attendance.activeTeachers}) for 2 consecutive weeks. Per the plan: adoption is failing — act, don't average it away.`
+      );
     } else if (thisBelow) {
-      lines.push(`> WARN: attendance weekly-active-teachers below 50% of baseline this week (1st week — threshold fires at 2 consecutive).`);
+      lines.push(
+        `> WARN: attendance weekly-active-teachers below 50% of baseline this week (1st week — threshold fires at 2 consecutive).`
+      );
     }
   } else if (!baseline || baseline.isoWeek === s.isoWeek) {
     lines.push(`> This is the baseline week. Thresholds activate from next week's run.`);
@@ -197,14 +233,18 @@ async function main() {
     fs.mkdirSync(weeklyDir, { recursive: true });
     const reportPath = path.join(weeklyDir, `${isoWeek}.md`);
     if (fs.existsSync(reportPath)) {
-      console.log(`Weekly report already exists, not overwriting: docs/dashboard/weekly/${isoWeek}.md`);
+      console.log(
+        `Weekly report already exists, not overwriting: docs/dashboard/weekly/${isoWeek}.md`
+      );
     } else {
       const template = fs.readFileSync(path.resolve("docs/dashboard/weekly/TEMPLATE.md"), "utf8");
       fs.writeFileSync(
         reportPath,
         template.replaceAll("{{WEEK}}", isoWeek).replace("{{METRICS_TABLE}}", table)
       );
-      console.log(`Weekly report scaffolded: docs/dashboard/weekly/${isoWeek}.md — fill in the narrative sections.`);
+      console.log(
+        `Weekly report scaffolded: docs/dashboard/weekly/${isoWeek}.md — fill in the narrative sections.`
+      );
     }
   }
   process.exit(0);

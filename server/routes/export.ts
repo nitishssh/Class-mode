@@ -15,13 +15,16 @@ const router = Router();
 
 function csvField(v: unknown): string {
   if (v === null || v === undefined) return "";
-  const s = String(v);
+  let s = String(v);
+  // Formula-injection guard (CWE-1236): these files are opened in Excel, so a
+  // cell starting with = + - @ (or tab/CR) would execute as a formula.
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
   return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
 function toCsv(headers: string[], rows: unknown[][]): string {
   const lines = [headers, ...rows].map((r) => r.map(csvField).join(","));
-  return "﻿" + lines.join("\r\n") + "\r\n";
+  return "\uFEFF" + lines.join("\r\n") + "\r\n";
 }
 
 function resolveExportScope(req: Request, res: Response): string | null {
@@ -34,11 +37,18 @@ function resolveExportScope(req: Request, res: Response): string | null {
   const schoolCode = t.scope.isPlatformAdmin
     ? String(req.query.schoolCode || "")
     : t.scope.schoolCode!;
-  if (!schoolCode) {
+  // Also guards the Content-Disposition filename this value is embedded in.
+  if (!schoolCode || !/^[A-Za-z0-9_-]{1,64}$/.test(schoolCode)) {
     res.status(400).json({ message: "schoolCode is required" });
     return null;
   }
   return schoolCode;
+}
+
+/** Rejects well-formed-but-impossible dates (2026-02-31) that regexes let through. */
+function isRealISODate(s: string): boolean {
+  const d = new Date(`${s}T00:00:00Z`);
+  return !Number.isNaN(+d) && d.toISOString().slice(0, 10) === s;
 }
 
 function sendCsv(res: Response, filename: string, csv: string): void {
@@ -59,9 +69,8 @@ router.get(
 
     const from = String(req.query.from || "");
     const to = String(req.query.to || "");
-    const dateRe = /^\d{4}-\d{2}-\d{2}$/;
-    if ((from && !dateRe.test(from)) || (to && !dateRe.test(to))) {
-      return res.status(400).json({ message: "from/to must be YYYY-MM-DD" });
+    if ((from && !isRealISODate(from)) || (to && !isRealISODate(to))) {
+      return res.status(400).json({ message: "from/to must be a real YYYY-MM-DD date" });
     }
 
     try {

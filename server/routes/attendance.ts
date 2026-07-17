@@ -175,7 +175,14 @@ router.post(
     // the durable event bus (crash between save and send no longer loses
     // alerts); without Redis it falls back to the inline fire-and-forget send.
     // Either way the teacher's save never blocks on delivery.
-    const alertsEnabled = whatsappService.isConfigured();
+    //
+    // WHATSAPP_ALERTS_ENABLED gate (#335 follow-up): the automated pipe is a
+    // deliberately paused product decision, and every UI/offer surface now
+    // says "we do not auto-send WhatsApp messages today". Configuring Meta
+    // credentials alone must NOT silently turn undisclosed automated messages
+    // to real parents back on — flipping this flag is the explicit act.
+    const alertsEnabled =
+      process.env.WHATSAPP_ALERTS_ENABLED === "true" && whatsappService.isConfigured();
     const absentIds = new Set(
       parsed.data.marks.filter((m) => m.status === "absent").map((m) => m.studentId)
     );
@@ -263,7 +270,14 @@ router.get(
     if ("error" in t) return res.status(t.error.status).json({ message: t.error.message });
 
     const date = String(req.query.date || "");
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    // Regex + round-trip: rejects well-formed-but-impossible dates (2026-02-31)
+    // as a 400 instead of letting Postgres throw a cast error into the 500 path.
+    const parsed = new Date(`${date}T00:00:00Z`);
+    if (
+      !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+      Number.isNaN(+parsed) ||
+      parsed.toISOString().slice(0, 10) !== date
+    ) {
       return res.status(400).json({ message: "date (YYYY-MM-DD) is required" });
     }
 

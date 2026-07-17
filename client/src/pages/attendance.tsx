@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { PermissionDenied } from "@/components/ui/permission-denied";
 import { useToast } from "@/hooks/use-toast";
+import { todayISO } from "@/lib/dates";
 import { apiRequest, isPermissionError } from "@/lib/queryClient";
 import { trackFeatureView } from "@/lib/track-usage";
 import { cn } from "@/lib/utils";
@@ -44,11 +45,6 @@ const STATUS_OPTIONS: { value: Status; label: string; activeClass: string }[] = 
   { value: "late", label: "Late", activeClass: "bg-amber-500 text-white hover:bg-amber-500" },
   { value: "excused", label: "Excused", activeClass: "bg-sky-600 text-white hover:bg-sky-600" },
 ];
-
-function todayISO(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
 
 export default function AttendancePage() {
   const { toast } = useToast();
@@ -167,10 +163,7 @@ export default function AttendancePage() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <PageHeader
-        title="Attendance"
-        subtitle="Mark daily attendance for each class."
-      />
+      <PageHeader title="Attendance" subtitle="Mark daily attendance for each class." />
 
       <Card>
         <CardHeader className="pb-3">

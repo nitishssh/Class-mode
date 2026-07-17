@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { PerformanceChart } from "@/components/dashboard/performance-chart";
 import { TopStudents } from "@/components/dashboard/top-students";
@@ -74,16 +74,22 @@ export default function Analytics() {
   const studentId = currentUser?.profile?.uid;
   const [analysis, setAnalysis] = useState<any>(null);
 
-  // Distribution instrumentation (#337): one report_view per page visit.
-  useEffect(() => {
-    trackFeatureView("report_view");
-  }, []);
-
   // Real class analytics, shared (by queryKey) with the Individual Students tab.
   // Staff-only endpoint; for students it 403s and we fall back to empty KPIs.
   const isStaff = ["teacher", "admin", "principal", "school_admin"].includes(
     currentUser?.profile?.role || ""
   );
+
+  // Distribution instrumentation (#337): one report_view per STAFF page visit.
+  // Students also reach this page (and outnumber staff), so an unguarded event
+  // would drown the adoption signal the weekly metrics probe measures.
+  const reportViewTracked = useRef(false);
+  useEffect(() => {
+    if (isStaff && !reportViewTracked.current) {
+      reportViewTracked.current = true;
+      trackFeatureView("report_view");
+    }
+  }, [isStaff]);
   const { data: studentSummaries, isLoading: isLoadingSummaries } = useQuery<
     StudentAnalyticsSummary[]
   >({

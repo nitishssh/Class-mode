@@ -104,6 +104,10 @@ export type RosterStudent = z.infer<typeof rosterStudentSchema>;
 export const classListResponseSchema = z.array(z.string());
 
 // POST /api/attendance response (W-2 adds `alerts`; optional until it ships).
+// DEPRECATED (#335, honesty invariant): `notified` and `alerts.attempted` count
+// asynchronous send ATTEMPTS, not deliveries, and the automated WhatsApp pipe
+// is paused. Clients must never render these as "parents were notified" — the
+// web client removed that claim; mobile must not reintroduce it.
 export const markAttendanceResponseSchema = z
   .object({
     success: z.boolean(),

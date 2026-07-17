@@ -104,6 +104,21 @@ describe("GET /api/attendance/absentees", () => {
     expect(h.mockAbsentees).not.toHaveBeenCalled();
   });
 
+  it("ignores a client-supplied schoolCode for school-bound roles", async () => {
+    h.mockAbsentees.mockResolvedValue([]);
+    const res = await request(app).get(
+      "/api/attendance/absentees?date=2026-07-17&schoolCode=OTHER1"
+    );
+    expect(res.status).toBe(200);
+    expect(h.mockAbsentees).toHaveBeenCalledWith({ schoolCode: "SCHOOL123", date: "2026-07-17" });
+  });
+
+  it("rejects impossible-but-well-formed dates (2026-02-31)", async () => {
+    const res = await request(app).get("/api/attendance/absentees?date=2026-02-31");
+    expect(res.status).toBe(400);
+    expect(h.mockAbsentees).not.toHaveBeenCalled();
+  });
+
   it("lets a platform admin query an explicit school", async () => {
     h.currentUser = PLATFORM_ADMIN;
     h.mockAbsentees.mockResolvedValue([]);

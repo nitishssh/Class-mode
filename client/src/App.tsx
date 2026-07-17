@@ -178,7 +178,10 @@ const AttendanceRoute = withLayout(
   protect(AttendancePage, ["teacher", "principal", "school_admin", "admin"])
 );
 const FeesRoute = withLayout(protect(FeesPage, ["principal", "school_admin", "admin"]));
-const AbsenteesRoute = withLayout(protect(AbsenteesPage, ["principal", "school_admin", "admin"]));
+// No "admin": the page never sends ?schoolCode=, so the fail-closed API 400s
+// for platform admins (v1 excludes cross-school reporting). API access for
+// admins still works with an explicit ?schoolCode=.
+const AbsenteesRoute = withLayout(protect(AbsenteesPage, ["principal", "school_admin"]));
 const LearnRoute = withLayout(protect(LearnPage, ["student"]));
 const StudentDirRoute = withLayout(protect(StudentDirectory, ["teacher", "principal", "admin"]));
 const MessagesRoute = withLayout(protect(Messages), { fullWidth: true });
