@@ -2663,10 +2663,17 @@ export async function pgMarkAttendance(params: {
   try {
     await client.query("BEGIN");
     await client.query(
+      // note: COALESCE, not EXCLUDED.note. The web marking page sends status
+      // only (no note field), so a routine re-save of a class would otherwise
+      // write NULL over a note entered elsewhere (e.g. the mobile app) —
+      // silent data loss the Absentees call list would then hide. A save that
+      // carries a note still updates it; a note-less save preserves the
+      // existing one. Clearing a note is not a supported web action today.
       `INSERT INTO attendance (student_id, school_code, class_name, date, status, marked_by, note, updated_at)
        VALUES ${rows.join(", ")}
        ON CONFLICT (student_id, date)
-       DO UPDATE SET status = EXCLUDED.status, note = EXCLUDED.note,
+       DO UPDATE SET status = EXCLUDED.status,
+                     note = COALESCE(EXCLUDED.note, attendance.note),
                      marked_by = EXCLUDED.marked_by, updated_at = EXCLUDED.updated_at
        WHERE attendance.updated_at <= EXCLUDED.updated_at`,
       values
