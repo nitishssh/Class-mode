@@ -2,6 +2,18 @@
 
 Live register of deferred work. Anything cut or postponed from a plan lands here with enough context to pick up cold. (Revived 2026-07-15 by /plan-ceo-review; source: the Sharpened Company design doc + CEO plan in ~/.gstack/projects/NitishKumar-ai-Class-mode/.)
 
+## From /ship pre-landing review, v1.9.0.0 (2026-07-17)
+
+- [ ] **P0 — fix `server/tests/whatsapp-automation.test.ts`**: fails at import (vi.mock/BullMQ hoisting, missing `BULLMQ_PREFIX` export) — pre-existing on main since #276, fails on every full-suite run. Triaged during v1.9.0.0 ship; unrelated to that branch.
+- [ ] **P1 — e2e coverage for the absentee/export surface**: no Playwright spec visits `/absentees` (list render, print, CSV download), view-events (`attendance_view`/`report_view`) are never asserted in a real browser, and the three new pg-queries helpers only ever run mocked. Coverage gate shipped at 75% with these as the accepted gap.
+- [ ] **P1 — rate-limit or dedupe `POST /api/usage`**: any authenticated user can flood view events (metric inflation). Mitigated for now: `report_view` fires staff-only and weekly metrics exclude NULL-school/E2E rows. Proper fix: per-user/feature/day dedupe at insert.
+- [ ] **P2 — print stylesheet**: `/absentees` "Print list" includes app chrome (sidebar/header); add `@media print` rules to the layout so the printed call list is clean.
+- [ ] **P2 — unify platform-admin scope convention**: `GET /api/attendance/school-summary` treats missing `?schoolCode=` as cross-school, while `/absentees` and `/api/export/*` fail closed and require it. Align on explicit-school-required.
+- [ ] **P2 — metrics script tests**: `isoWeekOf()` year-boundary/week-53 cases and the 50%-of-baseline two-week threshold in `scripts/metrics-weekly.ts` have no tests; the threshold drives the pilot kill decision.
+- [ ] **P3 — review cleanups**: share the schoolCode-from-request resolver (attendance absentees + export routes), type `pgExportAttendanceRows`/`pgExportFeeRows` returns, move `AbsenteeRow` to shared/, normalize snake/camel schoolCode in one place (tenant.ts).
+
+(Wedge-screen touch targets and contrast — status buttons h-8, amber/white contrast — are already scoped in the design spec for expansion 2.3; not re-listed here.)
+
 ## Deferred — gated on the graduation trigger (first payment or signed written commitment)
 
 - [ ] **Provider-swap canary**: route a 48-hour low-volume slice of AI traffic through the secondary provider via `server/lib/ai/gateway.ts`, zero call-site changes, with a defined rollback (any quality/latency regression reverts immediately). Requires a funded OpenAI account (current key is a placeholder). First post-trigger engineering task.
