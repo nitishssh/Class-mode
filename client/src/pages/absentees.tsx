@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { todayISO } from "@/lib/dates";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,6 +31,29 @@ interface AbsenteesResponse {
  */
 export default function AbsenteesPage() {
   const [date, setDate] = useState(todayISO());
+  const { toast } = useToast();
+
+  // Download via fetch (not a bare <a href>): anchors send only cookies, so a
+  // token-auth session would silently save the 401 JSON error body as a .csv.
+  // Any non-2xx becomes a visible toast instead of a corrupt file.
+  const downloadCsv = async (path: string, filename: string) => {
+    try {
+      const res = await apiRequest("GET", path);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast({
+        title: "Export failed",
+        description: err instanceof Error ? err.message : "Could not download the file.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // A call list must be live: teachers are still marking while the office
   // calls, so bypass the app-wide 5-minute staleTime for this query.
@@ -64,15 +89,14 @@ export default function AbsenteesPage() {
         <Button variant="outline" onClick={() => window.print()}>
           <Printer className="mr-2 h-4 w-4" /> Print list
         </Button>
-        <Button variant="outline" asChild>
-          <a href={`/api/export/attendance.csv`} download>
-            <Download className="mr-2 h-4 w-4" /> Attendance CSV
-          </a>
+        <Button
+          variant="outline"
+          onClick={() => downloadCsv("/api/export/attendance.csv", "attendance.csv")}
+        >
+          <Download className="mr-2 h-4 w-4" /> Attendance CSV
         </Button>
-        <Button variant="outline" asChild>
-          <a href={`/api/export/fees.csv`} download>
-            <Download className="mr-2 h-4 w-4" /> Fees CSV
-          </a>
+        <Button variant="outline" onClick={() => downloadCsv("/api/export/fees.csv", "fees.csv")}>
+          <Download className="mr-2 h-4 w-4" /> Fees CSV
         </Button>
       </div>
 

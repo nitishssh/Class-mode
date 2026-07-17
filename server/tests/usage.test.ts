@@ -37,6 +37,13 @@ describe("Usage API (POST /api/usage — #337 view events)", () => {
     h.currentUser = { id: 10, role: "teacher", schoolCode: "SCHOOL123" };
   });
 
+  it("rejects view events from non-staff roles (metric integrity)", async () => {
+    h.currentUser = { id: 99, role: "student", schoolCode: "SCHOOL123" };
+    const res = await request(app).post("/api/usage").send({ feature: "report_view" });
+    expect(res.status).toBe(403);
+    expect(h.mockTrack).not.toHaveBeenCalled();
+  });
+
   it("records attendance_view scoped to the user's school", async () => {
     const res = await request(app).post("/api/usage").send({ feature: "attendance_view" });
     expect(res.status).toBe(202);

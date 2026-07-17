@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CalendarCheck, Check, Loader2, Phone, Users, X } from "lucide-react";
 
@@ -57,7 +57,12 @@ export default function AttendancePage() {
   const [phoneDraft, setPhoneDraft] = useState("");
 
   // Distribution instrumentation (#337): one attendance_view per page visit.
+  // Ref guard: StrictMode double-mounts effects in dev, which would double
+  // the event if the dev client points at a shared database.
+  const viewTracked = useRef(false);
   useEffect(() => {
+    if (viewTracked.current) return;
+    viewTracked.current = true;
     trackFeatureView("attendance_view");
   }, []);
 

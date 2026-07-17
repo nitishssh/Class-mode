@@ -23,11 +23,19 @@ const VIEW_FEATURES = new Set(["attendance_view", "report_view"]);
  * (fail-closed) so feature_usage rows never carry a NULL school_code for
  * school-bound users; only the platform super-admin may record without one.
  */
+const STAFF_ROLES = new Set(["teacher", "admin", "principal", "school_admin"]);
+
 router.post("/", authenticateToken, (req: Request, res: Response) => {
   const user = (req as any).user;
   const feature = typeof req.body?.feature === "string" ? req.body.feature : "";
   if (!VIEW_FEATURES.has(feature)) {
     return res.status(400).json({ message: "Unknown feature" });
+  }
+  // Staff-only: these events feed the weekly ADOPTION metrics. Students can
+  // reach some instrumented pages, and client-side gating alone would leave
+  // the metric's integrity to client code — reject non-staff server-side.
+  if (!STAFF_ROLES.has(user.role)) {
+    return res.status(403).json({ message: "View events are recorded for staff only" });
   }
 
   const t = resolveTenantScope(user);

@@ -72,6 +72,9 @@ router.get(
     if ((from && !isRealISODate(from)) || (to && !isRealISODate(to))) {
       return res.status(400).json({ message: "from/to must be a real YYYY-MM-DD date" });
     }
+    if (from && to && from > to) {
+      return res.status(400).json({ message: "from must not be after to" });
+    }
 
     try {
       const rows = await pgExportAttendanceRows({

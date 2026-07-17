@@ -83,7 +83,9 @@ async function collect(
             COUNT(DISTINCT (school_code, class_name, date))::int                AS class_days_marked,
             COUNT(DISTINCT date)::int                                           AS distinct_school_days
        FROM attendance
-      WHERE date >= $1::date AND date < $2::date`,
+      WHERE date >= $1::date AND date < $2::date
+        AND school_code IS NOT NULL
+        AND school_code NOT LIKE 'E2E%'`,
     [weekStart, weekEnd]
   );
 
@@ -91,7 +93,9 @@ async function collect(
     `SELECT COUNT(DISTINCT created_by) FILTER (WHERE created_by IS NOT NULL)::int AS active_staff,
             COUNT(*)::int                                                          AS rows_created
        FROM fees
-      WHERE created_at >= $1 AND created_at < $2`,
+      WHERE created_at >= $1 AND created_at < $2
+        AND school_code IS NOT NULL
+        AND school_code NOT LIKE 'E2E%'`,
     [weekStart, weekEnd]
   );
 
@@ -112,7 +116,8 @@ async function collect(
     `SELECT COUNT(*)::int                                        AS users,
             COUNT(*) FILTER (WHERE role = 'teacher')::int        AS teachers,
             COUNT(*) FILTER (WHERE role = 'student')::int        AS students
-       FROM users`
+       FROM users
+      WHERE school_code IS NULL OR school_code NOT LIKE 'E2E%'`
   );
 
   return {
@@ -142,7 +147,11 @@ function loadPriorSnapshots(dir: string): Snapshot[] {
 }
 
 function renderTable(s: Snapshot, prior: Snapshot[]): string {
-  const baseline = prior[0];
+  // Baseline = the FIRST week with real wedge activity. Anchoring on prior[0]
+  // unconditionally would pin the threshold bar to the launch week's zeros
+  // forever (0 * 0.5 = 0 can never be breached) — the kill-switch this script
+  // exists to provide would be permanently disarmed.
+  const baseline = prior.find((p) => p.attendance.activeTeachers > 0);
   const prev = prior[prior.length - 1];
   const delta = (cur: number, past?: number) =>
     past === undefined
@@ -200,7 +209,9 @@ function renderTable(s: Snapshot, prior: Snapshot[]): string {
       );
     }
   } else if (!baseline || baseline.isoWeek === s.isoWeek) {
-    lines.push(`> This is the baseline week. Thresholds activate from next week's run.`);
+    lines.push(
+      `> No baseline week with nonzero weekly-active-teachers yet — the 50% adoption threshold is NOT armed. It arms the week after the first week with real teacher activity.`
+    );
   }
   return lines.join("\n");
 }
