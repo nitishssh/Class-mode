@@ -16,6 +16,7 @@ import { requireRole } from "../middleware";
 import { recordAuditEvent, AUDIT_EVENTS } from "../lib/audit";
 import {
   pgFindSchoolByCreatedByUid,
+  pgFindSchoolByCode,
   pgUpsertSchool,
   pgFindSchoolById,
   pgCreateInvite,
@@ -61,8 +62,64 @@ function currentUserId(req: Request): number | undefined {
   return (req as any).user?.id;
 }
 
+// Resolve "the acting admin's school" for teacher-invite routes. Prefers the
+// legacy created_by_uid match (the original workspace creator), then falls
+// back to the school linked on the acting user's own row — the path a
+// non-creator admin (e.g. a principal or school_admin invited via
+// /invite/staff, who never called /school/setup themselves) is linked
+// through instead. Invited staff are linked by schoolCode (invite/accept sets
+// users.school_code, not always users.school_id), so fall back through both.
+const ADMIN_INVITER_ROLES = new Set(["admin", "principal", "school_admin"]);
+
+async function resolveInvitingAdminSchool(uid: string, userId: number | undefined) {
+  const created = await pgFindSchoolByCreatedByUid(uid);
+  if (created) return created;
+  const user = userId ? await pgFindUserById(userId) : null;
+  if (!user) return null;
+  // The fallback is admin-roles only: /invite/accept links teachers and
+  // students by schoolCode too, and the teacher-invite routes carry no
+  // requireRole gate — without this check any school-linked user could mint
+  // teacher invites into their school. The creator path above stays
+  // role-independent, matching the legacy created_by_uid-only behavior.
+  if (!ADMIN_INVITER_ROLES.has(user.role)) return null;
+  // schoolCode first: it is the tenant-authoritative link and the one
+  // invite/accept keeps current when a user moves schools — schoolId can go
+  // stale (accept never rewrites it), which would send invites to the old
+  // school.
+  if (user.schoolCode) return pgFindSchoolByCode(user.schoolCode);
+  if (user.schoolId) return pgFindSchoolById(user.schoolId);
+  return null;
+}
+
 function sevenDaysFromNow() {
   return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+}
+
+// Serializer for every invite LIST response. Never expose the raw invite
+// token: it is directly redeemable at the unauthenticated /invite/accept, so
+// listing it would let whoever can read the response redeem the invite
+// themselves (e.g. set the password on the account it creates or updates)
+// before the real recipient ever sees the email.
+function serializeInviteForList(inv: {
+  id: number;
+  email: string;
+  name: string | null;
+  status: string;
+  grades: string[];
+  classId?: string | null;
+  expiresAt: Date;
+  createdAt: Date;
+}) {
+  return {
+    id: inv.id,
+    email: inv.email,
+    name: inv.name,
+    status: inv.status,
+    grades: inv.grades,
+    classId: inv.classId ?? null,
+    expiresAt: inv.expiresAt,
+    createdAt: inv.createdAt,
+  };
 }
 
 // ─── STAGE 1: School setup ────────────────────────────────────────────────────
@@ -260,7 +317,7 @@ router.post("/invite/teacher", authenticateToken, async (req: Request, res: Resp
   const parsed = teacherInviteSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
 
-  const school = await pgFindSchoolByCreatedByUid(uid);
+  const school = await resolveInvitingAdminSchool(uid, currentUserId(req));
   if (!school) return res.status(404).json({ message: "Complete school setup first" });
 
   const token = crypto.randomUUID();
@@ -286,11 +343,11 @@ router.post("/invite/teacher", authenticateToken, async (req: Request, res: Resp
 // GET /api/onboarding/invite/teacher/list
 router.get("/invite/teacher/list", authenticateToken, async (req: Request, res: Response) => {
   const uid = firebaseUid(req);
-  const school = await pgFindSchoolByCreatedByUid(uid);
+  const school = await resolveInvitingAdminSchool(uid, currentUserId(req));
   if (!school) return res.status(404).json({ message: "School not found" });
 
   const invites = await pgFindInvitesBySchool(school.id, "teacher");
-  return res.json(invites);
+  return res.json(invites.map(serializeInviteForList));
 });
 
 // ─── STAGE 3: Accept teacher invite ──────────────────────────────────────────
@@ -337,6 +394,18 @@ router.post("/invite/accept", async (req: Request, res: Response) => {
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
   let pgUser = await pgFindUserByEmail(invite.email);
   if (pgUser) {
+    // Accepting an invite overwrites the account's password and role — so an
+    // invite addressed (maliciously or by typo) at a privileged account's
+    // email must never be able to reset that account and demote it. Lateral
+    // or upward moves (e.g. an existing student accepting a student invite,
+    // or a staff invite for a principal) remain allowed.
+    const PRIVILEGED_ROLES = new Set(["admin", "principal", "school_admin"]);
+    if (PRIVILEGED_ROLES.has(pgUser.role) && !PRIVILEGED_ROLES.has(invite.role)) {
+      return res.status(409).json({
+        message:
+          "An account with elevated access already uses this email. Sign in with that account instead.",
+      });
+    }
     await pgUpdateUser(pgUser.id, {
       passwordHash,
       displayName: parsed.data.displayName,
@@ -489,7 +558,7 @@ router.get("/invite/student/list", authenticateToken, async (req: Request, res: 
     role: "student",
     classId: classId as string | undefined,
   });
-  return res.json(invites);
+  return res.json(invites.map(serializeInviteForList));
 });
 
 // ─── Resend invite ────────────────────────────────────────────────────────────
@@ -573,7 +642,10 @@ router.post(
         .json({ message: "Only a platform admin can invite school administrators." });
     }
 
-    const school = await pgFindSchoolByCreatedByUid(uid);
+    // Same resolver as /invite/teacher: a school_admin who JOINED the school
+    // (rather than creating it) must not 404 here. The route is already
+    // requireRole-gated, and the resolver's fallback is admin-roles only.
+    const school = await resolveInvitingAdminSchool(uid, currentUserId(req));
     if (!school) return res.status(404).json({ message: "Complete school setup first" });
 
     const token = crypto.randomUUID();
