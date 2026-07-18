@@ -67,7 +67,7 @@ EduAI is a robust multi-tenant platform. Whether you're a school, a coaching cen
 
 - **Google Classroom**: OAuth-based connection to import courses and students.
 - **Dynamic SIS**: Flexible, workspace-scoped student information system with custom bases, tables, fields, records, and views.
-- **WhatsApp Notifications**: Outbound messaging via WhatsApp service integration. Automated absence alerts to parents are off by default — they require the explicit `WHATSAPP_ALERTS_ENABLED=true` flag in addition to Meta credentials.
+- **WhatsApp Notifications**: Outbound messaging via WhatsApp service integration. Automated messages to parents are off by default — the explicit `WHATSAPP_ALERTS_ENABLED=true` flag (in addition to Meta credentials) gates every automated send path: absence alerts at marking time, the hourly at-risk nudge scheduler, and already-queued jobs at delivery time.
 
 ### 📹 Live Classes
 

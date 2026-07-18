@@ -128,8 +128,9 @@ ENABLE_FIREBASE_AUTH_COMPAT=true
 WHATSAPP_ACCESS_TOKEN=
 WHATSAPP_PHONE_NUMBER_ID=
 WHATSAPP_VERIFY_TOKEN=
-# Automated absence alerts to parents are OFF unless this is "true" —
-# credentials alone never enable them.
+# ALL automated WhatsApp to parents is OFF unless this is "true" —
+# credentials alone never enable it. Gates absence alerts at marking time,
+# the hourly at-risk nudge scheduler, and queued jobs at delivery time.
 WHATSAPP_ALERTS_ENABLED=false
 ```
 
