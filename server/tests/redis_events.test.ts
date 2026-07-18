@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // Use the REAL redis/events modules (setup.ts mocks lib/redis globally) so
 // the "Redis not configured" degradation surface is what's actually tested.
@@ -67,7 +67,14 @@ describe("event bus with Redis off", () => {
 });
 
 describe("handleAttendanceMarked (the durable consumer's handler)", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // The consumer self-gates on the master switch at delivery time.
+    process.env.WHATSAPP_ALERTS_ENABLED = "true";
+  });
+  afterEach(() => {
+    delete process.env.WHATSAPP_ALERTS_ENABLED;
+  });
 
   const event = {
     topic: "attendance.marked" as const,

@@ -23,6 +23,11 @@ export const automationQueue: Queue | null = connection
   : null;
 
 async function processAutomationJob(job: Job) {
+    // Delivery-time gate: jobs queued in Redis BEFORE the switch was turned
+    // off would otherwise still send when the worker starts. The scheduler's
+    // enqueue gate is not enough — nothing may leave for a parent's phone
+    // while the master switch is off, backlog included.
+    if (process.env.WHATSAPP_ALERTS_ENABLED !== "true") return;
     const { type, userId, workspaceId: _workspaceId, metadata } = job.data;
 
     try {

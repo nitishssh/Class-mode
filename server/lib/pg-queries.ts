@@ -2863,6 +2863,11 @@ export async function pgGetAbsenteesByDate(params: {
        FROM attendance a
        JOIN users u ON u.id = a.student_id
       WHERE a.school_code = $1 AND a.date = $2 AND a.status = 'absent'
+        -- The user row carries the student's CURRENT school and guardian
+        -- phone. A transferred student's historical attendance rows keep the
+        -- old school_code, so without this check the former school could
+        -- read the family's current phone number off any past date.
+        AND u.school_code = a.school_code
       ORDER BY a.class_name ASC NULLS LAST, u.name ASC`,
     [params.schoolCode, params.date]
   );

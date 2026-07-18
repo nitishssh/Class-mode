@@ -38,6 +38,15 @@ export async function handleAttendanceMarked(
 ): Promise<void> {
   const { className, date, absentees } = event.payload;
   if (!absentees?.length) return;
+  // Delivery-time gate: an attendance.marked event queued before the master
+  // switch was turned off must not message parents from the backlog. The
+  // producer side is also gated (routes/attendance.ts) — both ends hold.
+  if (process.env.WHATSAPP_ALERTS_ENABLED !== "true") {
+    logger.info(
+      `[notifications] WHATSAPP_ALERTS_ENABLED off — dropping ${absentees.length} queued absence alerts (${className} ${date})`
+    );
+    return;
+  }
 
   const results = await Promise.allSettled(
     absentees.map((s) =>

@@ -51,9 +51,25 @@ vi.mock("bullmq", () => {
 describe("WhatsApp Automation Service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Both the scheduler and the worker self-gate on the master switch;
+    // most tests exercise the behavior behind the gate.
+    process.env.WHATSAPP_ALERTS_ENABLED = "true";
+  });
+  afterEach(() => {
+    delete process.env.WHATSAPP_ALERTS_ENABLED;
   });
 
   describe("automationWorker processor", () => {
+    it("drops queued jobs when WHATSAPP_ALERTS_ENABLED is off (backlog gate)", async () => {
+      delete process.env.WHATSAPP_ALERTS_ENABLED;
+      const { pgFindUserById } = await import("../lib/pg-queries");
+      await workerProcess.fn({ data: { type: "missed_class", userId: 1, metadata: {} } });
+      // A job enqueued before the switch was turned off must not even be
+      // looked up, let alone sent.
+      expect(pgFindUserById).not.toHaveBeenCalled();
+      expect(whatsappService.sendMessage).not.toHaveBeenCalled();
+    });
+
     it("processes missed_class job correctly", async () => {
       const { pgFindUserById } = await import("../lib/pg-queries");
       (pgFindUserById as any).mockResolvedValueOnce({ id: 1, parentId: 2, name: "Alice" });

@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import type { DomainEvent } from "../lib/events";
 import { whatsappService } from "../services/whatsapp";
 import {
@@ -27,7 +27,29 @@ describe("absenceMessage", () => {
 });
 
 describe("handleAttendanceMarked", () => {
-  afterEach(() => vi.restoreAllMocks());
+  beforeEach(() => {
+    // The consumer self-gates at delivery time; these tests exercise the
+    // behavior behind the gate.
+    process.env.WHATSAPP_ALERTS_ENABLED = "true";
+  });
+  afterEach(() => {
+    delete process.env.WHATSAPP_ALERTS_ENABLED;
+    vi.restoreAllMocks();
+  });
+
+  it("drops queued alerts when WHATSAPP_ALERTS_ENABLED is off (backlog gate)", async () => {
+    delete process.env.WHATSAPP_ALERTS_ENABLED;
+    const spy = vi.spyOn(whatsappService, "sendMessage").mockResolvedValue({ success: true });
+    await handleAttendanceMarked(
+      event({
+        className: "5A",
+        date: "2026-07-04",
+        absentees: [{ id: 1, name: "Rahul", parentPhone: "+911111111111" }],
+      })
+    );
+    // Events queued before the switch was turned off must never send.
+    expect(spy).not.toHaveBeenCalled();
+  });
 
   it("sends one WhatsApp message per absentee, addressed to the parent phone", async () => {
     const spy = vi
