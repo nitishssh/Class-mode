@@ -440,7 +440,13 @@ router.get("/config", (_req: Request, res: Response) => {
   res.status(200).json({
     localPasswordAuthEnabled: isLocalPasswordAuthEnabled(),
     devAuthWithoutDb: isDevAuthWithoutDbEnabled(),
-    alerts: { channel: "whatsapp", enabled: whatsappService.isConfigured() },
+    alerts: {
+      channel: "whatsapp",
+      // Credentials alone are not "alerts on" — the explicit master switch
+      // must also be set, matching the dispatch gate in routes/attendance.ts.
+      enabled:
+        process.env.WHATSAPP_ALERTS_ENABLED === "true" && whatsappService.isConfigured(),
+    },
   });
 });
 

@@ -63,6 +63,11 @@ export const automationWorker: Worker | null = connection
 
 // Scheduler to check for at-risk students every hour
 export async function scheduleAtRiskChecks() {
+  // Master no-auto-send switch (#335): configuring Redis + Meta creds is NOT
+  // consent to message parents. This is the same flag that gates absence-alert
+  // dispatch in routes/attendance.ts — no automated WhatsApp leaves the system
+  // unless it is explicitly turned on.
+  if (process.env.WHATSAPP_ALERTS_ENABLED !== "true") return;
   if (!isPgReady() || !automationQueue) return;
 
   const pool = getPgPool();

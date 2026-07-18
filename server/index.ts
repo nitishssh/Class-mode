@@ -234,6 +234,18 @@ app.use(
     message: { error: "Too many submissions, please try again in a minute" },
   })
 );
+app.use(
+  "/api/export",
+  // Full-history CSVs are built in memory — without a limiter a single staff
+  // token could hammer multi-year exports concurrently and exhaust the heap.
+  rateLimit({ windowMs: 60_000, max: 10, message: { error: "Too many export requests" } })
+);
+app.use(
+  "/api/usage",
+  // View events fire once per page visit; anything faster is a bug or metric
+  // inflation. Proper per-user/feature/day dedupe is tracked in TODOS.md.
+  rateLimit({ windowMs: 60_000, max: 30, message: { error: "Too many usage events" } })
+);
 
 // ── DB health guard ───────────────────────────────────────────────────────────
 (async () => {
@@ -272,6 +284,14 @@ app.use(
     .then(({ automationWorker, scheduleAtRiskChecks }) => {
       if (!automationWorker) return;
       logger.info("[SIS Automation] Worker initialized");
+      // scheduleAtRiskChecks also self-gates on this flag (defense in depth);
+      // skipping here avoids an hourly no-op and makes the off state visible.
+      if (process.env.WHATSAPP_ALERTS_ENABLED !== "true") {
+        logger.info(
+          "[SIS Automation] WHATSAPP_ALERTS_ENABLED is not 'true' — automated at-risk nudges disabled"
+        );
+        return;
+      }
       // Run initial check and then every hour
       scheduleAtRiskChecks();
       setInterval(scheduleAtRiskChecks, 60 * 60 * 1000);
