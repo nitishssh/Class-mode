@@ -4,7 +4,7 @@ Live register of deferred work. Anything cut or postponed from a plan lands here
 
 ## From /ship pre-landing review, v1.9.0.0 (2026-07-17)
 
-- [x] **P0 — fix `server/tests/whatsapp-automation.test.ts`**: DONE 2026-07-18. Root cause was the `../lib/redis` mock omitting the `BULLMQ_PREFIX` export the service imports; added it to the mock. Full suite green (463 passing).
+- [x] **P0 — fix `server/tests/whatsapp-automation.test.ts`**: DONE 2026-07-18. Root cause was the `../lib/redis` mock omitting the `BULLMQ_PREFIX` export the service imports; added it to the mock. That run was green (463 passing); full-suite runs remain intermittently flaky under vitest parallelism — see the P1 item under "From adversarial review" below.
 - [ ] **P1 — e2e coverage for the absentee/export surface**: no Playwright spec visits `/absentees` (list render, print, CSV download), view-events (`attendance_view`/`report_view`) are never asserted in a real browser, and the three new pg-queries helpers only ever run mocked. Coverage gate shipped at 75% with these as the accepted gap.
 - [ ] **P1 — dedupe `POST /api/usage`**: per-user/feature/day dedupe at insert still needed. Mitigations shipped 2026-07-18: 30/min rate limit, staff-only 403, metrics exclude NULL-school/E2E/admin actors.
 - [ ] **P2 — print stylesheet**: `/absentees` "Print list" includes app chrome (sidebar/header); add `@media print` rules to the layout so the printed call list is clean.
