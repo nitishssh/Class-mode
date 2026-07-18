@@ -41,7 +41,9 @@ router.post("/", authenticateToken, (req: Request, res: Response) => {
   const t = resolveTenantScope(user);
   if ("error" in t) return res.status(t.error.status).json({ message: t.error.message });
   const schoolCode = t.scope.isPlatformAdmin
-    ? (user.schoolCode ?? user.school_code ?? null)
+    ? // authenticateToken only ever sets camelCase schoolCode; a NULL-school
+      // admin row is intentionally invisible to the weekly metrics.
+      (user.schoolCode ?? null)
     : t.scope.schoolCode!;
 
   // Fire-and-forget: pgTrackFeatureUsage never throws and never blocks.

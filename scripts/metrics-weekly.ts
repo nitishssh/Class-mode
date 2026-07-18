@@ -66,6 +66,18 @@ function isoWeekOf(d: Date): { isoWeek: string; weekStart: Date; weekEnd: Date }
 
 const ymd = (d: Date) => d.toISOString().slice(0, 10);
 
+// E2E seed schools carry an 'E2E' school-code prefix; adoption metrics must
+// never count them. One SQL fragment per null-semantics so the exclusion
+// can't drift apart across the queries below (change here = change everywhere).
+const REAL_SCHOOL_SQL = `school_code IS NOT NULL AND school_code NOT LIKE 'E2E%'`;
+const REAL_OR_NO_SCHOOL_SQL = `(school_code IS NULL OR school_code NOT LIKE 'E2E%')`;
+
+// Platform-admin (founder) activity must never read as school adoption, even
+// when the admin account is linked to the pilot school for demos — same
+// honesty rule as the E2E exclusion. NULL actor rows are kept (legacy data).
+const notAdminSql = (actorCol: string) =>
+  `(${actorCol} IS NULL OR ${actorCol} NOT IN (SELECT id FROM users WHERE role = 'admin'))`;
+
 async function collect(
   weekStart: string,
   weekEnd: string
@@ -78,14 +90,14 @@ async function collect(
   };
 
   const [att] = await q(
-    `SELECT COUNT(DISTINCT marked_by) FILTER (WHERE marked_by IS NOT NULL)::int AS active_teachers,
+    `SELECT COUNT(DISTINCT marked_by) FILTER (WHERE marked_by IN (SELECT id FROM users WHERE role = 'teacher'))::int AS active_teachers,
             COUNT(*)::int                                                       AS rows_written,
             COUNT(DISTINCT (school_code, class_name, date))::int                AS class_days_marked,
             COUNT(DISTINCT date)::int                                           AS distinct_school_days
        FROM attendance
       WHERE date >= $1::date AND date < $2::date
-        AND school_code IS NOT NULL
-        AND school_code NOT LIKE 'E2E%'`,
+        AND ${REAL_SCHOOL_SQL}
+        AND ${notAdminSql("marked_by")}`,
     [weekStart, weekEnd]
   );
 
@@ -94,8 +106,8 @@ async function collect(
             COUNT(*)::int                                                          AS rows_created
        FROM fees
       WHERE created_at >= $1 AND created_at < $2
-        AND school_code IS NOT NULL
-        AND school_code NOT LIKE 'E2E%'`,
+        AND ${REAL_SCHOOL_SQL}
+        AND ${notAdminSql("created_by")}`,
     [weekStart, weekEnd]
   );
 
@@ -105,8 +117,8 @@ async function collect(
             COUNT(DISTINCT user_id)::int  AS distinct_users
        FROM feature_usage
       WHERE created_at >= $1 AND created_at < $2
-        AND school_code IS NOT NULL
-        AND school_code NOT LIKE 'E2E%'
+        AND ${REAL_SCHOOL_SQL}
+        AND ${notAdminSql("user_id")}
       GROUP BY feature
       ORDER BY events DESC`,
     [weekStart, weekEnd]
@@ -117,7 +129,7 @@ async function collect(
             COUNT(*) FILTER (WHERE role = 'teacher')::int        AS teachers,
             COUNT(*) FILTER (WHERE role = 'student')::int        AS students
        FROM users
-      WHERE school_code IS NULL OR school_code NOT LIKE 'E2E%'`
+      WHERE ${REAL_OR_NO_SCHOOL_SQL}`
   );
 
   return {

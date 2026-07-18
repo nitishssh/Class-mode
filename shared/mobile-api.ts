@@ -171,6 +171,9 @@ export const markAttendanceRequestSchema = z.object({
       z.object({
         studentId: z.number().int().positive(),
         status: attendanceStatusSchema,
+        // Omitted note = PRESERVE any existing note (the server upserts with
+        // COALESCE, so a status-only re-save never wipes a note entered
+        // elsewhere). Sending "" is the only way to clear a stored note.
         note: z.string().optional(),
       })
     )

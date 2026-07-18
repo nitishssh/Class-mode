@@ -121,7 +121,9 @@ router.get(
           r.studentName,
           r.className,
           r.description,
-          (Number(r.amountCents) / 100).toFixed(2),
+          // A missing amount must export as blank, not a fabricated "0.00"
+          // (Number(null) is 0) — the sheet reader would take it as paid/free.
+          r.amountCents == null ? "" : (Number(r.amountCents) / 100).toFixed(2),
           r.currency,
           r.status,
           r.dueDate,

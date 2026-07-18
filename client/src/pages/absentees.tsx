@@ -45,7 +45,9 @@ export default function AbsenteesPage() {
       a.href = url;
       a.download = filename;
       a.click();
-      URL.revokeObjectURL(url);
+      // Deferred: revoking synchronously after click() can abort the
+      // still-starting download in some browsers (notably Firefox).
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
     } catch (err) {
       toast({
         title: "Export failed",

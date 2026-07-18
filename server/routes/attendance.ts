@@ -147,11 +147,20 @@ router.post(
     // offline client would dequeue and lose the day's marking).
     let written: number;
     try {
+      // Clamp client clocks to now + a little skew: markedAt becomes the
+      // row's updated_at, and the upsert skips rows whose stored updated_at
+      // is newer — an absurd future timestamp (bad device clock or malice)
+      // would otherwise freeze those students' rows against all later saves.
+      const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
+      let markedAt = parsed.data.markedAt;
+      if (markedAt && new Date(markedAt).getTime() > Date.now() + MAX_CLOCK_SKEW_MS) {
+        markedAt = new Date().toISOString();
+      }
       written = await pgMarkAttendance({
         schoolCode,
         className: parsed.data.className,
         date: parsed.data.date,
-        markedAt: parsed.data.markedAt,
+        markedAt,
         markedBy: user.id,
         marks: parsed.data.marks,
       });
