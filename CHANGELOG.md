@@ -4,11 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [1.9.0.0] - 2026-07-17
+## [1.9.0.0] - 2026-07-18
 
 ### Added
 
-- **Day's absentee call list** (`/absentees`): principals and school admins see every student marked absent today, grouped by class, with tap-to-call parent phone numbers, a printable view, and a date picker. The list refreshes automatically every minute while teachers are still marking.
+- **Day's absentee call list** (`/absentees`): principals and school admins see every student marked absent today, grouped by class, with tap-to-call parent phone numbers, a printable view, and a date picker. The list refreshes automatically every minute while teachers are still marking. A sidebar "Absentees" link makes it reachable without typing the URL.
 - **School data export**: download attendance (with optional date range) and fee records as Excel-compatible CSV files — vernacular names open correctly in Excel, and exported cells are hardened against spreadsheet formula injection.
 - Usage instrumentation: attendance and report page visits by staff are now recorded, powering the weekly adoption metrics.
 
@@ -20,8 +20,12 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - Admin-marked attendance no longer saves rows without a school code — the school is derived from the students being marked, and unresolvable writes are rejected instead of silently orphaned.
-- Attendance and export date inputs reject impossible dates (e.g. 2026-02-31) with a clear error instead of a server failure.
+- **Attendance notes are no longer wiped by a routine re-save**: saving a class's register with statuses only (the web marking page) now preserves any note already stored on a student's record (e.g. entered from the mobile app) instead of silently erasing it.
+- **Principals and school admins who joined a school can now invite teachers and staff**: previously only the account that originally set the school up could send invites — everyone else hit a "Complete school setup first" error. School resolution now falls back to the admin's own linked school (admin roles only), and the pending-invite list no longer exposes the raw invite tokens.
+- Attendance and export date inputs reject impossible dates (e.g. 2026-02-31) and inverted ranges (`from` after `to`) with a clear error instead of a server failure or a silently empty file.
+- CSV export buttons now show an error message when a download fails instead of silently saving a corrupt file.
 - "Today" on the absentees page now uses the device's local date — previously it showed yesterday's list until 5:30 AM IST.
+- The weekly adoption report's 50% threshold now arms against the first week with real teacher activity — anchoring on a zero-activity launch week would have left the alert permanently disarmed.
 
 ## [1.8.5.0] - 2026-07-05
 
