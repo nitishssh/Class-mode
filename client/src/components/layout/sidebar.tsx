@@ -31,6 +31,7 @@ import {
   Link2,
   CalendarCheck,
   Receipt,
+  PhoneCall,
 } from "lucide-react";
 
 interface NavItem {
@@ -85,6 +86,7 @@ export function Sidebar({ className }: SidebarProps) {
       icon: <GraduationCap className="h-5 w-5" />,
     },
     { title: "Attendance", href: "/attendance", icon: <CalendarCheck className="h-5 w-5" /> },
+    { title: "Absentees", href: "/absentees", icon: <PhoneCall className="h-5 w-5" /> },
     { title: "Fees", href: "/fees", icon: <Receipt className="h-5 w-5" /> },
     { title: "Analytics", href: "/analytics", icon: <BarChart className="h-5 w-5" /> },
     { title: "Live Classes", href: "/live-classes", icon: <Video className="h-5 w-5" /> },
@@ -116,6 +118,7 @@ export function Sidebar({ className }: SidebarProps) {
       icon: <GraduationCap className="h-5 w-5" />,
     },
     { title: "Attendance", href: "/attendance", icon: <CalendarCheck className="h-5 w-5" /> },
+    { title: "Absentees", href: "/absentees", icon: <PhoneCall className="h-5 w-5" /> },
     { title: "Fees", href: "/fees", icon: <Receipt className="h-5 w-5" /> },
     { title: "Analytics", href: "/analytics", icon: <BarChart className="h-5 w-5" /> },
     { title: "No-Code SIS", href: "/dynamic-sis", icon: <Database className="h-5 w-5" /> },

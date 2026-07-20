@@ -13,6 +13,8 @@ import leadsRouter from "./routes/leads";
 import whatsappRoutes from "./routes/whatsapp";
 import attendanceRoutes from "./routes/attendance";
 import feesRoutes from "./routes/fees";
+import usageRoutes from "./routes/usage";
+import exportRoutes from "./routes/export";
 import gdprRoutes from "./routes/gdpr";
 import billingRoutes from "./routes/billing";
 import lmsRoutes from "./routes/lms";
@@ -92,6 +94,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/whatsapp", whatsappRoutes); // public webhook (Meta calls it)
   app.use("/api/attendance", attendanceRoutes);
   app.use("/api/fees", feesRoutes);
+  app.use("/api/usage", usageRoutes);
+  app.use("/api/export", exportRoutes);
   app.use("/api/onboarding", onboardingRouter);
 
   // Mount newly extracted domain routers at /api root

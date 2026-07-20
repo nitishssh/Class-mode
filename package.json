@@ -1,6 +1,6 @@
 {
   "name": "rest-express",
-  "version": "1.8.4.0",
+  "version": "1.9.0.0",
   "type": "module",
   "license": "MIT",
   "scripts": {
@@ -18,6 +18,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "deploy:gcp": "gcloud builds submit --config cloudbuild.yaml",
+    "metrics:weekly": "tsx scripts/metrics-weekly.ts",
+    "report:weekly": "tsx scripts/metrics-weekly.ts --report",
     "jules": "node scripts/jules.mjs"
   },
   "dependencies": {
@@ -171,6 +173,7 @@
     "sucrase": "3.35.1",
     "@tootallnate/once": "^3.0.1",
     "picomatch": "^4.0.4",
-    "uuid": ">=10.0.0"
+    "uuid": ">=10.0.0",
+    "adm-zip": "^0.6.0"
   }
 }

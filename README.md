@@ -7,7 +7,7 @@
 **The complete school & business operating system.** AI tutoring, multi-tenant workspaces, live classes, real-time messaging, Google OAuth, LMS integrations, and role-based dashboards — all in one open-source platform.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.8.4.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.9.0.0-blue.svg)](CHANGELOG.md)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-green.svg)](https://nodejs.org)
 [![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](docker/Dockerfile)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg)](https://www.typescriptlang.org)
@@ -40,6 +40,8 @@ EduAI is a robust multi-tenant platform. Whether you're a school, a coaching cen
 - **Admin Dashboard**: Comprehensive control center for User Management, Class Management, Reports & Analytics, and System Settings. Supports bulk actions, academic calendar setup, and granular permission tuning.
 - **Pilot School Seeding**: Built-in scripts to seed a complete "Pilot School" environment with users, workspaces, channels, tests, tasks, and live classes for rapid testing and demonstrations.
 - **SIS Integration**: Dynamic Student Information System (SIS) for managing student records, standards, and academic history.
+- **Absentee Call List** (`/absentees`): principals and school admins see the day's absent students grouped by class, with tap-to-call parent phone numbers and a printable view.
+- **Data Export**: download attendance (`GET /api/export/attendance.csv`, optional date range) and fee records (`GET /api/export/fees.csv`) as Excel-compatible CSV — vernacular names render correctly and cells are hardened against formula injection.
 
 ### 🤖 AI-Powered Learning
 
@@ -65,7 +67,7 @@ EduAI is a robust multi-tenant platform. Whether you're a school, a coaching cen
 
 - **Google Classroom**: OAuth-based connection to import courses and students.
 - **Dynamic SIS**: Flexible, workspace-scoped student information system with custom bases, tables, fields, records, and views.
-- **WhatsApp Notifications**: Outbound messaging via WhatsApp service integration.
+- **WhatsApp Notifications**: Outbound messaging via WhatsApp service integration. Automated messages to parents are off by default — the explicit `WHATSAPP_ALERTS_ENABLED=true` flag (in addition to Meta credentials) gates every automated send path: absence alerts at marking time, the hourly at-risk nudge scheduler, and already-queued jobs at delivery time.
 
 ### 📹 Live Classes
 
@@ -136,8 +138,8 @@ npm run db:reset   # wipe volumes and start fresh (drops all local data)
 ### 🔑 Required Environment Variables
 
 ```env
-# PostgreSQL (Required)
-DATABASE_URL=postgres://user:pass@localhost:5432/eduai_pg
+# PostgreSQL (Required) — prepend your credentials as user:password@ before the host
+POSTGRESQL_URL=postgres://localhost:5432/eduai_pg
 
 # MongoDB (Optional — for legacy content storage)
 MONGODB_URL=mongodb://localhost:27017/eduai

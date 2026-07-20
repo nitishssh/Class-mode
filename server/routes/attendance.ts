@@ -7,6 +7,7 @@ import {
   pgGetAttendanceByClassDate,
   pgGetStudentAttendanceSummary,
   pgGetSchoolAttendanceSummary,
+  pgGetAbsenteesByDate,
   pgTrackFeatureUsage,
   pgGetClassNames,
   pgFindUsers,
@@ -61,8 +62,10 @@ function attendanceDateWindow(now = Date.now()): { minDate: string; maxDate: str
 
 /**
  * POST /api/attendance — a teacher/admin marks attendance for a class on a date.
- * Tenant-scoped: writes are stamped with the marker's school_code; an account
- * without a school is denied (fail-closed).
+ * Tenant-scoped: school-bound roles stamp writes with their own school_code;
+ * platform admins derive it from the students being marked (#336). A write
+ * whose school_code cannot be resolved is rejected (fail-closed) — attendance
+ * rows must never persist with a NULL school_code.
  */
 router.post(
   "/",
@@ -112,18 +115,52 @@ router.post(
         .json({ message: "Forbidden: some students are not in this class in your school" });
     }
 
-    const schoolCode = t.scope.isPlatformAdmin ? (user.school_code ?? null) : t.scope.schoolCode!;
+    // #336 (B2): a platform-admin account has no school of its own — stamping
+    // the marker's school_code produced NULL attendance rows that no
+    // school-scoped read could ever see. Derive the school from the students
+    // being marked instead, and fail closed (400) when it does not resolve to
+    // exactly one school. Non-admin writes keep their validated tenant scope.
+    let schoolCode: string;
+    if (t.scope.isPlatformAdmin) {
+      const markedIds = new Set(parsed.data.marks.map((m) => m.studentId));
+      const schools = new Set(
+        roster.filter((s) => markedIds.has(s.id)).map((s) => s.schoolCode ?? null)
+      );
+      const resolved = schools.size === 1 ? [...schools][0] : null;
+      if (!resolved) {
+        logger.warn("[attendance] admin mark rejected: unresolvable school_code", {
+          userId: user.id,
+          className: parsed.data.className,
+          schools: [...schools],
+        });
+        return res.status(400).json({
+          message: "Cannot resolve a single school for these students — attendance not saved",
+        });
+      }
+      schoolCode = resolved;
+    } else {
+      schoolCode = t.scope.schoolCode!;
+    }
     // W-2a: a failed write must be a failed response. pgMarkAttendance now
     // throws on DB errors (it used to swallow them and return 0, which made
     // the route reply success:true for a save that never happened — an
     // offline client would dequeue and lose the day's marking).
     let written: number;
     try {
+      // Clamp client clocks to now + a little skew: markedAt becomes the
+      // row's updated_at, and the upsert skips rows whose stored updated_at
+      // is newer — an absurd future timestamp (bad device clock or malice)
+      // would otherwise freeze those students' rows against all later saves.
+      const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
+      let markedAt = parsed.data.markedAt;
+      if (markedAt && new Date(markedAt).getTime() > Date.now() + MAX_CLOCK_SKEW_MS) {
+        markedAt = new Date().toISOString();
+      }
       written = await pgMarkAttendance({
         schoolCode,
         className: parsed.data.className,
         date: parsed.data.date,
-        markedAt: parsed.data.markedAt,
+        markedAt,
         markedBy: user.id,
         marks: parsed.data.marks,
       });
@@ -147,7 +184,14 @@ router.post(
     // the durable event bus (crash between save and send no longer loses
     // alerts); without Redis it falls back to the inline fire-and-forget send.
     // Either way the teacher's save never blocks on delivery.
-    const alertsEnabled = whatsappService.isConfigured();
+    //
+    // WHATSAPP_ALERTS_ENABLED gate (#335 follow-up): the automated pipe is a
+    // deliberately paused product decision, and every UI/offer surface now
+    // says "we do not auto-send WhatsApp messages today". Configuring Meta
+    // credentials alone must NOT silently turn undisclosed automated messages
+    // to real parents back on — flipping this flag is the explicit act.
+    const alertsEnabled =
+      process.env.WHATSAPP_ALERTS_ENABLED === "true" && whatsappService.isConfigured();
     const absentIds = new Set(
       parsed.data.marks.filter((m) => m.status === "absent").map((m) => m.studentId)
     );
@@ -216,6 +260,50 @@ router.get(
       date,
     });
     res.json(summary);
+  }
+);
+
+/**
+ * GET /api/attendance/absentees?date=YYYY-MM-DD — the day's absentee call
+ * list (student, class, parent phone) across all classes of one school.
+ * School-scoped; a platform admin must name a school via ?schoolCode=.
+ * Per spec E5 a query failure is a 500, never an empty list.
+ */
+router.get(
+  "/absentees",
+  authenticateToken,
+  requireRole("admin", "principal", "school_admin"),
+  async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const t = resolveTenantScope(user);
+    if ("error" in t) return res.status(t.error.status).json({ message: t.error.message });
+
+    const date = String(req.query.date || "");
+    // Regex + round-trip: rejects well-formed-but-impossible dates (2026-02-31)
+    // as a 400 instead of letting Postgres throw a cast error into the 500 path.
+    const parsed = new Date(`${date}T00:00:00Z`);
+    if (
+      !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+      Number.isNaN(+parsed) ||
+      parsed.toISOString().slice(0, 10) !== date
+    ) {
+      return res.status(400).json({ message: "date (YYYY-MM-DD) is required" });
+    }
+
+    const schoolCode = t.scope.isPlatformAdmin
+      ? String(req.query.schoolCode || "")
+      : t.scope.schoolCode!;
+    if (!schoolCode) {
+      return res.status(400).json({ message: "schoolCode is required" });
+    }
+
+    try {
+      const absentees = await pgGetAbsenteesByDate({ schoolCode, date });
+      return res.json({ date, count: absentees.length, absentees });
+    } catch (err) {
+      logger.error("[attendance] absentee list failed", { err: String(err) });
+      return res.status(500).json({ message: "Absentee list could not be generated" });
+    }
   }
 );
 

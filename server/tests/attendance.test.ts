@@ -36,6 +36,7 @@ vi.mock("../lib/pg-queries", () => ({
   pgMarkAttendance: h.mockMark,
   pgGetAttendanceByClassDate: h.mockGetByClass,
   pgGetStudentAttendanceSummary: h.mockSummary,
+  pgGetAbsenteesByDate: vi.fn(),
   pgGetSchoolAttendanceSummary: h.mockSchoolSummary,
   pgGetClassNames: vi.fn(),
   pgFindUsers: h.mockFindUsers,
@@ -68,6 +69,9 @@ describe("Attendance API", () => {
     app = makeApp();
     h.currentUser = { id: 10, role: "teacher", school_code: "SCHOOL123" };
     h.mockWhatsappConfigured.mockReturnValue(true);
+    // #335 follow-up: dispatch requires BOTH configured creds AND the explicit
+    // opt-in flag — configuring creds alone must never enable sends.
+    process.env.WHATSAPP_ALERTS_ENABLED = "true";
     // Default roster: the students the tests mark. W-6 fails closed on any
     // mark whose studentId is missing from this list.
     h.mockFindUsers.mockResolvedValue([
@@ -78,6 +82,22 @@ describe("Attendance API", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    delete process.env.WHATSAPP_ALERTS_ENABLED;
+  });
+
+  it("keeps alerts disabled when creds exist but WHATSAPP_ALERTS_ENABLED is unset", async () => {
+    delete process.env.WHATSAPP_ALERTS_ENABLED;
+    h.mockMark.mockResolvedValue(1);
+    const res = await request(app)
+      .post("/api/attendance")
+      .send({
+        className: "Grade 10",
+        date: "2026-07-02",
+        marks: [{ studentId: 1, status: "absent" }],
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.alerts).toEqual({ channel: "whatsapp", enabled: false, attempted: 0 });
+    expect(h.mockSend).not.toHaveBeenCalled();
   });
 
   it("marks attendance scoped to the teacher's school", async () => {
@@ -174,6 +194,11 @@ describe("Attendance API", () => {
 
   it("lets a platform admin backfill outside the window", async () => {
     h.currentUser = { id: 1, role: "admin", school_code: null };
+    // #336: admin writes derive school_code from the marked students.
+    h.mockFindUsers.mockResolvedValue([
+      { id: 1, name: "Asha", parentPhone: "+919876543210", schoolCode: "SCHOOL123" },
+      { id: 2, name: "Ravi", parentPhone: null, schoolCode: "SCHOOL123" },
+    ]);
     h.mockMark.mockResolvedValue(1);
     const res = await request(app)
       .post("/api/attendance")
@@ -183,7 +208,7 @@ describe("Attendance API", () => {
         marks: [{ studentId: 1, status: "excused" }],
       });
     expect(res.status).toBe(200);
-    expect(h.mockMark).toHaveBeenCalled();
+    expect(h.mockMark).toHaveBeenCalledWith(expect.objectContaining({ schoolCode: "SCHOOL123" }));
   });
 
   it("fails closed for a teacher with no school (403, no write)", async () => {

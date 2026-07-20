@@ -32,6 +32,9 @@ const unauthorizedToken = jwt.sign(
 // Mock dependencies
 vi.mock("../lib/pg-queries", () => ({
   pgFindUserById: vi.fn(),
+  pgGetAbsenteesByDate: vi.fn(),
+  pgExportAttendanceRows: vi.fn(),
+  pgExportFeeRows: vi.fn(),
   pgFindSchoolClassesBySchoolId: vi.fn(),
   pgFindSchoolClassById: vi.fn(),
   pgCreateSchoolClass: vi.fn(),

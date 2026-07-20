@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CalendarCheck, Check, Loader2, Phone, Users, X } from "lucide-react";
 
@@ -16,7 +16,9 @@ import {
 } from "@/components/ui/select";
 import { PermissionDenied } from "@/components/ui/permission-denied";
 import { useToast } from "@/hooks/use-toast";
+import { todayISO } from "@/lib/dates";
 import { apiRequest, isPermissionError } from "@/lib/queryClient";
+import { trackFeatureView } from "@/lib/track-usage";
 import { cn } from "@/lib/utils";
 
 type Status = "present" | "absent" | "late" | "excused";
@@ -44,11 +46,6 @@ const STATUS_OPTIONS: { value: Status; label: string; activeClass: string }[] = 
   { value: "excused", label: "Excused", activeClass: "bg-sky-600 text-white hover:bg-sky-600" },
 ];
 
-function todayISO(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
 export default function AttendancePage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -58,6 +55,16 @@ export default function AttendancePage() {
   const [marks, setMarks] = useState<Record<number, Status>>({});
   const [editingPhoneId, setEditingPhoneId] = useState<number | null>(null);
   const [phoneDraft, setPhoneDraft] = useState("");
+
+  // Distribution instrumentation (#337): one attendance_view per page visit.
+  // Ref guard: StrictMode double-mounts effects in dev, which would double
+  // the event if the dev client points at a shared database.
+  const viewTracked = useRef(false);
+  useEffect(() => {
+    if (viewTracked.current) return;
+    viewTracked.current = true;
+    trackFeatureView("attendance_view");
+  }, []);
 
   const { data: classes = [], isLoading: classesLoading } = useQuery<string[]>({
     queryKey: ["/api/attendance/classes"],
@@ -112,12 +119,13 @@ export default function AttendancePage() {
       const res = await apiRequest("POST", "/api/attendance", payload);
       return res.json();
     },
-    onSuccess: (data: { written: number; notified?: number }) => {
+    onSuccess: (data: { written: number }) => {
+      // Honesty invariant: never claim parents were notified — absence-alert
+      // delivery is asynchronous and the automated WhatsApp pipe is paused,
+      // so a "notified" claim here would be fabricated (issue #335).
       toast({
         title: "Attendance saved",
-        description:
-          `${data.written} students marked.` +
-          (data.notified ? ` ${data.notified} parent(s) notified on WhatsApp.` : ""),
+        description: `${data.written} students marked.`,
       });
       queryClient.invalidateQueries({
         queryKey: [`/api/attendance?className=${encodeURIComponent(className)}&date=${date}`],
@@ -160,10 +168,7 @@ export default function AttendancePage() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <PageHeader
-        title="Attendance"
-        subtitle="Mark daily attendance — parents of absent students are notified on WhatsApp automatically when a number is on file."
-      />
+      <PageHeader title="Attendance" subtitle="Mark daily attendance for each class." />
 
       <Card>
         <CardHeader className="pb-3">
@@ -277,7 +282,7 @@ export default function AttendancePage() {
                         <button
                           type="button"
                           className="flex items-center gap-1 hover:text-foreground"
-                          title="Parent's WhatsApp number — used for absence alerts and fee reminders"
+                          title="Parent's phone number — used for fee reminders"
                           onClick={() => {
                             setEditingPhoneId(s.id);
                             setPhoneDraft(s.parentPhone ?? "");

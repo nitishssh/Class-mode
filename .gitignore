@@ -40,3 +40,6 @@ send_test_email.ts
 # Playwright outputs
 test-results/
 playwright-report/
+
+# Runtime user uploads (may contain student PII)
+public/uploads/

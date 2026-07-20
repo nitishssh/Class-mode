@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { PerformanceChart } from "@/components/dashboard/performance-chart";
 import { TopStudents } from "@/components/dashboard/top-students";
@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { apiRequest, isPermissionError } from "@/lib/queryClient";
+import { trackFeatureView } from "@/lib/track-usage";
 import { PermissionDenied } from "@/components/ui/permission-denied";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { PageHeader } from "@/components/layout/page-header";
@@ -78,6 +79,17 @@ export default function Analytics() {
   const isStaff = ["teacher", "admin", "principal", "school_admin"].includes(
     currentUser?.profile?.role || ""
   );
+
+  // Distribution instrumentation (#337): one report_view per STAFF page visit.
+  // Students also reach this page (and outnumber staff), so an unguarded event
+  // would drown the adoption signal the weekly metrics probe measures.
+  const reportViewTracked = useRef(false);
+  useEffect(() => {
+    if (isStaff && !reportViewTracked.current) {
+      reportViewTracked.current = true;
+      trackFeatureView("report_view");
+    }
+  }, [isStaff]);
   const { data: studentSummaries, isLoading: isLoadingSummaries } = useQuery<
     StudentAnalyticsSummary[]
   >({

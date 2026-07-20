@@ -72,7 +72,7 @@ Single `package.json` (no monorepo tool). Key directories:
 - **Real-time**: Two WebSocket servers (chat + MessagePal) attached to HTTP server after `registerRoutes()`.
 - **Routing**: `wouter` (not react-router). Pages in `client/src/pages/`.
 - **Validation**: Zod schemas in `shared/schema.ts`. Mongoose models in `shared/mongo-schema.ts`.
-- **Rate limiting**: `/api/ai` 20/min, `/api/auth` 10/min, `/api/upload` 10/15min, `/api/ocr` 5/min.
+- **Rate limiting**: `/api/ai` 20/min, `/api/auth` 10/min, `/api/upload` 10/15min, `/api/ocr` 5/min, `/api/export` 10/min, `/api/usage` 30/min.
 
 ## Server route files
 
@@ -80,7 +80,7 @@ Single `package.json` (no monorepo tool). Key directories:
 | ------------------------------- | -------------------------------------------------- |
 | `server/routes/auth.ts`         | Signup, login, logout, refresh, Google OAuth, OTPs |
 | `server/routes/workspace.ts`    | Workspace CRUD, membership, invites                |
-| `server/routes/onboarding.ts`   | Teacher/student invite flows                       |
+| `server/routes/onboarding.ts`   | Teacher/student/staff invite flows                 |
 | `server/routes/lms.ts`          | Google Classroom OAuth + course/student import     |
 | `server/routes/dynamic-sis.ts`  | Dynamic SIS bases, tables, fields, records, views  |
 | `server/routes/ai-classroom.ts` | Study Arena classroom generation + job management  |
@@ -96,6 +96,10 @@ Single `package.json` (no monorepo tool). Key directories:
 | `server/routes/users.ts`        | Domain router for user management                  |
 | `server/routes/chat.ts`         | Domain router for chat endpoints                   |
 | `server/routes/timetable.ts`    | Native period-based timetable                      |
+| `server/routes/attendance.ts`   | Attendance marking, summaries, day's absentee list |
+| `server/routes/fees.ts`         | Fee records and payment status                     |
+| `server/routes/export.ts`       | Attendance/fees CSV export (school-scoped)         |
+| `server/routes/usage.ts`        | Client-reported page-view events (staff-only)      |
 | `server/message/routes.ts`      | MessagePal WebSocket + REST                        |
 
 ## Key client files

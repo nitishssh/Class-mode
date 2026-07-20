@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { scheduleAtRiskChecks, automationQueue } from "../services/whatsapp-automation";
 import { whatsappService } from "../services/whatsapp";
 import { isPgReady, getPgPool } from "../db-pg";
@@ -22,6 +22,7 @@ vi.mock("../db-pg", () => ({
 // the queue/worker paths, so pretend Redis is configured — bullmq itself is
 // mocked below, so the connection object is never really used.
 vi.mock("../lib/redis", () => ({
+  BULLMQ_PREFIX: "{bull}",
   newRedisConnection: vi.fn().mockReturnValue({ on: vi.fn(), quit: vi.fn() }),
   isRedisConfigured: vi.fn().mockReturnValue(true),
   isRedisReady: vi.fn().mockReturnValue(true),
@@ -50,9 +51,25 @@ vi.mock("bullmq", () => {
 describe("WhatsApp Automation Service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Both the scheduler and the worker self-gate on the master switch;
+    // most tests exercise the behavior behind the gate.
+    process.env.WHATSAPP_ALERTS_ENABLED = "true";
+  });
+  afterEach(() => {
+    delete process.env.WHATSAPP_ALERTS_ENABLED;
   });
 
   describe("automationWorker processor", () => {
+    it("drops queued jobs when WHATSAPP_ALERTS_ENABLED is off (backlog gate)", async () => {
+      delete process.env.WHATSAPP_ALERTS_ENABLED;
+      const { pgFindUserById } = await import("../lib/pg-queries");
+      await workerProcess.fn({ data: { type: "missed_class", userId: 1, metadata: {} } });
+      // A job enqueued before the switch was turned off must not even be
+      // looked up, let alone sent.
+      expect(pgFindUserById).not.toHaveBeenCalled();
+      expect(whatsappService.sendMessage).not.toHaveBeenCalled();
+    });
+
     it("processes missed_class job correctly", async () => {
       const { pgFindUserById } = await import("../lib/pg-queries");
       (pgFindUserById as any).mockResolvedValueOnce({ id: 1, parentId: 2, name: "Alice" });
@@ -113,6 +130,24 @@ describe("WhatsApp Automation Service", () => {
   });
 
   describe("scheduleAtRiskChecks", () => {
+    beforeEach(() => {
+      // The scheduler self-gates on the master no-auto-send switch; these
+      // tests exercise the behavior behind the gate.
+      process.env.WHATSAPP_ALERTS_ENABLED = "true";
+    });
+    afterEach(() => {
+      delete process.env.WHATSAPP_ALERTS_ENABLED;
+    });
+
+    it("does nothing unless WHATSAPP_ALERTS_ENABLED is explicitly 'true' (#335)", async () => {
+      delete process.env.WHATSAPP_ALERTS_ENABLED;
+      (isPgReady as any).mockReturnValue(true);
+      await scheduleAtRiskChecks();
+      // Redis + Meta creds alone must never start messaging parents.
+      expect(getPgPool).not.toHaveBeenCalled();
+      expect(automationQueue!.add).not.toHaveBeenCalled();
+    });
+
     it("returns early if pg is not ready", async () => {
       (isPgReady as any).mockReturnValue(false);
       await scheduleAtRiskChecks();
