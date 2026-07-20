@@ -71,8 +71,9 @@ describe("POST /api/study-arena-beta/interaction", () => {
     vi.clearAllMocks();
     h.user = { id: 7, role: "student" };
     h.respondToInteraction.mockResolvedValue({ feedback: "nice try", proceed: true, attempt: 1 });
-    h.pgIncrementAIUsage.mockResolvedValue(undefined);
+    h.pgIncrementAIUsage.mockResolvedValue(true);
     h.commitLearnerUpdate.mockResolvedValue(true);
+    delete process.env.STUDY_ARENA_BETA;
   });
 
   it("401s when unauthenticated", async () => {
@@ -81,6 +82,15 @@ describe("POST /api/study-arena-beta/interaction", () => {
       .post("/api/study-arena-beta/interaction")
       .send(validInteraction);
     expect(res.status).toBe(401);
+  });
+
+  it("404s when the beta flag is off", async () => {
+    process.env.STUDY_ARENA_BETA = "false";
+    const res = await request(makeApp())
+      .post("/api/study-arena-beta/interaction")
+      .send(validInteraction);
+    expect(res.status).toBe(404);
+    expect(h.respondToInteraction).not.toHaveBeenCalled();
   });
 
   it("400s on an invalid body (missing answer)", async () => {
@@ -164,6 +174,61 @@ describe("POST /api/study-arena-beta/interaction", () => {
         lessonId: validInteraction.lessonId,
         reason: "commitLearnerUpdate returned false",
       })
+    );
+  });
+
+  it("maps an interaction service failure to 500", async () => {
+    h.respondToInteraction.mockRejectedValue(new Error("provider down"));
+    const res = await request(makeApp())
+      .post("/api/study-arena-beta/interaction")
+      .send(validInteraction);
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ message: "Failed to process answer" });
+  });
+
+  it("keeps answering but reports an AI usage write failure", async () => {
+    h.pgIncrementAIUsage.mockResolvedValue(false);
+    const res = await request(makeApp())
+      .post("/api/study-arena-beta/interaction")
+      .send(validInteraction);
+    expect(res.status).toBe(200);
+    expect(logger.error).toHaveBeenCalledWith(
+      "[study-arena-beta] interaction usage was not recorded",
+      expect.objectContaining({ lessonId: validInteraction.lessonId, actionKey: "0-2" })
+    );
+  });
+});
+
+describe("POST /api/study-arena-beta/lesson-script", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    delete process.env.STUDY_ARENA_BETA;
+    h.user = { id: 7, role: "student" };
+    h.pgIncrementAIUsage.mockResolvedValue(true);
+    h.generateLessonScript.mockResolvedValue({
+      topic: "Photosynthesis",
+      conceptIds: [],
+      scenes: [{ id: "s1", actions: [{ type: "ask", gate: true }] }],
+    });
+  });
+
+  it("maps a generation service failure to 500", async () => {
+    h.generateLessonScript.mockRejectedValue(new Error("provider down"));
+    const res = await request(makeApp())
+      .post("/api/study-arena-beta/lesson-script")
+      .send({ topic: "Photosynthesis" });
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ message: "Failed to generate lesson" });
+  });
+
+  it("records the client lesson id with generation usage", async () => {
+    const lessonId = "22222222-2222-4222-8222-222222222222";
+    const res = await request(makeApp())
+      .post("/api/study-arena-beta/lesson-script")
+      .send({ topic: "Photosynthesis", lessonId });
+    expect(res.status).toBe(200);
+    expect(h.pgIncrementAIUsage).toHaveBeenCalledWith(
+      expect.objectContaining({ metadata: expect.objectContaining({ lessonId }) })
     );
   });
 });

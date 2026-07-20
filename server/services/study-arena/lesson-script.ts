@@ -172,6 +172,22 @@ export interface InteractionResult {
   attempt: number;
 }
 
+const SAFE_FEEDBACK_FALLBACK =
+  "I couldn't make a useful hint this time. Try explaining one part you do understand, then continue when you're ready.";
+
+export function sanitizeTutorFeedback(value: string): string {
+  const feedback = value.replace(/\s+/g, " ").trim().slice(0, 800);
+  if (!feedback) return SAFE_FEEDBACK_FALLBACK;
+  if (
+    /\b(as an ai|language model|cannot (?:assist|help|comply)|can't (?:assist|help|comply)|policy|safety guidelines)\b/i.test(
+      feedback
+    )
+  ) {
+    return SAFE_FEEDBACK_FALLBACK;
+  }
+  return feedback;
+}
+
 /**
  * The escalating-support ladder for a stuck student. This is an EFFORT gate,
  * not a correctness gate: a genuine attempt always earns `proceed: true`, so
@@ -234,5 +250,5 @@ export async function respondToInteraction(params: {
     feature: "lesson_interaction",
   });
 
-  return { feedback: content, proceed: true, attempt };
+  return { feedback: sanitizeTutorFeedback(content), proceed: true, attempt };
 }

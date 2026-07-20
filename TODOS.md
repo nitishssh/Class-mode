@@ -70,13 +70,13 @@ Live register of deferred work. Anything cut or postponed from a plan lands here
 
 ## From /autoplan review of Study Arena plan (2026-07-21)
 
-- [ ] **P2 — Study Arena local lesson resume (D4)**: persist `{script, cursor}` only, keyed per session; never persist minors' free-text answers on a shared device.
-- [ ] **P2 — Study Arena mobile keyboard/layout hardening (D5)**: use `100dvh`, scroll the answer input into view on focus, keep touch Enter as newline, and add an exhaustive action fallback.
-- [ ] **P2 — Study Arena MCQ eliminated-choice state (D6)**: dim a wrong choice after an attempt so retrying is learning, not brute-force repetition. Attempts are already logged server-side.
-- [ ] **P2 — make AI usage-meter write failures operationally loud (E3)**: `pgIncrementAIUsage` currently logs and swallows DB failures; add an observable failure counter/alert without blocking students.
+- [x] **P2 — Study Arena local lesson resume (D4)**: DONE 2026-07-21. Persists validated `{script,cursor}` state only; never answer/feedback text. Offers Continue/Start over and clears corrupt/completed state.
+- [x] **P2 — Study Arena mobile keyboard/layout hardening (D5)**: DONE 2026-07-21. Uses `100dvh`, scrolls the answer input into view, preserves touch Enter as newline, and skips/logs unknown actions.
+- [x] **P2 — Study Arena MCQ eliminated-choice state (D6)**: DONE 2026-07-21. A choice retried by the learner is disabled, dimmed, and struck through; attempts remain logged server-side.
+- [x] **P2 — make AI usage-meter write failures operationally loud (E3)**: DONE 2026-07-21. Usage writes return success/failure, emit route context, and the metric reconciles expected lesson/interaction rows so missing writes keep cost UNKNOWN.
 - [ ] **P2 — converge the two lesson-generation pipelines**: `generator.ts` (SceneOutline, ai-classroom) and `lesson-script.ts` (LessonScript, beta) duplicate generation logic; converge post-payment-trigger.
 - [ ] **P3 — Study Arena beta polish batch (D8)**: scroll-guard + "↓ new" affordance, tap-to-advance pacing (pre-TTS), completion recap of gates+answers, tappable topic chips + kid-voiced setup copy, mid-lesson exit affordance, dark-mode token routing for amber/sky/emerald, 11px label floor. Post-trigger.
 - [ ] **P3 — prompt-injection hardening on lesson topic input**: free-text topic can steer the harness back into a generic chatbot; quota-bounded and self-inflicted today.
 - [ ] **P3 — interaction_log retention purge job**: no retention infra exists; the honest-manual stance is documented in the Study Arena plan. GDPR export now includes `learning-activity.json` and delete cascades (both DONE 2026-07-21); still needed is an automated purge — build when custody hardening lands (see "Custody beyond the baseline").
-- [ ] **P3 — sanitize refusal-style LLM feedback in respondToInteraction (T7)**: refusal text currently shown verbatim as pedagogy feedback.
+- [x] **P3 — sanitize refusal-style LLM feedback in respondToInteraction (T7)**: DONE 2026-07-21. Refusal/policy boilerplate becomes a short student-safe fallback; all feedback is whitespace-normalized and capped.
 - [ ] **Gated on payment trigger — teacher-assign flow + over-reliance dashboard spec (Approach B moat surface)**: teacher generates/assigns gated lessons to a class; interaction_log signals surface to teacher/principal dashboards. Spec exists in the /autoplan appendix of docs/study-arena-inspired-by-openmaic.md.

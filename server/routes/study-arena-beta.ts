@@ -29,20 +29,21 @@ function configuredCost(name: string): number | null {
 }
 
 /** Feature flag — default ON in dev, gated by env in prod. */
-export const STUDY_ARENA_BETA_ENABLED =
-  process.env.STUDY_ARENA_BETA !== "false" && process.env.NODE_ENV !== "production"
+export function isStudyArenaBetaEnabled(): boolean {
+  return process.env.STUDY_ARENA_BETA !== "false" && process.env.NODE_ENV !== "production"
     ? true
     : process.env.STUDY_ARENA_BETA === "true";
+}
 
 function requireFlag(_req: Request, res: Response, next: () => void) {
-  if (!STUDY_ARENA_BETA_ENABLED) {
+  if (!isStudyArenaBetaEnabled()) {
     return res.status(404).json({ message: "Study Arena beta is not enabled" });
   }
   next();
 }
 
 router.get("/health", (_req, res) => {
-  res.json({ enabled: STUDY_ARENA_BETA_ENABLED, service: "study-arena-beta" });
+  res.json({ enabled: isStudyArenaBetaEnabled(), service: "study-arena-beta" });
 });
 
 const generateSchema = z.object({
@@ -69,7 +70,7 @@ router.post(
       });
 
       const userId = (req.user?.id || req.session?.userId) as number;
-      await pgIncrementAIUsage({
+      const usageRecorded = await pgIncrementAIUsage({
         userId,
         workspaceId: (req as any).workspace?.id,
         feature: "ai_tutor",
@@ -80,6 +81,12 @@ router.post(
           estimatedCostInr: configuredCost("STUDY_ARENA_GENERATION_COST_INR"),
         },
       });
+      if (!usageRecorded) {
+        logger.error("[study-arena-beta] generation usage was not recorded", {
+          userId,
+          lessonId: parsed.data.lessonId,
+        });
+      }
 
       res.json(script);
     } catch (error) {
@@ -119,7 +126,7 @@ router.post(
       const userId = (req.user?.id || req.session?.userId) as number;
 
       if (result.proceed) {
-        await pgIncrementAIUsage({
+        const usageRecorded = await pgIncrementAIUsage({
           userId,
           workspaceId: (req as any).workspace?.id,
           feature: "ai_tutor",
@@ -130,6 +137,13 @@ router.post(
             estimatedCostInr: configuredCost("STUDY_ARENA_INTERACTION_COST_INR"),
           },
         });
+        if (!usageRecorded) {
+          logger.error("[study-arena-beta] interaction usage was not recorded", {
+            userId,
+            lessonId: parsed.data.lessonId,
+            actionKey: parsed.data.actionKey,
+          });
+        }
 
         // Record the gate answer for the adoption metric — but ONLY for real
         // students (a teacher/principal poking the beta would pollute the

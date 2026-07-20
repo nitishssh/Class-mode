@@ -2160,8 +2160,14 @@ export async function pgIncrementAIUsage(data: {
   feature: "ai_classroom" | "ai_tutor" | "ocr";
   tokensUsed?: number | null;
   metadata?: any;
-}): Promise<void> {
-  if (!isPgReady()) return;
+}): Promise<boolean> {
+  if (!isPgReady()) {
+    logger.error("[pg] pgIncrementAIUsage skipped: Postgres is not ready", {
+      userId: data.userId,
+      feature: data.feature,
+    });
+    return false;
+  }
   try {
     await getPgPool().query(
       `INSERT INTO ai_usage_logs (user_id, workspace_id, feature, tokens_used, metadata)
@@ -2174,8 +2180,16 @@ export async function pgIncrementAIUsage(data: {
         JSON.stringify(data.metadata || {}),
       ]
     );
+    return true;
   } catch (err) {
-    logger.error("[pg] pgIncrementAIUsage failed", { err: String(err) });
+    logger.error("[pg] pgIncrementAIUsage failed", {
+      err: String(err),
+      userId: data.userId,
+      feature: data.feature,
+      usageType: data.metadata?.type,
+      lessonId: data.metadata?.lessonId,
+    });
+    return false;
   }
 }
 

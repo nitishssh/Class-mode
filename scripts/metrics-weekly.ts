@@ -2,6 +2,7 @@ import "dotenv/config";
 import fs from "node:fs";
 import path from "node:path";
 import { connectPostgres, getPgPool } from "../server/db-pg";
+import { renderStudyArenaGate } from "./study-arena-gate";
 
 /**
  * Weekly adoption metrics — the dependence-probe instrument from the
@@ -231,11 +232,29 @@ async function collect(
     pilotCompletedLessons = pilot?.completed_lessons ?? 0;
 
     const [cost] = await q(
-      `SELECT COALESCE(SUM((metadata->>'estimatedCostInr')::numeric), 0)::float AS estimated_cost_inr,
-              COUNT(*) FILTER (WHERE metadata->>'estimatedCostInr' IS NULL)::int AS missing_cost_rows
-         FROM ai_usage_logs
-        WHERE created_at >= $1::timestamptz AND created_at < $2::timestamptz
-          AND metadata->>'type' IN ('study_arena_lesson', 'study_arena_interaction')`,
+      `WITH expected AS (
+         SELECT COUNT(*)::int AS interactions,
+                COUNT(DISTINCT payload->>'lessonId')::int AS lessons
+           FROM interaction_log
+          WHERE kind = 'study_arena_gate_answer'
+            AND created_at >= $1::timestamptz AND created_at < $2::timestamptz
+       ), usage AS (
+         SELECT COALESCE(SUM((l.metadata->>'estimatedCostInr')::numeric), 0)::float AS estimated_cost_inr,
+                COUNT(*) FILTER (WHERE l.metadata->>'estimatedCostInr' IS NULL)::int AS null_cost_rows,
+                COUNT(*) FILTER (WHERE l.metadata->>'type' = 'study_arena_interaction')::int AS interactions,
+                COUNT(DISTINCT l.metadata->>'lessonId') FILTER (
+                  WHERE l.metadata->>'type' = 'study_arena_lesson'
+                )::int AS lessons
+           FROM ai_usage_logs l
+           JOIN users u ON u.id = l.user_id AND u.role = 'student'
+          WHERE l.created_at >= $1::timestamptz AND l.created_at < $2::timestamptz
+            AND l.metadata->>'type' IN ('study_arena_lesson', 'study_arena_interaction')
+       )
+       SELECT usage.estimated_cost_inr,
+              (usage.null_cost_rows
+                + GREATEST(expected.interactions - usage.interactions, 0)
+                + GREATEST(expected.lessons - usage.lessons, 0))::int AS missing_cost_rows
+         FROM expected CROSS JOIN usage`,
       [start.toISOString(), pilotEndsAt]
     );
     pilotCostRowsMissing = cost?.missing_cost_rows ?? 0;
@@ -344,26 +363,16 @@ function renderTable(s: Snapshot, prior: Snapshot[]): string {
   // for the pilot, ≥5 distinct students each complete ≥1 full gated lesson
   // unassisted (and a teacher looks at the resulting signal). If not, mothball
   // Study Arena behind the flag and redeploy the effort to the paid wedge.
-  {
-    const pilotCount = s.studyArena.pilotUnassistedStudentsCompleted;
-    if (!s.studyArena.pilotStartedAt || !s.studyArena.pilotEndsAt || pilotCount == null) {
-      lines.push(
-        `> Study Arena: adoption gate NOT ARMED — set STUDY_ARENA_PILOT_ENABLED_AT to the pilot flag-enable timestamp. No 30-day result will be inferred from weekly snapshots.`
-      );
-    } else if (pilotCount < 5) {
-      lines.push(
-        `> Study Arena WATCH: ${pilotCount} distinct students completed a full lesson unassisted in the fixed pilot window (${s.studyArena.pilotStartedAt} → ${s.studyArena.pilotEndsAt}); gate wants ≥5. Below bar at window close → mothball behind the flag.`
-      );
-    } else {
-      const cost = s.studyArena.pilotCostPerCompletedLessonInr;
-      const costReady = cost != null && (s.studyArena.pilotCostRowsMissing ?? 0) === 0;
-      lines.push(
-        costReady && cost < 2
-          ? `> Study Arena: student and cost thresholds reached — ${pilotCount} distinct students completed unassisted; estimated cost/completed lesson ₹${cost.toFixed(2)}. Final gate is PENDING until a teacher reviews the signal.`
-          : `> Study Arena: student threshold reached — ${pilotCount} distinct students completed unassisted. Final gate is PENDING: ${costReady ? `estimated cost/completed lesson is ₹${cost.toFixed(2)} (must be <₹2)` : `cost is UNKNOWN because ${s.studyArena.pilotCostRowsMissing ?? 0} usage rows lack configured estimates`}, and a teacher must review the signal.`
-      );
-    }
-  }
+  lines.push(
+    renderStudyArenaGate({
+      pilotStartedAt: s.studyArena.pilotStartedAt,
+      pilotEndsAt: s.studyArena.pilotEndsAt,
+      unassistedStudentsCompleted: s.studyArena.pilotUnassistedStudentsCompleted,
+      costPerCompletedLessonInr: s.studyArena.pilotCostPerCompletedLessonInr,
+      costRowsMissing: s.studyArena.pilotCostRowsMissing,
+      teacherReviewed: process.env.STUDY_ARENA_SIGNAL_REVIEWED === "true",
+    })
+  );
 
   // Decision threshold (plan objective 3): wedge WAT < 50% of baseline, 2 consecutive weeks.
   if (baseline && prev && baseline.isoWeek !== s.isoWeek) {

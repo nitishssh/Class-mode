@@ -103,12 +103,13 @@ server/ (Express + TS)
   routes/ai-classroom.ts
     └─ services/study-arena/
          ├─ generateLessonScript()   → LessonScript JSON   (topic/doc → scenes)
-         ├─ resolveInteraction()     → grades the gated answer, picks next scene
-         └─ (reuses) gradingService, TTS, Whisper ASR, test-gen
-  Postgres: lesson_scripts, classroom_sessions, interaction_log (mastery/over-reliance signals)
+         ├─ respondToInteraction()   → effort-gate feedback + hint ladder
+         └─ (reuses) AI gateway + attempt-first tutor prompt
+  Postgres: interaction_log (gate answers + mastery/over-reliance source)
 ```
 
-No new heavy deps. Reuses what we already built (gradingService, TTS/ASR, attempt-first tutor prompt).
+No new heavy deps. The beta reuses the AI gateway and attempt-first tutor prompt. Script/session
+tables, gradingService, TTS/ASR, and richer board actions remain in the payment-gated phase.
 
 ---
 
@@ -144,6 +145,13 @@ teacher-facing over-reliance dashboard are **specced, not built** (see "Moat sur
 vendored ini_claw) deleted; ~95 Dependabot alerts incl. the only critical cleared; the
 `ai-classroom` docker profile removed.
 
+**Pre-pilot closure pass — DONE on the PR branch (W30).** D4–D6 now cover safe local resume,
+mobile keyboard/viewport behavior, and eliminated MCQ choices. E3 makes usage-write failure
+observable and prevents missing cost rows from producing a false pass. T7 sanitizes refusal
+boilerplate. E4 now covers flag-off, validation, provider 500s, role-gated/non-blocking writes,
+usage failure, client storage/choice guards, and adoption-gate decisions. The full suite remains
+the landing gate; browser AI-provider E2E still requires functional non-production provider keys.
+
 ---
 
 ## Adoption gate (the payment-trigger decision input)
@@ -164,7 +172,8 @@ flag is enabled. Configure `STUDY_ARENA_GENERATION_COST_INR` and
 `STUDY_ARENA_INTERACTION_COST_INR` from the provider's current billed per-call estimates;
 the report keeps cost `UNKNOWN` if any usage row lacks an estimate and never declares the
 full gate met automatically. The cost bar is **<₹2 per completed lesson**. Teacher review is
-a separate human confirmation until the payment-gated dashboard exists.
+a separate human confirmation until the payment-gated dashboard exists; record it with
+`STUDY_ARENA_SIGNAL_REVIEWED=true` only after the teacher has actually reviewed the report.
 
 **Minors' PII posture (interaction_log now stores students' free-text answers):**
 
@@ -173,8 +182,8 @@ a separate human confirmation until the payment-gated dashboard exists.
 - Deletion: `interaction_log.student_id` cascades on user delete (`ON DELETE CASCADE`).
 - Retention: **no automated purge exists yet** — the honest current stance is manual, tracked
   in TODOS under "interaction_log retention purge job", to be built with the custody-hardening
-  work. Local resume (D4, deferred) must persist script+cursor only, never answer text on a
-  shared device.
+  work. Local resume persists validated script+cursor state only, never answer/feedback text
+  on a shared device.
 
 ## Moat surface (Approach B — specced, gated on the payment trigger)
 

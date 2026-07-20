@@ -7,7 +7,11 @@ vi.mock("../lib/ai/gateway", () => ({
   generate: mockGenerate,
 }));
 
-import { generateLessonScript, respondToInteraction } from "../services/study-arena/lesson-script";
+import {
+  generateLessonScript,
+  respondToInteraction,
+  sanitizeTutorFeedback,
+} from "../services/study-arena/lesson-script";
 
 // A well-formed script where every scene ends in a gated ask.
 const goodScript = {
@@ -215,5 +219,20 @@ describe("respondToInteraction", () => {
       attempt: 0,
     });
     expect(res.attempt).toBe(1);
+  });
+
+  it("replaces refusal-style provider text with useful student-safe feedback", async () => {
+    (mockGenerate as Mock).mockResolvedValue(
+      "As an AI language model, I cannot assist with that request due to policy."
+    );
+    const res = await respondToInteraction({ topic: "x", question: "q", answer: "a" });
+    expect(res.feedback).not.toMatch(/language model|policy/i);
+    expect(res.feedback).toMatch(/useful hint/i);
+  });
+
+  it("caps and normalizes feedback before it reaches the client", () => {
+    const feedback = sanitizeTutorFeedback(`  ${"helpful ".repeat(200)}  `);
+    expect(feedback.length).toBeLessThanOrEqual(800);
+    expect(feedback).not.toContain("  ");
   });
 });
