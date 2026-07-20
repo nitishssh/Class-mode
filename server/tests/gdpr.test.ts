@@ -11,6 +11,7 @@ const h = vi.hoisted(() => ({
   currentUser: null as any,
   mockFindUserById: vi.fn(),
   mockDeleteUser: vi.fn(),
+  mockExportInteractionLog: vi.fn(),
 }));
 
 vi.mock("../middleware", () => ({
@@ -24,6 +25,7 @@ vi.mock("../middleware", () => ({
 vi.mock("../lib/pg-queries", () => ({
   pgFindUserById: h.mockFindUserById,
   pgDeleteUser: h.mockDeleteUser,
+  pgExportInteractionLog: h.mockExportInteractionLog,
 }));
 
 vi.mock("../lib/logger", () => ({

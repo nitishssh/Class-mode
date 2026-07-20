@@ -2,12 +2,13 @@
 
 # Study Arena: Inspired by OpenMAIC, Not Copied
 
-**Goal:** Replace the vendored OpenMAIC microservice (`features/ai-classroom/studyArena`)
-with a lean, native implementation in _our_ stack — borrowing OpenMAIC's good ideas,
-dropping its bloat, and fusing it with our **attempt-first** pedagogy so the classroom
-makes students _think_, not just watch.
+**Goal (achieved, W30 2026-07):** Replaced the vendored OpenMAIC microservice with a lean,
+native implementation in _our_ stack — borrowing OpenMAIC's good ideas, dropping its bloat,
+and fusing it with our **attempt-first** pedagogy so the classroom makes students _think_,
+not just watch. The vendored tree is deleted; the native player is live behind a dark flag.
+See "Actual state" below for what shipped vs what's frozen behind the payment trigger.
 
-- **Upstream we're learning from:** [THU-MAIC/OpenMAIC](https://github.com/THU-MAIC/OpenMAIC) (MIT). See `features/ai-classroom/studyArena/NOTICE.md`.
+- **Upstream we're learning from:** [THU-MAIC/OpenMAIC](https://github.com/THU-MAIC/OpenMAIC) (MIT). See [docs/OpenMAIC-ATTRIBUTION.md](OpenMAIC-ATTRIBUTION.md).
 - **Our stack:** Express/TS (`server/`), React + Vite (`client/`), Postgres. _Not_ Next.js.
 - **Pedagogy anchor:** [docs/student-ai-problems-market-research.md](student-ai-problems-market-research.md) — passive lecture-playback is the pattern that _harms_ learning. We adapt OpenMAIC's engagement, not its passivity.
 
@@ -111,28 +112,78 @@ No new heavy deps. Reuses what we already built (gradingService, TTS/ASR, attemp
 
 ---
 
-## Phased migration (keep Study Arena working the whole time)
+## Actual state (updated W30, 2026-07-21 — was "phased migration")
 
-**Phase 0 — Stop the bleeding (today, ~30 min).** Done: `NOTICE.md` restores MIT attribution.
-Decide MIT-vs-AGPL (see NOTICE). The vendored service keeps running untouched.
+This section used to describe a four-phase migration as future work. Most of it
+shipped; here is the ground truth (the `/autoplan` appendix below has the file-level detail).
 
-**Phase 1 — Native script player (MVP).** Build the `LessonScript` schema + a client
-`PlaybackController` + `<ClassroomStage>` that renders `speak`/`showSlide`/`ask`. Server
-`generateLessonScript()` produces a script from a topic. Wire it behind a feature flag next
-to the existing OpenMAIC-powered Study Arena. **No multi-agent, no whiteboard yet** — just a
-single teacher that lectures _and stops to ask_. This alone proves the inverted loop.
+**Phase 0 — Attribution & licensing. DONE.** MIT/OpenMAIC notice now lives at
+[docs/OpenMAIC-ATTRIBUTION.md](OpenMAIC-ATTRIBUTION.md). The old AGPL-vs-MIT discrepancy is
+resolved: the AGPL-declared vendored copy was deleted, and the surviving ported code is used
+under upstream MIT + our modifications.
 
-**Phase 2 — Multi-agent + board.** Add the Curious Classmate and Coach roles
-(`AgentRoundtable`), the whiteboard/formula scenes (reuse current AI-classroom whiteboard),
-and `resolveInteraction()` grading via our `gradingService`. Now it's a real interactive
-classroom, natively.
+**Phase 1 — Native attempt-first player. DONE & LIVE (dark in prod).**
+`server/services/study-arena/lesson-script.ts` (gated-ask schema),
+`server/routes/study-arena-beta.ts` (flag `STUDY_ARENA_BETA`, off in prod by default),
+`client/src/pages/study-arena-beta.tsx`. The inverted loop is proven: every scene ends in a
+gated `ask`, and playback halts until the student attempts.
 
-**Phase 3 — Depth.** PBL scenes, document-to-lesson ingestion (reuse OCR/upload), and the
-over-reliance signals from `interaction_log` feeding the teacher dashboard.
+**Phase 2 — Multi-agent + board. PARTIAL / FROZEN.** The three agent roles are typed and
+styled; the multi-agent wire contract lives in `@shared/study-arena`. NOT built: whiteboard
+actions (`write`/`draw`/`highlight`), `gradingService` wiring. Further Phase-2 build is
+**frozen behind the payment trigger** (first payment or signed commitment) per the standing
+company decisions — it competes on model-interaction quality, which the thesis says is not
+the moat.
 
-**Phase 4 — Retire the copy.** Once Phases 1–3 cover the used surface, delete
-`features/ai-classroom/studyArena` and the `study-arena` Docker service. The stack loses a
-whole Next.js app and its dependency tree.
+**Phase 3 — Depth. PARTIAL.** `interaction_log` now records each gate answer (via the
+learner-model single writer) so the adoption metric is computable — that is the moat's data
+source and the one Phase-3 piece worth doing pre-trigger. PBL, document ingestion, and the
+teacher-facing over-reliance dashboard are **specced, not built** (see "Moat surface" below).
+
+**Phase 4 — Retire the vendored copy. DONE (W30).** `features/ai-classroom/` (studyArena +
+vendored ini_claw) deleted; ~95 Dependabot alerts incl. the only critical cleared; the
+`ai-classroom` docker profile removed.
+
+---
+
+## Adoption gate (the payment-trigger decision input)
+
+Study Arena is an EFFORT-gated attempt-first player, not a correctness gate: a genuine
+attempt always proceeds, and a stuck student gets escalating help (nudge → scaffolded hint
+→ reveal-and-explain-back) plus a "Try again" escape hatch, so no one is trapped.
+
+**Kill criterion (armed once the flag is enabled for the pilot):** within 30 days, **≥5
+distinct students each complete at least one full gated lesson unassisted**, and a teacher
+looks at the resulting signal. `npm run metrics:weekly` reports this (Study Arena rows +
+an explicit MET/WATCH banner). Below the bar at 30 days → **mothball behind the flag** and
+redeploy the effort to the paid attendance/fees wedge. Rationale: no build spend before the
+bet is validated with real pilot usage.
+
+**Minors' PII posture (interaction_log now stores students' free-text answers):**
+
+- Right-of-access: the GDPR export (`/api/gdpr/export`) now includes `learning-activity.json`
+  (was profile-only).
+- Deletion: `interaction_log.student_id` cascades on user delete (`ON DELETE CASCADE`).
+- Retention: **no automated purge exists yet** — the honest current stance is manual, tracked
+  in TODOS under "interaction_log retention purge job", to be built with the custody-hardening
+  work. Local resume (D4, deferred) must persist script+cursor only, never answer text on a
+  shared device.
+
+## Moat surface (Approach B — specced, gated on the payment trigger)
+
+The defensible piece is not the classroom UI (every model vendor can ship "AI lectures,
+pauses, asks"); it is this pilot's per-student interaction history in one tenant. When the
+trigger fires, build, in priority order:
+
+1. **Teacher-assign flow** — a teacher generates a gated lesson and assigns it to their
+   class, instead of a student self-serving a free-text topic. This is what respects the
+   never-build "no standalone AI tutor" rule and compounds school dependence.
+2. **Over-reliance / mastery dashboard** — surface `interaction_log` signals (attempts per
+   gate, hint-ladder depth reached, completion) to the teacher and principal. `interaction_log`
+   already carries `{lessonId, actionKey, gateIndex, totalGates, attempt}` per gate; the
+   dashboard is a read projection over it.
+
+Do not start either before the trigger — this is the documented strategy-escape-hatch risk.
 
 ---
 
@@ -141,7 +192,7 @@ whole Next.js app and its dependency tree.
 1. **Different code, our stack** — Express/React/Vite/Postgres vs their Next.js/CopilotKit/LangGraph. Ideas and architecture aren't copyrightable; the reimplementation is ours.
 2. **Different pedagogy** — gated `ask` actions invert lecture-playback into attempt-first active learning. That's the differentiator the market research said matters.
 3. **Smaller surface** — ~6 actions and 3 agents vs 28+ actions and the full gateway; we keep the magic, drop the bloat.
-4. **Clean attribution** — we still credit OpenMAIC (MIT) in `NOTICE.md`, because borrowing ideas openly is the honest move even when not legally required.
+4. **Clean attribution** — we credit OpenMAIC (MIT) in [docs/OpenMAIC-ATTRIBUTION.md](OpenMAIC-ATTRIBUTION.md), because borrowing ideas openly is the honest move even when not legally required.
 
 ---
 

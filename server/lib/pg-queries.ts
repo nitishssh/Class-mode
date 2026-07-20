@@ -377,6 +377,30 @@ export async function pgFindUserById(id: number): Promise<PgUser | null> {
   }
 }
 
+/**
+ * All learning-interaction rows for one student, for the GDPR right-of-access
+ * export. Includes Study Arena gate answers (which carry the student's own
+ * free-text attempts in adjacent rows). Newest first.
+ */
+export async function pgExportInteractionLog(
+  studentId: number
+): Promise<Array<{ kind: string; concept: string | null; payload: unknown; created_at: string }>> {
+  if (!isPgReady()) return [];
+  try {
+    const { rows } = await getPgPool().query(
+      `SELECT kind, concept, payload, created_at
+         FROM interaction_log
+        WHERE student_id = $1
+        ORDER BY created_at DESC`,
+      [studentId]
+    );
+    return rows;
+  } catch (err) {
+    logger.error("[pg] pgExportInteractionLog failed", { err: String(err) });
+    return [];
+  }
+}
+
 export async function pgFindUserByEmail(email: string): Promise<PgUser | null> {
   if (!isPgReady()) return null;
   try {
