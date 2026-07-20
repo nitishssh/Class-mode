@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Phone, Printer, Download } from "lucide-react";
+import { Phone, Printer, Download, Loader2 } from "lucide-react";
 
 interface AbsenteeRow {
   studentId: number;
@@ -31,12 +31,17 @@ interface AbsenteesResponse {
  */
 export default function AbsenteesPage() {
   const [date, setDate] = useState(todayISO());
+  // Which export is in flight ("attendance" | "fees"), so slow connections
+  // can't queue duplicate downloads by double-clicking.
+  const [downloading, setDownloading] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Download via fetch (not a bare <a href>): anchors send only cookies, so a
   // token-auth session would silently save the 401 JSON error body as a .csv.
   // Any non-2xx becomes a visible toast instead of a corrupt file.
-  const downloadCsv = async (path: string, filename: string) => {
+  const downloadCsv = async (kind: string, path: string, filename: string) => {
+    if (downloading) return;
+    setDownloading(kind);
     try {
       const res = await apiRequest("GET", path);
       const blob = await res.blob();
@@ -54,6 +59,8 @@ export default function AbsenteesPage() {
         description: err instanceof Error ? err.message : "Could not download the file.",
         variant: "destructive",
       });
+    } finally {
+      setDownloading(null);
     }
   };
 
@@ -93,12 +100,27 @@ export default function AbsenteesPage() {
         </Button>
         <Button
           variant="outline"
-          onClick={() => downloadCsv("/api/export/attendance.csv", "attendance.csv")}
+          disabled={downloading !== null}
+          onClick={() => downloadCsv("attendance", "/api/export/attendance.csv", "attendance.csv")}
         >
-          <Download className="mr-2 h-4 w-4" /> Attendance CSV
+          {downloading === "attendance" ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Download className="mr-2 h-4 w-4" />
+          )}{" "}
+          Attendance CSV
         </Button>
-        <Button variant="outline" onClick={() => downloadCsv("/api/export/fees.csv", "fees.csv")}>
-          <Download className="mr-2 h-4 w-4" /> Fees CSV
+        <Button
+          variant="outline"
+          disabled={downloading !== null}
+          onClick={() => downloadCsv("fees", "/api/export/fees.csv", "fees.csv")}
+        >
+          {downloading === "fees" ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Download className="mr-2 h-4 w-4" />
+          )}{" "}
+          Fees CSV
         </Button>
       </div>
 

@@ -54,7 +54,7 @@ export function QuestPanel() {
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: 340, opacity: 0 }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          className="fixed bottom-20 right-4 z-[72] w-80 rounded-xl border border-border bg-background shadow-xl"
+          className="fixed bottom-20 right-4 z-[72] w-80 rounded-xl border border-border bg-background shadow-xl print:hidden"
           role="complementary"
           aria-label="Quest checklist"
         >

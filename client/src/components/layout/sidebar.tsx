@@ -266,7 +266,7 @@ export function Sidebar({ className }: SidebarProps) {
         <div className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={closeMobileMenu} />
       )}
 
-      <div className="fixed left-4 top-4 z-50 md:hidden">
+      <div className="fixed left-4 top-4 z-50 md:hidden print:hidden">
         <Button
           variant="ghost"
           className="h-9 w-9 rounded-full p-0 md:hidden"
@@ -279,7 +279,7 @@ export function Sidebar({ className }: SidebarProps) {
 
       <div
         className={cn(
-          "fixed bottom-0 left-0 top-0 z-[60] flex h-screen flex-col border-r border-border bg-muted/30 transition-all duration-300 ease-in-out",
+          "fixed bottom-0 left-0 top-0 z-[60] flex h-screen flex-col border-r border-border bg-muted/30 transition-all duration-300 ease-in-out print:hidden",
           isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
           isCollapsed ? "w-16 md:w-16" : "w-64 md:w-64",
           className
