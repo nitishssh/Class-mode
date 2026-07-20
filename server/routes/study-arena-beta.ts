@@ -17,6 +17,17 @@ import { logger } from "../lib/logger";
 
 const router = Router();
 
+function configuredCost(name: string): number | null {
+  const raw = process.env[name]?.trim();
+  if (!raw) return null;
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 0) {
+    logger.error("[study-arena-beta] invalid configured AI cost", { name });
+    return null;
+  }
+  return value;
+}
+
 /** Feature flag — default ON in dev, gated by env in prod. */
 export const STUDY_ARENA_BETA_ENABLED =
   process.env.STUDY_ARENA_BETA !== "false" && process.env.NODE_ENV !== "production"
@@ -36,6 +47,7 @@ router.get("/health", (_req, res) => {
 
 const generateSchema = z.object({
   topic: z.string().min(1).max(300),
+  lessonId: z.string().uuid().optional(),
   language: z.string().max(40).optional(),
   sceneCount: z.number().int().min(2).max(8).optional(),
 });
@@ -61,7 +73,12 @@ router.post(
         userId,
         workspaceId: (req as any).workspace?.id,
         feature: "ai_tutor",
-        metadata: { type: "study_arena_lesson", scenes: script.scenes.length },
+        metadata: {
+          type: "study_arena_lesson",
+          lessonId: parsed.data.lessonId ?? null,
+          scenes: script.scenes.length,
+          estimatedCostInr: configuredCost("STUDY_ARENA_GENERATION_COST_INR"),
+        },
       });
 
       res.json(script);
@@ -106,7 +123,12 @@ router.post(
           userId,
           workspaceId: (req as any).workspace?.id,
           feature: "ai_tutor",
-          metadata: { type: "study_arena_interaction", attempt: result.attempt },
+          metadata: {
+            type: "study_arena_interaction",
+            lessonId: parsed.data.lessonId ?? null,
+            attempt: result.attempt,
+            estimatedCostInr: configuredCost("STUDY_ARENA_INTERACTION_COST_INR"),
+          },
         });
 
         // Record the gate answer for the adoption metric — but ONLY for real
@@ -116,7 +138,7 @@ router.post(
         // single writer, tagged so the metric can filter cleanly.
         if (req.user?.role === "student" && parsed.data.lessonId) {
           try {
-            await commitLearnerUpdate(userId, {
+            const committed = await commitLearnerUpdate(userId, {
               interaction: {
                 kind: "study_arena_gate_answer",
                 concept: parsed.data.topic.slice(0, 120),
@@ -126,9 +148,17 @@ router.post(
                   gateIndex: parsed.data.gateIndex ?? null,
                   totalGates: parsed.data.totalGates ?? null,
                   attempt: result.attempt,
+                  answer: parsed.data.answer.trim(),
                 },
               },
             });
+            if (!committed) {
+              logger.error("[study-arena-beta] gate-answer log failed (non-blocking)", {
+                userId,
+                lessonId: parsed.data.lessonId,
+                reason: "commitLearnerUpdate returned false",
+              });
+            }
           } catch (logErr) {
             logger.error("[study-arena-beta] gate-answer log failed (non-blocking)", {
               error: String(logErr),

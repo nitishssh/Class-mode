@@ -103,8 +103,10 @@ export default function StudyArenaBeta() {
     setPhase("generating");
     setGenError(null);
     try {
+      const newLessonId = crypto.randomUUID();
       const data = await postJson<LessonScript>("/api/study-arena-beta/lesson-script", {
         topic: t,
+        lessonId: newLessonId,
       });
       let gateCount = 0;
       const flattened: FlatAction[] = data.scenes.flatMap((scene, si) =>
@@ -125,7 +127,7 @@ export default function StudyArenaBeta() {
       }
       setScript(data);
       setFlat(flattened);
-      setLessonId(crypto.randomUUID());
+      setLessonId(newLessonId);
       setTotalGates(gateCount);
       setCursor(0);
       setResponses({});

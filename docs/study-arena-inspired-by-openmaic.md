@@ -159,6 +159,13 @@ an explicit MET/WATCH banner). Below the bar at 30 days → **mothball behind th
 redeploy the effort to the paid attendance/fees wedge. Rationale: no build spend before the
 bet is validated with real pilot usage.
 
+Arm the fixed window with `STUDY_ARENA_PILOT_ENABLED_AT` (an ISO-8601 timestamp) when the
+flag is enabled. Configure `STUDY_ARENA_GENERATION_COST_INR` and
+`STUDY_ARENA_INTERACTION_COST_INR` from the provider's current billed per-call estimates;
+the report keeps cost `UNKNOWN` if any usage row lacks an estimate and never declares the
+full gate met automatically. The cost bar is **<₹2 per completed lesson**. Teacher review is
+a separate human confirmation until the payment-gated dashboard exists.
+
 **Minors' PII posture (interaction_log now stores students' free-text answers):**
 
 - Right-of-access: the GDPR export (`/api/gdpr/export`) now includes `learning-activity.json`

@@ -379,8 +379,8 @@ export async function pgFindUserById(id: number): Promise<PgUser | null> {
 
 /**
  * All learning-interaction rows for one student, for the GDPR right-of-access
- * export. Includes Study Arena gate answers (which carry the student's own
- * free-text attempts in adjacent rows). Newest first.
+ * export. Study Arena gate-answer rows carry the student's free-text attempt
+ * in the same row's payload. Newest first.
  */
 export async function pgExportInteractionLog(
   studentId: number

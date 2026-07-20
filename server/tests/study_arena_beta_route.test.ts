@@ -46,6 +46,7 @@ vi.mock("../lib/logger", () => ({
 }));
 
 import router from "../routes/study-arena-beta";
+import { logger } from "../lib/logger";
 
 function makeApp() {
   const app = express();
@@ -96,6 +97,15 @@ describe("POST /api/study-arena-beta/interaction", () => {
       .send(validInteraction);
     expect(res.status).toBe(200);
     expect(h.commitLearnerUpdate).toHaveBeenCalledTimes(1);
+    expect(h.pgIncrementAIUsage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          type: "study_arena_interaction",
+          lessonId: validInteraction.lessonId,
+          estimatedCostInr: null,
+        }),
+      })
+    );
     const [studentId, update] = h.commitLearnerUpdate.mock.calls[0];
     expect(studentId).toBe(7);
     expect(update.interaction.kind).toBe("study_arena_gate_answer");
@@ -105,7 +115,9 @@ describe("POST /api/study-arena-beta/interaction", () => {
       gateIndex: 0,
       totalGates: 3,
       attempt: 1,
+      answer: "sunlight and water",
     });
+    expect(logger.error).not.toHaveBeenCalled();
   });
 
   it("does NOT log for a non-student caller (keeps the adoption signal clean)", async () => {
@@ -132,5 +144,26 @@ describe("POST /api/study-arena-beta/interaction", () => {
       .send(validInteraction);
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ proceed: true });
+    expect(logger.error).toHaveBeenCalledWith(
+      "[study-arena-beta] gate-answer log failed (non-blocking)",
+      expect.objectContaining({ error: "Error: pg down" })
+    );
+  });
+
+  it("still returns 200 and logs when the learner writer reports failure", async () => {
+    h.commitLearnerUpdate.mockResolvedValue(false);
+    const res = await request(makeApp())
+      .post("/api/study-arena-beta/interaction")
+      .send(validInteraction);
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ proceed: true });
+    expect(logger.error).toHaveBeenCalledWith(
+      "[study-arena-beta] gate-answer log failed (non-blocking)",
+      expect.objectContaining({
+        userId: 7,
+        lessonId: validInteraction.lessonId,
+        reason: "commitLearnerUpdate returned false",
+      })
+    );
   });
 });

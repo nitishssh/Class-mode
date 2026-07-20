@@ -70,6 +70,10 @@ Live register of deferred work. Anything cut or postponed from a plan lands here
 
 ## From /autoplan review of Study Arena plan (2026-07-21)
 
+- [ ] **P2 — Study Arena local lesson resume (D4)**: persist `{script, cursor}` only, keyed per session; never persist minors' free-text answers on a shared device.
+- [ ] **P2 — Study Arena mobile keyboard/layout hardening (D5)**: use `100dvh`, scroll the answer input into view on focus, keep touch Enter as newline, and add an exhaustive action fallback.
+- [ ] **P2 — Study Arena MCQ eliminated-choice state (D6)**: dim a wrong choice after an attempt so retrying is learning, not brute-force repetition. Attempts are already logged server-side.
+- [ ] **P2 — make AI usage-meter write failures operationally loud (E3)**: `pgIncrementAIUsage` currently logs and swallows DB failures; add an observable failure counter/alert without blocking students.
 - [ ] **P2 — converge the two lesson-generation pipelines**: `generator.ts` (SceneOutline, ai-classroom) and `lesson-script.ts` (LessonScript, beta) duplicate generation logic; converge post-payment-trigger.
 - [ ] **P3 — Study Arena beta polish batch (D8)**: scroll-guard + "↓ new" affordance, tap-to-advance pacing (pre-TTS), completion recap of gates+answers, tappable topic chips + kid-voiced setup copy, mid-lesson exit affordance, dark-mode token routing for amber/sky/emerald, 11px label floor. Post-trigger.
 - [ ] **P3 — prompt-injection hardening on lesson topic input**: free-text topic can steer the harness back into a generic chatbot; quota-bounded and self-inflicted today.

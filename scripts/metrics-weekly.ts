@@ -49,6 +49,13 @@ interface Snapshot {
     lessonsStarted: number;
     completedLessons: number;
     studentsCompleted: number;
+    pilotStartedAt?: string | null;
+    pilotEndsAt?: string | null;
+    pilotUnassistedStudentsCompleted?: number | null;
+    pilotCompletedLessons?: number | null;
+    pilotEstimatedCostInr?: number | null;
+    pilotCostPerCompletedLessonInr?: number | null;
+    pilotCostRowsMissing?: number | null;
   };
 }
 
@@ -172,6 +179,74 @@ async function collect(
     [weekStart, weekEnd]
   );
 
+  // The adoption decision is anchored to the explicit pilot-enable timestamp,
+  // not to calendar weeks. Without it, the 30-day gate is deliberately
+  // unarmed rather than inferred from incomplete snapshots.
+  const pilotStartedAt = process.env.STUDY_ARENA_PILOT_ENABLED_AT?.trim() || null;
+  let pilotEndsAt: string | null = null;
+  let pilotUnassistedStudentsCompleted: number | null = null;
+  let pilotCompletedLessons: number | null = null;
+  let pilotEstimatedCostInr: number | null = null;
+  let pilotCostPerCompletedLessonInr: number | null = null;
+  let pilotCostRowsMissing: number | null = null;
+  if (pilotStartedAt) {
+    const start = new Date(pilotStartedAt);
+    if (Number.isNaN(start.getTime())) {
+      throw new Error("STUDY_ARENA_PILOT_ENABLED_AT must be an ISO-8601 timestamp");
+    }
+    const end = new Date(start.getTime() + 30 * 86400000);
+    pilotEndsAt = end.toISOString();
+    const [pilot] = await q(
+      `WITH gate_answers AS (
+          SELECT student_id,
+                 payload->>'lessonId'          AS lesson_id,
+                 payload->>'actionKey'         AS action_key,
+                 (payload->>'totalGates')::int AS total_gates,
+                 (payload->>'attempt')::int    AS attempt
+            FROM interaction_log
+           WHERE kind = 'study_arena_gate_answer'
+             AND created_at >= $1::timestamptz
+             AND created_at < $2::timestamptz
+             AND payload->>'lessonId' IS NOT NULL
+       ), lessons AS (
+          SELECT student_id, lesson_id,
+                 COUNT(DISTINCT action_key) AS gates_answered,
+                 MAX(total_gates)           AS total_gates,
+                 MAX(attempt)               AS max_attempt
+            FROM gate_answers
+           GROUP BY student_id, lesson_id
+       )
+       SELECT COUNT(*) FILTER (
+                WHERE total_gates IS NOT NULL AND gates_answered >= total_gates
+              )::int AS completed_lessons,
+              COUNT(DISTINCT student_id) FILTER (
+                WHERE total_gates IS NOT NULL
+                  AND gates_answered >= total_gates
+                  AND max_attempt = 1
+              )::int AS students_completed_unassisted
+         FROM lessons`,
+      [start.toISOString(), pilotEndsAt]
+    );
+    pilotUnassistedStudentsCompleted = pilot?.students_completed_unassisted ?? 0;
+    pilotCompletedLessons = pilot?.completed_lessons ?? 0;
+
+    const [cost] = await q(
+      `SELECT COALESCE(SUM((metadata->>'estimatedCostInr')::numeric), 0)::float AS estimated_cost_inr,
+              COUNT(*) FILTER (WHERE metadata->>'estimatedCostInr' IS NULL)::int AS missing_cost_rows
+         FROM ai_usage_logs
+        WHERE created_at >= $1::timestamptz AND created_at < $2::timestamptz
+          AND metadata->>'type' IN ('study_arena_lesson', 'study_arena_interaction')`,
+      [start.toISOString(), pilotEndsAt]
+    );
+    pilotCostRowsMissing = cost?.missing_cost_rows ?? 0;
+    if (pilotCostRowsMissing === 0) {
+      pilotEstimatedCostInr = Number(cost?.estimated_cost_inr ?? 0);
+      if (pilotCompletedLessons > 0) {
+        pilotCostPerCompletedLessonInr = pilotEstimatedCostInr / pilotCompletedLessons;
+      }
+    }
+  }
+
   return {
     attendance: {
       activeTeachers: att.active_teachers,
@@ -190,6 +265,13 @@ async function collect(
       lessonsStarted: arena?.lessons_started ?? 0,
       completedLessons: arena?.completed_lessons ?? 0,
       studentsCompleted: arena?.students_completed ?? 0,
+      pilotStartedAt,
+      pilotEndsAt,
+      pilotUnassistedStudentsCompleted,
+      pilotCompletedLessons,
+      pilotEstimatedCostInr,
+      pilotCostPerCompletedLessonInr,
+      pilotCostRowsMissing,
     },
   };
 }
@@ -263,21 +345,22 @@ function renderTable(s: Snapshot, prior: Snapshot[]): string {
   // unassisted (and a teacher looks at the resulting signal). If not, mothball
   // Study Arena behind the flag and redeploy the effort to the paid wedge.
   {
-    const arena4wk = [...prior.slice(-3), s].reduce(
-      (n, p) => Math.max(n, p.studyArena?.studentsCompleted ?? 0),
-      s.studyArena.studentsCompleted
-    );
-    if (s.studyArena.lessonsStarted === 0 && arena4wk === 0) {
+    const pilotCount = s.studyArena.pilotUnassistedStudentsCompleted;
+    if (!s.studyArena.pilotStartedAt || !s.studyArena.pilotEndsAt || pilotCount == null) {
       lines.push(
-        `> Study Arena: no gated lessons attempted yet — adoption gate not started. (Flag STUDY_ARENA_BETA is off in prod by default.)`
+        `> Study Arena: adoption gate NOT ARMED — set STUDY_ARENA_PILOT_ENABLED_AT to the pilot flag-enable timestamp. No 30-day result will be inferred from weekly snapshots.`
       );
-    } else if (arena4wk < 5) {
+    } else if (pilotCount < 5) {
       lines.push(
-        `> Study Arena WATCH: peak ${arena4wk} distinct students completing a full lesson (best of last 4 wks); gate wants ≥5 within 30 days of enabling. Below bar → mothball behind the flag.`
+        `> Study Arena WATCH: ${pilotCount} distinct students completed a full lesson unassisted in the fixed pilot window (${s.studyArena.pilotStartedAt} → ${s.studyArena.pilotEndsAt}); gate wants ≥5. Below bar at window close → mothball behind the flag.`
       );
     } else {
+      const cost = s.studyArena.pilotCostPerCompletedLessonInr;
+      const costReady = cost != null && (s.studyArena.pilotCostRowsMissing ?? 0) === 0;
       lines.push(
-        `> Study Arena: adoption gate MET — ≥5 distinct students completed a full lesson (peak ${arena4wk}). Signal is real; take it to the payment conversation.`
+        costReady && cost < 2
+          ? `> Study Arena: student and cost thresholds reached — ${pilotCount} distinct students completed unassisted; estimated cost/completed lesson ₹${cost.toFixed(2)}. Final gate is PENDING until a teacher reviews the signal.`
+          : `> Study Arena: student threshold reached — ${pilotCount} distinct students completed unassisted. Final gate is PENDING: ${costReady ? `estimated cost/completed lesson is ₹${cost.toFixed(2)} (must be <₹2)` : `cost is UNKNOWN because ${s.studyArena.pilotCostRowsMissing ?? 0} usage rows lack configured estimates`}, and a teacher must review the signal.`
       );
     }
   }
