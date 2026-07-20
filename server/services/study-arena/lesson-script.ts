@@ -168,28 +168,56 @@ export interface InteractionResult {
   feedback: string;
   /** Whether the student may proceed to the next scene. */
   proceed: boolean;
+  /** Echoed attempt number so the client can escalate on retry. */
+  attempt: number;
+}
+
+/**
+ * The escalating-support ladder for a stuck student. This is an EFFORT gate,
+ * not a correctness gate: a genuine attempt always earns `proceed: true`, so
+ * the student is never trapped. But repeated attempts at the SAME gate escalate
+ * how much the tutor helps — a gentle nudge first, a concrete scaffolded hint
+ * next, then reveal-and-explain-back — so a student who can't answer gets more
+ * support instead of the same rejection.
+ */
+function laddedInstruction(attempt: number): string {
+  if (attempt <= 1) {
+    return "In ONE or two short sentences, tell me if I'm on the right track and nudge my thinking — do NOT give the full answer. End by encouraging me to try or to continue.";
+  }
+  if (attempt === 2) {
+    return "I tried again and I'm still stuck. Give me ONE concrete, scaffolded hint that points at the very next step — still do NOT hand me the full answer. Keep it to two short sentences and warm.";
+  }
+  return "I've tried a few times and I'm struggling. Reveal the key idea in one short, plain sentence, then ask me to explain it back in my own words so I still have to think. Be encouraging, not disappointed.";
 }
 
 /**
  * Respond to a student's answer at a gated `ask`. Reuses the attempt-first
- * tutor prompt: never hands over the answer, nudges them forward. Phase 1 always
- * lets the student proceed after a genuine attempt (grading-gated progression is
- * Phase 2); empty/blank answers are sent back.
+ * tutor prompt and applies the support ladder above. Empty/blank answers are
+ * sent back without proceeding (and without spending an LLM call).
  */
 export async function respondToInteraction(params: {
   topic: string;
   question: string;
   answer: string;
   language?: string;
+  /** 1-based attempt count at this gate; escalates the hint ladder. */
+  attempt?: number;
 }): Promise<InteractionResult> {
+  const attempt = Math.max(1, Math.floor(params.attempt ?? 1));
   const answer = params.answer.trim();
   if (answer.length === 0) {
-    return { feedback: "Give it a try first — even a rough idea is fine. What's your thinking?", proceed: false };
+    return {
+      feedback: "Give it a try first — even a rough idea is fine. What's your thinking?",
+      proceed: false,
+      attempt,
+    };
   }
 
+  // hintLevel tracks the attempt so the reused tutor prompt loosens up too.
+  const hintLevel = (attempt >= 3 ? 3 : attempt === 2 ? 2 : 1) as 1 | 2 | 3;
   const systemPrompt = buildTutorSystemPrompt({
     subject: params.topic,
-    hintLevel: 1,
+    hintLevel,
     language: params.language,
   });
 
@@ -200,11 +228,11 @@ export async function respondToInteraction(params: {
     messages: [
       {
         role: "user",
-        content: `The lesson asked me: "${params.question}"\nMy answer: "${answer}"\nIn ONE or two short sentences, tell me if I'm on the right track and nudge my thinking — do NOT give the full answer. End by encouraging me to continue.`,
+        content: `The lesson asked me: "${params.question}"\nMy answer: "${answer}"\n${laddedInstruction(attempt)}`,
       },
     ],
     feature: "lesson_interaction",
   });
 
-  return { feedback: content, proceed: true };
+  return { feedback: content, proceed: true, attempt };
 }

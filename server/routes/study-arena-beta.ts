@@ -12,6 +12,7 @@ import { authenticateToken } from "../middleware";
 import { checkAIQuota } from "../middleware/aiQuota";
 import { pgIncrementAIUsage } from "../lib/pg-queries";
 import { generateLessonScript, respondToInteraction } from "../services/study-arena/lesson-script";
+import { commitLearnerUpdate } from "../lib/learner-model";
 import { logger } from "../lib/logger";
 
 const router = Router();
@@ -76,6 +77,14 @@ const interactionSchema = z.object({
   question: z.string().min(1).max(2000),
   answer: z.string().max(4000),
   language: z.string().max(40).optional(),
+  // Grouping keys so gate answers can be rolled up into "did this student
+  // complete a full gated lesson?" — the pilot's adoption signal. All optional
+  // so an older client still works; the metric simply can't group its rows.
+  lessonId: z.string().uuid().optional(),
+  actionKey: z.string().max(40).optional(),
+  gateIndex: z.number().int().min(0).max(64).optional(),
+  totalGates: z.number().int().min(1).max(64).optional(),
+  attempt: z.number().int().min(1).max(20).optional(),
 });
 
 router.post(
@@ -90,15 +99,42 @@ router.post(
     }
     try {
       const result = await respondToInteraction(parsed.data);
+      const userId = (req.user?.id || req.session?.userId) as number;
 
       if (result.proceed) {
-        const userId = (req.user?.id || req.session?.userId) as number;
         await pgIncrementAIUsage({
           userId,
           workspaceId: (req as any).workspace?.id,
           feature: "ai_tutor",
-          metadata: { type: "study_arena_interaction" },
+          metadata: { type: "study_arena_interaction", attempt: result.attempt },
         });
+
+        // Record the gate answer for the adoption metric — but ONLY for real
+        // students (a teacher/principal poking the beta would pollute the
+        // "students completing lessons" signal), and NEVER let a logging
+        // failure break the student's flow. Writes through the learner-model
+        // single writer, tagged so the metric can filter cleanly.
+        if (req.user?.role === "student" && parsed.data.lessonId) {
+          try {
+            await commitLearnerUpdate(userId, {
+              interaction: {
+                kind: "study_arena_gate_answer",
+                concept: parsed.data.topic.slice(0, 120),
+                payload: {
+                  lessonId: parsed.data.lessonId,
+                  actionKey: parsed.data.actionKey ?? null,
+                  gateIndex: parsed.data.gateIndex ?? null,
+                  totalGates: parsed.data.totalGates ?? null,
+                  attempt: result.attempt,
+                },
+              },
+            });
+          } catch (logErr) {
+            logger.error("[study-arena-beta] gate-answer log failed (non-blocking)", {
+              error: String(logErr),
+            });
+          }
+        }
       }
 
       res.json(result);

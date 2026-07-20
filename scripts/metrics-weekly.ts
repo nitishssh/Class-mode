@@ -43,6 +43,13 @@ interface Snapshot {
   fees: { activeStaff: number; rowsCreated: number };
   featureUsage: Array<{ feature: string; events: number; distinctUsers: number }>;
   totals: { users: number; teachers: number; students: number };
+  // Study Arena adoption signal (the payment-gate decision input). A "completed
+  // lesson" = a student answered every gate in one generated lesson.
+  studyArena: {
+    lessonsStarted: number;
+    completedLessons: number;
+    studentsCompleted: number;
+  };
 }
 
 function isoWeekOf(d: Date): { isoWeek: string; weekStart: Date; weekEnd: Date } {
@@ -132,6 +139,39 @@ async function collect(
       WHERE ${REAL_OR_NO_SCHOOL_SQL}`
   );
 
+  // Study Arena: roll gate-answer rows up into "did the student finish a full
+  // gated lesson?". A lesson is complete when the distinct gates answered under
+  // one lessonId reach that lesson's totalGates. Only student-role rows are
+  // logged (see the beta route), so no role filter is needed here.
+  const [arena] = await q(
+    `WITH gate_answers AS (
+        SELECT student_id,
+               payload->>'lessonId'         AS lesson_id,
+               payload->>'actionKey'        AS action_key,
+               (payload->>'totalGates')::int AS total_gates
+          FROM interaction_log
+         WHERE kind = 'study_arena_gate_answer'
+           AND created_at >= $1 AND created_at < $2
+           AND payload->>'lessonId' IS NOT NULL
+     ),
+     lessons AS (
+        SELECT student_id, lesson_id,
+               COUNT(DISTINCT action_key) AS gates_answered,
+               MAX(total_gates)           AS total_gates
+          FROM gate_answers
+         GROUP BY student_id, lesson_id
+     )
+     SELECT COUNT(*)::int AS lessons_started,
+            COUNT(*) FILTER (
+              WHERE total_gates IS NOT NULL AND gates_answered >= total_gates
+            )::int AS completed_lessons,
+            COUNT(DISTINCT student_id) FILTER (
+              WHERE total_gates IS NOT NULL AND gates_answered >= total_gates
+            )::int AS students_completed
+       FROM lessons`,
+    [weekStart, weekEnd]
+  );
+
   return {
     attendance: {
       activeTeachers: att.active_teachers,
@@ -146,6 +186,11 @@ async function collect(
       distinctUsers: u.distinct_users,
     })),
     totals: { users: totals.users, teachers: totals.teachers, students: totals.students },
+    studyArena: {
+      lessonsStarted: arena?.lessons_started ?? 0,
+      completedLessons: arena?.completed_lessons ?? 0,
+      studentsCompleted: arena?.students_completed ?? 0,
+    },
   };
 }
 
@@ -204,7 +249,38 @@ function renderTable(s: Snapshot, prior: Snapshot[]): string {
   lines.push(
     `| Accounts (users/teachers/students) | ${s.totals.users} / ${s.totals.teachers} / ${s.totals.students} | — | — |`
   );
+  lines.push(
+    `| Study Arena: lessons completed / started | ${s.studyArena.completedLessons} / ${s.studyArena.lessonsStarted} | ${delta(s.studyArena.completedLessons, prev?.studyArena?.completedLessons)} | — |`
+  );
+  lines.push(
+    `| Study Arena: distinct students completing | ${s.studyArena.studentsCompleted} | — | — |`
+  );
   lines.push("");
+
+  // Study Arena adoption gate (autoplan T3, 2026-07-21). The pilot bet is
+  // attempt-first lessons. Kill criterion: within 30 days of enabling the flag
+  // for the pilot, ≥5 distinct students each complete ≥1 full gated lesson
+  // unassisted (and a teacher looks at the resulting signal). If not, mothball
+  // Study Arena behind the flag and redeploy the effort to the paid wedge.
+  {
+    const arena4wk = [...prior.slice(-3), s].reduce(
+      (n, p) => Math.max(n, p.studyArena?.studentsCompleted ?? 0),
+      s.studyArena.studentsCompleted
+    );
+    if (s.studyArena.lessonsStarted === 0 && arena4wk === 0) {
+      lines.push(
+        `> Study Arena: no gated lessons attempted yet — adoption gate not started. (Flag STUDY_ARENA_BETA is off in prod by default.)`
+      );
+    } else if (arena4wk < 5) {
+      lines.push(
+        `> Study Arena WATCH: peak ${arena4wk} distinct students completing a full lesson (best of last 4 wks); gate wants ≥5 within 30 days of enabling. Below bar → mothball behind the flag.`
+      );
+    } else {
+      lines.push(
+        `> Study Arena: adoption gate MET — ≥5 distinct students completed a full lesson (peak ${arena4wk}). Signal is real; take it to the payment conversation.`
+      );
+    }
+  }
 
   // Decision threshold (plan objective 3): wedge WAT < 50% of baseline, 2 consecutive weeks.
   if (baseline && prev && baseline.isoWeek !== s.isoWeek) {

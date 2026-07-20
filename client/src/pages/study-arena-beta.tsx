@@ -34,6 +34,8 @@ interface FlatAction {
   key: string;
   sceneIndex: number;
   action: SceneAction;
+  /** 0-based index among gated asks; undefined for non-ask actions. */
+  gateIndex?: number;
 }
 
 const AGENTS: Record<AgentRole, { label: string; className: string; icon: typeof GraduationCap }> =
@@ -80,6 +82,10 @@ export default function StudyArenaBeta() {
   const [flat, setFlat] = useState<FlatAction[]>([]);
   const [cursor, setCursor] = useState(0);
   const [genError, setGenError] = useState<string | null>(null);
+  // A per-lesson id so gate answers roll up into "completed a full lesson"
+  // server-side; total gate count travels with it for the same metric.
+  const [lessonId, setLessonId] = useState<string>("");
+  const [totalGates, setTotalGates] = useState(0);
 
   // Per-ask student responses, keyed by action key.
   const [responses, setResponses] = useState<Record<string, { answer: string; feedback: string }>>(
@@ -100,20 +106,27 @@ export default function StudyArenaBeta() {
       const data = await postJson<LessonScript>("/api/study-arena-beta/lesson-script", {
         topic: t,
       });
+      let gateCount = 0;
       const flattened: FlatAction[] = data.scenes.flatMap((scene, si) =>
-        scene.actions.map((action, ai) => ({ key: `${si}-${ai}`, sceneIndex: si, action }))
+        scene.actions.map((action, ai) => ({
+          key: `${si}-${ai}`,
+          sceneIndex: si,
+          action,
+          gateIndex: action.type === "ask" ? gateCount++ : undefined,
+        }))
       );
       // A script with no gated ask is a generation failure, not a lesson —
       // never let the player fall straight through to the "complete 🎉" card
       // (that would fabricate success, violating the demo-data-honesty rule).
-      const hasGate = flattened.some((fa) => fa.action.type === "ask");
-      if (flattened.length === 0 || !hasGate) {
+      if (flattened.length === 0 || gateCount === 0) {
         setGenError("Couldn't build a full lesson for that. Try rephrasing the topic.");
         setPhase("setup");
         return;
       }
       setScript(data);
       setFlat(flattened);
+      setLessonId(crypto.randomUUID());
+      setTotalGates(gateCount);
       setCursor(0);
       setResponses({});
       setPhase("playing");
@@ -217,6 +230,10 @@ export default function StudyArenaBeta() {
               key={current.key}
               action={current.action as Extract<SceneAction, { type: "ask" }>}
               topic={script!.topic}
+              lessonId={lessonId}
+              actionKey={current.key}
+              gateIndex={current.gateIndex ?? 0}
+              totalGates={totalGates}
               onResolved={(answer, feedback) => {
                 setResponses((r) => ({ ...r, [current.key]: { answer, feedback } }));
                 advancePastAsk();
@@ -320,10 +337,18 @@ function ActionView({
 function AskCard({
   action,
   topic,
+  lessonId,
+  actionKey,
+  gateIndex,
+  totalGates,
   onResolved,
 }: {
   action: Extract<SceneAction, { type: "ask" }>;
   topic: string;
+  lessonId: string;
+  actionKey: string;
+  gateIndex: number;
+  totalGates: number;
   onResolved: (answer: string, feedback: string) => void;
 }) {
   const [answer, setAnswer] = useState("");
@@ -334,6 +359,8 @@ function AskCard({
   // the same rose crash styling as a network failure.
   const [nudge, setNudge] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Attempts at THIS gate; escalates the server's support ladder on retry.
+  const [attempt, setAttempt] = useState(1);
 
   // A "choice" gate is only usable with a real set of options; anything less
   // falls back to the free-text box rather than rendering zero buttons.
@@ -348,7 +375,16 @@ function AskCard({
     try {
       const res = await postJson<{ feedback: string; proceed: boolean }>(
         "/api/study-arena-beta/interaction",
-        { topic, question: action.prompt, answer: v }
+        {
+          topic,
+          question: action.prompt,
+          answer: v,
+          lessonId,
+          actionKey,
+          gateIndex,
+          totalGates,
+          attempt,
+        }
       );
       if (res.proceed) {
         setFeedback(res.feedback);
@@ -361,6 +397,15 @@ function AskCard({
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // The escape hatch: a stuck student can ask for more help (escalates the
+  // ladder) instead of being trapped at a gate they can't answer.
+  const tryAgain = () => {
+    setAttempt((a) => a + 1);
+    setFeedback(null);
+    setNudge(null);
+    if (!isChoice) setAnswer("");
   };
 
   return (
@@ -417,12 +462,22 @@ function AskCard({
         {feedback ? (
           <div className="mt-3">
             <p className="text-sm italic text-amber-800">{feedback}</p>
-            <Button
-              onClick={() => onResolved(answer, feedback)}
-              className="mt-3 rounded-xl bg-accent text-white hover:bg-accent/90"
-            >
-              Continue
-            </Button>
+            <div className="mt-3 flex gap-2">
+              <Button
+                onClick={() => onResolved(answer, feedback)}
+                className="rounded-xl bg-accent text-white hover:bg-accent/90"
+              >
+                Continue
+              </Button>
+              <Button
+                variant="outline"
+                onClick={tryAgain}
+                className="rounded-xl"
+                title="Get more help and try this one again"
+              >
+                Try again
+              </Button>
+            </div>
           </div>
         ) : (
           !isChoice && (

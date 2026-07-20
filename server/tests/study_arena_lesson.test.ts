@@ -163,7 +163,7 @@ describe("respondToInteraction", () => {
     expect(mockGenerate).not.toHaveBeenCalled();
   });
 
-  it("proceeds with Socratic feedback after a genuine attempt", async () => {
+  it("proceeds with Socratic feedback after a genuine attempt (effort gate)", async () => {
     (mockGenerate as Mock).mockResolvedValue("Good start — keep going!");
     const res = await respondToInteraction({
       topic: "Pythagoras",
@@ -172,6 +172,48 @@ describe("respondToInteraction", () => {
     });
     expect(res.proceed).toBe(true);
     expect(res.feedback).toMatch(/keep going/i);
+    expect(res.attempt).toBe(1);
     expect(mockGenerate).toHaveBeenCalledOnce();
+  });
+
+  it("escalates the support ladder on later attempts (still proceeds — never traps)", async () => {
+    (mockGenerate as Mock).mockResolvedValue("Here's a concrete hint.");
+    const a1 = (mockGenerate as Mock).mock;
+    const r2 = await respondToInteraction({
+      topic: "Pythagoras",
+      question: "Predict c",
+      answer: "hmm",
+      attempt: 2,
+    });
+    // attempt 2 asks for a concrete scaffolded hint
+    const promptA2 = (mockGenerate as Mock).mock.calls[0][0].messages[0].content as string;
+    expect(promptA2).toMatch(/scaffolded hint|next step/i);
+    expect(r2.proceed).toBe(true);
+    expect(r2.attempt).toBe(2);
+
+    (mockGenerate as Mock).mockClear();
+    void a1;
+    const r3 = await respondToInteraction({
+      topic: "Pythagoras",
+      question: "Predict c",
+      answer: "still stuck",
+      attempt: 5,
+    });
+    // attempt 3+ reveals the key idea and asks the student to explain it back
+    const promptA3 = (mockGenerate as Mock).mock.calls[0][0].messages[0].content as string;
+    expect(promptA3).toMatch(/explain it back|reveal/i);
+    expect(r3.proceed).toBe(true);
+    expect(r3.attempt).toBe(5);
+  });
+
+  it("clamps a non-positive attempt to 1", async () => {
+    (mockGenerate as Mock).mockResolvedValue("ok");
+    const res = await respondToInteraction({
+      topic: "x",
+      question: "q",
+      answer: "a",
+      attempt: 0,
+    });
+    expect(res.attempt).toBe(1);
   });
 });
