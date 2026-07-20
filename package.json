@@ -80,7 +80,7 @@
     "helmet": "^8.1.0",
     "input-otp": "^1.2.4",
     "ioredis": "^5.11.0",
-    "jotai": "^2.20.1",
+    "jotai": "^2.20.2",
     "jsonrepair": "^3.14.0",
     "jsonwebtoken": "^9.0.3",
     "jspdf": "^4.2.1",
