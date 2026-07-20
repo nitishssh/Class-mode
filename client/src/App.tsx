@@ -85,7 +85,8 @@ function Layout({
       <QuestPanel />
       <QuestButton />
       <main
-        className="flex-1 transition-all duration-300 ease-in-out"
+        // print:!ml-0 (important) because the sidebar offset is an inline style
+        className="flex-1 transition-all duration-300 ease-in-out print:!ml-0"
         style={{ marginLeft: "var(--sidebar-width, 16rem)" }}
       >
         <ErrorBoundary key={location}>
