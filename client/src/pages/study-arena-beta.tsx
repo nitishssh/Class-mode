@@ -43,6 +43,14 @@ const AGENTS: Record<AgentRole, { label: string; className: string; icon: typeof
     coach: { label: "Coach", className: "text-amber-600", icon: Lightbulb },
   };
 
+class ApiError extends Error {
+  status: number;
+  constructor(status: number) {
+    super(`Request failed: ${status}`);
+    this.status = status;
+  }
+}
+
 async function postJson<T>(url: string, body: unknown): Promise<T> {
   const res = await fetch(url, {
     method: "POST",
@@ -50,8 +58,19 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
     credentials: "include",
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+  // Preserve the status so callers can tell "your session expired" from
+  // "you're out of AI time for today" from "our fault" — a bare Error can't.
+  if (!res.ok) throw new ApiError(res.status);
   return res.json() as Promise<T>;
+}
+
+/** Honest, student-facing copy for a failed request — never blames the topic. */
+function messageForError(err: unknown): string {
+  const status = err instanceof ApiError ? err.status : 0;
+  if (status === 401) return "Your session expired. Please sign in again.";
+  if (status === 403 || status === 429) return "You've used today's AI time. Come back tomorrow.";
+  if (status >= 500) return "That's on us — something broke. Please try again.";
+  return "Couldn't reach the lesson service. Check your connection and try again.";
 }
 
 export default function StudyArenaBeta() {
@@ -84,6 +103,15 @@ export default function StudyArenaBeta() {
       const flattened: FlatAction[] = data.scenes.flatMap((scene, si) =>
         scene.actions.map((action, ai) => ({ key: `${si}-${ai}`, sceneIndex: si, action }))
       );
+      // A script with no gated ask is a generation failure, not a lesson —
+      // never let the player fall straight through to the "complete 🎉" card
+      // (that would fabricate success, violating the demo-data-honesty rule).
+      const hasGate = flattened.some((fa) => fa.action.type === "ask");
+      if (flattened.length === 0 || !hasGate) {
+        setGenError("Couldn't build a full lesson for that. Try rephrasing the topic.");
+        setPhase("setup");
+        return;
+      }
       setScript(data);
       setFlat(flattened);
       setCursor(0);
@@ -91,7 +119,7 @@ export default function StudyArenaBeta() {
       setPhase("playing");
     } catch (err) {
       console.error(err);
-      setGenError("Couldn't build that lesson. Try a different topic.");
+      setGenError(messageForError(err));
       setPhase("setup");
     }
   };
@@ -301,13 +329,22 @@ function AskCard({
   const [answer, setAnswer] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  // A pedagogy nudge (the tutor asking the student to reconsider) is NOT an
+  // error — keep the two channels separate so a "think again" never renders in
+  // the same rose crash styling as a network failure.
+  const [nudge, setNudge] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // A "choice" gate is only usable with a real set of options; anything less
+  // falls back to the free-text box rather than rendering zero buttons.
+  const isChoice = action.expects === "choice" && (action.choices?.length ?? 0) >= 2;
 
   const submit = async (value: string) => {
     const v = value.trim();
     if (!v || submitting) return;
     setSubmitting(true);
     setError(null);
+    setNudge(null);
     try {
       const res = await postJson<{ feedback: string; proceed: boolean }>(
         "/api/study-arena-beta/interaction",
@@ -316,10 +353,11 @@ function AskCard({
       if (res.proceed) {
         setFeedback(res.feedback);
       } else {
-        setError(res.feedback);
+        // Not through the gate yet — show the nudge warmly and let them retry.
+        setNudge(res.feedback);
       }
-    } catch {
-      setError("Something went wrong — try again.");
+    } catch (err) {
+      setError(messageForError(err));
     } finally {
       setSubmitting(false);
     }
@@ -332,9 +370,9 @@ function AskCard({
       </AgentBubble>
 
       <div className="mt-4">
-        {action.expects === "choice" && action.choices ? (
+        {isChoice ? (
           <div className="flex flex-wrap gap-2">
-            {action.choices.map((c) => (
+            {action.choices!.map((c) => (
               <Button
                 key={c}
                 variant="outline"
@@ -366,6 +404,14 @@ function AskCard({
           />
         )}
 
+        {/* Pedagogy nudge: warm coach voice, not an error. */}
+        {nudge && !feedback && (
+          <div className="mt-3">
+            <AgentBubble agent="coach">{nudge}</AgentBubble>
+          </div>
+        )}
+
+        {/* Transport/system errors only. */}
         {error && <p className="mt-2 text-sm text-rose-600">{error}</p>}
 
         {feedback ? (
@@ -379,7 +425,7 @@ function AskCard({
             </Button>
           </div>
         ) : (
-          action.expects !== "choice" && (
+          !isChoice && (
             <Button
               onClick={() => submit(answer)}
               disabled={!answer.trim() || submitting}

@@ -34,9 +34,11 @@ export const sceneActionSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("ask"),
     agent: z.enum(["teacher", "classmate", "coach"]),
-    prompt: z.string().min(1),
+    // Cap the prompt so the client (which echoes it back to /interaction,
+    // where question is capped at 2000) can never 400-loop on a long prompt.
+    prompt: z.string().min(1).max(2000),
     expects: z.enum(["freeText", "choice"]),
-    choices: z.array(z.string()).optional(),
+    choices: z.array(z.string().min(1)).optional(),
     // The gate: playback MUST stop here until the student responds.
     gate: z.literal(true),
   }),
@@ -128,6 +130,25 @@ export async function generateLessonScript(
   }
 
   const script = lessonScriptSchema.parse(parsed);
+
+  // Sanitize gated asks before the client ever sees them. A "choice" ask with
+  // fewer than 2 options renders zero buttons and no textarea — an unpassable
+  // gate that hard-locks the lesson. Degrade it to a free-text attempt instead
+  // of dropping the scene, so the student can still answer.
+  for (const scene of script.scenes) {
+    for (const action of scene.actions) {
+      if (action.type === "ask" && action.expects === "choice" && (action.choices?.length ?? 0) < 2) {
+        action.expects = "freeText";
+        delete action.choices;
+      }
+    }
+  }
+
+  // Clamp the topic to the /interaction route's cap (300) so echoing it back
+  // from the client can never 400 every gate.
+  if (script.topic.length > 300) {
+    script.topic = script.topic.slice(0, 300);
+  }
 
   // Safety net: enforce the inverted loop even if the model slips — drop any
   // scene that has no gated ask rather than letting it lecture without a gate.

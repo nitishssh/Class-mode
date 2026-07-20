@@ -88,6 +88,70 @@ describe("generateLessonScript", () => {
     (mockGenerate as Mock).mockResolvedValue("not json at all <<<");
     await expect(generateLessonScript("x")).rejects.toThrow();
   });
+
+  it("degrades a choice ask with <2 choices to free text (never an unpassable gate)", async () => {
+    const oneChoice = {
+      ...goodScript,
+      scenes: [
+        {
+          id: "s1",
+          actions: [
+            {
+              type: "ask",
+              agent: "teacher",
+              prompt: "Pick one",
+              expects: "choice",
+              choices: ["only-option"],
+              gate: true,
+            },
+          ],
+        },
+      ],
+    };
+    (mockGenerate as Mock).mockResolvedValue(JSON.stringify(oneChoice));
+    const script = await generateLessonScript("x");
+    const ask = script.scenes[0].actions[0];
+    expect(ask.type).toBe("ask");
+    if (ask.type === "ask") {
+      expect(ask.expects).toBe("freeText");
+      expect(ask.choices).toBeUndefined();
+    }
+  });
+
+  it("keeps a valid 2+ choice ask as a choice gate", async () => {
+    const twoChoice = {
+      ...goodScript,
+      scenes: [
+        {
+          id: "s1",
+          actions: [
+            {
+              type: "ask",
+              agent: "teacher",
+              prompt: "Pick one",
+              expects: "choice",
+              choices: ["a", "b"],
+              gate: true,
+            },
+          ],
+        },
+      ],
+    };
+    (mockGenerate as Mock).mockResolvedValue(JSON.stringify(twoChoice));
+    const script = await generateLessonScript("x");
+    const ask = script.scenes[0].actions[0];
+    if (ask.type === "ask") {
+      expect(ask.expects).toBe("choice");
+      expect(ask.choices).toEqual(["a", "b"]);
+    }
+  });
+
+  it("clamps an over-long topic to the /interaction route cap (300)", async () => {
+    const longTopic = { ...goodScript, topic: "x".repeat(500) };
+    (mockGenerate as Mock).mockResolvedValue(JSON.stringify(longTopic));
+    const script = await generateLessonScript("x");
+    expect(script.topic.length).toBe(300);
+  });
 });
 
 describe("respondToInteraction", () => {
