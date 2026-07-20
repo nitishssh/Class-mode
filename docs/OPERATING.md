@@ -4,12 +4,12 @@ The cadence that keeps a one-person company honest. Everything here is designed 
 
 ## Weekly loop
 
-| When | Ritual | Output |
-|------|--------|--------|
-| **Monday (15 min)** | Pick ≤3 priorities from [docs/dashboard/README.md](dashboard/README.md); sanity-check against plan deadlines (day-14 preconditions, day-30 fail line, day-40 checkpoint) | This week's 3 lines in the weekly report draft |
-| **Daily** | Build/school work per the time budget: ~50% school-facing / ~30% build / ~20% ops. Ops includes program applications ([PROGRAMS.md](dashboard/PROGRAMS.md)) | — |
-| **Friday (30 min)** | `npm run report:weekly` → fill the narrative sections of `docs/dashboard/weekly/<week>.md`; update the dashboard status tables; commit | The weekly report — the investor update you write before having investors |
-| **Friday (5 min)** | One program application step (or skip consciously — never silently) | PROGRAMS.md status tick |
+| When                | Ritual                                                                                                                                                                   | Output                                                                    |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| **Monday (15 min)** | Pick ≤3 priorities from [docs/dashboard/README.md](dashboard/README.md); sanity-check against plan deadlines (day-14 preconditions, day-30 fail line, day-40 checkpoint) | This week's 3 lines in the weekly report draft                            |
+| **Daily**           | Build/school work per the time budget: ~50% school-facing / ~30% build / ~20% ops. Ops includes program applications ([PROGRAMS.md](dashboard/PROGRAMS.md))              | —                                                                         |
+| **Friday (30 min)** | `npm run report:weekly` → fill the narrative sections of `docs/dashboard/weekly/<week>.md`; update the dashboard status tables; commit                                   | The weekly report — the investor update you write before having investors |
+| **Friday (5 min)**  | One program application step (or skip consciously — never silently)                                                                                                      | PROGRAMS.md status tick                                                   |
 
 ## Rules that make it professional
 

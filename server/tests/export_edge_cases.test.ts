@@ -67,9 +67,7 @@ describe("GET /api/export/*.csv — edge cases", () => {
   });
 
   it("rejects an inverted date range (from > to) with 400, no query", async () => {
-    const res = await request(app).get(
-      "/api/export/attendance.csv?from=2026-07-31&to=2026-07-01"
-    );
+    const res = await request(app).get("/api/export/attendance.csv?from=2026-07-31&to=2026-07-01");
     expect(res.status).toBe(400);
     expect(res.body.message).toMatch(/from must not be after to/);
     expect(h.mockExportAttendance).not.toHaveBeenCalled();

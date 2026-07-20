@@ -290,14 +290,12 @@ describe("Invite accept refuses to clobber a privileged existing account", () =>
       status: "active",
     });
 
-    const res = await request(makeApp())
-      .post("/api/onboarding/invite/accept")
-      .send({
-        token: "8b7df1f2-3c4d-4e5f-8a9b-0c1d2e3f4a5b",
-        email: "principal@example.com",
-        displayName: "Attacker Chosen",
-        password: "attacker-pw",
-      });
+    const res = await request(makeApp()).post("/api/onboarding/invite/accept").send({
+      token: "8b7df1f2-3c4d-4e5f-8a9b-0c1d2e3f4a5b",
+      email: "principal@example.com",
+      displayName: "Attacker Chosen",
+      password: "attacker-pw",
+    });
 
     expect(res.status).toBe(409);
     expect(pgUpdateUser).not.toHaveBeenCalled();

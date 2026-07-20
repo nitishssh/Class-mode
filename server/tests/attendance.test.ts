@@ -90,7 +90,11 @@ describe("Attendance API", () => {
     h.mockMark.mockResolvedValue(1);
     const res = await request(app)
       .post("/api/attendance")
-      .send({ className: "Grade 10", date: "2026-07-02", marks: [{ studentId: 1, status: "absent" }] });
+      .send({
+        className: "Grade 10",
+        date: "2026-07-02",
+        marks: [{ studentId: 1, status: "absent" }],
+      });
     expect(res.status).toBe(200);
     expect(res.body.alerts).toEqual({ channel: "whatsapp", enabled: false, attempted: 0 });
     expect(h.mockSend).not.toHaveBeenCalled();

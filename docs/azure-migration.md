@@ -18,17 +18,17 @@ schema guards `CREATE EXTENSION` behind a `pg_extension` check; BullMQ uses a
 
 Everything in resource group `classmode-rg`, region Central India:
 
-| GCP (today) | Azure (target) |
-|---|---|
-| Cloud Run `personallearningpro` | Container Apps `classmode-app` (Consumption, min 1 / max 3, 0.5 vCPU/1Gi) |
-| Cloud SQL Postgres 16 HA | PG Flexible Server `classmode-pg` (B1ms, 32 GiB, PITR 7d, pgvector) |
-| Memorystore Redis | Azure Managed Redis `classmode-redis` (Balanced_B0, Redis 7.x — **CLI-managed**, see `scripts/setup-azure-redis.sh`) |
-| Secret Manager | ACA native secrets (`scripts/setup-azure-secrets.sh`) |
-| Artifact Registry | GHCR (unchanged; ACA pulls with fine-grained `read:packages` PAT) |
-| Uploads on ephemeral disk | Azure Files share mounted at `/app/public/uploads` |
-| Workload Identity Federation | user-assigned identity `github-actions-deployer` + OIDC federated credentials |
-| Cloud Monitoring | Log Analytics + App Insights availability test → alerts@inmodel.in |
-| Cloud Armor | dropped in v1 (documented risk; app has rate limiting + JWT) |
+| GCP (today)                     | Azure (target)                                                                                                       |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Cloud Run `personallearningpro` | Container Apps `classmode-app` (Consumption, min 1 / max 3, 0.5 vCPU/1Gi)                                            |
+| Cloud SQL Postgres 16 HA        | PG Flexible Server `classmode-pg` (B1ms, 32 GiB, PITR 7d, pgvector)                                                  |
+| Memorystore Redis               | Azure Managed Redis `classmode-redis` (Balanced_B0, Redis 7.x — **CLI-managed**, see `scripts/setup-azure-redis.sh`) |
+| Secret Manager                  | ACA native secrets (`scripts/setup-azure-secrets.sh`)                                                                |
+| Artifact Registry               | GHCR (unchanged; ACA pulls with fine-grained `read:packages` PAT)                                                    |
+| Uploads on ephemeral disk       | Azure Files share mounted at `/app/public/uploads`                                                                   |
+| Workload Identity Federation    | user-assigned identity `github-actions-deployer` + OIDC federated credentials                                        |
+| Cloud Monitoring                | Log Analytics + App Insights availability test → alerts@inmodel.in                                                   |
+| Cloud Armor                     | dropped in v1 (documented risk; app has rate limiting + JWT)                                                         |
 
 Why min replicas = 1: BullMQ workers and Redis Streams consumers run inside the
 web process; scale-to-zero silently stalls them (a latent defect on Cloud Run

@@ -444,8 +444,7 @@ router.get("/config", (_req: Request, res: Response) => {
       channel: "whatsapp",
       // Credentials alone are not "alerts on" — the explicit master switch
       // must also be set, matching the dispatch gate in routes/attendance.ts.
-      enabled:
-        process.env.WHATSAPP_ALERTS_ENABLED === "true" && whatsappService.isConfigured(),
+      enabled: process.env.WHATSAPP_ALERTS_ENABLED === "true" && whatsappService.isConfigured(),
     },
   });
 });
