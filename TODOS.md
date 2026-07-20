@@ -51,7 +51,7 @@ Live register of deferred work. Anything cut or postponed from a plan lands here
 ## Newly found (2026-07-18 code inspection)
 
 - [x] **P2 — gitignore `public/uploads/`**: DONE 2026-07-18. Added the runtime upload directory to `.gitignore` so uploaded files, which may contain student PII, cannot be staged accidentally.
-- [ ] **P3 — `features/ai-classroom/studyArena` (~93k LOC, ~half the repo) is unused**: nothing imports it; the used parts were hand-ported to `server/services/study-arena/` (which carry "Ported from…" provenance comments). It ships its own LICENSE/NOTICE. Decide: extract to its own repo/submodule, or delete (recoverable via git history). Deferred pending owner decision.
+- [x] **P3 — `features/ai-classroom/studyArena` (~93k LOC) unused → DELETED 2026-07-21 (W30 /autoplan)**: removed the whole `features/ai-classroom/` tree (studyArena + vendored ini_claw), cleared ~95 Dependabot alerts incl. the critical babel-traverse ACE. MIT attribution preserved at `docs/OpenMAIC-ATTRIBUTION.md`; provenance comments in `server/services/study-arena/*.ts` repointed to upstream; `ai-classroom` docker profile removed. Recoverable via git history (blobs remain in history; working tree −75MB).
 
 ## Deferred — housekeeping
 
@@ -67,3 +67,12 @@ Live register of deferred work. Anything cut or postponed from a plan lands here
 - [x] **Salvaged non-creator teacher-invite fix (2026-07-18)**: recovered from a stale agent worktree (`gracious-thompson-c9d56d`) before deletion. `POST /invite/teacher` and `/invite/teacher/list` resolved the school only via `schools.created_by_uid`, so a principal/school*admin who \_joined* a school (not its creator) got a 404. Added `resolveInvitingAdminSchool()` (created_by_uid → user.schoolId → user.schoolCode) + regression test `server/tests/invite_teacher_non_creator_school.test.ts` (first test for the onboarding invite routes). Fallback resolves by `schoolCode` because invite/accept populates `users.school_code`, not always `school_id`.
 - [x] **Worktree cleanup (2026-07-18)**: removed 5 stale `.claude/worktrees/*` (498 MB) and their merged branches after confirming 4 were ancestors of HEAD and the 5th's unique work was salvaged (above).
 - [x] **First tests for two untested risky routes (2026-07-18)**: `server/tests/gdpr.test.ts` (export scoped to caller's own id, 401/404, delete 200/401/500-on-failure) and `server/tests/upload.test.ts` (multer filter rejects HTML/exe/MIME-spoofed uploads — the stored-XSS boundary — plus `diskPathToUrl` never leaks an absolute path). Note: GDPR zip-stream happy path and the upload accept/disk-write path are left to e2e — `archiver` (createRequire) isn't callable under vitest, and these tests deliberately avoid runtime disk writes.
+
+## From /autoplan review of Study Arena plan (2026-07-21)
+
+- [ ] **P2 — converge the two lesson-generation pipelines**: `generator.ts` (SceneOutline, ai-classroom) and `lesson-script.ts` (LessonScript, beta) duplicate generation logic; converge post-payment-trigger.
+- [ ] **P3 — Study Arena beta polish batch (D8)**: scroll-guard + "↓ new" affordance, tap-to-advance pacing (pre-TTS), completion recap of gates+answers, tappable topic chips + kid-voiced setup copy, mid-lesson exit affordance, dark-mode token routing for amber/sky/emerald, 11px label floor. Post-trigger.
+- [ ] **P3 — prompt-injection hardening on lesson topic input**: free-text topic can steer the harness back into a generic chatbot; quota-bounded and self-inflicted today.
+- [ ] **P3 — interaction_log retention purge job**: no retention infra exists; T2′ documents an honest-manual stance — build a real purge job when custody hardening lands (see "Custody beyond the baseline").
+- [ ] **P3 — sanitize refusal-style LLM feedback in respondToInteraction (T7)**: refusal text currently shown verbatim as pedagogy feedback.
+- [ ] **Gated on payment trigger — teacher-assign flow + over-reliance dashboard spec (Approach B moat surface)**: teacher generates/assigns gated lessons to a class; interaction_log signals surface to teacher/principal dashboards. Spec exists in the /autoplan appendix of docs/study-arena-inspired-by-openmaic.md.

@@ -5,7 +5,6 @@
 #    - EduAI (main web app + backend)       [default]
 #    - IniClaw (agent gateway runtime)      [default]
 #    - Nginx reverse proxy                  [--profile prod]
-#    - AI Classroom (iniclaw + study-arena) [--profile ai-classroom]
 #    - Messaging: Astra DB cloud (cassandra-driver, no local container)
 #    - All databases are remote: PostgreSQL + Astra DB cloud (no local DB containers)
 #
@@ -246,47 +245,6 @@ services:
           memory: 256m
     profiles:
       - prod
-
-  # ── AI Classroom Feature (opt-in: docker compose --profile ai-classroom up) ──
-  iniclaw:
-    build:
-      context: ./features/ai-classroom/ini_claw
-      dockerfile: Dockerfile
-    ports:
-      - "7070:7070"
-    environment:
-      - BRIDGE_SECRET=${BRIDGE_SECRET}
-      - INICLAW_PORT=7070
-    volumes:
-      - ./features/ai-classroom/ini_claw/.classroom-cache:/app/.classroom-cache
-    restart: always
-    networks:
-      - app-net
-    security_opt:
-      - no-new-privileges:true
-    profiles:
-      - ai-classroom
-
-  study-arena:
-    build:
-      context: ./features/ai-classroom/studyArena
-      dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    environment:
-      - INICLAW_GATEWAY_URL=http://iniclaw:7070
-      - BRIDGE_SECRET=${BRIDGE_SECRET}
-      - USE_INICLAW=true
-      - PORT=3000
-    depends_on:
-      - iniclaw
-    restart: always
-    networks:
-      - app-net
-    security_opt:
-      - no-new-privileges:true
-    profiles:
-      - ai-classroom
 
 # ── Networks ──────────────────────────────────────────────────────
 networks:

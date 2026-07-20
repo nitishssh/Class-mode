@@ -1,7 +1,7 @@
 /**
  * Director Prompt — Builds the system prompt for the multi-agent orchestrator.
  *
- * Ported from features/ai-classroom/studyArena/lib/orchestration/director-prompt.ts
+ * Ported from OpenMAIC (MIT, github.com/THU-MAIC/OpenMAIC) lib/orchestration/director-prompt.ts
  */
 
 import { WhiteboardActionRecord, AgentTurnSummary, AgentInfo } from "@shared/study-arena";

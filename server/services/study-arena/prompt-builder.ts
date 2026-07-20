@@ -1,7 +1,7 @@
 /**
  * Prompt Builder — Builds system prompts for individual agents.
  *
- * Ported from features/ai-classroom/studyArena/lib/orchestration/prompt-builder.ts
+ * Ported from OpenMAIC (MIT, github.com/THU-MAIC/OpenMAIC) lib/orchestration/prompt-builder.ts
  */
 
 import {

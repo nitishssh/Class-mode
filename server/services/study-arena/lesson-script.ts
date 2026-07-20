@@ -2,7 +2,7 @@
  * Study Arena — Attempt-First Lesson Script (Phase 1, "inspired by OpenMAIC").
  *
  * Inspired by OpenMAIC's action/playback engines (MIT, THU-MAIC — see
- * features/ai-classroom/studyArena/NOTICE.md), but deliberately NOT a copy.
+ * docs/OpenMAIC-ATTRIBUTION.md), but deliberately NOT a copy.
  * The difference is pedagogical: OpenMAIC's timeline plays straight through
  * (the AI lectures at the student). Ours inverts the loop — every scene ends in
  * a GATED `ask` that halts playback until the student attempts. That single move

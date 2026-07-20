@@ -1,5 +1,7 @@
 # Study Arena (AI Classroom) Integration Guide
 
+> **⚠️ Historical (W30, 2026-07).** This document describes the vendored `features/ai-classroom/studyArena` microservice, which was removed. The live implementation is native under `server/services/study-arena/` (see [study-arena-inspired-by-openmaic.md](study-arena-inspired-by-openmaic.md)) and attribution is at [OpenMAIC-ATTRIBUTION.md](OpenMAIC-ATTRIBUTION.md). Kept for historical reference only.
+
 This document describes the AI Classroom feature in PersonalLearningPro, powered by the native Study Arena engine and the IniClaw LLM gateway.
 
 ## Overview

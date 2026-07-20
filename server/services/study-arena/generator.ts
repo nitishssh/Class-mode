@@ -1,5 +1,5 @@
 /**
- * Study Arena Generator — Ported from features/ai-classroom/studyArena
+ * Study Arena Generator — Ported from OpenMAIC (MIT); see docs/OpenMAIC-ATTRIBUTION.md
  *
  * This is the core generation pipeline adapted for PersonalLearningPro's
  * Express server. It replaces the Vercel AI SDK with the existing OpenAI
@@ -10,7 +10,7 @@
  *   2. Generate scene outlines from requirement (1 LLM call)
  *   3. For each outline: generate content + actions (2 LLM calls per scene)
  *
- * Source: features/ai-classroom/studyArena/lib/server/classroom-generation.ts
+ * Source: OpenMAIC (MIT, github.com/THU-MAIC/OpenMAIC) lib/server/classroom-generation.ts
  */
 
 import OpenAI from "openai";
@@ -356,7 +356,7 @@ function createAICallFn(): AICallFn {
 }
 
 // ── JSON Repair ──────────────────────────────────────────────────────────────
-// Ported from features/ai-classroom/studyArena/lib/generation/json-repair.ts
+// Ported from OpenMAIC (MIT, github.com/THU-MAIC/OpenMAIC) lib/generation/json-repair.ts
 
 function stripCodeFences(text: string): string {
   let cleaned = text.trim();
@@ -385,7 +385,7 @@ function parseJsonResponse<T>(text: string): T | null {
 }
 
 // ── Default Agents ───────────────────────────────────────────────────────────
-// Ported from features/ai-classroom/studyArena/lib/orchestration/registry/
+// Ported from OpenMAIC (MIT, github.com/THU-MAIC/OpenMAIC) lib/orchestration/registry/
 
 const DEFAULT_AGENTS: AgentInfo[] = [
   {
@@ -405,7 +405,7 @@ const DEFAULT_AGENTS: AgentInfo[] = [
 ];
 
 // ── Agent Profile Generation ─────────────────────────────────────────────────
-// Ported from features/ai-classroom/studyArena/lib/server/classroom-generation.ts
+// Ported from OpenMAIC (MIT, github.com/THU-MAIC/OpenMAIC) lib/server/classroom-generation.ts
 
 async function generateAgentProfiles(requirement: string, aiCall: AICallFn): Promise<AgentInfo[]> {
   const systemPrompt =
@@ -454,7 +454,7 @@ Return a JSON object with this exact structure:
 }
 
 // ── Outline Generation (Stage 1) ────────────────────────────────────────────
-// Ported from features/ai-classroom/studyArena/lib/generation/outline-generator.ts
+// Ported from OpenMAIC (MIT, github.com/THU-MAIC/OpenMAIC) lib/generation/outline-generator.ts
 
 async function generateOutlines(
   requirement: string,
@@ -509,7 +509,7 @@ async function generateOutlines(
 }
 
 // ── Scene Content Generation (Stage 2) ──────────────────────────────────────
-// Ported from features/ai-classroom/studyArena/lib/generation/scene-generator.ts
+// Ported from OpenMAIC (MIT, github.com/THU-MAIC/OpenMAIC) lib/generation/scene-generator.ts
 
 async function generateSlideContent(
   outline: SceneOutline,
@@ -561,7 +561,7 @@ async function generateQuizContent(outline: SceneOutline, aiCall: AICallFn): Pro
 }
 
 // ── Interactive HTML Processing ─────────────────────────────────────────────
-// Ported from features/ai-classroom/studyArena/lib/generation/interactive-post-processor.ts
+// Ported from OpenMAIC (MIT, github.com/THU-MAIC/OpenMAIC) lib/generation/interactive-post-processor.ts
 
 function sanitizeGeneratedHtml(html: string): string {
   let sanitized = html;
@@ -848,7 +848,7 @@ async function generateSceneActions(
 }
 
 // ── Full Pipeline ────────────────────────────────────────────────────────────
-// Ported from features/ai-classroom/studyArena/lib/server/classroom-generation.ts
+// Ported from OpenMAIC (MIT, github.com/THU-MAIC/OpenMAIC) lib/server/classroom-generation.ts
 
 export async function generateFullClassroom(
   requirement: string,

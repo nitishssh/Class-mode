@@ -1,5 +1,7 @@
 # PersonalLearningPro Microservices — Quick Start
 
+> **⚠️ Historical (W30, 2026-07).** This document describes the vendored `features/ai-classroom/studyArena` microservice, which was removed. The live implementation is native under `server/services/study-arena/` (see [study-arena-inspired-by-openmaic.md](study-arena-inspired-by-openmaic.md)) and attribution is at [OpenMAIC-ATTRIBUTION.md](OpenMAIC-ATTRIBUTION.md). Kept for historical reference only.
+
 ## 🚀 5-Minute Setup
 
 ### 1. Initialize Services

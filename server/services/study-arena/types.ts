@@ -1,5 +1,5 @@
 /**
- * Study Arena Types — Adapted from features/ai-classroom/studyArena
+ * Study Arena Types — Adapted from OpenMAIC (MIT); see docs/OpenMAIC-ATTRIBUTION.md
  *
  * These types describe the StudyArena generation pipeline as used within
  * PersonalLearningPro's Express server.
