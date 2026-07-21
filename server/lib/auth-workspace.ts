@@ -162,6 +162,15 @@ export const REFRESH_COOKIE_OPTS = {
   maxAge: REFRESH_TOKEN_TTL_MS,
 };
 
+// Express clearCookie already expires cookies immediately. Passing maxAge is
+// deprecated and will be ignored in Express 5, so keep a dedicated option set
+// with the same security/path attributes but no lifetime.
+export const AUTH_COOKIE_CLEAR_OPTS = {
+  httpOnly: ACCESS_COOKIE_OPTS.httpOnly,
+  secure: ACCESS_COOKIE_OPTS.secure,
+  sameSite: ACCESS_COOKIE_OPTS.sameSite,
+};
+
 export function randomToken(): string {
   return crypto.randomBytes(32).toString("base64url");
 }
