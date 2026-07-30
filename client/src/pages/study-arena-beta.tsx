@@ -3,9 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
+  STUDY_ARENA_LIMITS,
   clearStudyArenaResume,
   isUsableChoiceAction,
   readStudyArenaResume,
+  studyArenaErrorMessage,
   writeStudyArenaResume,
   type StudyArenaResume,
 } from "@/lib/study-arena-resume";
@@ -94,26 +96,10 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-// Mirror the server's zod caps (server/routes/study-arena-beta.ts) so an
-// over-long topic or answer is trimmed before it is sent. Without this the
-// request comes back 400 and the student is stuck retrying the same text.
-const LIMITS = { topic: 300, question: 2000, answer: 4000 } as const;
+const LIMITS = STUDY_ARENA_LIMITS;
 
-/**
- * Honest, student-facing copy for a failed request.
- *
- * Never blames the student for a failure that isn't theirs — but a 400 IS
- * about what they typed, so say so. Reporting it as a connection problem
- * (the old fall-through) sent them to check their wifi and retry the same
- * text forever, which is both false and a dead end.
- */
 function messageForError(err: unknown): string {
-  const status = err instanceof ApiError ? err.status : 0;
-  if (status === 401) return "Your session expired. Please sign in again.";
-  if (status === 403 || status === 429) return "You've used today's AI time. Come back tomorrow.";
-  if (status === 400) return "That was a bit too long — shorten it and try again.";
-  if (status >= 500) return "That's on us — something broke. Please try again.";
-  return "Couldn't reach the lesson service. Check your connection and try again.";
+  return studyArenaErrorMessage(err instanceof ApiError ? err.status : 0);
 }
 
 export default function StudyArenaBeta() {
