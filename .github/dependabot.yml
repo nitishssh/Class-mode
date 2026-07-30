@@ -18,10 +18,6 @@ updates:
       types:
         patterns:
           - "@types/*"
-      firebase:
-        patterns:
-          - "firebase"
-          - "firebase-admin"
 
   - package-ecosystem: "docker"
     directory: "/"
@@ -36,7 +32,7 @@ updates:
       day: "monday"
 
   - package-ecosystem: "terraform"
-    directory: "/terraform-gcp"
+    directory: "/terraform-azure"
     schedule:
       interval: "weekly"
       day: "monday"
