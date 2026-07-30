@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.9.1.0] - 2026-07-31
+
+### Added
+
+- **Study Arena (beta, off by default)** — an attempt-first AI lesson player for students: the lesson pauses at each question until the student genuinely attempts it, and repeated attempts escalate help (nudge → scaffolded hint → reveal and explain back) rather than handing over the answer. Lessons resume where the student left off, behave correctly with a phone keyboard open, and visibly rule out choices already tried. Enabled per-deployment by `STUDY_ARENA_BETA`; **off in production**.
+- **Learning activity in personal data exports** — an export now includes `learning-activity.json` alongside the profile, so students' recorded lesson answers carry the same download and deletion guarantees as the rest of their data.
+- **Adoption reporting for Study Arena** — `npm run metrics:weekly` reports how many distinct students completed a full lesson and prints the pre-agreed decision rule (≥5 students within 30 days of enabling, else the feature is mothballed).
+
+### Fixed
+
+- **Study Arena never fabricates success and never dead-ends** — a question offering too few choices degrades to free text instead of locking the lesson; a lesson generated with no questions reports an honest failure instead of displaying "Lesson complete"; and errors state what actually happened (session expired, daily AI limit reached, service problem) instead of always blaming the student's topic.
+
+### Changed
+
+- Sign-out no longer passes a deprecated cookie lifetime when clearing auth cookies — Express already expires them immediately, and Express 5 ignores the option. Security and path attributes are unchanged.
+
+### Removed
+
+- **Vendored AI-classroom service tree (~75 MB)** that no part of the application imported. Removing it clears roughly 95 dependency vulnerability alerts, including the only critical one. The MIT/OpenMAIC attribution it carried is preserved at `docs/OpenMAIC-ATTRIBUTION.md`.
+
+### Security
+
+- Dependency advisories for js-yaml, postcss, dompurify, and body-parser resolved. The production dependency tree now reports zero known vulnerabilities.
+
 ## [1.9.0.0] - 2026-07-18
 
 ### Added
