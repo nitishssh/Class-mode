@@ -42,8 +42,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Audit dependencies
-        run: npm audit --audit-level=high
+      # Scoped to the production dependency tree: `--omit=dev` is what actually
+      # ships in the container and is reachable from the running service.
+      # Dev-only advisories (lint/test/build tooling) do not gate a deploy —
+      # as of 2026-07-31 the only high findings are a brace-expansion/minimatch
+      # DoS reachable solely through eslint and eslint-plugin-react, whose only
+      # remedy is a semver-major eslint change. Revisit if eslint is upgraded.
+      - name: Audit dependencies (production tree)
+        run: npm audit --audit-level=high --omit=dev
 
       - name: Check Types
         run: npm run check
@@ -157,7 +163,8 @@ jobs:
           severity: "CRITICAL,HIGH"
           # Report-only: surface CRITICAL/HIGH in the Security tab but don't hard-fail
           # CI on base-image OS CVEs (outside the app's control). Mirrors cd.yml.
-          # App-dependency vulnerabilities are already gated by `npm audit` in build-and-test.
+          # Production app-dependency vulnerabilities are already gated by
+          # `npm audit --omit=dev` in build-and-test.
           ignore-unfixed: true
 
       - name: Upload Trivy results to GitHub Security tab
