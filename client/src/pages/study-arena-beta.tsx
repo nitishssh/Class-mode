@@ -94,11 +94,24 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-/** Honest, student-facing copy for a failed request — never blames the topic. */
+// Mirror the server's zod caps (server/routes/study-arena-beta.ts) so an
+// over-long topic or answer is trimmed before it is sent. Without this the
+// request comes back 400 and the student is stuck retrying the same text.
+const LIMITS = { topic: 300, question: 2000, answer: 4000 } as const;
+
+/**
+ * Honest, student-facing copy for a failed request.
+ *
+ * Never blames the student for a failure that isn't theirs — but a 400 IS
+ * about what they typed, so say so. Reporting it as a connection problem
+ * (the old fall-through) sent them to check their wifi and retry the same
+ * text forever, which is both false and a dead end.
+ */
 function messageForError(err: unknown): string {
   const status = err instanceof ApiError ? err.status : 0;
   if (status === 401) return "Your session expired. Please sign in again.";
   if (status === 403 || status === 429) return "You've used today's AI time. Come back tomorrow.";
+  if (status === 400) return "That was a bit too long — shorten it and try again.";
   if (status >= 500) return "That's on us — something broke. Please try again.";
   return "Couldn't reach the lesson service. Check your connection and try again.";
 }
@@ -141,7 +154,7 @@ export default function StudyArenaBeta() {
     try {
       const newLessonId = crypto.randomUUID();
       const data = await postJson<LessonScript>("/api/study-arena-beta/lesson-script", {
-        topic: t,
+        topic: t.slice(0, LIMITS.topic),
         lessonId: newLessonId,
       });
       const { flat: flattened, totalGates: gateCount } = flattenScript(data);
@@ -472,9 +485,9 @@ function AskCard({
       const res = await postJson<{ feedback: string; proceed: boolean }>(
         "/api/study-arena-beta/interaction",
         {
-          topic,
-          question: action.prompt,
-          answer: v,
+          topic: topic.slice(0, LIMITS.topic),
+          question: action.prompt.slice(0, LIMITS.question),
+          answer: v.slice(0, LIMITS.answer),
           lessonId,
           actionKey,
           gateIndex,
