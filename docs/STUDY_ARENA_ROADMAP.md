@@ -1,5 +1,7 @@
 # Study Arena Future Features Implementation Roadmap
 
+> **⚠️ Historical (W30, 2026-07).** This document describes the vendored `features/ai-classroom/studyArena` microservice, which was removed. The live implementation is native under `server/services/study-arena/` (see [study-arena-inspired-by-openmaic.md](study-arena-inspired-by-openmaic.md)) and attribution is at [OpenMAIC-ATTRIBUTION.md](OpenMAIC-ATTRIBUTION.md). Kept for historical reference only.
+
 This document serves as an architectural blueprint for adding advanced AI classroom capabilities natively to the Study Arena, completely leveraging the internal backend (`server/services/study-arena/`) and the lightweight `IniClaw` LLM gateway.
 
 > **Status (2026-06-30):** Sections 1–3 are **shipped**, not future work — the

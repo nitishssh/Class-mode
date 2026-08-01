@@ -7,7 +7,11 @@ vi.mock("../lib/ai/gateway", () => ({
   generate: mockGenerate,
 }));
 
-import { generateLessonScript, respondToInteraction } from "../services/study-arena/lesson-script";
+import {
+  generateLessonScript,
+  respondToInteraction,
+  sanitizeTutorFeedback,
+} from "../services/study-arena/lesson-script";
 
 // A well-formed script where every scene ends in a gated ask.
 const goodScript = {
@@ -88,6 +92,70 @@ describe("generateLessonScript", () => {
     (mockGenerate as Mock).mockResolvedValue("not json at all <<<");
     await expect(generateLessonScript("x")).rejects.toThrow();
   });
+
+  it("degrades a choice ask with <2 choices to free text (never an unpassable gate)", async () => {
+    const oneChoice = {
+      ...goodScript,
+      scenes: [
+        {
+          id: "s1",
+          actions: [
+            {
+              type: "ask",
+              agent: "teacher",
+              prompt: "Pick one",
+              expects: "choice",
+              choices: ["only-option"],
+              gate: true,
+            },
+          ],
+        },
+      ],
+    };
+    (mockGenerate as Mock).mockResolvedValue(JSON.stringify(oneChoice));
+    const script = await generateLessonScript("x");
+    const ask = script.scenes[0].actions[0];
+    expect(ask.type).toBe("ask");
+    if (ask.type === "ask") {
+      expect(ask.expects).toBe("freeText");
+      expect(ask.choices).toBeUndefined();
+    }
+  });
+
+  it("keeps a valid 2+ choice ask as a choice gate", async () => {
+    const twoChoice = {
+      ...goodScript,
+      scenes: [
+        {
+          id: "s1",
+          actions: [
+            {
+              type: "ask",
+              agent: "teacher",
+              prompt: "Pick one",
+              expects: "choice",
+              choices: ["a", "b"],
+              gate: true,
+            },
+          ],
+        },
+      ],
+    };
+    (mockGenerate as Mock).mockResolvedValue(JSON.stringify(twoChoice));
+    const script = await generateLessonScript("x");
+    const ask = script.scenes[0].actions[0];
+    if (ask.type === "ask") {
+      expect(ask.expects).toBe("choice");
+      expect(ask.choices).toEqual(["a", "b"]);
+    }
+  });
+
+  it("clamps an over-long topic to the /interaction route cap (300)", async () => {
+    const longTopic = { ...goodScript, topic: "x".repeat(500) };
+    (mockGenerate as Mock).mockResolvedValue(JSON.stringify(longTopic));
+    const script = await generateLessonScript("x");
+    expect(script.topic.length).toBe(300);
+  });
 });
 
 describe("respondToInteraction", () => {
@@ -99,7 +167,7 @@ describe("respondToInteraction", () => {
     expect(mockGenerate).not.toHaveBeenCalled();
   });
 
-  it("proceeds with Socratic feedback after a genuine attempt", async () => {
+  it("proceeds with Socratic feedback after a genuine attempt (effort gate)", async () => {
     (mockGenerate as Mock).mockResolvedValue("Good start — keep going!");
     const res = await respondToInteraction({
       topic: "Pythagoras",
@@ -108,6 +176,63 @@ describe("respondToInteraction", () => {
     });
     expect(res.proceed).toBe(true);
     expect(res.feedback).toMatch(/keep going/i);
+    expect(res.attempt).toBe(1);
     expect(mockGenerate).toHaveBeenCalledOnce();
+  });
+
+  it("escalates the support ladder on later attempts (still proceeds — never traps)", async () => {
+    (mockGenerate as Mock).mockResolvedValue("Here's a concrete hint.");
+    const a1 = (mockGenerate as Mock).mock;
+    const r2 = await respondToInteraction({
+      topic: "Pythagoras",
+      question: "Predict c",
+      answer: "hmm",
+      attempt: 2,
+    });
+    // attempt 2 asks for a concrete scaffolded hint
+    const promptA2 = (mockGenerate as Mock).mock.calls[0][0].messages[0].content as string;
+    expect(promptA2).toMatch(/scaffolded hint|next step/i);
+    expect(r2.proceed).toBe(true);
+    expect(r2.attempt).toBe(2);
+
+    (mockGenerate as Mock).mockClear();
+    void a1;
+    const r3 = await respondToInteraction({
+      topic: "Pythagoras",
+      question: "Predict c",
+      answer: "still stuck",
+      attempt: 5,
+    });
+    // attempt 3+ reveals the key idea and asks the student to explain it back
+    const promptA3 = (mockGenerate as Mock).mock.calls[0][0].messages[0].content as string;
+    expect(promptA3).toMatch(/explain it back|reveal/i);
+    expect(r3.proceed).toBe(true);
+    expect(r3.attempt).toBe(5);
+  });
+
+  it("clamps a non-positive attempt to 1", async () => {
+    (mockGenerate as Mock).mockResolvedValue("ok");
+    const res = await respondToInteraction({
+      topic: "x",
+      question: "q",
+      answer: "a",
+      attempt: 0,
+    });
+    expect(res.attempt).toBe(1);
+  });
+
+  it("replaces refusal-style provider text with useful student-safe feedback", async () => {
+    (mockGenerate as Mock).mockResolvedValue(
+      "As an AI language model, I cannot assist with that request due to policy."
+    );
+    const res = await respondToInteraction({ topic: "x", question: "q", answer: "a" });
+    expect(res.feedback).not.toMatch(/language model|policy/i);
+    expect(res.feedback).toMatch(/useful hint/i);
+  });
+
+  it("caps and normalizes feedback before it reaches the client", () => {
+    const feedback = sanitizeTutorFeedback(`  ${"helpful ".repeat(200)}  `);
+    expect(feedback.length).toBeLessThanOrEqual(800);
+    expect(feedback).not.toContain("  ");
   });
 });

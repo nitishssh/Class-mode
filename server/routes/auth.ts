@@ -6,6 +6,7 @@ import crypto from "crypto";
 import {
   ACCESS_COOKIE,
   ACCESS_COOKIE_OPTS,
+  AUTH_COOKIE_CLEAR_OPTS,
   REFRESH_COOKIE,
   REFRESH_COOKIE_OPTS,
   REFRESH_TOKEN_TTL_MS,
@@ -385,8 +386,8 @@ async function createLoginSession(req: Request, res: Response, userId: number) {
 
 function clearAuthCookies(req: Request, res: Response) {
   if (isMobileClient(req)) return;
-  res.clearCookie(ACCESS_COOKIE, ACCESS_COOKIE_OPTS);
-  res.clearCookie(REFRESH_COOKIE, REFRESH_COOKIE_OPTS);
+  res.clearCookie(ACCESS_COOKIE, AUTH_COOKIE_CLEAR_OPTS);
+  res.clearCookie(REFRESH_COOKIE, AUTH_COOKIE_CLEAR_OPTS);
   req.session?.destroy(() => undefined);
 }
 

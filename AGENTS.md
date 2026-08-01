@@ -53,7 +53,7 @@ Single `package.json` (no monorepo tool). Key directories:
 - `client/` — Vite + React 18 (`root: client/`, entry: `client/src/main.tsx`)
 - `server/` — Express (entry: `server/index.ts`, routes: `server/routes/*.ts`)
 - `shared/` — Zod schemas + Mongoose models, imported via `@shared/*`
-- `features/ai-classroom/` — Study Arena + IniClaw (separate Docker services)
+- `server/services/study-arena/` — native Study Arena (attempt-first lessons; ported from OpenMAIC MIT, see `docs/OpenMAIC-ATTRIBUTION.md`)
 - `services/iniclaw/` — IniClaw agent gateway (Docker compose profile)
 
 ## Path aliases

@@ -1,5 +1,5 @@
 import { Router, Response, Request as ExpressRequest } from "express";
-import { pgFindUserById, pgDeleteUser } from "../lib/pg-queries";
+import { pgFindUserById, pgDeleteUser, pgExportInteractionLog } from "../lib/pg-queries";
 import { authenticateToken } from "../middleware";
 import { logger } from "../lib/logger";
 import { createRequire } from "module";
@@ -14,10 +14,16 @@ router.get("/export", authenticateToken, async (req: ExpressRequest, res: Respon
     const userDoc = await pgFindUserById(user.id);
     if (!userDoc) return res.status(404).json({ error: "User not found" });
 
+    // Interaction log holds the student's own learning activity (incl. Study
+    // Arena gate answers) — it is personal data and must be in the right-of-
+    // access export, not just profile.json.
+    const interactions = await pgExportInteractionLog(user.id);
+
     const zip = archiver("zip", { zlib: { level: 9 } });
     res.attachment("user-data.zip");
     zip.pipe(res);
     zip.append(JSON.stringify(userDoc, null, 2), { name: "profile.json" });
+    zip.append(JSON.stringify(interactions, null, 2), { name: "learning-activity.json" });
     await zip.finalize();
   } catch (err: any) {
     logger.error("GDPR export error:", err);

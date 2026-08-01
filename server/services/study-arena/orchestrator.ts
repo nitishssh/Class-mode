@@ -1,7 +1,7 @@
 /**
  * Orchestrator — Entry point for multi-agent stateless chat.
  *
- * Ported from features/ai-classroom/studyArena/lib/orchestration/stateless-generate.ts
+ * Ported from OpenMAIC (MIT, github.com/THU-MAIC/OpenMAIC) lib/orchestration/stateless-generate.ts
  */
 
 import { createOrchestrationGraph, buildInitialState } from "./director-graph";

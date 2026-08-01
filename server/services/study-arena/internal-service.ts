@@ -1,7 +1,7 @@
 /**
  * Study Arena Internal Service — Job Queue + Persistence
  *
- * Ported from features/ai-classroom/studyArena/lib/server/ job-runner + job-store.
+ * Ported from OpenMAIC (MIT, github.com/THU-MAIC/OpenMAIC) lib/server/ job-runner + job-store.
  * Adapted to use MongoDB (MongoAIClassroom) instead of filesystem JSON storage.
  *
  * Job lifecycle:

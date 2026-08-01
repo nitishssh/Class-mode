@@ -377,6 +377,30 @@ export async function pgFindUserById(id: number): Promise<PgUser | null> {
   }
 }
 
+/**
+ * All learning-interaction rows for one student, for the GDPR right-of-access
+ * export. Study Arena gate-answer rows carry the student's free-text attempt
+ * in the same row's payload. Newest first.
+ */
+export async function pgExportInteractionLog(
+  studentId: number
+): Promise<Array<{ kind: string; concept: string | null; payload: unknown; created_at: string }>> {
+  if (!isPgReady()) return [];
+  try {
+    const { rows } = await getPgPool().query(
+      `SELECT kind, concept, payload, created_at
+         FROM interaction_log
+        WHERE student_id = $1
+        ORDER BY created_at DESC`,
+      [studentId]
+    );
+    return rows;
+  } catch (err) {
+    logger.error("[pg] pgExportInteractionLog failed", { err: String(err) });
+    return [];
+  }
+}
+
 export async function pgFindUserByEmail(email: string): Promise<PgUser | null> {
   if (!isPgReady()) return null;
   try {
@@ -2136,8 +2160,14 @@ export async function pgIncrementAIUsage(data: {
   feature: "ai_classroom" | "ai_tutor" | "ocr";
   tokensUsed?: number | null;
   metadata?: any;
-}): Promise<void> {
-  if (!isPgReady()) return;
+}): Promise<boolean> {
+  if (!isPgReady()) {
+    logger.error("[pg] pgIncrementAIUsage skipped: Postgres is not ready", {
+      userId: data.userId,
+      feature: data.feature,
+    });
+    return false;
+  }
   try {
     await getPgPool().query(
       `INSERT INTO ai_usage_logs (user_id, workspace_id, feature, tokens_used, metadata)
@@ -2150,8 +2180,16 @@ export async function pgIncrementAIUsage(data: {
         JSON.stringify(data.metadata || {}),
       ]
     );
+    return true;
   } catch (err) {
-    logger.error("[pg] pgIncrementAIUsage failed", { err: String(err) });
+    logger.error("[pg] pgIncrementAIUsage failed", {
+      err: String(err),
+      userId: data.userId,
+      feature: data.feature,
+      usageType: data.metadata?.type,
+      lessonId: data.metadata?.lessonId,
+    });
+    return false;
   }
 }
 

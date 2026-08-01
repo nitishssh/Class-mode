@@ -2,7 +2,7 @@
  * Study Arena — Attempt-First Lesson Script (Phase 1, "inspired by OpenMAIC").
  *
  * Inspired by OpenMAIC's action/playback engines (MIT, THU-MAIC — see
- * features/ai-classroom/studyArena/NOTICE.md), but deliberately NOT a copy.
+ * docs/OpenMAIC-ATTRIBUTION.md), but deliberately NOT a copy.
  * The difference is pedagogical: OpenMAIC's timeline plays straight through
  * (the AI lectures at the student). Ours inverts the loop — every scene ends in
  * a GATED `ask` that halts playback until the student attempts. That single move
@@ -34,9 +34,11 @@ export const sceneActionSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("ask"),
     agent: z.enum(["teacher", "classmate", "coach"]),
-    prompt: z.string().min(1),
+    // Cap the prompt so the client (which echoes it back to /interaction,
+    // where question is capped at 2000) can never 400-loop on a long prompt.
+    prompt: z.string().min(1).max(2000),
     expects: z.enum(["freeText", "choice"]),
-    choices: z.array(z.string()).optional(),
+    choices: z.array(z.string().min(1)).optional(),
     // The gate: playback MUST stop here until the student responds.
     gate: z.literal(true),
   }),
@@ -129,6 +131,25 @@ export async function generateLessonScript(
 
   const script = lessonScriptSchema.parse(parsed);
 
+  // Sanitize gated asks before the client ever sees them. A "choice" ask with
+  // fewer than 2 options renders zero buttons and no textarea — an unpassable
+  // gate that hard-locks the lesson. Degrade it to a free-text attempt instead
+  // of dropping the scene, so the student can still answer.
+  for (const scene of script.scenes) {
+    for (const action of scene.actions) {
+      if (action.type === "ask" && action.expects === "choice" && (action.choices?.length ?? 0) < 2) {
+        action.expects = "freeText";
+        delete action.choices;
+      }
+    }
+  }
+
+  // Clamp the topic to the /interaction route's cap (300) so echoing it back
+  // from the client can never 400 every gate.
+  if (script.topic.length > 300) {
+    script.topic = script.topic.slice(0, 300);
+  }
+
   // Safety net: enforce the inverted loop even if the model slips — drop any
   // scene that has no gated ask rather than letting it lecture without a gate.
   script.scenes = script.scenes.filter((scene) =>
@@ -147,28 +168,72 @@ export interface InteractionResult {
   feedback: string;
   /** Whether the student may proceed to the next scene. */
   proceed: boolean;
+  /** Echoed attempt number so the client can escalate on retry. */
+  attempt: number;
+}
+
+const SAFE_FEEDBACK_FALLBACK =
+  "I couldn't make a useful hint this time. Try explaining one part you do understand, then continue when you're ready.";
+
+export function sanitizeTutorFeedback(value: string): string {
+  const feedback = value.replace(/\s+/g, " ").trim().slice(0, 800);
+  if (!feedback) return SAFE_FEEDBACK_FALLBACK;
+  if (
+    /\b(as an ai|language model|cannot (?:assist|help|comply)|can't (?:assist|help|comply)|policy|safety guidelines)\b/i.test(
+      feedback
+    )
+  ) {
+    return SAFE_FEEDBACK_FALLBACK;
+  }
+  return feedback;
+}
+
+/**
+ * The escalating-support ladder for a stuck student. This is an EFFORT gate,
+ * not a correctness gate: a genuine attempt always earns `proceed: true`, so
+ * the student is never trapped. But repeated attempts at the SAME gate escalate
+ * how much the tutor helps — a gentle nudge first, a concrete scaffolded hint
+ * next, then reveal-and-explain-back — so a student who can't answer gets more
+ * support instead of the same rejection.
+ */
+function laddedInstruction(attempt: number): string {
+  if (attempt <= 1) {
+    return "In ONE or two short sentences, tell me if I'm on the right track and nudge my thinking — do NOT give the full answer. End by encouraging me to try or to continue.";
+  }
+  if (attempt === 2) {
+    return "I tried again and I'm still stuck. Give me ONE concrete, scaffolded hint that points at the very next step — still do NOT hand me the full answer. Keep it to two short sentences and warm.";
+  }
+  return "I've tried a few times and I'm struggling. Reveal the key idea in one short, plain sentence, then ask me to explain it back in my own words so I still have to think. Be encouraging, not disappointed.";
 }
 
 /**
  * Respond to a student's answer at a gated `ask`. Reuses the attempt-first
- * tutor prompt: never hands over the answer, nudges them forward. Phase 1 always
- * lets the student proceed after a genuine attempt (grading-gated progression is
- * Phase 2); empty/blank answers are sent back.
+ * tutor prompt and applies the support ladder above. Empty/blank answers are
+ * sent back without proceeding (and without spending an LLM call).
  */
 export async function respondToInteraction(params: {
   topic: string;
   question: string;
   answer: string;
   language?: string;
+  /** 1-based attempt count at this gate; escalates the hint ladder. */
+  attempt?: number;
 }): Promise<InteractionResult> {
+  const attempt = Math.max(1, Math.floor(params.attempt ?? 1));
   const answer = params.answer.trim();
   if (answer.length === 0) {
-    return { feedback: "Give it a try first — even a rough idea is fine. What's your thinking?", proceed: false };
+    return {
+      feedback: "Give it a try first — even a rough idea is fine. What's your thinking?",
+      proceed: false,
+      attempt,
+    };
   }
 
+  // hintLevel tracks the attempt so the reused tutor prompt loosens up too.
+  const hintLevel = (attempt >= 3 ? 3 : attempt === 2 ? 2 : 1) as 1 | 2 | 3;
   const systemPrompt = buildTutorSystemPrompt({
     subject: params.topic,
-    hintLevel: 1,
+    hintLevel,
     language: params.language,
   });
 
@@ -179,11 +244,11 @@ export async function respondToInteraction(params: {
     messages: [
       {
         role: "user",
-        content: `The lesson asked me: "${params.question}"\nMy answer: "${answer}"\nIn ONE or two short sentences, tell me if I'm on the right track and nudge my thinking — do NOT give the full answer. End by encouraging me to continue.`,
+        content: `The lesson asked me: "${params.question}"\nMy answer: "${answer}"\n${laddedInstruction(attempt)}`,
       },
     ],
     feature: "lesson_interaction",
   });
 
-  return { feedback: content, proceed: true };
+  return { feedback: sanitizeTutorFeedback(content), proceed: true, attempt };
 }

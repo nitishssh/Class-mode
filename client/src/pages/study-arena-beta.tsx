@@ -2,6 +2,15 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import {
+  STUDY_ARENA_LIMITS,
+  clearStudyArenaResume,
+  isUsableChoiceAction,
+  readStudyArenaResume,
+  studyArenaErrorMessage,
+  writeStudyArenaResume,
+  type StudyArenaResume,
+} from "@/lib/study-arena-resume";
 import { Sparkles, GraduationCap, Lightbulb, MessageCircleQuestion, Loader2 } from "lucide-react";
 
 // ── Scene-script types (mirror server/services/study-arena/lesson-script.ts) ──
@@ -34,6 +43,29 @@ interface FlatAction {
   key: string;
   sceneIndex: number;
   action: SceneAction;
+  /** 0-based index among gated asks; undefined for non-ask actions. */
+  gateIndex?: number;
+}
+
+function flattenScript(script: LessonScript): { flat: FlatAction[]; totalGates: number } {
+  let gateCount = 0;
+  const flat = script.scenes.flatMap((scene, si) =>
+    scene.actions.flatMap((action, ai) => {
+      if (!action || !["speak", "showSlide", "ask"].includes(action.type)) {
+        console.error("[study-arena] skipped unknown scene action", action);
+        return [];
+      }
+      return [
+        {
+          key: `${si}-${ai}`,
+          sceneIndex: si,
+          action,
+          gateIndex: action.type === "ask" ? gateCount++ : undefined,
+        },
+      ];
+    })
+  );
+  return { flat, totalGates: gateCount };
 }
 
 const AGENTS: Record<AgentRole, { label: string; className: string; icon: typeof GraduationCap }> =
@@ -43,6 +75,14 @@ const AGENTS: Record<AgentRole, { label: string; className: string; icon: typeof
     coach: { label: "Coach", className: "text-amber-600", icon: Lightbulb },
   };
 
+class ApiError extends Error {
+  status: number;
+  constructor(status: number) {
+    super(`Request failed: ${status}`);
+    this.status = status;
+  }
+}
+
 async function postJson<T>(url: string, body: unknown): Promise<T> {
   const res = await fetch(url, {
     method: "POST",
@@ -50,8 +90,16 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
     credentials: "include",
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+  // Preserve the status so callers can tell "your session expired" from
+  // "you're out of AI time for today" from "our fault" — a bare Error can't.
+  if (!res.ok) throw new ApiError(res.status);
   return res.json() as Promise<T>;
+}
+
+const LIMITS = STUDY_ARENA_LIMITS;
+
+function messageForError(err: unknown): string {
+  return studyArenaErrorMessage(err instanceof ApiError ? err.status : 0);
 }
 
 export default function StudyArenaBeta() {
@@ -61,6 +109,16 @@ export default function StudyArenaBeta() {
   const [flat, setFlat] = useState<FlatAction[]>([]);
   const [cursor, setCursor] = useState(0);
   const [genError, setGenError] = useState<string | null>(null);
+  // A per-lesson id so gate answers roll up into "completed a full lesson"
+  // server-side; total gate count travels with it for the same metric.
+  const [lessonId, setLessonId] = useState<string>("");
+  const [totalGates, setTotalGates] = useState(0);
+  const [resumeCandidate, setResumeCandidate] = useState<StudyArenaResume<LessonScript> | null>(
+    () =>
+      typeof window === "undefined"
+        ? null
+        : (readStudyArenaResume(window.localStorage) as StudyArenaResume<LessonScript> | null)
+  );
 
   // Per-ask student responses, keyed by action key.
   const [responses, setResponses] = useState<Record<string, { answer: string; feedback: string }>>(
@@ -77,22 +135,57 @@ export default function StudyArenaBeta() {
     if (!t) return;
     setPhase("generating");
     setGenError(null);
+    clearStudyArenaResume(window.localStorage);
+    setResumeCandidate(null);
     try {
+      const newLessonId = crypto.randomUUID();
       const data = await postJson<LessonScript>("/api/study-arena-beta/lesson-script", {
-        topic: t,
+        topic: t.slice(0, LIMITS.topic),
+        lessonId: newLessonId,
       });
-      const flattened: FlatAction[] = data.scenes.flatMap((scene, si) =>
-        scene.actions.map((action, ai) => ({ key: `${si}-${ai}`, sceneIndex: si, action }))
-      );
+      const { flat: flattened, totalGates: gateCount } = flattenScript(data);
+      // A script with no gated ask is a generation failure, not a lesson —
+      // never let the player fall straight through to the "complete 🎉" card
+      // (that would fabricate success, violating the demo-data-honesty rule).
+      if (flattened.length === 0 || gateCount === 0) {
+        setGenError("Couldn't build a full lesson for that. Try rephrasing the topic.");
+        setPhase("setup");
+        return;
+      }
       setScript(data);
       setFlat(flattened);
+      setLessonId(newLessonId);
+      setTotalGates(gateCount);
       setCursor(0);
       setResponses({});
       setPhase("playing");
     } catch (err) {
       console.error(err);
-      setGenError("Couldn't build that lesson. Try a different topic.");
+      setGenError(messageForError(err));
       setPhase("setup");
+    }
+  };
+
+  const continueLesson = () => {
+    if (!resumeCandidate) return;
+    try {
+      const restoredScript = resumeCandidate.script;
+      const restored = flattenScript(restoredScript);
+      if (restored.flat.length === 0 || restored.totalGates === 0)
+        throw new Error("invalid resume");
+      setScript(restoredScript);
+      setFlat(restored.flat);
+      setLessonId(resumeCandidate.lessonId);
+      setTotalGates(restored.totalGates);
+      setCursor(Math.min(resumeCandidate.cursor, restored.flat.length - 1));
+      setResponses({});
+      setTopic(resumeCandidate.topic);
+      setResumeCandidate(null);
+      setPhase("playing");
+    } catch {
+      clearStudyArenaResume(window.localStorage);
+      setResumeCandidate(null);
+      setGenError("That saved lesson could not be restored. Please start a new one.");
     }
   };
 
@@ -112,8 +205,25 @@ export default function StudyArenaBeta() {
   const sceneTotal = script?.scenes.length ?? 0;
   const sceneNow = current ? current.sceneIndex + 1 : sceneTotal;
 
+  useEffect(() => {
+    if (phase !== "playing" || !script || !lessonId) return;
+    if (finished) {
+      clearStudyArenaResume(window.localStorage);
+      return;
+    }
+    writeStudyArenaResume(window.localStorage, {
+      version: 1,
+      lessonId,
+      topic: script.topic,
+      script,
+      cursor,
+      totalGates,
+      savedAt: new Date().toISOString(),
+    });
+  }, [cursor, finished, lessonId, phase, script, totalGates]);
+
   return (
-    <div className="animate-fade-in-up mx-auto flex h-[calc(100vh-7rem)] max-w-3xl flex-col">
+    <div className="animate-fade-in-up mx-auto flex h-[calc(100dvh-7rem)] max-w-3xl flex-col">
       {/* Header */}
       <div className="mb-4 flex items-center justify-between border-b border-border pb-4">
         <div className="flex items-center gap-3">
@@ -146,10 +256,33 @@ export default function StudyArenaBeta() {
             </p>
           </div>
           <div className="w-full max-w-md">
+            {resumeCandidate && (
+              <div className="mb-4 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-left">
+                <p className="text-sm font-semibold text-amber-900">Continue where you left off?</p>
+                <p className="mt-1 text-sm text-amber-800">{resumeCandidate.topic}</p>
+                <div className="mt-3 flex gap-2">
+                  <Button size="sm" onClick={continueLesson} className="rounded-lg">
+                    Continue lesson
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="rounded-lg"
+                    onClick={() => {
+                      clearStudyArenaResume(window.localStorage);
+                      setResumeCandidate(null);
+                    }}
+                  >
+                    Start over
+                  </Button>
+                </div>
+              </div>
+            )}
             <Textarea
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               onKeyDown={(e) => {
+                if (window.matchMedia("(pointer: coarse)").matches) return;
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
                   startLesson();
@@ -189,6 +322,10 @@ export default function StudyArenaBeta() {
               key={current.key}
               action={current.action as Extract<SceneAction, { type: "ask" }>}
               topic={script!.topic}
+              lessonId={lessonId}
+              actionKey={current.key}
+              gateIndex={current.gateIndex ?? 0}
+              totalGates={totalGates}
               onResolved={(answer, feedback) => {
                 setResponses((r) => ({ ...r, [current.key]: { answer, feedback } }));
                 advancePastAsk();
@@ -206,6 +343,7 @@ export default function StudyArenaBeta() {
                 variant="outline"
                 className="mt-4 rounded-xl"
                 onClick={() => {
+                  clearStudyArenaResume(window.localStorage);
                   setPhase("setup");
                   setScript(null);
                   setFlat([]);
@@ -292,37 +430,81 @@ function ActionView({
 function AskCard({
   action,
   topic,
+  lessonId,
+  actionKey,
+  gateIndex,
+  totalGates,
   onResolved,
 }: {
   action: Extract<SceneAction, { type: "ask" }>;
   topic: string;
+  lessonId: string;
+  actionKey: string;
+  gateIndex: number;
+  totalGates: number;
   onResolved: (answer: string, feedback: string) => void;
 }) {
   const [answer, setAnswer] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  // A pedagogy nudge (the tutor asking the student to reconsider) is NOT an
+  // error — keep the two channels separate so a "think again" never renders in
+  // the same rose crash styling as a network failure.
+  const [nudge, setNudge] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Attempts at THIS gate; escalates the server's support ladder on retry.
+  const [attempt, setAttempt] = useState(1);
+  const [eliminatedChoices, setEliminatedChoices] = useState<Set<string>>(() => new Set());
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // A "choice" gate is only usable with a real set of options; anything less
+  // falls back to the free-text box rather than rendering zero buttons.
+  const isChoice = isUsableChoiceAction(action);
 
   const submit = async (value: string) => {
     const v = value.trim();
     if (!v || submitting) return;
     setSubmitting(true);
     setError(null);
+    setNudge(null);
     try {
       const res = await postJson<{ feedback: string; proceed: boolean }>(
         "/api/study-arena-beta/interaction",
-        { topic, question: action.prompt, answer: v }
+        {
+          topic: topic.slice(0, LIMITS.topic),
+          question: action.prompt.slice(0, LIMITS.question),
+          answer: v.slice(0, LIMITS.answer),
+          lessonId,
+          actionKey,
+          gateIndex,
+          totalGates,
+          attempt,
+        }
       );
       if (res.proceed) {
         setFeedback(res.feedback);
       } else {
-        setError(res.feedback);
+        // Not through the gate yet — show the nudge warmly and let them retry.
+        setNudge(res.feedback);
       }
-    } catch {
-      setError("Something went wrong — try again.");
+    } catch (err) {
+      setError(messageForError(err));
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // The escape hatch: a stuck student can ask for more help (escalates the
+  // ladder) instead of being trapped at a gate they can't answer.
+  const tryAgain = () => {
+    if (isChoice && answer) {
+      setEliminatedChoices((choices) => new Set(choices).add(answer));
+      setAnswer("");
+    }
+    setAttempt((a) => a + 1);
+    setFeedback(null);
+    setNudge(null);
+    if (!isChoice) setAnswer("");
   };
 
   return (
@@ -332,19 +514,23 @@ function AskCard({
       </AgentBubble>
 
       <div className="mt-4">
-        {action.expects === "choice" && action.choices ? (
+        {isChoice ? (
           <div className="flex flex-wrap gap-2">
-            {action.choices.map((c) => (
+            {action.choices!.map((c) => (
               <Button
                 key={c}
                 variant="outline"
                 size="sm"
-                disabled={submitting || !!feedback}
+                disabled={submitting || !!feedback || eliminatedChoices.has(c)}
                 onClick={() => {
                   setAnswer(c);
                   submit(c);
                 }}
-                className={cn("rounded-lg", answer === c && "border-amber-500 bg-amber-100")}
+                className={cn(
+                  "rounded-lg",
+                  answer === c && "border-amber-500 bg-amber-100",
+                  eliminatedChoices.has(c) && "line-through opacity-40"
+                )}
               >
                 {c}
               </Button>
@@ -352,13 +538,20 @@ function AskCard({
           </div>
         ) : (
           <Textarea
+            ref={inputRef}
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
             onKeyDown={(e) => {
+              if (window.matchMedia("(pointer: coarse)").matches) return;
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
                 submit(answer);
               }
+            }}
+            onFocus={() => {
+              window.requestAnimationFrame(() =>
+                inputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+              );
             }}
             placeholder="Type your attempt — even a rough idea counts…"
             className="min-h-[64px] resize-none rounded-xl bg-white"
@@ -366,20 +559,38 @@ function AskCard({
           />
         )}
 
+        {/* Pedagogy nudge: warm coach voice, not an error. */}
+        {nudge && !feedback && (
+          <div className="mt-3">
+            <AgentBubble agent="coach">{nudge}</AgentBubble>
+          </div>
+        )}
+
+        {/* Transport/system errors only. */}
         {error && <p className="mt-2 text-sm text-rose-600">{error}</p>}
 
         {feedback ? (
           <div className="mt-3">
             <p className="text-sm italic text-amber-800">{feedback}</p>
-            <Button
-              onClick={() => onResolved(answer, feedback)}
-              className="mt-3 rounded-xl bg-accent text-white hover:bg-accent/90"
-            >
-              Continue
-            </Button>
+            <div className="mt-3 flex gap-2">
+              <Button
+                onClick={() => onResolved(answer, feedback)}
+                className="rounded-xl bg-accent text-white hover:bg-accent/90"
+              >
+                Continue
+              </Button>
+              <Button
+                variant="outline"
+                onClick={tryAgain}
+                className="rounded-xl"
+                title="Get more help and try this one again"
+              >
+                Try again
+              </Button>
+            </div>
           </div>
         ) : (
-          action.expects !== "choice" && (
+          !isChoice && (
             <Button
               onClick={() => submit(answer)}
               disabled={!answer.trim() || submitting}
