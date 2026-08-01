@@ -23,12 +23,12 @@ import {
   pgBulkCreateRecords,
   pgListViews,
   pgCreateView,
-} from "../lib/pg-dynamic-sis";
+} from "../lib/db/pg-dynamic-sis";
 import { dynamicEnrichmentService, DynamicEnrichmentService } from "../services/dynamic-enrichment";
 import { whatsappService } from "../services/whatsapp";
 
-import { pgFindWorkspaceMembership } from "../lib/pg-queries";
-import { type WorkspaceRole } from "../lib/auth-workspace";
+import { pgFindWorkspaceMembership } from "../lib/db/pg-queries";
+import { type WorkspaceRole } from "../lib/auth/auth-workspace";
 import {
   insertDynamicBaseSchema,
   insertDynamicTableSchema,

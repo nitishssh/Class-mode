@@ -6,13 +6,13 @@ import {
   pgCountUsers,
   pgFindUsers,
   pgGetFeatureUsageSummary,
-} from "../lib/pg-queries";
-import { resolveTenantScope } from "../lib/tenant";
+} from "../lib/db/pg-queries";
+import { resolveTenantScope } from "../lib/auth/tenant";
 import { isPgReady, getPgPool } from "../db-pg";
 import { logger } from "../lib/logger";
 import { generate } from "../lib/ai/gateway";
 import { checkAIQuota } from "../middleware/aiQuota";
-import { pgIncrementAIUsage } from "../lib/pg-queries";
+import { pgIncrementAIUsage } from "../lib/db/pg-queries";
 
 const router = Router();
 

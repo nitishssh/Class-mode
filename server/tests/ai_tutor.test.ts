@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 
-import { pgFindUserById, pgFindFirstWorkspaceMembership } from "../lib/pg-queries";
+import { pgFindUserById, pgFindFirstWorkspaceMembership } from "../lib/db/pg-queries";
 
 // vi.hoisted() runs before ANY vi.mock hoisting, so these refs are safe to use
 // inside vi.mock factory functions.
@@ -31,23 +31,23 @@ vi.mock("../message", () => ({
 
 vi.mock("../chat-ws", () => ({ setupChatWebSocket: vi.fn() }));
 
-vi.mock("../lib/cassandra", () => ({
+vi.mock("../lib/db/cassandra", () => ({
   initCassandra: vi.fn(),
   getCassandraClient: vi.fn().mockReturnValue(null),
 }));
 
 // Mock the orchestrator and grader service
-vi.mock("../lib/orchestrator", () => ({
+vi.mock("../lib/ai/orchestrator", () => ({
   runTutorTurn: mockRunTutorTurn,
   commitTurnOutcome: vi.fn(),
 }));
 
-vi.mock("../lib/grader-service", () => ({
+vi.mock("../lib/ai/grader-service", () => ({
   gradeTutorTurn: mockGradeTutorTurn,
 }));
 
 // ── The KEY mock: openai lib ────────────────────────────────────────────────
-vi.mock("../lib/openai", () => ({
+vi.mock("../lib/ai/openai", () => ({
   aiChat: vi.fn(),
   evaluateSubjectiveAnswer: vi.fn(),
   generateStudyPlan: vi.fn(),

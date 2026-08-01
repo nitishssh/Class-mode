@@ -1,4 +1,4 @@
-import { getRedis, newRedisConnection, isRedisConfigured } from "./redis";
+import { getRedis, newRedisConnection, isRedisConfigured } from "./db/redis";
 import { logger } from "./logger";
 
 /**

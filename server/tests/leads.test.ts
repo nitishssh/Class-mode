@@ -11,7 +11,7 @@ vi.mock("../db-pg", () => ({
   getPgPool: () => ({ query: mockQuery }),
 }));
 
-vi.mock("../lib/mailer", () => ({
+vi.mock("../lib/integrations/mailer", () => ({
   sendLeadNotification: mockSendLeadNotification,
 }));
 

@@ -20,7 +20,7 @@ vi.mock("../lib/lms/googleClassroom", async () => {
   };
 });
 
-vi.mock("../lib/pg-queries", () => ({
+vi.mock("../lib/db/pg-queries", () => ({
   pgCreateLmsConnection: vi.fn(),
   pgFindLmsConnection: vi.fn(),
   pgCreateUser: vi.fn(),
@@ -52,7 +52,7 @@ import {
   pgFindUserByEmail,
   pgFindFirstWorkspaceMembership,
   pgUpsertWorkspaceMembership,
-} from "../lib/pg-queries";
+} from "../lib/db/pg-queries";
 
 describe("LMS Google Classroom routes", () => {
   let app: express.Express;

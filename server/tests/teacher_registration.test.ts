@@ -3,7 +3,7 @@ import express from "express";
 import request from "supertest";
 import { registerRoutes } from "../routes";
 import session from "express-session";
-import { pgFindUserByEmail, pgCreateUser } from "../lib/pg-queries";
+import { pgFindUserByEmail, pgCreateUser } from "../lib/db/pg-queries";
 
 const instances: Record<string, unknown>[] = [];
 
@@ -27,7 +27,7 @@ vi.mock("../chat-ws", () => ({
   setupChatWebSocket: vi.fn(),
 }));
 
-vi.mock("../lib/cassandra", () => ({
+vi.mock("../lib/db/cassandra", () => ({
   initCassandra: vi.fn(),
   getCassandraClient: vi.fn().mockReturnValue(null),
 }));

@@ -6,7 +6,7 @@ import {
   getGradingHistory,
   regradeSubmission,
 } from "../services/gradingService";
-import { pgFindGradingResultBySubmissionId } from "../lib/pg-queries";
+import { pgFindGradingResultBySubmissionId } from "../lib/db/pg-queries";
 import { authenticateToken } from "../middleware";
 import { logger } from "../lib/logger";
 

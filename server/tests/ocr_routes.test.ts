@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 
-import { pgFindUserById, pgFindFirstWorkspaceMembership } from "../lib/pg-queries";
+import { pgFindUserById, pgFindFirstWorkspaceMembership } from "../lib/db/pg-queries";
 
 const { mockProcessOCR } = vi.hoisted(() => ({ mockProcessOCR: vi.fn() }));
 
@@ -26,18 +26,18 @@ vi.mock("../message", () => ({
 
 vi.mock("../chat-ws", () => ({ setupChatWebSocket: vi.fn() }));
 
-vi.mock("../lib/cassandra", () => ({
+vi.mock("../lib/db/cassandra", () => ({
   initCassandra: vi.fn(),
   getCassandraClient: vi.fn().mockReturnValue(null),
 }));
 
 // ── The KEY mock: Tesseract OCR lib ────────────────────────────────────────
-vi.mock("../lib/tesseract", () => ({
+vi.mock("../lib/integrations/tesseract", () => ({
   processOCRImage: mockProcessOCR,
 }));
 
 // ── openai stub (required by routes.ts import) ─────────────────────────────
-vi.mock("../lib/openai", () => ({
+vi.mock("../lib/ai/openai", () => ({
   aiChat: vi.fn(),
   evaluateSubjectiveAnswer: vi.fn(),
   generateStudyPlan: vi.fn(),

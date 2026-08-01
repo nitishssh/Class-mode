@@ -16,7 +16,7 @@ import {
   slugifyWorkspaceName,
   tokenHash,
   verifyAccessToken,
-} from "../lib/auth-workspace";
+} from "../lib/auth/auth-workspace";
 import { logger } from "../lib/logger";
 import { recordAuditEvent, AUDIT_EVENTS } from "../lib/audit";
 import { storage } from "../storage";
@@ -39,8 +39,12 @@ import {
   type PgUser,
   type PgWorkspace,
   type PgWorkspaceMembership,
-} from "../lib/pg-queries";
-import { sendEmailVerification, sendPasswordReset, sendWelcomeEmail } from "../lib/mailer";
+} from "../lib/db/pg-queries";
+import {
+  sendEmailVerification,
+  sendPasswordReset,
+  sendWelcomeEmail,
+} from "../lib/integrations/mailer";
 import { whatsappService } from "../services/whatsapp";
 
 const router = Router();
@@ -488,7 +492,7 @@ router.get("/dev/last-otp", (req: Request, res: Response) => {
 // Server-side flow has none of these failure modes.
 
 router.get("/google/start", async (req: Request, res: Response) => {
-  const { getSignInAuthUrl, isGoogleSignInConfigured } = await import("../lib/google-signin");
+  const { getSignInAuthUrl, isGoogleSignInConfigured } = await import("../lib/auth/google-signin");
   if (!isGoogleSignInConfigured()) {
     return res.status(503).send("Google sign-in is not configured on this server.");
   }
@@ -507,7 +511,7 @@ router.get("/google/start", async (req: Request, res: Response) => {
 });
 
 router.get("/google/callback", async (req: Request, res: Response) => {
-  const { exchangeSignInCode } = await import("../lib/google-signin");
+  const { exchangeSignInCode } = await import("../lib/auth/google-signin");
 
   const code = String(req.query.code ?? "");
   const state = String(req.query.state ?? "");

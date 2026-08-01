@@ -1,6 +1,6 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-vi.mock("../lib/mailer", () => ({
+vi.mock("../lib/integrations/mailer", () => ({
   sendTeacherInvite: vi.fn().mockResolvedValue(undefined),
   sendStudentInvite: vi.fn().mockResolvedValue(undefined),
   sendPrincipalInvite: vi.fn().mockResolvedValue(undefined),
@@ -17,7 +17,7 @@ import express from "express";
 import session from "express-session";
 import request from "supertest";
 import onboardingRouter from "../routes/onboarding";
-import { issueAccessToken } from "../lib/auth-workspace";
+import { issueAccessToken } from "../lib/auth/auth-workspace";
 import {
   pgFindUserById,
   pgFindSchoolByCreatedByUid,
@@ -26,7 +26,7 @@ import {
   pgFindFirstWorkspaceMembership,
   pgCreateInvite,
   pgFindInvitesBySchool,
-} from "../lib/pg-queries";
+} from "../lib/db/pg-queries";
 
 function makeApp() {
   const app = express();
@@ -269,7 +269,7 @@ describe("Teacher-invite list response strips the redeemable token", () => {
 describe("Invite accept refuses to clobber a privileged existing account", () => {
   it("409s a student invite whose email belongs to a principal", async () => {
     const { pgFindInviteByToken, pgFindUserByEmail, pgUpdateUser, pgFindSchoolById } =
-      await import("../lib/pg-queries");
+      await import("../lib/db/pg-queries");
     vi.clearAllMocks();
     (pgFindInviteByToken as any).mockResolvedValue({
       id: 5,

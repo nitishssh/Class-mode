@@ -19,7 +19,7 @@ import {
   pgDeleteUser,
   pgGetFeatureUsageSummary,
   isPgReady,
-} from "../lib/pg-queries";
+} from "../lib/db/pg-queries";
 import { getPgPool } from "../db-pg";
 
 const TEST_SECRET = process.env.JWT_SECRET ?? "super_secret_jwt_key_learning_pro_123";
@@ -30,7 +30,7 @@ const unauthorizedToken = jwt.sign(
 );
 
 // Mock dependencies
-vi.mock("../lib/pg-queries", () => ({
+vi.mock("../lib/db/pg-queries", () => ({
   pgFindUserById: vi.fn(),
   pgGetAbsenteesByDate: vi.fn(),
   pgExportAttendanceRows: vi.fn(),
@@ -80,7 +80,7 @@ vi.mock("../chat-ws", () => ({
   setupChatWebSocket: vi.fn(),
 }));
 
-vi.mock("../lib/cassandra", () => ({
+vi.mock("../lib/db/cassandra", () => ({
   initCassandra: vi.fn(),
   getCassandraClient: vi.fn().mockReturnValue(null),
 }));

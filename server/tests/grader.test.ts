@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
-import { gradeTutorTurn } from "../lib/grader-service";
+import { gradeTutorTurn } from "../lib/ai/grader-service";
 import { generate } from "../lib/ai/gateway";
-import { commitTurnOutcome } from "../lib/orchestrator";
+import { commitTurnOutcome } from "../lib/ai/orchestrator";
 
 // Mock AI Gateway and Orchestrator
 vi.mock("../lib/ai/gateway", () => ({
   generate: vi.fn(),
 }));
 
-vi.mock("../lib/orchestrator", () => ({
+vi.mock("../lib/ai/orchestrator", () => ({
   commitTurnOutcome: vi.fn(),
   runTutorTurn: vi.fn(),
 }));

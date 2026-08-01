@@ -24,7 +24,7 @@ vi.mock("openai", () => {
   };
 });
 
-vi.mock("../lib/gemini", () => ({
+vi.mock("../lib/ai/gemini", () => ({
   geminiChat: vi.fn().mockRejectedValue(new Error("Gemini disabled for unit tests")),
   streamGeminiChat: vi.fn(),
 }));
@@ -35,7 +35,7 @@ import {
   evaluateSubjectiveAnswer,
   generateStudyPlan,
   analyzeTestPerformance,
-} from "../lib/openai";
+} from "../lib/ai/openai";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 

@@ -3,7 +3,7 @@ import {
   pgFindRecordById,
   pgUpdateRecord,
   pgListFields
-} from "../lib/pg-dynamic-sis";
+} from "../lib/db/pg-dynamic-sis";
 import { generate } from "../lib/ai/gateway";
 import { DynamicField } from "@shared/schema";
 

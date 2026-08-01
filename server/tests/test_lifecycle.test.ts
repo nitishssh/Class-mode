@@ -3,7 +3,7 @@ import express from "express";
 import request from "supertest";
 import session from "express-session";
 import { registerRoutes } from "../routes";
-import { pgFindUserById, pgFindFirstWorkspaceMembership } from "../lib/pg-queries";
+import { pgFindUserById, pgFindFirstWorkspaceMembership } from "../lib/db/pg-queries";
 
 // ── Dependency mocks ───────────────────────────────────────────────────────
 
@@ -14,14 +14,14 @@ vi.mock("../message", () => ({
 
 vi.mock("../chat-ws", () => ({ setupChatWebSocket: vi.fn() }));
 
-vi.mock("../lib/cassandra", () => ({
+vi.mock("../lib/db/cassandra", () => ({
   initCassandra: vi.fn(),
   getCassandraClient: vi.fn().mockReturnValue(null),
 }));
 
-vi.mock("../lib/tesseract", () => ({ processOCRImage: vi.fn() }));
+vi.mock("../lib/integrations/tesseract", () => ({ processOCRImage: vi.fn() }));
 
-vi.mock("../lib/openai", () => ({
+vi.mock("../lib/ai/openai", () => ({
   aiChat: vi.fn(),
   evaluateSubjectiveAnswer: vi.fn(),
   generateStudyPlan: vi.fn(),

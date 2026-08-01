@@ -3,7 +3,7 @@ import {
   ACCESS_COOKIE_OPTS,
   AUTH_COOKIE_CLEAR_OPTS,
   REFRESH_COOKIE_OPTS,
-} from "../lib/auth-workspace";
+} from "../lib/auth/auth-workspace";
 
 // Regression: ISSUE-001 — logout passed maxAge to Express clearCookie
 // Found by /qa on 2026-07-22

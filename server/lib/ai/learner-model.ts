@@ -10,8 +10,8 @@
  * and proposes typed deltas, which are then handed to the single writer.
  */
 import type { PoolClient } from "pg";
-import { getPgPool, isPgReady } from "../db-pg";
-import { logger } from "./logger";
+import { getPgPool, isPgReady } from "../../db-pg";
+import { logger } from "../logger";
 
 // ─── Snapshot shapes (read side) ──────────────────────────────────────────────
 

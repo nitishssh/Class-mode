@@ -29,7 +29,7 @@ vi.mock("../middleware", () => ({
     },
 }));
 
-vi.mock("../lib/pg-queries", () => ({
+vi.mock("../lib/db/pg-queries", () => ({
   pgFindUsers: h.mockFindUsers,
   pgFindUserById: h.mockFindUserById,
   pgFindGradingResults: h.mockFindGradingResults,

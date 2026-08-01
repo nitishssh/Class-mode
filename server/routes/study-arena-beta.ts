@@ -10,9 +10,9 @@ import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { authenticateToken } from "../middleware";
 import { checkAIQuota } from "../middleware/aiQuota";
-import { pgIncrementAIUsage } from "../lib/pg-queries";
+import { pgIncrementAIUsage } from "../lib/db/pg-queries";
 import { generateLessonScript, respondToInteraction } from "../services/study-arena/lesson-script";
-import { commitLearnerUpdate } from "../lib/learner-model";
+import { commitLearnerUpdate } from "../lib/ai/learner-model";
 import { logger } from "../lib/logger";
 
 const router = Router();

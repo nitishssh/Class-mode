@@ -1,5 +1,5 @@
 import nodemailer from "nodemailer";
-import { logger } from "./logger";
+import { logger } from "../logger";
 
 const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
 const useRealSmtp = !!(process.env.SMTP_USER && process.env.SMTP_PASS);

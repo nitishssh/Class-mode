@@ -12,9 +12,9 @@ import {
   pgFindWorkspaceMembership,
   pgFindWorkspaceById,
   pgCreateWorkspaceInvite,
-} from "../lib/pg-queries";
-import { randomToken, tokenHash } from "../lib/auth-workspace";
-import { sendWorkspaceInvite } from "../lib/mailer";
+} from "../lib/db/pg-queries";
+import { randomToken, tokenHash } from "../lib/auth/auth-workspace";
+import { sendWorkspaceInvite } from "../lib/integrations/mailer";
 import { logger } from "../lib/logger";
 import { recordAuditEvent, AUDIT_EVENTS } from "../lib/audit";
 import { isPgReady, getPgPool } from "../db-pg";

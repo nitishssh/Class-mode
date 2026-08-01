@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { isCassandraConnected } from "../lib/cassandra";
+import { isCassandraConnected } from "../lib/db/cassandra";
 import { isPgReady, getPgPool } from "../db-pg";
-import { isRedisReady, isRedisConfigured } from "../lib/redis";
+import { isRedisReady, isRedisConfigured } from "../lib/db/redis";
 import { authenticateToken } from "../middleware";
 
 const router = Router();

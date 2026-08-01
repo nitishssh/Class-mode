@@ -3,7 +3,7 @@ import crypto from "crypto";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { authenticateToken } from "../middleware";
-import { upload, diskPathToUrl } from "../lib/upload";
+import { upload, diskPathToUrl } from "../lib/integrations/upload";
 import { logger } from "../lib/logger";
 import {
   sendTeacherInvite,
@@ -11,7 +11,7 @@ import {
   sendPrincipalInvite,
   sendSchoolAdminInvite,
   sendWelcomeEmail,
-} from "../lib/mailer";
+} from "../lib/integrations/mailer";
 import { requireRole } from "../middleware";
 import { recordAuditEvent, AUDIT_EVENTS } from "../lib/audit";
 import {
@@ -37,7 +37,7 @@ import {
   pgUpdateUserOnboardingComplete,
   pgSaveOnboardingResponse,
   pgUpdateUserSubjects,
-} from "../lib/pg-queries";
+} from "../lib/db/pg-queries";
 import { getPgPool } from "../db-pg";
 
 const router = Router();

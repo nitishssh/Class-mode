@@ -1,4 +1,4 @@
-import { Rubric, RubricCriterion, RubricSchema } from "../../shared/grading-schema";
+import { Rubric, RubricCriterion, RubricSchema } from "../../../shared/grading-schema";
 
 /**
  * Parse and validate a rubric JSON string or object.

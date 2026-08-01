@@ -6,14 +6,14 @@ import {
   createCheckoutSession,
   createPortalSession,
   createStripeCustomer,
-} from "../lib/stripe";
+} from "../lib/integrations/stripe";
 import {
   pgFindSubscriptionByUser,
   pgUpsertSubscription,
   pgUpdateSubscriptionByStripeCustomer,
   pgGetAIUsage,
   pgFindUserById,
-} from "../lib/pg-queries";
+} from "../lib/db/pg-queries";
 import { logger } from "../lib/logger";
 
 const router = Router();

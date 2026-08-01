@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { authenticateToken, requireRole } from "../middleware";
-import { resolveTenantScope } from "../lib/tenant";
+import { resolveTenantScope } from "../lib/auth/tenant";
 import {
   pgMarkAttendance,
   pgGetAttendanceByClassDate,
@@ -13,10 +13,10 @@ import {
   pgFindUsers,
   pgFindUserById,
   pgUpdateUser,
-} from "../lib/pg-queries";
+} from "../lib/db/pg-queries";
 import { logger } from "../lib/logger";
 import { publishEvent } from "../lib/events";
-import { isRedisConfigured } from "../lib/redis";
+import { isRedisConfigured } from "../lib/db/redis";
 import {
   handleAttendanceMarked,
   type AttendanceMarkedPayload,

@@ -14,11 +14,11 @@
  * passed in as `systemPrompt`, so this loop composes with whatever tutor prompt
  * the product defines rather than hard-coding pedagogy here.
  */
-import { generate, streamGenerate, type ChatMessage } from "./ai/gateway";
+import { generate, streamGenerate, type ChatMessage } from "./gateway";
 import { getLearnerSnapshot, type LearnerSnapshot } from "./learner-model";
 import { recordOutcome } from "./knowledge-tracing";
 import { recordReview } from "./spaced-repetition";
-import { retrieve, formatRetrievedContext } from "./rag";
+import { retrieve, formatRetrievedContext } from "../rag";
 
 export interface TutorTurnParams {
   studentId: number;

@@ -10,7 +10,7 @@ vi.mock("../db-pg", () => ({
   withPgClient: vi.fn(),
 }));
 
-import { getMasteryDashboard } from "../lib/learner-model";
+import { getMasteryDashboard } from "../lib/ai/learner-model";
 
 describe("getMasteryDashboard", () => {
   beforeEach(() => {

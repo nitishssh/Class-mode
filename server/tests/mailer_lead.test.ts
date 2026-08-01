@@ -11,7 +11,7 @@ vi.mock("nodemailer", () => ({
   },
 }));
 
-import { sendLeadNotification } from "../lib/mailer";
+import { sendLeadNotification } from "../lib/integrations/mailer";
 
 beforeEach(() => {
   vi.clearAllMocks();

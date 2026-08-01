@@ -1,4 +1,4 @@
-import { getPgPool } from "../db-pg";
+import { getPgPool } from "../../db-pg";
 import {
   type DynamicBase,
   type DynamicTable,

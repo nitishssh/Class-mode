@@ -3,7 +3,7 @@ import { scheduleAtRiskChecks, automationQueue } from "../services/whatsapp-auto
 import { whatsappService } from "../services/whatsapp";
 import { isPgReady, getPgPool } from "../db-pg";
 
-vi.mock("../lib/pg-queries", () => ({
+vi.mock("../lib/db/pg-queries", () => ({
   pgFindUserById: vi.fn(),
 }));
 
@@ -21,7 +21,7 @@ vi.mock("../db-pg", () => ({
 // Override the global "Redis off" mock from setup.ts: this suite exercises
 // the queue/worker paths, so pretend Redis is configured — bullmq itself is
 // mocked below, so the connection object is never really used.
-vi.mock("../lib/redis", () => ({
+vi.mock("../lib/db/redis", () => ({
   BULLMQ_PREFIX: "{bull}",
   newRedisConnection: vi.fn().mockReturnValue({ on: vi.fn(), quit: vi.fn() }),
   isRedisConfigured: vi.fn().mockReturnValue(true),
@@ -62,7 +62,7 @@ describe("WhatsApp Automation Service", () => {
   describe("automationWorker processor", () => {
     it("drops queued jobs when WHATSAPP_ALERTS_ENABLED is off (backlog gate)", async () => {
       delete process.env.WHATSAPP_ALERTS_ENABLED;
-      const { pgFindUserById } = await import("../lib/pg-queries");
+      const { pgFindUserById } = await import("../lib/db/pg-queries");
       await workerProcess.fn({ data: { type: "missed_class", userId: 1, metadata: {} } });
       // A job enqueued before the switch was turned off must not even be
       // looked up, let alone sent.
@@ -71,7 +71,7 @@ describe("WhatsApp Automation Service", () => {
     });
 
     it("processes missed_class job correctly", async () => {
-      const { pgFindUserById } = await import("../lib/pg-queries");
+      const { pgFindUserById } = await import("../lib/db/pg-queries");
       (pgFindUserById as any).mockResolvedValueOnce({ id: 1, parentId: 2, name: "Alice" });
       (pgFindUserById as any).mockResolvedValueOnce({ id: 2, username: "1234567890" });
 
@@ -88,7 +88,7 @@ describe("WhatsApp Automation Service", () => {
     });
 
     it("processes low_score job correctly", async () => {
-      const { pgFindUserById } = await import("../lib/pg-queries");
+      const { pgFindUserById } = await import("../lib/db/pg-queries");
       (pgFindUserById as any).mockResolvedValueOnce({ id: 1, parentId: 2, name: "Alice" });
       (pgFindUserById as any).mockResolvedValueOnce({ id: 2, username: "1234567890" });
 
@@ -105,7 +105,7 @@ describe("WhatsApp Automation Service", () => {
     });
 
     it("processes inactivity job correctly", async () => {
-      const { pgFindUserById } = await import("../lib/pg-queries");
+      const { pgFindUserById } = await import("../lib/db/pg-queries");
       (pgFindUserById as any).mockResolvedValueOnce({ id: 1, parentId: 2, name: "Alice" });
       (pgFindUserById as any).mockResolvedValueOnce({ id: 2, username: "1234567890" });
 
@@ -119,7 +119,7 @@ describe("WhatsApp Automation Service", () => {
     });
 
     it("returns early if no user or parent is found", async () => {
-      const { pgFindUserById } = await import("../lib/pg-queries");
+      const { pgFindUserById } = await import("../lib/db/pg-queries");
       (pgFindUserById as any).mockResolvedValueOnce(null);
 
       const job = { data: { type: "inactivity", userId: 1, metadata: {} }, id: "job4" };

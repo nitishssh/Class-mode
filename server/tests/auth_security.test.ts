@@ -1,7 +1,7 @@
 import { vi } from "vitest";
 
 // Mock mailer at the very top to prevent Vitest import hoisting issues
-vi.mock("../lib/mailer", () => ({
+vi.mock("../lib/integrations/mailer", () => ({
   sendEmailVerification: vi.fn().mockResolvedValue(undefined),
   sendPasswordReset: vi.fn().mockResolvedValue(undefined),
   sendWorkspaceInvite: vi.fn().mockResolvedValue(undefined),
@@ -51,8 +51,8 @@ import {
   pgFindFirstWorkspaceMembership,
   pgFindWorkspaceBySlug,
   pgCreateWorkspace,
-} from "../lib/pg-queries";
-import { sendWelcomeEmail, sendEmailVerification } from "../lib/mailer";
+} from "../lib/db/pg-queries";
+import { sendWelcomeEmail, sendEmailVerification } from "../lib/integrations/mailer";
 import jwt from "jsonwebtoken";
 
 describe("Authentication Security and Hardening", () => {

@@ -2,7 +2,7 @@ import { vi } from "vitest";
 
 // Mailer + audit + storage are mocked at the top for hoist safety. The auth
 // router imports several mailer fns at module load, so all must be provided.
-vi.mock("../lib/mailer", () => ({
+vi.mock("../lib/integrations/mailer", () => ({
   sendWorkspaceInvite: vi.fn().mockResolvedValue(undefined),
   sendWelcomeEmail: vi.fn().mockResolvedValue(undefined),
   sendEmailVerification: vi.fn().mockResolvedValue(undefined),
@@ -36,8 +36,8 @@ import bcrypt from "bcryptjs";
 
 import workspaceRouter from "../routes/workspace";
 import authRouter from "../routes/auth";
-import { issueAccessToken } from "../lib/auth-workspace";
-import { sendWorkspaceInvite } from "../lib/mailer";
+import { issueAccessToken } from "../lib/auth/auth-workspace";
+import { sendWorkspaceInvite } from "../lib/integrations/mailer";
 import {
   pgFindWorkspaceInviteByTokenHash,
   pgFindWorkspaceById,
@@ -52,7 +52,7 @@ import {
   pgFindUserById,
   pgFindFirstWorkspaceMembership,
   pgSetUserLastLogin,
-} from "../lib/pg-queries";
+} from "../lib/db/pg-queries";
 
 // vi.clearAllMocks() only clears call history, not implementations, and the
 // global pg-queries mock is a shared proxy — so an implementation set in one

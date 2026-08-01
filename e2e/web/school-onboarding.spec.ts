@@ -7,7 +7,7 @@ import { completeOnboardingAsPrincipal } from "./helpers/onboarding";
 // onboarding, and land on a working dashboard where the tenant-scoped pages
 // (attendance, fees, student directory) load real data or an honest empty
 // state — never a silent 403 disguised as "no data yet" (see PR #305 /
-// server/lib/tenant.ts's fail-closed resolveTenantScope).
+// server/lib/auth/tenant.ts's fail-closed resolveTenantScope).
 test.describe("School onboarding — signup to dashboard", () => {
   test("fresh signup completes onboarding and reaches a working dashboard with no 403s", async ({
     page,

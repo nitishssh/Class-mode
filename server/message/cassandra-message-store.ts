@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { getCassandraClient } from "../lib/cassandra";
+import { getCassandraClient } from "../lib/db/cassandra";
 import type { IMessageStore, StoredMessage, ConversationInfo } from "./types";
 
 export class CassandraMessageStore implements IMessageStore {

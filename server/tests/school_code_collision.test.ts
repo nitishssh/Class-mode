@@ -3,7 +3,7 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 // Exercise the REAL pg-queries implementation (server/tests/setup.ts mocks
 // every pg-queries export globally for all other test files) so the actual
 // school-code generation logic is what's under test here, not a stand-in.
-vi.unmock("../lib/pg-queries");
+vi.unmock("../lib/db/pg-queries");
 
 // Minimal stateful fake for the `schools` table — just enough to back the
 // three queries pgUpsertSchool issues (lookup by created_by_uid, lookup by
@@ -72,7 +72,7 @@ vi.mock("../db-pg", () => ({
     fn({ query: queryMock }),
 }));
 
-import { pgUpsertSchool } from "../lib/pg-queries";
+import { pgUpsertSchool } from "../lib/db/pg-queries";
 
 describe("pgUpsertSchool school-code generation", () => {
   beforeEach(() => {

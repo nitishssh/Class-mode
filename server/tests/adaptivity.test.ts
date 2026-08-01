@@ -5,8 +5,8 @@
  * scheduling.
  */
 import { describe, it, expect } from "vitest";
-import { bktUpdate, DEFAULT_BKT } from "../lib/knowledge-tracing";
-import { sm2Next, DEFAULT_SM2 } from "../lib/spaced-repetition";
+import { bktUpdate, DEFAULT_BKT } from "../lib/ai/knowledge-tracing";
+import { sm2Next, DEFAULT_SM2 } from "../lib/ai/spaced-repetition";
 
 describe("bktUpdate", () => {
   it("raises mastery after a correct answer", () => {
