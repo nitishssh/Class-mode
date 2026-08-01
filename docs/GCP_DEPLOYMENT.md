@@ -1,5 +1,7 @@
 # GCP Deployment Guide
 
+> **⚠️ Historical (2026-07).** Class Mode no longer runs on GCP. The platform migrated to Azure Container Apps on 2026-07-13 (see [azure-migration.md](azure-migration.md)); GCP project `plp-prod-2026` was decommissioned and the Cloud Run service is no longer reachable. Deployment now runs through [.github/workflows/cd.yml](../.github/workflows/cd.yml) → GHCR → `az containerapp update`. Kept for historical reference only.
+
 This guide documents the **live, executed** deployment of PersonalLearningPro to Google Cloud Platform using Cloud Run, Secret Manager, and Cloud Build. All commands here were run and verified on **2026-05-09**.
 
 ## Live Service
