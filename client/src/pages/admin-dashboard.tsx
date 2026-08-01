@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { useAuth } from "@/contexts/auth-context";
 import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -90,7 +90,7 @@ interface ActivityLog {
 }
 
 export default function AdminDashboard() {
-  const { currentUser } = useFirebaseAuth();
+  const { currentUser } = useAuth();
   const { toast } = useToast();
 
   // Tab State

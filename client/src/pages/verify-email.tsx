@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
-import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { useAuth } from "@/contexts/auth-context";
 import { Loader2, Mail, ShieldCheck, RefreshCw, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
@@ -17,7 +17,7 @@ export default function VerifyEmailPage() {
   const [error, setError] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const { currentUser, refreshSession, logout, isLoading } = useFirebaseAuth();
+  const { currentUser, refreshSession, logout, isLoading } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 

@@ -17,11 +17,11 @@ import {
   Loader2,
 } from "lucide-react";
 import { useMessagePalWebSocket } from "./use-messagepal-ws";
-import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { useAuth } from "@/contexts/auth-context";
 
 export function MessageSidebar() {
   const [searchTerm, setSearchTerm] = useState("");
-  const { currentUser } = useFirebaseAuth();
+  const { currentUser } = useAuth();
   const userId = (currentUser?.profile as any)?.id as number | undefined;
   const {
     conversations,
@@ -137,7 +137,7 @@ export function MessageSidebar() {
 
 export function MessageChatWindow() {
   const [message, setMessage] = useState("");
-  const { currentUser } = useFirebaseAuth();
+  const { currentUser } = useAuth();
   const userId = (currentUser?.profile as any)?.id as number | undefined;
   const { messages, activeConversation, conversations, sendMessage, markMessageAsRead } =
     useMessagePalWebSocket(userId);
@@ -267,7 +267,7 @@ export function MessageChatWindow() {
 }
 
 export function MessagePanel() {
-  const { currentUser } = useFirebaseAuth();
+  const { currentUser } = useAuth();
   const userId = (currentUser?.profile as any)?.id as number | undefined;
 
   if (!userId) {

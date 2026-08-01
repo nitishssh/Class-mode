@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { useAuth } from "@/contexts/auth-context";
 import { useTheme } from "@/contexts/theme-context";
 import { User, Bell, Shield, Palette, Save, LogOut } from "lucide-react";
 
@@ -22,7 +22,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Settings() {
-  const { currentUser, logout } = useFirebaseAuth();
+  const { currentUser, logout } = useAuth();
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
 

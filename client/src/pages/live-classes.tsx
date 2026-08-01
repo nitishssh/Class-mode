@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { useAuth } from "@/contexts/auth-context";
 import {
   Dialog,
   DialogContent,
@@ -42,7 +42,7 @@ import { useLocation } from "wouter";
 export default function LiveClassesPage() {
   const {
     currentUser: { profile },
-  } = useFirebaseAuth();
+  } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [isDialogOpen, setIsDialogOpen] = useState(false);

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
-import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
-import { FirebaseAuthDialog } from "@/components/auth/firebase-auth-dialog";
+import { useAuth } from "@/contexts/auth-context";
+import { AuthDialog } from "@/components/auth/auth-dialog";
 import { useToast } from "@/hooks/use-toast";
 
 // Map server-side OAuth-failure error codes (set as ?error=… on a redirect
@@ -18,7 +18,7 @@ export default function LoginPage() {
   const {
     currentUser: { profile },
     isLoading,
-  } = useFirebaseAuth();
+  } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -50,7 +50,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <FirebaseAuthDialog />
+      <AuthDialog />
     </div>
   );
 }

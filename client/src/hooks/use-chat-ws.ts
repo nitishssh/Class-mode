@@ -14,7 +14,7 @@
  */
 
 import { useEffect, useRef, useCallback, useReducer } from "react";
-import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { useAuth } from "@/contexts/auth-context";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -77,7 +77,7 @@ interface UseChatWsOptions {
 }
 
 export function useChatWs({ onEvent, activeChannelId }: UseChatWsOptions) {
-  const { currentUser } = useFirebaseAuth();
+  const { currentUser } = useAuth();
   const wsRef = useRef<WebSocket | null>(null);
   const pendingQueue = useRef<object[]>([]);
   const onEventRef = useRef(onEvent);

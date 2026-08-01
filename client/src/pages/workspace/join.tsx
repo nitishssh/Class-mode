@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { useAuth } from "@/contexts/auth-context";
 import { useWorkspace } from "@/contexts/workspace-context";
 import { useToast } from "@/hooks/use-toast";
 
@@ -51,7 +51,7 @@ export default function JoinWorkspace() {
   const params = useParams<{ token: string }>();
   const token = params.token;
   const [, navigate] = useLocation();
-  const { currentUser, isLoading: authLoading, refreshSession } = useFirebaseAuth();
+  const { currentUser, isLoading: authLoading, refreshSession } = useAuth();
   const { refreshWorkspaces } = useWorkspace();
   const { toast } = useToast();
 

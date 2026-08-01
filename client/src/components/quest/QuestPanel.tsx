@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import confetti from "canvas-confetti";
 import { X } from "lucide-react";
-import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { useAuth } from "@/contexts/auth-context";
 import { QUESTS } from "@/lib/quest-config";
 import {
   useQuestProgress,
@@ -14,7 +14,7 @@ import {
 import { QuestItem } from "./QuestItem";
 
 export function QuestPanel() {
-  const { currentUser } = useFirebaseAuth();
+  const { currentUser } = useAuth();
   const role = currentUser?.profile?.role;
 
   const { progress, expired } = useQuestProgress();

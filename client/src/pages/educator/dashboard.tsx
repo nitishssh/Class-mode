@@ -3,12 +3,12 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, ClipboardCheck, TrendingUp, BookOpen } from "lucide-react";
-import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { useAuth } from "@/contexts/auth-context";
 import { isPermissionError } from "@/lib/queryClient";
 import { PermissionDenied } from "@/components/ui/permission-denied";
 
 export default function EducatorDashboard() {
-  useFirebaseAuth();
+  useAuth();
   const { data, isLoading, isError, error } = useQuery<any>({
     queryKey: ["/api/educator/dashboard"],
   });

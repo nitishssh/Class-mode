@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { cn, getInitials } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { useFirebaseAuth as useAuth } from "@/contexts/firebase-auth-context";
+import { useAuth } from "@/contexts/auth-context";
 import { useTranslation } from "@/lib/i18n";
 import { WorkspaceSwitcher } from "@/components/workspace/workspace-switcher";
 import {

@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/layout/page-header";
-import { useFirebaseAuth as useAuth } from "@/contexts/firebase-auth-context";
+import { useAuth } from "@/contexts/auth-context";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient, isPermissionError } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

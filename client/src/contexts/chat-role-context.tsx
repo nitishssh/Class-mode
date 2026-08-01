@@ -1,6 +1,6 @@
 import { createContext, useContext, ReactNode, useMemo } from "react";
 import { UserRole, User } from "@/types/chat";
-import { useFirebaseAuth } from "./firebase-auth-context";
+import { useAuth } from "./auth-context";
 
 interface RoleContextValue {
   currentRole: UserRole;
@@ -21,7 +21,7 @@ function mapRole(role?: string): UserRole {
 }
 
 export const ChatRoleProvider = ({ children }: { children: ReactNode }) => {
-  const { currentUser } = useFirebaseAuth();
+  const { currentUser } = useAuth();
 
   const currentRole = useMemo(() => {
     return mapRole(currentUser.profile?.role);

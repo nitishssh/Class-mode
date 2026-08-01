@@ -17,13 +17,13 @@ import { useQuery } from "@tanstack/react-query";
 import { QuickActionCard } from "@/components/dashboard/quick-action-card";
 import { RecentTestsTable } from "@/components/dashboard/recent-tests-table";
 import { PerformanceChart } from "@/components/dashboard/performance-chart";
-import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { useAuth } from "@/contexts/auth-context";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 export default function Dashboard() {
-  const { currentUser } = useFirebaseAuth();
+  const { currentUser } = useAuth();
 
   const { data: dashboardData, isLoading } = useQuery<any>({
     queryKey: ["/api/dashboards/teacher"],
