@@ -20,7 +20,7 @@
 //   https://<prod-host>/api/auth/google/callback
 
 import { OAuth2Client } from "google-auth-library";
-import { logger } from "./logger";
+import { logger } from "../logger";
 
 // Prefer the dedicated sign-in OAuth client when configured. Fall back to
 // the Classroom client so deployments that share a single OAuth client

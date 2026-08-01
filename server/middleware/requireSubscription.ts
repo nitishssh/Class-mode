@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { pgFindSubscriptionByUser } from "../lib/pg-queries";
+import { pgFindSubscriptionByUser } from "../lib/db/pg-queries";
 
 const TIER_LEVEL: Record<string, number> = { free: 0, pro: 1, educator: 2, institution: 3 };
 

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import { Request, Response } from "express";
 import { authenticateToken } from "../middleware";
 import jwt from "jsonwebtoken";
-import { pgFindFirstWorkspaceMembership, pgFindUserById } from "../lib/pg-queries";
+import { pgFindFirstWorkspaceMembership, pgFindUserById } from "../lib/db/pg-queries";
 
 vi.mock("jsonwebtoken", () => ({
   default: {
@@ -10,7 +10,7 @@ vi.mock("jsonwebtoken", () => ({
   },
 }));
 
-vi.mock("../lib/pg-queries", () => ({
+vi.mock("../lib/db/pg-queries", () => ({
   pgFindUserById: vi.fn(),
   pgFindFirstWorkspaceMembership: vi.fn().mockResolvedValue(null),
 }));

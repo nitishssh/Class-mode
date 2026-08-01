@@ -8,8 +8,8 @@
  * prior mastery and hands the new estimate to the single writer
  * (`commitLearnerUpdate`). It never writes the learner tables directly.
  */
-import { getPgPool, isPgReady } from "../db-pg";
-import { logger } from "./logger";
+import { getPgPool, isPgReady } from "../../db-pg";
+import { logger } from "../logger";
 import { commitLearnerUpdate } from "./learner-model";
 
 export interface BktParams {

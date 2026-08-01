@@ -21,7 +21,7 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 
 // server/tests/setup.ts mocks every pg-queries export globally; unmock so the
 // real upsert SQL is what's under test here.
-vi.unmock("../lib/pg-queries");
+vi.unmock("../lib/db/pg-queries");
 
 type Row = {
   student_id: number;
@@ -91,7 +91,7 @@ vi.mock("../db-pg", () => ({
     fn({ query: queryMock }),
 }));
 
-import { pgMarkAttendance } from "../lib/pg-queries";
+import { pgMarkAttendance } from "../lib/db/pg-queries";
 
 describe("Regression ISSUE-002: attendance notes survive a status-only re-save", () => {
   beforeEach(() => {

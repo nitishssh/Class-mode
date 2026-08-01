@@ -1,6 +1,6 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-vi.mock("../lib/mailer", () => ({
+vi.mock("../lib/integrations/mailer", () => ({
   sendTeacherInvite: vi.fn().mockResolvedValue(undefined),
   sendStudentInvite: vi.fn().mockResolvedValue(undefined),
   sendPrincipalInvite: vi.fn().mockResolvedValue(undefined),
@@ -17,8 +17,12 @@ import express from "express";
 import session from "express-session";
 import request from "supertest";
 import onboardingRouter from "../routes/onboarding";
-import { issueAccessToken } from "../lib/auth-workspace";
-import { pgFindUserById, pgUpsertSchool, pgFindFirstWorkspaceMembership } from "../lib/pg-queries";
+import { issueAccessToken } from "../lib/auth/auth-workspace";
+import {
+  pgFindUserById,
+  pgUpsertSchool,
+  pgFindFirstWorkspaceMembership,
+} from "../lib/db/pg-queries";
 
 function makeApp() {
   const app = express();

@@ -7,7 +7,7 @@ import {
   pgFindUserByEmail,
   pgFindFirstWorkspaceMembership,
   pgUpsertWorkspaceMembership,
-} from "../lib/pg-queries";
+} from "../lib/db/pg-queries";
 import { authenticateToken } from "../middleware";
 import {
   getAuthUrl,

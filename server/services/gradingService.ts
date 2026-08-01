@@ -8,7 +8,7 @@ import {
   parseRubric,
   rubricToPrompt,
   calculateWeightedTotal,
-} from "../lib/rubricParser";
+} from "../lib/ai/rubricParser";
 import {
   buildGradingUserMessage,
   getSystemPrompt,
@@ -17,7 +17,7 @@ import {
 import {
   pgCreateGradingResult, pgFindGradingResultBySubmissionId,
   pgFindGradingResults, pgDeleteGradingResult,
-} from "../lib/pg-queries";
+} from "../lib/db/pg-queries";
 import { generate, MODEL_REGISTRY } from "../lib/ai/gateway";
 import { logger } from "../lib/logger";
 

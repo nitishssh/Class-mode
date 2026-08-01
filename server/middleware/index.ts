@@ -2,13 +2,13 @@ import { randomUUID } from "node:crypto";
 import { type Request, type Response, type NextFunction } from "express";
 import { isPgReady } from "../db-pg";
 import "express-session";
-import { pgFindFirstWorkspaceMembership, pgFindUserById } from "../lib/pg-queries";
+import { pgFindFirstWorkspaceMembership, pgFindUserById } from "../lib/db/pg-queries";
 import {
   authMePayload,
   extractAccessToken,
   verifyAccessToken,
   decodeAccessTokenUnsafe,
-} from "../lib/auth-workspace";
+} from "../lib/auth/auth-workspace";
 import { requestContext } from "../lib/request-context";
 
 declare module "express-session" {

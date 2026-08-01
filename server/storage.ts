@@ -48,7 +48,7 @@ import {
 } from "@shared/schema";
 import { type UserRole, type UserStatus } from "@shared/authz";
 import { getPgPool } from "./db-pg";
-import { getCassandraClient } from "./lib/cassandra";
+import { getCassandraClient } from "./lib/db/cassandra";
 import {
   cassandraCreateMessage,
   cassandraGetMessagesByChannel,
@@ -57,7 +57,7 @@ import {
   cassandraGradeMessage,
   cassandraMarkMessageAsRead,
   cassandraGetPinnedMessages,
-} from "./lib/cassandra-message-store";
+} from "./lib/db/cassandra-message-store";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 

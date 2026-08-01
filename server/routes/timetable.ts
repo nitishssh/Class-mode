@@ -5,7 +5,7 @@ import {
   pgGetTimetableByClass,
   pgCreateTimetableSlot,
   pgDeleteTimetableSlot,
-} from "../lib/pg-queries";
+} from "../lib/db/pg-queries";
 import { insertTimetableSlotSchema } from "@shared/schema";
 import { logger } from "../lib/logger";
 

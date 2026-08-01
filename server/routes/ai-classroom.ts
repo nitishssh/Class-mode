@@ -6,7 +6,7 @@ import { createRequire } from "module";
 const _require = createRequire(import.meta.url);
 const archiver = _require("archiver") as typeof import("archiver");
 import { studyArenaInternalService } from "../services/study-arena/internal-service";
-import { pgFindAIClassroomById } from "../lib/pg-queries";
+import { pgFindAIClassroomById } from "../lib/db/pg-queries";
 import { orchestrateChat } from "../services/study-arena/orchestrator";
 import { StatelessChatRequest } from "@shared/study-arena";
 import { generatePPTX } from "../services/study-arena/pptx-export";

@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { logger } from "./logger";
+import { logger } from "../logger";
 
 let genAI: GoogleGenerativeAI | null = null;
 

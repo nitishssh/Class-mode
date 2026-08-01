@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
-import { pgFindUserById, pgFindFirstWorkspaceMembership } from "../lib/pg-queries";
+import { pgFindUserById, pgFindFirstWorkspaceMembership } from "../lib/db/pg-queries";
 
 const { mockGenerate, mockGenerateContentFromPdf } = vi.hoisted(() => ({
   mockGenerate: vi.fn(),
@@ -27,7 +27,7 @@ vi.mock("../message", () => ({
 
 vi.mock("../chat-ws", () => ({ setupChatWebSocket: vi.fn() }));
 
-vi.mock("../lib/cassandra", () => ({
+vi.mock("../lib/db/cassandra", () => ({
   initCassandra: vi.fn(),
   getCassandraClient: vi.fn().mockReturnValue(null),
 }));
@@ -39,11 +39,11 @@ vi.mock("../lib/ai/gateway", async (importOriginal) => {
   return { ...actual, generate: mockGenerate };
 });
 
-vi.mock("../lib/openai", () => ({
+vi.mock("../lib/ai/openai", () => ({
   evaluateSubjectiveAnswer: vi.fn(),
 }));
 
-vi.mock("../lib/gemini", () => ({
+vi.mock("../lib/ai/gemini", () => ({
   generateContentFromPdf: mockGenerateContentFromPdf,
   geminiChat: vi.fn(),
   streamGeminiChat: vi.fn(),

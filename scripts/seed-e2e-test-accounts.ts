@@ -10,7 +10,7 @@ import {
   pgFindUserByEmail,
   pgCreateUser,
   pgUpdateUserOnboardingComplete,
-} from "../server/lib/pg-queries";
+} from "../server/lib/db/pg-queries";
 
 // Fixed-credential accounts expected by e2e/web/auth.spec.ts and
 // e2e/web/grading.spec.ts (admin@test.com / teacher@test.com, password123),

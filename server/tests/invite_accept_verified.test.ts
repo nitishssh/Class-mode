@@ -1,7 +1,7 @@
 import { vi } from "vitest";
 
 // Mock mailer (avoid SMTP) — top-level for hoist safety.
-vi.mock("../lib/mailer", () => ({
+vi.mock("../lib/integrations/mailer", () => ({
   sendTeacherInvite: vi.fn().mockResolvedValue(undefined),
   sendStudentInvite: vi.fn().mockResolvedValue(undefined),
   sendPrincipalInvite: vi.fn().mockResolvedValue(undefined),
@@ -24,7 +24,7 @@ import {
   pgFindUserByEmail,
   pgCreateUser,
   pgAcceptInvite,
-} from "../lib/pg-queries";
+} from "../lib/db/pg-queries";
 
 describe("Onboarding invite accept creates a local-password account", () => {
   let app: express.Express;

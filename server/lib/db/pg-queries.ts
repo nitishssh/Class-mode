@@ -2,8 +2,8 @@
  * Direct PostgreSQL query helpers for entities not covered by IStorage.
  * Replaces all direct MongoModel.* calls in routes and services.
  */
-import { getPgPool, isPgReady } from "../db-pg";
-import { logger } from "./logger";
+import { getPgPool, isPgReady } from "../../db-pg";
+import { logger } from "../logger";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

@@ -1,13 +1,13 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { authenticateToken } from "../middleware";
-import { runTutorTurn } from "../lib/orchestrator";
-import { gradeTutorTurn } from "../lib/grader-service";
-import { getMasteryDashboard } from "../lib/learner-model";
+import { runTutorTurn } from "../lib/ai/orchestrator";
+import { gradeTutorTurn } from "../lib/ai/grader-service";
+import { getMasteryDashboard } from "../lib/ai/learner-model";
 import { webSearch } from "../services/web-search";
 import { buildTutorSystemPrompt } from "../lib/prompts/tutor";
 import { checkAIQuota } from "../middleware/aiQuota";
-import { pgIncrementAIUsage } from "../lib/pg-queries";
+import { pgIncrementAIUsage } from "../lib/db/pg-queries";
 import { logger } from "../lib/logger";
 
 const router = Router();

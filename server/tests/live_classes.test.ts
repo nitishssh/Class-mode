@@ -4,7 +4,7 @@ import request from "supertest";
 import session from "express-session";
 import cookieParser from "cookie-parser";
 import jwt from "jsonwebtoken";
-import { pgFindUserById, pgFindFirstWorkspaceMembership } from "../lib/pg-queries";
+import { pgFindUserById, pgFindFirstWorkspaceMembership } from "../lib/db/pg-queries";
 
 // ─── Mocks (factories must not reference outer variables) ─────────────────────
 
@@ -25,7 +25,7 @@ vi.mock("../chat-ws", () => ({
   setupChatWebSocket: vi.fn(),
 }));
 
-vi.mock("../lib/cassandra", () => ({
+vi.mock("../lib/db/cassandra", () => ({
   initCassandra: vi.fn(),
   getCassandraClient: vi.fn().mockReturnValue(null),
 }));

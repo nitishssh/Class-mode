@@ -12,7 +12,7 @@ import express from "express";
 import request from "supertest";
 import { registerRoutes } from "../routes";
 import session from "express-session";
-import { pgFindUsers, pgFindUserById, pgFindFirstWorkspaceMembership } from "../lib/pg-queries";
+import { pgFindUsers, pgFindUserById, pgFindFirstWorkspaceMembership } from "../lib/db/pg-queries";
 import jwt from "jsonwebtoken";
 
 const TEST_SECRET = process.env.JWT_SECRET ?? "super_secret_jwt_key_learning_pro_123";
@@ -40,7 +40,7 @@ vi.mock("../chat-ws", () => ({
   setupChatWebSocket: vi.fn(),
 }));
 
-vi.mock("../lib/cassandra", () => ({
+vi.mock("../lib/db/cassandra", () => ({
   initCassandra: vi.fn(),
   getCassandraClient: vi.fn().mockReturnValue(null),
 }));

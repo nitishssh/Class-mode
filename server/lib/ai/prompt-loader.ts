@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { logger } from "./logger";
+import { logger } from "../logger";
 
 export type PromptId = string;
 export type SnippetId = string;

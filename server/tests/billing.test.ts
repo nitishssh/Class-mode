@@ -11,7 +11,7 @@ vi.mock("../middleware", () => ({
   },
 }));
 
-vi.mock("../lib/pg-queries", () => ({
+vi.mock("../lib/db/pg-queries", () => ({
   pgFindSubscriptionByUser: vi.fn(),
   pgUpsertSubscription: vi.fn(),
   pgUpdateSubscriptionByStripeCustomer: vi.fn(),
@@ -19,7 +19,7 @@ vi.mock("../lib/pg-queries", () => ({
   pgFindUserById: vi.fn(),
 }));
 
-vi.mock("../lib/stripe", () => ({
+vi.mock("../lib/integrations/stripe", () => ({
   stripe: {
     webhooks: {
       constructEvent: vi.fn(),
@@ -62,7 +62,7 @@ describe("Billing Routes", () => {
 
   describe("GET /api/billing/subscription", () => {
     it("returns free tier if no subscription found", async () => {
-      const { pgFindSubscriptionByUser } = await import("../lib/pg-queries");
+      const { pgFindSubscriptionByUser } = await import("../lib/db/pg-queries");
       (pgFindSubscriptionByUser as any).mockResolvedValueOnce(null);
 
       const res = await request(app).get("/api/billing/subscription");
@@ -71,7 +71,7 @@ describe("Billing Routes", () => {
     });
 
     it("returns subscription if found", async () => {
-      const { pgFindSubscriptionByUser } = await import("../lib/pg-queries");
+      const { pgFindSubscriptionByUser } = await import("../lib/db/pg-queries");
       (pgFindSubscriptionByUser as any).mockResolvedValueOnce({ tier: "pro", status: "active" });
 
       const res = await request(app).get("/api/billing/subscription");
@@ -80,7 +80,7 @@ describe("Billing Routes", () => {
     });
 
     it("returns 500 on error", async () => {
-      const { pgFindSubscriptionByUser } = await import("../lib/pg-queries");
+      const { pgFindSubscriptionByUser } = await import("../lib/db/pg-queries");
       (pgFindSubscriptionByUser as any).mockRejectedValueOnce(new Error("DB Error"));
 
       const res = await request(app).get("/api/billing/subscription");
@@ -95,7 +95,7 @@ describe("Billing Routes", () => {
     });
 
     it("returns 404 if user not found", async () => {
-      const { pgFindUserById } = await import("../lib/pg-queries");
+      const { pgFindUserById } = await import("../lib/db/pg-queries");
       (pgFindUserById as any).mockResolvedValueOnce(null);
       const res = await request(app)
         .post("/api/billing/checkout")
@@ -104,8 +104,9 @@ describe("Billing Routes", () => {
     });
 
     it("creates customer and session if no subscription exists", async () => {
-      const { pgFindUserById, pgFindSubscriptionByUser } = await import("../lib/pg-queries");
-      const { createStripeCustomer, createCheckoutSession } = await import("../lib/stripe");
+      const { pgFindUserById, pgFindSubscriptionByUser } = await import("../lib/db/pg-queries");
+      const { createStripeCustomer, createCheckoutSession } =
+        await import("../lib/integrations/stripe");
 
       (pgFindUserById as any).mockResolvedValueOnce({
         id: 1,
@@ -124,7 +125,7 @@ describe("Billing Routes", () => {
     });
 
     it("returns 500 on error", async () => {
-      const { pgFindUserById } = await import("../lib/pg-queries");
+      const { pgFindUserById } = await import("../lib/db/pg-queries");
       (pgFindUserById as any).mockRejectedValueOnce(new Error("DB Error"));
       const res = await request(app)
         .post("/api/billing/checkout")
@@ -135,15 +136,15 @@ describe("Billing Routes", () => {
 
   describe("POST /api/billing/portal", () => {
     it("returns 400 if no active subscription", async () => {
-      const { pgFindSubscriptionByUser } = await import("../lib/pg-queries");
+      const { pgFindSubscriptionByUser } = await import("../lib/db/pg-queries");
       (pgFindSubscriptionByUser as any).mockResolvedValueOnce(null);
       const res = await request(app).post("/api/billing/portal");
       expect(res.status).toBe(400);
     });
 
     it("returns portal url on success", async () => {
-      const { pgFindSubscriptionByUser } = await import("../lib/pg-queries");
-      const { createPortalSession } = await import("../lib/stripe");
+      const { pgFindSubscriptionByUser } = await import("../lib/db/pg-queries");
+      const { createPortalSession } = await import("../lib/integrations/stripe");
 
       (pgFindSubscriptionByUser as any).mockResolvedValueOnce({ stripeCustomerId: "cus_123" });
       (createPortalSession as any).mockResolvedValueOnce({ url: "http://portal" });
@@ -154,7 +155,7 @@ describe("Billing Routes", () => {
     });
 
     it("returns 500 on error", async () => {
-      const { pgFindSubscriptionByUser } = await import("../lib/pg-queries");
+      const { pgFindSubscriptionByUser } = await import("../lib/db/pg-queries");
       (pgFindSubscriptionByUser as any).mockRejectedValueOnce(new Error("DB Error"));
       const res = await request(app).post("/api/billing/portal");
       expect(res.status).toBe(500);
@@ -163,7 +164,7 @@ describe("Billing Routes", () => {
 
   describe("GET /api/billing/usage", () => {
     it("returns usage stats", async () => {
-      const { pgFindSubscriptionByUser, pgGetAIUsage } = await import("../lib/pg-queries");
+      const { pgFindSubscriptionByUser, pgGetAIUsage } = await import("../lib/db/pg-queries");
       (pgFindSubscriptionByUser as any).mockResolvedValueOnce({ tier: "pro" });
       (pgGetAIUsage as any).mockResolvedValueOnce(5).mockResolvedValueOnce(3); // classroom, tutor
 
@@ -174,7 +175,7 @@ describe("Billing Routes", () => {
     });
 
     it("returns 500 on error", async () => {
-      const { pgFindSubscriptionByUser } = await import("../lib/pg-queries");
+      const { pgFindSubscriptionByUser } = await import("../lib/db/pg-queries");
       (pgFindSubscriptionByUser as any).mockRejectedValueOnce(new Error("DB Error"));
       const res = await request(app).get("/api/billing/usage");
       expect(res.status).toBe(500);
@@ -189,7 +190,7 @@ describe("Billing Routes", () => {
     });
 
     it("returns 400 on verification fail", async () => {
-      const { stripe } = await import("../lib/stripe");
+      const { stripe } = await import("../lib/integrations/stripe");
       (stripe.webhooks.constructEvent as any).mockImplementation(() => {
         throw new Error("Invalid sig");
       });
@@ -201,8 +202,8 @@ describe("Billing Routes", () => {
     });
 
     it("processes checkout.session.completed", async () => {
-      const { stripe } = await import("../lib/stripe");
-      const { pgUpsertSubscription } = await import("../lib/pg-queries");
+      const { stripe } = await import("../lib/integrations/stripe");
+      const { pgUpsertSubscription } = await import("../lib/db/pg-queries");
 
       (stripe.webhooks.constructEvent as any).mockReturnValue({
         type: "checkout.session.completed",
@@ -228,8 +229,8 @@ describe("Billing Routes", () => {
     });
 
     it("processes customer.subscription.updated", async () => {
-      const { stripe } = await import("../lib/stripe");
-      const { pgUpdateSubscriptionByStripeCustomer } = await import("../lib/pg-queries");
+      const { stripe } = await import("../lib/integrations/stripe");
+      const { pgUpdateSubscriptionByStripeCustomer } = await import("../lib/db/pg-queries");
 
       (stripe.webhooks.constructEvent as any).mockReturnValue({
         type: "customer.subscription.updated",
@@ -253,7 +254,7 @@ describe("Billing Routes", () => {
     });
 
     it("returns 500 on unhandled processing error", async () => {
-      const { stripe } = await import("../lib/stripe");
+      const { stripe } = await import("../lib/integrations/stripe");
       (stripe.webhooks.constructEvent as any).mockReturnValue({
         type: "checkout.session.completed",
         data: { object: { metadata: { userId: "1" } } },

@@ -1,6 +1,6 @@
 import { OAuth2Client } from "google-auth-library";
 import { logger } from "../logger";
-import { pgCreateLmsConnection, pgFindLmsConnection, type PgLmsConnection } from "../pg-queries";
+import { pgCreateLmsConnection, pgFindLmsConnection, type PgLmsConnection } from "../db/pg-queries";
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLASSROOM_CLIENT_ID || "";
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLASSROOM_CLIENT_SECRET || "";

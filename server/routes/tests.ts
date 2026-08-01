@@ -16,11 +16,11 @@ import {
   pgFindFirstWorkspaceMembership,
   pgFindUserById,
   pgTrackFeatureUsage,
-} from "../lib/pg-queries";
-import { upload } from "../lib/upload";
+} from "../lib/db/pg-queries";
+import { upload } from "../lib/integrations/upload";
 import fs from "fs";
 import jwt from "jsonwebtoken";
-import { ACCESS_COOKIE } from "../lib/auth-workspace";
+import { ACCESS_COOKIE } from "../lib/auth/auth-workspace";
 
 const router = Router();
 

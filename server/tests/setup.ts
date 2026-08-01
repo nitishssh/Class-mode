@@ -27,7 +27,7 @@ vi.mock("../db-pg", () => {
 
 // Mock Redis globally — mirrors the "Redis not configured" surface of
 // server/lib/redis.ts so tests exercise the graceful-degradation paths.
-vi.mock("../lib/redis", () => ({
+vi.mock("../lib/db/redis", () => ({
   isRedisConfigured: vi.fn().mockReturnValue(false),
   isRedisReady: vi.fn().mockReturnValue(false),
   getRedis: vi.fn().mockReturnValue(null),
@@ -52,7 +52,7 @@ vi.mock("ioredis", () => {
 });
 
 // Mock all PostgreSQL query helpers globally for all tests
-vi.mock("../lib/pg-queries", () => {
+vi.mock("../lib/db/pg-queries", () => {
   const mocks: Record<string | symbol, Mock> = {};
   return new Proxy(mocks, {
     get: (target, prop) => {
