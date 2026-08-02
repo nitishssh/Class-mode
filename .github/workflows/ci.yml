@@ -16,6 +16,7 @@ jobs:
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: config/gitleaks.toml
 
   build-and-test:
     runs-on: ubuntu-latest
@@ -161,6 +162,7 @@ jobs:
           format: "sarif"
           output: "trivy-results.sarif"
           severity: "CRITICAL,HIGH"
+          trivyignores: config/trivyignore
           # Report-only: surface CRITICAL/HIGH in the Security tab but don't hard-fail
           # CI on base-image OS CVEs (outside the app's control). Mirrors cd.yml.
           # Production app-dependency vulnerabilities are already gated by
