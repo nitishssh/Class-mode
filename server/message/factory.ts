@@ -1,4 +1,4 @@
-import { getCassandraClient } from "../lib/cassandra";
+import { getCassandraClient } from "../lib/db/cassandra";
 import { CassandraMessageStore } from "./cassandra-message-store";
 import { MessageStore } from "./message-store";
 import type { IMessageStore } from "./types";

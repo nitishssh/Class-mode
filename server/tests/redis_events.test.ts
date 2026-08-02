@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // Use the REAL redis/events modules (setup.ts mocks lib/redis globally) so
 // the "Redis not configured" degradation surface is what's actually tested.
-vi.unmock("../lib/redis");
+vi.unmock("../lib/db/redis");
 
 const h = vi.hoisted(() => ({ mockSend: vi.fn() }));
 vi.mock("../services/whatsapp", () => ({
@@ -17,7 +17,7 @@ import {
   getCachedJSON,
   setCachedJSON,
   connectRedis,
-} from "../lib/redis";
+} from "../lib/db/redis";
 import { publishEvent, subscribe } from "../lib/events";
 import {
   handleAttendanceMarked,

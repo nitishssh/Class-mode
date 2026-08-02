@@ -25,7 +25,7 @@ vi.mock("../lib/logger", () => ({
 }));
 
 import uploadRouter from "../routes/upload";
-import { diskPathToUrl } from "../lib/upload";
+import { diskPathToUrl } from "../lib/integrations/upload";
 
 function makeApp() {
   const app = express();

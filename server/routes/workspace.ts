@@ -20,15 +20,15 @@ import {
   pgDeleteWorkspace,
   pgUpdateWorkspace,
   pgGetWorkspaceOnboardingProgress,
-} from "../lib/pg-queries";
+} from "../lib/db/pg-queries";
 import {
   slugifyWorkspaceName,
   randomToken,
   tokenHash,
   hasWorkspacePermission,
   type WorkspaceRole,
-} from "../lib/auth-workspace";
-import { sendWorkspaceInvite } from "../lib/mailer";
+} from "../lib/auth/auth-workspace";
+import { sendWorkspaceInvite } from "../lib/integrations/mailer";
 import { logger } from "../lib/logger";
 import { authenticateToken } from "../middleware";
 

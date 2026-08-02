@@ -33,11 +33,11 @@ vi.mock("../services/study-arena/lesson-script", () => ({
   respondToInteraction: h.respondToInteraction,
 }));
 
-vi.mock("../lib/pg-queries", () => ({
+vi.mock("../lib/db/pg-queries", () => ({
   pgIncrementAIUsage: h.pgIncrementAIUsage,
 }));
 
-vi.mock("../lib/learner-model", () => ({
+vi.mock("../lib/ai/learner-model", () => ({
   commitLearnerUpdate: h.commitLearnerUpdate,
 }));
 

@@ -39,13 +39,8 @@
 
 import OpenAI from "openai";
 import { logger } from "../logger";
-import {
-  geminiChat,
-  streamGeminiChat,
-  generateContentFromPdf,
-  verifyGeminiAccess,
-} from "../gemini";
-import { evaluateSubjectiveAnswer } from "../openai";
+import { geminiChat, streamGeminiChat, generateContentFromPdf, verifyGeminiAccess } from "./gemini";
+import { evaluateSubjectiveAnswer } from "./openai";
 
 // ── Public types ───────────────────────────────────────────────────────────
 

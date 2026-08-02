@@ -16,7 +16,7 @@
 import OpenAI from "openai";
 import { nanoid } from "nanoid";
 import { logger } from "../../lib/logger";
-import { buildPrompt } from "../../lib/prompt-loader";
+import { buildPrompt } from "../../lib/ai/prompt-loader";
 import { generate } from "../../lib/ai/gateway";
 import type {
   AgentInfo,

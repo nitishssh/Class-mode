@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { authenticateToken, requireRole } from "../middleware";
-import { resolveTenantScope } from "../lib/tenant";
+import { resolveTenantScope } from "../lib/auth/tenant";
 import {
   pgCreateFee,
   pgGetFees,
@@ -11,7 +11,7 @@ import {
   pgTrackFeatureUsage,
   pgFindUserById,
   type FeeStatus,
-} from "../lib/pg-queries";
+} from "../lib/db/pg-queries";
 import { whatsappService } from "../services/whatsapp";
 import { publishEvent } from "../lib/events";
 

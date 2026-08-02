@@ -17,7 +17,7 @@ vi.mock("../middleware", () => ({
   },
 }));
 
-vi.mock("../lib/pg-queries", () => ({
+vi.mock("../lib/db/pg-queries", () => ({
   pgGetTimetableByWorkspace: vi.fn().mockResolvedValue([
     {
       id: 1,
@@ -103,7 +103,7 @@ describe("Timetable Routes", () => {
     });
 
     it("returns 500 on db error", async () => {
-      const { pgGetTimetableByWorkspace } = await import("../lib/pg-queries");
+      const { pgGetTimetableByWorkspace } = await import("../lib/db/pg-queries");
       (pgGetTimetableByWorkspace as any).mockRejectedValueOnce(new Error("DB Error"));
       const res = await request(app).get("/api/timetable").set("x-workspace-id", "1");
       expect(res.status).toBe(500);
@@ -136,7 +136,7 @@ describe("Timetable Routes", () => {
     });
 
     it("returns 500 on db error", async () => {
-      const { pgGetTimetableByClass } = await import("../lib/pg-queries");
+      const { pgGetTimetableByClass } = await import("../lib/db/pg-queries");
       (pgGetTimetableByClass as any).mockRejectedValueOnce(new Error("DB Error"));
       const res = await request(app).get("/api/timetable/class/10A").set("x-workspace-id", "1");
       expect(res.status).toBe(500);
@@ -186,7 +186,7 @@ describe("Timetable Routes", () => {
     });
 
     it("returns 400 on validation or db error", async () => {
-      const { pgCreateTimetableSlot } = await import("../lib/pg-queries");
+      const { pgCreateTimetableSlot } = await import("../lib/db/pg-queries");
       (pgCreateTimetableSlot as any).mockRejectedValueOnce(new Error("DB Error"));
       const res = await request(app).post("/api/timetable").set("x-workspace-id", "1").send({
         className: "10A",
@@ -218,7 +218,7 @@ describe("Timetable Routes", () => {
     });
 
     it("returns 500 on db error", async () => {
-      const { pgDeleteTimetableSlot } = await import("../lib/pg-queries");
+      const { pgDeleteTimetableSlot } = await import("../lib/db/pg-queries");
       (pgDeleteTimetableSlot as any).mockRejectedValueOnce(new Error("DB Error"));
       const res = await request(app).delete("/api/timetable/1").set("x-workspace-id", "1");
       expect(res.status).toBe(500);

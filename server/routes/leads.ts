@@ -2,7 +2,7 @@ import { Router, type Request, type Response } from "express";
 import { z } from "zod";
 import { getPgPool } from "../db-pg";
 import { logger } from "../lib/logger";
-import { sendLeadNotification } from "../lib/mailer";
+import { sendLeadNotification } from "../lib/integrations/mailer";
 
 const router = Router();
 

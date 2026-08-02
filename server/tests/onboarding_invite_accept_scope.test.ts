@@ -1,7 +1,7 @@
 import { vi } from "vitest";
 
 // Mock mailer (avoid SMTP) — top-level for hoist safety.
-vi.mock("../lib/mailer", () => ({
+vi.mock("../lib/integrations/mailer", () => ({
   sendTeacherInvite: vi.fn().mockResolvedValue(undefined),
   sendStudentInvite: vi.fn().mockResolvedValue(undefined),
   sendPrincipalInvite: vi.fn().mockResolvedValue(undefined),
@@ -29,13 +29,13 @@ import {
   pgUpsertMembership,
   pgAcceptInvite,
   pgUpdateUserOnboardingComplete,
-} from "../lib/pg-queries";
+} from "../lib/db/pg-queries";
 
 // Regression coverage for: POST /invite/accept created (or updated) the user
 // account without ever setting users.school_code / users.class_name. Only
 // pgUpsertMembership recorded the school link, in a separate `memberships`
 // table — so an invited student's own account stayed school_code = NULL
-// (resolveTenantScope in server/lib/tenant.ts fails closed on every
+// (resolveTenantScope in server/lib/auth/tenant.ts fails closed on every
 // tenant-scoped route for a null school_code) and class_name = NULL/''
 // (invisible in pgGetClassNames / GET /roster, both of which filter on it).
 describe("POST /invite/accept sets schoolCode and className on the user record", () => {

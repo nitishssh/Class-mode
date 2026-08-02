@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { storage } from "../server/storage";
-import { initCassandra } from "../server/lib/cassandra";
+import { initCassandra } from "../server/lib/db/cassandra";
 
 import { connectPostgres } from "../server/db-pg";
 

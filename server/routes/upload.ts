@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { upload, diskPathToUrl } from "../lib/upload";
+import { upload, diskPathToUrl } from "../lib/integrations/upload";
 import { logger } from "../lib/logger";
 import { authenticateToken } from "../middleware";
 

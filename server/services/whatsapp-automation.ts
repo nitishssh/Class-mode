@@ -1,9 +1,9 @@
 import { Queue, Worker, Job } from "bullmq";
-import { newRedisConnection, BULLMQ_PREFIX } from "../lib/redis";
+import { newRedisConnection, BULLMQ_PREFIX } from "../lib/db/redis";
 import { whatsappService } from "./whatsapp";
 import {
   pgFindUserById
-} from "../lib/pg-queries";
+} from "../lib/db/pg-queries";
 import { getPgPool, isPgReady } from "../db-pg";
 import { logger } from "../lib/logger";
 

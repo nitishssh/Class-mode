@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { authenticateToken, requireRole } from "../middleware";
-import { resolveTenantScope } from "../lib/tenant";
-import { pgExportAttendanceRows, pgExportFeeRows } from "../lib/pg-queries";
+import { resolveTenantScope } from "../lib/auth/tenant";
+import { pgExportAttendanceRows, pgExportFeeRows } from "../lib/db/pg-queries";
 import { logger } from "../lib/logger";
 
 const router = Router();

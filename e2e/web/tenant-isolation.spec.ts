@@ -4,7 +4,7 @@ import { completeOnboarding } from "./helpers/onboarding";
 import { getLatestInviteToken } from "./helpers/db";
 
 // Regression guard for the fail-closed tenant isolation invariant
-// (server/lib/tenant.ts's resolveTenantScope, hardened in PR #305 to
+// (server/lib/auth/tenant.ts's resolveTenantScope, hardened in PR #305 to
 // distinguish a 403 from a genuine empty state): two schools set up
 // independently must never see each other's data on the tenant-scoped pages
 // — attendance, fees, and student directory. A leak here would mean either

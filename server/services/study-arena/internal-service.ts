@@ -14,7 +14,7 @@ import { classroomQueue } from "./job-queue";
 import {
   pgFindAIClassroomByJobId, pgFindAIClassroomById,
   pgDeleteAIClassroom, pgFindAIClassroomsByTeacher, pgCountAIClassrooms,
-} from "../../lib/pg-queries";
+} from "../../lib/db/pg-queries";
 import type { ClassroomData } from "./types";
 import { logger } from "../../lib/logger";
 

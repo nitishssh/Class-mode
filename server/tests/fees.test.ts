@@ -28,7 +28,7 @@ vi.mock("../middleware", () => ({
     },
 }));
 
-vi.mock("../lib/pg-queries", () => ({
+vi.mock("../lib/db/pg-queries", () => ({
   pgCreateFee: h.mockCreate,
   pgGetFees: h.mockGetFees,
   pgGetFeeById: h.mockGetFeeById,

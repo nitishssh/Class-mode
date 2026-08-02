@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { processOCRImage } from "../lib/tesseract";
+import { processOCRImage } from "../lib/integrations/tesseract";
 import { authenticateToken } from "../middleware";
 
 const router = Router();

@@ -1,5 +1,5 @@
 import { Router, Response, Request as ExpressRequest } from "express";
-import { pgFindUserById, pgDeleteUser, pgExportInteractionLog } from "../lib/pg-queries";
+import { pgFindUserById, pgDeleteUser, pgExportInteractionLog } from "../lib/db/pg-queries";
 import { authenticateToken } from "../middleware";
 import { logger } from "../lib/logger";
 import { createRequire } from "module";

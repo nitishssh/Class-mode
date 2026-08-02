@@ -10,7 +10,7 @@ import {
   pgGetParentChildAttendanceHistory,
   pgGetParentChildFeeSummary,
   pgUpdateUser,
-} from "../lib/pg-queries";
+} from "../lib/db/pg-queries";
 import { storage } from "../storage";
 
 const router = Router();

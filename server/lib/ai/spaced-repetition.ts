@@ -8,8 +8,8 @@
  * current schedule, computes the next interval, and hands it to the single
  * writer (`commitLearnerUpdate`). `getDueReviews` surfaces the day's queue.
  */
-import { getPgPool, isPgReady } from "../db-pg";
-import { logger } from "./logger";
+import { getPgPool, isPgReady } from "../../db-pg";
+import { logger } from "../logger";
 import { commitLearnerUpdate, getLearnerSnapshot, type LearnerDueReview } from "./learner-model";
 
 export interface Sm2State {

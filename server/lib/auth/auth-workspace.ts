@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
-import type { PgUser, PgWorkspace, PgWorkspaceMembership } from "./pg-queries";
+import type { PgUser, PgWorkspace, PgWorkspaceMembership } from "../db/pg-queries";
 
 export const ACCESS_COOKIE = "access_token";
 export const REFRESH_COOKIE = "refresh_token";

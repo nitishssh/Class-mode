@@ -1,7 +1,7 @@
-import { generate, type ChatMessage } from "./ai/gateway";
+import { generate, type ChatMessage } from "./gateway";
 import { commitTurnOutcome } from "./orchestrator";
-import { buildGraderSystemPrompt } from "./prompts/grader";
-import { logger } from "./logger";
+import { buildGraderSystemPrompt } from "../prompts/grader";
+import { logger } from "../logger";
 
 export interface GradeTutorTurnParams {
   studentId: number;

@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { authenticateToken } from "../middleware";
-import { resolveTenantScope } from "../lib/tenant";
-import { pgTrackFeatureUsage } from "../lib/pg-queries";
+import { resolveTenantScope } from "../lib/auth/tenant";
+import { pgTrackFeatureUsage } from "../lib/db/pg-queries";
 
 const router = Router();
 

@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import { logger } from "./logger";
+import { logger } from "../logger";
 
 if (!process.env.STRIPE_SECRET_KEY) {
   logger.warn("STRIPE_SECRET_KEY is not set. Billing features will be disabled.");

@@ -1,4 +1,4 @@
-import { getCachedJSON, setCachedJSON } from "../lib/redis";
+import { getCachedJSON, setCachedJSON } from "../lib/db/redis";
 // Or whatever AI tool is available
 
 // A generic nudge fallback if AI is unavailable or fails

@@ -10,8 +10,8 @@ import {
   pgFindGradingResults,
   pgCountGradingResults,
   pgUpdateGradingResultById,
-} from "../lib/pg-queries";
-import { resolveTenantScope } from "../lib/tenant";
+} from "../lib/db/pg-queries";
+import { resolveTenantScope } from "../lib/auth/tenant";
 
 const router = Router();
 

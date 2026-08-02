@@ -4,8 +4,8 @@
  * via integration, not here; buildLearnerContext is pure and testable.
  */
 import { describe, it, expect } from "vitest";
-import { buildLearnerContext } from "../lib/orchestrator";
-import type { LearnerSnapshot } from "../lib/learner-model";
+import { buildLearnerContext } from "../lib/ai/orchestrator";
+import type { LearnerSnapshot } from "../lib/ai/learner-model";
 
 const snap = (over: Partial<LearnerSnapshot> = {}): LearnerSnapshot => ({
   mastery: [],

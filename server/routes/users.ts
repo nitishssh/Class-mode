@@ -23,7 +23,7 @@ import {
   pgDeleteSchoolClass,
   pgFindSchoolById,
   pgUpsertSchool,
-} from "../lib/pg-queries";
+} from "../lib/db/pg-queries";
 import { recordAuditEvent, AUDIT_EVENTS } from "../lib/audit";
 import { isPgReady } from "../db-pg";
 import { getPgPool } from "../db-pg";

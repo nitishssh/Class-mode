@@ -13,11 +13,11 @@ import {
   pgFindWorkspaceBySlug,
   pgSetUserLastLogin,
   pgUpsertWorkspaceMembership,
-} from "../lib/pg-queries";
-import { tokenHash } from "../lib/auth-workspace";
+} from "../lib/db/pg-queries";
+import { tokenHash } from "../lib/auth/auth-workspace";
 import { storage } from "../storage";
 
-vi.mock("../lib/mailer", () => ({
+vi.mock("../lib/integrations/mailer", () => ({
   sendEmailVerification: vi.fn().mockResolvedValue(undefined),
   sendPasswordReset: vi.fn().mockResolvedValue(undefined),
   sendWelcomeEmail: vi.fn().mockResolvedValue(undefined),
@@ -49,7 +49,7 @@ vi.mock("../storage", () => ({
   },
 }));
 
-vi.mock("../lib/pg-queries", () => ({
+vi.mock("../lib/db/pg-queries", () => ({
   pgAcceptWorkspaceInvite: vi.fn(),
   pgCreateUser: vi.fn(),
   pgCreateWorkspace: vi.fn(),

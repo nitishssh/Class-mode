@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import { pgFindSubscriptionByUser, pgGetAIUsage } from "../lib/pg-queries";
-import { PLANS } from "../lib/stripe";
+import { pgFindSubscriptionByUser, pgGetAIUsage } from "../lib/db/pg-queries";
+import { PLANS } from "../lib/integrations/stripe";
 
 export async function checkAIQuota(feature: "ai_classroom" | "ai_tutor" | "ocr") {
   return async (req: Request, res: Response, next: NextFunction) => {

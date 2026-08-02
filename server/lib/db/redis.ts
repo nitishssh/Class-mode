@@ -1,5 +1,5 @@
 import Redis from "ioredis";
-import { logger } from "./logger";
+import { logger } from "../logger";
 
 /**
  * Single shared Redis connection for the whole app (cache, BullMQ, event bus).

@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { pgGetResources } from "../lib/pg-queries";
+import { pgGetResources } from "../lib/db/pg-queries";
 import { logger } from "../lib/logger";
 
 const router = Router();

@@ -1,12 +1,12 @@
 import { Queue, Worker, Job } from "bullmq";
-import { newRedisConnection, isRedisConfigured, BULLMQ_PREFIX } from "../../lib/redis";
+import { newRedisConnection, isRedisConfigured, BULLMQ_PREFIX } from "../../lib/db/redis";
 import { generateFullClassroom } from "./generator";
 import {
   pgCreateAIClassroom,
   pgFindAIClassroomByJobId,
   pgUpdateAIClassroom,
   pgIncrementAIUsage,
-} from "../../lib/pg-queries";
+} from "../../lib/db/pg-queries";
 import { logger } from "../../lib/logger";
 import type { ClassroomGenerationProgress } from "./types";
 
