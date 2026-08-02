@@ -1,11 +1,11 @@
 import { useLocation, Link } from "wouter";
 import { Home, BookOpen, FileText, BarChart2, MessageSquare, UserCircle } from "lucide-react";
-import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
 
 export function MobileNav() {
   const [location] = useLocation();
-  const { currentUser } = useFirebaseAuth();
+  const { currentUser } = useAuth();
   const userRole = currentUser?.profile?.role || "student";
 
   const teacherNavItems = [

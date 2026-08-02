@@ -4,7 +4,7 @@ import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { useAuth } from "@/contexts/auth-context";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { markQuestComplete } from "@/hooks/use-quest-progress";
@@ -45,7 +45,7 @@ type TestFormValues = z.infer<typeof testSchema>;
 
 export function TestDetailsForm() {
   const { toast } = useToast();
-  const { currentUser } = useFirebaseAuth();
+  const { currentUser } = useAuth();
   const [, setLocation] = useLocation();
 
   const { data: teacherSubjects = [] } = useQuery<string[]>({

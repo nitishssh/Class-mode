@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { apiRequest, isPermissionError } from "@/lib/queryClient";
 import { trackFeatureView } from "@/lib/track-usage";
 import { PermissionDenied } from "@/components/ui/permission-denied";
-import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { useAuth } from "@/contexts/auth-context";
 import { PageHeader } from "@/components/layout/page-header";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import {
@@ -70,7 +70,7 @@ function IndividualStudentsTab() {
 }
 
 export default function Analytics() {
-  const { currentUser } = useFirebaseAuth();
+  const { currentUser } = useAuth();
   const studentId = currentUser?.profile?.uid;
   const [analysis, setAnalysis] = useState<any>(null);
 

@@ -68,7 +68,7 @@ interface AuthContextType {
   refreshSession: () => Promise<void>;
 }
 
-const FirebaseAuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 function profileFromMe(data: any): UserProfile {
   const user = data.user ?? data;
@@ -140,7 +140,7 @@ async function localPasswordSignup(args: {
   return profileFromMe(data);
 }
 
-export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<AuthUser>({ user: null, profile: null });
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
@@ -258,7 +258,7 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   return (
-    <FirebaseAuthContext.Provider
+    <AuthContext.Provider
       value={{
         currentUser,
         isLoading,
@@ -272,18 +272,14 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }}
     >
       {children}
-    </FirebaseAuthContext.Provider>
+    </AuthContext.Provider>
   );
 };
 
-export const AuthProvider = FirebaseAuthProvider;
-
-export const useFirebaseAuth = () => {
-  const context = useContext(FirebaseAuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useFirebaseAuth must be used within a FirebaseAuthProvider");
+    throw new Error("useAuth must be used within a AuthProvider");
   }
   return context;
 };
-
-export const useAuth = useFirebaseAuth;

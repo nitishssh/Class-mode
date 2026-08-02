@@ -21,7 +21,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { useAuth } from "@/contexts/auth-context";
 import { PageHeader } from "@/components/layout/page-header";
 import { SmartCard } from "@/components/ui/smart-card";
 import { StreakWidget } from "@/components/student/StreakWidget";
@@ -78,7 +78,7 @@ const subjectMeta: Record<
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function StudentDashboard() {
-  const { currentUser } = useFirebaseAuth();
+  const { currentUser } = useAuth();
   const [showBadge, setShowBadge] = useState(false);
   const [earnedBadge, setEarnedBadge] = useState<{
     name: string;

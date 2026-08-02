@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useRoute, useLocation } from "wouter";
-import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { useAuth } from "@/contexts/auth-context";
 import { apiRequest } from "@/lib/queryClient";
 import { DailyProvider } from "@daily-co/daily-react";
 import DailyIframe, { DailyCall } from "@daily-co/daily-js";
@@ -23,7 +23,7 @@ function ClassroomContent({
 }) {
   const {
     currentUser: { profile },
-  } = useFirebaseAuth();
+  } = useAuth();
   const { joinRoom, leaveRoom, roomState } = useClassroom();
   const { toast } = useToast();
 

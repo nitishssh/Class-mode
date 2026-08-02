@@ -1,43 +1,43 @@
 import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
-import { authenticateToken, requireVerifiedEmail } from "./middleware";
+import { authenticateToken, requireVerifiedEmail } from "../middleware";
 
 // Route imports
-import authRouter from "./routes/auth";
-import onboardingRouter from "./routes/onboarding";
-import workspaceRouter from "./routes/workspace";
-import dynamicSisRouter from "./routes/dynamic-sis";
-import lifecycleRouter from "./routes/lifecycle";
-import healthRoutes from "./routes/health";
-import leadsRouter from "./routes/leads";
-import whatsappRoutes from "./routes/whatsapp";
-import attendanceRoutes from "./routes/attendance";
-import feesRoutes from "./routes/fees";
-import usageRoutes from "./routes/usage";
-import exportRoutes from "./routes/export";
-import gdprRoutes from "./routes/gdpr";
-import billingRoutes from "./routes/billing";
-import lmsRoutes from "./routes/lms";
-import educatorRoutes from "./routes/educator";
-import resourcesRoutes from "./routes/resources";
-import parentRoutes from "./routes/parent";
-import gradingRoutes from "./routes/grading";
-import aiClassroomRoutes from "./routes/ai-classroom";
-import studyArenaBetaRoutes from "./routes/study-arena-beta";
-import { liveRouter } from "./routes/live";
-import messageRoutes from "./message/routes";
+import authRouter from "./auth";
+import onboardingRouter from "./onboarding";
+import workspaceRouter from "./workspace";
+import dynamicSisRouter from "./dynamic-sis";
+import lifecycleRouter from "./lifecycle";
+import healthRoutes from "./health";
+import leadsRouter from "./leads";
+import whatsappRoutes from "./whatsapp";
+import attendanceRoutes from "./attendance";
+import feesRoutes from "./fees";
+import usageRoutes from "./usage";
+import exportRoutes from "./export";
+import gdprRoutes from "./gdpr";
+import billingRoutes from "./billing";
+import lmsRoutes from "./lms";
+import educatorRoutes from "./educator";
+import resourcesRoutes from "./resources";
+import parentRoutes from "./parent";
+import gradingRoutes from "./grading";
+import aiClassroomRoutes from "./ai-classroom";
+import studyArenaBetaRoutes from "./study-arena-beta";
+import { liveRouter } from "./live";
+import messageRoutes from "../message/routes";
 
 // Newly extracted domain-driven routers
-import analyticsRouter from "./routes/analytics";
-import testsRouter from "./routes/tests";
-import usersRouter from "./routes/users";
-import chatRouter from "./routes/chat";
-import tasksRouter from "./routes/tasks";
-import notificationsRouter from "./routes/notifications";
-import ocrRouter from "./routes/ocr";
-import uploadRouter from "./routes/upload";
-import timetableRouter from "./routes/timetable";
-import aiRouter from "./routes/ai";
+import analyticsRouter from "./analytics";
+import testsRouter from "./tests";
+import usersRouter from "./users";
+import chatRouter from "./chat";
+import tasksRouter from "./tasks";
+import notificationsRouter from "./notifications";
+import ocrRouter from "./ocr";
+import uploadRouter from "./upload";
+import timetableRouter from "./timetable";
+import aiRouter from "./ai";
 
 // Shorthand: auth + verified email — used on all dashboard-level routes
 const verifiedAuth = [authenticateToken, requireVerifiedEmail];

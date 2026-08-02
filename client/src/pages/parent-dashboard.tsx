@@ -1,6 +1,6 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/layout/page-header";
-import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -37,7 +37,7 @@ import {
  * @returns A React element representing the Parent Dashboard page.
  */
 export default function ParentDashboard() {
-  const { currentUser } = useFirebaseAuth();
+  const { currentUser } = useAuth();
 
   const { data: childrenData, isLoading: isLoadingChildren } = useQuery<any[]>({
     queryKey: ["/api/users/children"],

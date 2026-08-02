@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
-import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { useAuth } from "@/contexts/auth-context";
 import { useQuery } from "@tanstack/react-query";
 
 const ONBOARDING_PATHS = [
@@ -14,7 +14,7 @@ const ONBOARDING_PATHS = [
 export function useOnboardingGuard() {
   const {
     currentUser: { profile },
-  } = useFirebaseAuth();
+  } = useAuth();
   const [location, setLocation] = useLocation();
 
   const { data: mongoUser } = useQuery<any>({

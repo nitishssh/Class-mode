@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { useAuth } from "@/contexts/auth-context";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { PageHeader } from "@/components/layout/page-header";
@@ -59,7 +59,7 @@ function EmptyPanel({ message, className }: { message: string; className?: strin
  * Renders the Principal's dashboard with statistics, charts, staff and finance summaries, events, and notifications.
  */
 export default function PrincipalDashboard() {
-  const { currentUser } = useFirebaseAuth();
+  const { currentUser } = useAuth();
   // Default OFF: real accounts see their actual data + honest empty states.
   // Turning "Demo Data" on is an explicit opt-in for demos/screenshots.
   const [isDemoMode, setIsDemoMode] = useState(false);

@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/layout/page-header";
-import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { useAuth } from "@/contexts/auth-context";
 import {
   Radar,
   RadarChart,
@@ -94,7 +94,7 @@ const subjectMeta: Record<
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function MyProgress() {
-  const { currentUser } = useFirebaseAuth();
+  const { currentUser } = useAuth();
   const studentId = currentUser?.profile?.uid;
 
   // Fetch real progress data

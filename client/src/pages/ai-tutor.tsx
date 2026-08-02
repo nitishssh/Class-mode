@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { useAuth } from "@/contexts/auth-context";
 import { BentoHeroCard } from "@/components/chat/bento-hero-card";
 import { BentoSubjectCard } from "@/components/chat/bento-subject-card";
 import { RagChatSheet } from "@/components/chat/rag-chat-sheet";
@@ -10,7 +10,7 @@ interface AiTutorProps {
 }
 
 export default function AiTutor({ initialTopic }: AiTutorProps = {}) {
-  const { currentUser } = useFirebaseAuth();
+  const { currentUser } = useAuth();
   const [activeSubject, setActiveSubject] = useState<string | null>(null);
   const [initialPrompt, setInitialPrompt] = useState("");
   const [isChatOpen, setIsChatOpen] = useState(false);

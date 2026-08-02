@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from "react";
 import { useLocation } from "wouter";
-import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { useAuth } from "@/contexts/auth-context";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, FieldValues, UseFormReturn } from "react-hook-form";
@@ -252,9 +252,9 @@ const registerSchema = z
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
-export function FirebaseAuthDialog() {
+export function AuthDialog() {
   const { t } = useTranslation();
-  const { login, register, resetUserPassword } = useFirebaseAuth();
+  const { login, register, resetUserPassword } = useAuth();
   const [, setLocation] = useLocation();
 
   const [authTab, setAuthTab] = useState<"login" | "register" | "forgotPassword">("login");

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Menu, Bell, Search, MessageSquare, Settings, Moon, Sun } from "lucide-react";
 import { useTheme } from "@/contexts/theme-context";
-import { useFirebaseAuth as useAuth } from "@/contexts/firebase-auth-context";
+import { useAuth } from "@/contexts/auth-context";
 import { getInitials } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

@@ -5,10 +5,10 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
 import { ThemeProvider } from "@/contexts/theme-context";
-import { FirebaseAuthProvider, useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { AuthProvider, useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/layout/sidebar";
-import { ErrorBoundary } from "@/components/error-boundary";
+import { ErrorBoundary } from "@/components/layout/error-boundary";
 import { QuestPanel } from "@/components/quest/QuestPanel";
 import { QuestButton } from "@/components/quest/QuestButton";
 import { Loader2 } from "lucide-react";
@@ -122,7 +122,7 @@ const withProtection = <P extends object>(
     const {
       currentUser: { profile },
       isLoading,
-    } = useFirebaseAuth();
+    } = useAuth();
 
     if (isLoading) {
       return (
@@ -235,7 +235,7 @@ function App() {
     currentUser: { profile },
     isLoading,
     logout,
-  } = useFirebaseAuth();
+  } = useAuth();
   useOnboardingGuard();
 
   if (isLoading) {
@@ -425,7 +425,7 @@ export default function Root() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="system">
-        <FirebaseAuthProvider>
+        <AuthProvider>
           <WorkspaceProvider>
             <I18nProvider>
               <App />
@@ -434,7 +434,7 @@ export default function Root() {
               <SonnerToaster richColors position="top-center" />
             </I18nProvider>
           </WorkspaceProvider>
-        </FirebaseAuthProvider>
+        </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

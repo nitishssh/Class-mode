@@ -35,7 +35,7 @@ import {
   saveOnboardingProgress,
   clearOnboardingProgress,
 } from "@/lib/onboarding-persistence";
-import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -395,7 +395,7 @@ export default function OnboardingV2() {
   const {
     currentUser: { profile },
     refreshSession,
-  } = useFirebaseAuth();
+  } = useAuth();
   // Resume from saved progress if the user dropped off mid-flow. Clamp to
   // steps 1-6 so we never restore directly onto the celebration screen (7).
   const [step, setStep] = useState<Step>(() => {
