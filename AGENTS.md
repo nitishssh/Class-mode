@@ -31,10 +31,9 @@ This repo is wired for the [Jules](https://jules.google) coding agent.
 
 ## Test quirks
 
-- `.env.test` is gitignored; `vitest.config.ts` provides fallback defaults for CI.
-- Two vitest configs: `vitest.config.ts` (root, CI) and `server/vitest.config.ts` (standalone server tests).
+- `.env.test` is gitignored; root `vitest.config.ts` provides fallback defaults for CI.
+- Single vitest config at the repo root (`npm test` → `vitest run --root .`, include `server/tests/**/*.test.ts`).
 - Test setup: `server/tests/setup.ts` — loads `.env.test`.
-- `server/tests/microservices-integration.test.ts` is excluded from server vitest config.
 - Excluded from root test glob: `e2e/`, `features/`.
 - MongoDB required for meaningful tests (`MONGODB_URL` env var).
 
@@ -58,11 +57,10 @@ Single `package.json` (no monorepo tool). Key directories:
 
 ## Path aliases
 
-| Alias       | Resolves to         | Configured in          |
-| ----------- | ------------------- | ---------------------- |
-| `@/*`       | `client/src/*`      | tsconfig, vite, vitest |
-| `@shared/*` | `shared/*`          | tsconfig, vite, vitest |
-| `@assets/*` | `attached_assets/*` | vite only              |
+| Alias       | Resolves to    | Configured in          |
+| ----------- | -------------- | ---------------------- |
+| `@/*`       | `client/src/*` | tsconfig, vite, vitest |
+| `@shared/*` | `shared/*`     | tsconfig, vite, vitest |
 
 ## Architecture
 
@@ -143,7 +141,7 @@ Single `package.json` (no monorepo tool). Key directories:
 
 ## Repo conventions
 
-- Commit format: `<type>: <subject>` — types: `feat|fix|docs|style|refactor|test|chore` (see `.gitmessage`).
+- Commit format: `<type>: <subject>` — types: `feat|fix|docs|style|refactor|test|chore` (see `config/gitmessage`).
 - ESLint uses `unused-imports` plugin (not the built-in TS rule). Use `npm run lint:fix` for auto-fix.
 - Server uses singleton `storage` object (`server/storage.ts`). Mount new routes in `server/routes/*.ts` and register in `server/index.ts`.
 - Use `@shared/schema` Zod schemas for API input validation; `@shared/mongo-schema` for DB operations.

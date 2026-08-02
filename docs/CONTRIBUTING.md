@@ -130,13 +130,9 @@ You only need to sign once — it applies to all future contributions. Read the 
 
 If you are using an AI coding agent (like Gemini CLI, Cursor, or Aider) to contribute to this project: 🧠🤖
 
-1. **📖 Read `AGENTS.md`:** Our repository includes a standard `AGENTS.md` file in the root directory. This acts as a "README for agents" and contains essential environment tips, testing instructions, and coding conventions. 📜✨
-2. **🛠️ Use the `.agent` Directory:** For complex tasks, we follow a spec-first workflow. Look inside the `.agent/` directory for our modular context:
-   - `.agent/spec/`: Store requirements, design docs, and task lists here. 📋
-   - `.agent/prompts/`: Use predefined agent workflows (like `spec-workflow.md`). 📜
-   - `.agent/wiki/`: Read architecture deep-dives. 🏛️
-   - `.agent/rules/`: Adhere to the `POLICIES.md` defined here. ⚖️
-3. **🔐 Keep Workflows Local:** The `.agent/` directory and `AGENTS.md` are ignored in `.gitignore` to prevent cluttering the repository with agent-specific state, but the structure and instructions are maintained locally. Always ensure you follow the instructions in `AGENTS.md`. 🛡️✨
+1. **📖 Read `AGENTS.md` and `CLAUDE.md`:** Both live in the root directory and are tracked in git. They act as a "README for agents" — environment tips, testing instructions, coding conventions, and skill routing. 📜✨
+2. **🔐 Agent state stays local:** `.agent/`, `.agents/`, `.claude/` and `.kiro` are listed in `.gitignore` and are **not** tracked. They hold per-developer assistant configuration (agent definitions, commands, hooks, rules, skills, and machine-specific `settings.local.json` files), so their contents differ from machine to machine and are not shared through the repository. Set yours up however your tooling expects.
+3. **📋 Shared context belongs in tracked files:** anything other contributors need to see goes in `AGENTS.md`, `CLAUDE.md`, `docs/`, or `TODOS.md` — never in an ignored agent directory, where a fresh clone will not have it. 🛡️✨
 
 ## 🏛️ Architecture Notes
 

@@ -64,7 +64,6 @@ services:
       - ./tailwind.config.ts:/app/tailwind.config.ts
       - ./postcss.config.js:/app/postcss.config.js
       - ./tsconfig.json:/app/tsconfig.json
-      - ./theme.json:/app/theme.json
       - /app/node_modules
     healthcheck:
       <<: *healthcheck-http
