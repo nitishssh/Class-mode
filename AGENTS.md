@@ -141,7 +141,7 @@ Single `package.json` (no monorepo tool). Key directories:
 
 ## Repo conventions
 
-- Commit format: `<type>: <subject>` — types: `feat|fix|docs|style|refactor|test|chore` (see `.gitmessage`).
+- Commit format: `<type>: <subject>` — types: `feat|fix|docs|style|refactor|test|chore` (see `config/gitmessage`).
 - ESLint uses `unused-imports` plugin (not the built-in TS rule). Use `npm run lint:fix` for auto-fix.
 - Server uses singleton `storage` object (`server/storage.ts`). Mount new routes in `server/routes/*.ts` and register in `server/index.ts`.
 - Use `@shared/schema` Zod schemas for API input validation; `@shared/mongo-schema` for DB operations.
