@@ -900,6 +900,203 @@ CREATE INDEX IF NOT EXISTS idx_interaction_log_student  ON interaction_log(stude
 CREATE INDEX IF NOT EXISTS idx_memory_notes_student     ON memory_notes(student_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS content_chunks_embedding_idx ON content_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
 
+-- ─── Study Arena Phase A: teacher-assigned mastery evidence ──────────────────
+-- These tables are deliberately separate from the legacy beta's loose
+-- interaction_log payloads. Assignment, session, and evidence identifiers are
+-- server-owned so a browser cannot forge a completed lesson or cross a tenant
+-- boundary by supplying another lesson id.
+
+CREATE TABLE IF NOT EXISTS study_arena_lesson_versions (
+  id              uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id    bigint       NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  created_by      bigint       NOT NULL REFERENCES users(id),
+  status          text         NOT NULL DEFAULT 'draft'
+                  CHECK (status IN ('draft','published','withdrawn','archived')),
+  subject         text         NOT NULL,
+  grade_level     text,
+  objective       text         NOT NULL,
+  language        text         NOT NULL DEFAULT 'en',
+  script          jsonb        NOT NULL,
+  source_policy   text         NOT NULL DEFAULT 'teacher_supplied',
+  evaluator_version text       NOT NULL,
+  template_id     text,
+  -- Server-only evaluator targets; never included in the assigned scene API.
+  template_config jsonb        NOT NULL DEFAULT '{}',
+  primary_concept_id text,
+  published_at    timestamptz,
+  withdrawn_at    timestamptz,
+  created_at      timestamptz  NOT NULL DEFAULT now()
+);
+ALTER TABLE study_arena_lesson_versions ADD COLUMN IF NOT EXISTS primary_concept_id text;
+ALTER TABLE study_arena_lesson_versions ADD COLUMN IF NOT EXISTS template_id text;
+ALTER TABLE study_arena_lesson_versions ADD COLUMN IF NOT EXISTS template_config jsonb NOT NULL DEFAULT '{}';
+-- Teacher creation approvals: { objective?: {at, by}, source?: {at, by}, assessment?: {at, by} }
+ALTER TABLE study_arena_lesson_versions ADD COLUMN IF NOT EXISTS approvals jsonb NOT NULL DEFAULT '{}';
+
+CREATE TABLE IF NOT EXISTS study_arena_source_spans (
+  id                uuid       PRIMARY KEY DEFAULT gen_random_uuid(),
+  lesson_version_id uuid       NOT NULL REFERENCES study_arena_lesson_versions(id) ON DELETE CASCADE,
+  objective         text       NOT NULL,
+  source_label      text       NOT NULL,
+  source_locator    text,
+  excerpt           text       NOT NULL,
+  created_at        timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS study_arena_assignments (
+  id                uuid       PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id      bigint     NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  lesson_version_id uuid       NOT NULL REFERENCES study_arena_lesson_versions(id),
+  created_by        bigint     NOT NULL REFERENCES users(id),
+  school_class_id   bigint     REFERENCES school_classes(id) ON DELETE SET NULL,
+  status            text       NOT NULL DEFAULT 'draft'
+                    CHECK (status IN ('draft','published','revoked','expired')),
+  available_at      timestamptz NOT NULL DEFAULT now(),
+  due_at            timestamptz,
+  revoked_at        timestamptz,
+  created_at        timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS study_arena_assignment_enrollments (
+  assignment_id  uuid       NOT NULL REFERENCES study_arena_assignments(id) ON DELETE CASCADE,
+  student_id     bigint     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  enrolled_at    timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (assignment_id, student_id)
+);
+
+CREATE TABLE IF NOT EXISTS study_arena_attempt_sessions (
+  id                uuid       PRIMARY KEY DEFAULT gen_random_uuid(),
+  assignment_id     uuid       NOT NULL REFERENCES study_arena_assignments(id) ON DELETE CASCADE,
+  student_id        bigint     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  lesson_version_id uuid       NOT NULL REFERENCES study_arena_lesson_versions(id),
+  status            text       NOT NULL DEFAULT 'active'
+                    CHECK (status IN ('active','completed','abandoned','revoked')),
+  -- Scene routing state is server-owned. Keep next_action_index for the
+  -- existing linear gate cursor and replay protection.
+  current_scene_id  text,
+  completed_scene_ids jsonb    NOT NULL DEFAULT '[]',
+  branch_path       jsonb      NOT NULL DEFAULT '[]',
+  director_decision jsonb      NOT NULL DEFAULT '{}',
+  director_decision_version integer NOT NULL DEFAULT 0 CHECK (director_decision_version >= 0),
+  next_action_index integer    NOT NULL DEFAULT 0 CHECK (next_action_index >= 0),
+  created_at        timestamptz NOT NULL DEFAULT now(),
+  completed_at      timestamptz,
+  adaptive_recommendation jsonb NOT NULL DEFAULT '{}',
+  is_preview        boolean    NOT NULL DEFAULT false,
+  UNIQUE (assignment_id, student_id)
+);
+ALTER TABLE study_arena_attempt_sessions ADD COLUMN IF NOT EXISTS adaptive_recommendation jsonb NOT NULL DEFAULT '{}';
+ALTER TABLE study_arena_attempt_sessions ADD COLUMN IF NOT EXISTS current_scene_id text;
+ALTER TABLE study_arena_attempt_sessions ADD COLUMN IF NOT EXISTS completed_scene_ids jsonb NOT NULL DEFAULT '[]';
+ALTER TABLE study_arena_attempt_sessions ADD COLUMN IF NOT EXISTS branch_path jsonb NOT NULL DEFAULT '[]';
+ALTER TABLE study_arena_attempt_sessions ADD COLUMN IF NOT EXISTS director_decision jsonb NOT NULL DEFAULT '{}';
+ALTER TABLE study_arena_attempt_sessions ADD COLUMN IF NOT EXISTS director_decision_version integer NOT NULL DEFAULT 0;
+ALTER TABLE study_arena_attempt_sessions ADD COLUMN IF NOT EXISTS is_preview boolean NOT NULL DEFAULT false;
+-- Preview sessions must not collide with the one learner session per assignment.
+ALTER TABLE study_arena_attempt_sessions
+  DROP CONSTRAINT IF EXISTS study_arena_attempt_sessions_assignment_id_student_id_key;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_study_arena_sessions_learner_unique
+  ON study_arena_attempt_sessions(assignment_id, student_id)
+  WHERE is_preview = false;
+
+CREATE TABLE IF NOT EXISTS study_arena_intervention_actions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  assignment_id uuid NOT NULL REFERENCES study_arena_assignments(id) ON DELETE CASCADE,
+  student_id bigint REFERENCES users(id) ON DELETE SET NULL,
+  teacher_id bigint NOT NULL REFERENCES users(id),
+  cohort_key text NOT NULL,
+  action_note text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS study_arena_evidence_events (
+  id                 uuid       PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id       bigint     NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  assignment_id      uuid       NOT NULL REFERENCES study_arena_assignments(id) ON DELETE CASCADE,
+  attempt_session_id uuid       NOT NULL REFERENCES study_arena_attempt_sessions(id) ON DELETE CASCADE,
+  student_id         bigint     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  lesson_version_id  uuid       NOT NULL REFERENCES study_arena_lesson_versions(id),
+  objective          text       NOT NULL,
+  event_kind         text       NOT NULL CHECK (event_kind IN ('attempt','hint','assessment','intervention')),
+  action_index       integer    NOT NULL CHECK (action_index >= 0),
+  idempotency_key    text       NOT NULL,
+  evidence           jsonb      NOT NULL DEFAULT '{}',
+  created_at         timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (attempt_session_id, idempotency_key)
+);
+
+CREATE TABLE IF NOT EXISTS study_arena_assessment_instances (
+  id                 uuid       PRIMARY KEY DEFAULT gen_random_uuid(),
+  attempt_session_id uuid       NOT NULL REFERENCES study_arena_attempt_sessions(id) ON DELETE CASCADE,
+  assessment_id      text       NOT NULL,
+  evaluator_version  text       NOT NULL,
+  action_index       integer    NOT NULL DEFAULT 0 CHECK (action_index >= 0),
+  nonce_hash         text,
+  issued_at          timestamptz NOT NULL DEFAULT now(),
+  due_at             timestamptz,
+  submitted_at       timestamptz,
+  status             text       NOT NULL DEFAULT 'available'
+                    CHECK (status IN ('available','submitted','invalidated','expired')),
+  UNIQUE (attempt_session_id, assessment_id)
+);
+
+ALTER TABLE study_arena_assessment_instances
+  ADD COLUMN IF NOT EXISTS action_index integer NOT NULL DEFAULT 0;
+ALTER TABLE study_arena_assessment_instances
+  ADD COLUMN IF NOT EXISTS nonce_hash text;
+ALTER TABLE study_arena_assessment_instances
+  ADD COLUMN IF NOT EXISTS issued_at timestamptz NOT NULL DEFAULT now();
+
+CREATE TABLE IF NOT EXISTS study_arena_assessment_evaluations (
+  id                    uuid       PRIMARY KEY DEFAULT gen_random_uuid(),
+  assessment_instance_id uuid      NOT NULL REFERENCES study_arena_assessment_instances(id) ON DELETE CASCADE,
+  evaluator_version     text       NOT NULL,
+  correct               boolean    NOT NULL,
+  confidence            real       NOT NULL DEFAULT 1 CHECK (confidence >= 0 AND confidence <= 1),
+  misconception_code    text,
+  evaluated_at          timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (assessment_instance_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_study_arena_versions_workspace
+  ON study_arena_lesson_versions(workspace_id, status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_study_arena_assignments_workspace
+  ON study_arena_assignments(workspace_id, status, available_at);
+CREATE INDEX IF NOT EXISTS idx_study_arena_enrollments_student
+  ON study_arena_assignment_enrollments(student_id, assignment_id);
+CREATE INDEX IF NOT EXISTS idx_study_arena_sessions_student
+  ON study_arena_attempt_sessions(student_id, status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_study_arena_evidence_report
+  ON study_arena_evidence_events(workspace_id, assignment_id, objective, created_at);
+CREATE INDEX IF NOT EXISTS idx_study_arena_assessment_available
+  ON study_arena_assessment_instances(attempt_session_id, status, due_at);
+
+-- Durable async lesson-compiler jobs (fingerprint dedupe, cancel, retry).
+CREATE TABLE IF NOT EXISTS study_arena_compiler_jobs (
+  id                 uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id       bigint       NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  teacher_id         bigint       NOT NULL REFERENCES users(id),
+  request_fingerprint text        NOT NULL,
+  status             text         NOT NULL DEFAULT 'queued'
+                     CHECK (status IN ('queued','running','completed','failed','cancelled')),
+  progress           jsonb        NOT NULL DEFAULT '{}',
+  source_text        text         NOT NULL,
+  objective          text         NOT NULL,
+  subject            text         NOT NULL,
+  grade_level        text,
+  lesson_version_id  uuid         REFERENCES study_arena_lesson_versions(id) ON DELETE SET NULL,
+  error_message      text,
+  bullmq_job_id      text,
+  created_at         timestamptz  NOT NULL DEFAULT now(),
+  updated_at         timestamptz  NOT NULL DEFAULT now(),
+  cancelled_at       timestamptz
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_study_arena_compiler_jobs_active_fingerprint
+  ON study_arena_compiler_jobs(workspace_id, request_fingerprint)
+  WHERE status IN ('queued', 'running');
+CREATE INDEX IF NOT EXISTS idx_study_arena_compiler_jobs_workspace
+  ON study_arena_compiler_jobs(workspace_id, created_at DESC);
+
 -- ─── Landing-page leads (public contact form) ─────────────────────────────────
 -- Pilot/contact requests submitted from the marketing site. No tenant scope:
 -- these arrive before a school exists in the system.

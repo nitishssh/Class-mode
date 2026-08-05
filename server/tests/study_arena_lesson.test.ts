@@ -8,7 +8,11 @@ vi.mock("../lib/ai/gateway", () => ({
 }));
 
 import {
+  createLinearEquationsDelayedCheck,
+  createLinearEquationsSprint,
+  gradeLinearEquationsAssessment,
   generateLessonScript,
+  lessonScriptSchema,
   respondToInteraction,
   sanitizeTutorFeedback,
 } from "../services/study-arena/lesson-script";
@@ -47,6 +51,133 @@ const goodScript = {
     },
   ],
 };
+
+describe("lesson scene graph contract", () => {
+  it("keeps existing linear scripts valid without a declared graph", () => {
+    expect(lessonScriptSchema.safeParse(goodScript).success).toBe(true);
+  });
+
+  it("accepts a declared branch graph that reaches an independent assessment", () => {
+    const result = lessonScriptSchema.safeParse({
+      topic: "Linear equations",
+      scenes: [
+        {
+          id: "intro",
+          actions: [
+            { type: "ask", agent: "teacher", prompt: "Try it", expects: "freeText", gate: true },
+          ],
+        },
+        {
+          id: "support",
+          actions: [
+            { type: "ask", agent: "coach", prompt: "Try again", expects: "freeText", gate: true },
+          ],
+        },
+        {
+          id: "transfer",
+          actions: [
+            {
+              type: "assessment",
+              agent: "teacher",
+              assessmentId: "linear-equations-immediate",
+              prompt: "Solve it",
+              gate: true,
+            },
+          ],
+        },
+      ],
+      sceneGraph: {
+        version: "v1",
+        entrySceneId: "intro",
+        transitions: [
+          {
+            fromSceneId: "intro",
+            toSceneId: "transfer",
+            when: { kind: "assessment_result", correct: true },
+          },
+          {
+            fromSceneId: "intro",
+            toSceneId: "support",
+            when: { kind: "assessment_result", correct: false },
+          },
+          { fromSceneId: "support", toSceneId: "transfer" },
+        ],
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects dangling targets, unreachable scenes, and paths without an ending", () => {
+    const result = lessonScriptSchema.safeParse({
+      topic: "Graph errors",
+      scenes: [
+        {
+          id: "entry",
+          actions: [
+            { type: "ask", agent: "teacher", prompt: "Try it", expects: "freeText", gate: true },
+          ],
+        },
+        {
+          id: "orphan",
+          actions: [
+            { type: "ask", agent: "teacher", prompt: "Try it", expects: "freeText", gate: true },
+          ],
+        },
+      ],
+      sceneGraph: {
+        version: "v1",
+        entrySceneId: "entry",
+        transitions: [{ fromSceneId: "entry", toSceneId: "missing" }],
+      },
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.map((issue) => issue.message).join(" ")).toMatch(
+        /does not exist|not reachable|cannot reach/
+      );
+    }
+  });
+
+  it("requires an explicit traversal limit for retry cycles", () => {
+    const script = {
+      topic: "Bounded retry",
+      scenes: [
+        {
+          id: "practice",
+          actions: [
+            { type: "ask", agent: "teacher", prompt: "Try it", expects: "freeText", gate: true },
+          ],
+        },
+        {
+          id: "review",
+          actions: [
+            { type: "ask", agent: "coach", prompt: "Try again", expects: "freeText", gate: true },
+          ],
+        },
+      ],
+      sceneGraph: {
+        version: "v1" as const,
+        entrySceneId: "practice",
+        transitions: [
+          { fromSceneId: "practice", toSceneId: "review" },
+          { fromSceneId: "review", toSceneId: "practice" },
+          { fromSceneId: "review", terminal: true },
+        ],
+      },
+    };
+    expect(lessonScriptSchema.safeParse(script).success).toBe(false);
+    const bounded = {
+      ...script,
+      sceneGraph: {
+        ...script.sceneGraph,
+        transitions: script.sceneGraph.transitions.map((transition, index) =>
+          index < 2 ? { ...transition, maxTraversals: 2 } : transition
+        ),
+      },
+    };
+    expect(lessonScriptSchema.safeParse(bounded).success).toBe(true);
+  });
+});
 
 describe("generateLessonScript", () => {
   beforeEach(() => vi.clearAllMocks());
@@ -155,6 +286,34 @@ describe("generateLessonScript", () => {
     (mockGenerate as Mock).mockResolvedValue(JSON.stringify(longTopic));
     const script = await generateLessonScript("x");
     expect(script.topic.length).toBe(300);
+  });
+});
+
+describe("linear equations mastery sprint", () => {
+  it("has a fixed attempt-first sequence ending in an independent transfer check", () => {
+    const script = createLinearEquationsSprint();
+    expect(script.topic).toBe("Linear equations");
+    const finalAction = script.scenes.at(-1)?.actions.at(-1);
+    expect(finalAction).toMatchObject({
+      type: "assessment",
+      assessmentId: "linear-equations-immediate",
+      gate: true,
+    });
+  });
+
+  it("grades accepted numeric answer forms without an LLM", () => {
+    expect(gradeLinearEquationsAssessment("linear-equations-immediate", "x = 5")).toBe(true);
+    expect(gradeLinearEquationsAssessment("linear-equations-immediate", "4")).toBe(false);
+    expect(gradeLinearEquationsAssessment("linear-equations-delayed", "7")).toBe(true);
+  });
+
+  it("uses a different no-AI problem for delayed recall", () => {
+    const finalAction = createLinearEquationsDelayedCheck().scenes[0].actions[0];
+    expect(finalAction).toMatchObject({
+      type: "assessment",
+      assessmentId: "linear-equations-delayed",
+      gate: true,
+    });
   });
 });
 
