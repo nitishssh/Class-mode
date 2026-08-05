@@ -116,7 +116,12 @@ export async function applyLearnerUpdateInTransaction(
   if (update.interaction) {
     await client.query(
       `INSERT INTO interaction_log (student_id, kind, concept, payload) VALUES ($1, $2, $3, $4)`,
-      [studentId, update.interaction.kind, update.interaction.concept ?? null, JSON.stringify(update.interaction.payload ?? {})]
+      [
+        studentId,
+        update.interaction.kind,
+        update.interaction.concept ?? null,
+        JSON.stringify(update.interaction.payload ?? {}),
+      ]
     );
   }
 }

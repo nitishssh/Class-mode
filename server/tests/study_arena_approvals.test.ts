@@ -90,10 +90,7 @@ vi.mock("../lib/logger", () => ({
 }));
 
 import router from "../routes/study-arena-beta";
-import {
-  ensureActionA11y,
-  sceneActionA11ySchema,
-} from "../services/study-arena/lesson-script";
+import { ensureActionA11y, sceneActionA11ySchema } from "../services/study-arena/lesson-script";
 
 function makeApp() {
   const app = express();
@@ -200,10 +197,9 @@ describe("Study Arena approvals + publish gate", () => {
     expect(res.status).toBe(200);
     expect(res.body.approvals.objective.by).toBe(9);
     expect(res.body.complete).toBe(false);
-    expect(h.pgConnectQuery).toHaveBeenCalledWith(
-      expect.stringContaining("FOR UPDATE"),
-      [LESSON_VERSION_ID]
-    );
+    expect(h.pgConnectQuery).toHaveBeenCalledWith(expect.stringContaining("FOR UPDATE"), [
+      LESSON_VERSION_ID,
+    ]);
   });
 
   it("opens a teacher preview session without using learner assignment-session", async () => {
@@ -236,13 +232,11 @@ describe("Study Arena approvals + publish gate", () => {
       .mockResolvedValueOnce({ rows: [{ id: LESSON_VERSION_ID }] })
       .mockResolvedValueOnce(undefined); // COMMIT
 
-    const res = await request(makeApp())
-      .post("/api/study-arena-beta/lesson-drafts")
-      .send({
-        subject: "Mathematics",
-        objective: "Isolate x",
-        script,
-      });
+    const res = await request(makeApp()).post("/api/study-arena-beta/lesson-drafts").send({
+      subject: "Mathematics",
+      objective: "Isolate x",
+      script,
+    });
 
     expect(res.status).toBe(201);
     expect(res.body.lessonVersionId).toBe(LESSON_VERSION_ID);

@@ -74,7 +74,12 @@ export default function StudyArenaCreate() {
         lessonVersionId: string | null;
       }>("/api/study-arena-beta/compiler/jobs", {
         method: "POST",
-        body: JSON.stringify({ sourceText, objective, subject, gradeLevel: gradeLevel || undefined }),
+        body: JSON.stringify({
+          sourceText,
+          objective,
+          subject,
+          gradeLevel: gradeLevel || undefined,
+        }),
       });
       setCompilerJobId(result.jobId);
       setCompilerStatus(result.status);
@@ -204,7 +209,10 @@ export default function StudyArenaCreate() {
       </ol>
 
       {error && (
-        <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <p
+          role="alert"
+          className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"
+        >
           {error}
         </p>
       )}
@@ -253,7 +261,9 @@ export default function StudyArenaCreate() {
             )}
           </div>
           <div className="border-t border-border pt-4">
-            <p className="mb-2 text-sm text-muted-foreground">Or paste a lesson script JSON for a draft:</p>
+            <p className="mb-2 text-sm text-muted-foreground">
+              Or paste a lesson script JSON for a draft:
+            </p>
             <Textarea
               value={scriptJson}
               onChange={(e) => setScriptJson(e.target.value)}

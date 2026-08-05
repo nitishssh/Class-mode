@@ -164,8 +164,20 @@ describe("POST /api/study-arena-beta/assignment-next-segment", () => {
       status: "ready",
       attemptSessionId,
       gateIndex: 0,
-      scene: { id: "intro", actions: [{ type: "ask", agent: "teacher", prompt: "Try", expects: "freeText", gate: true }] },
-      decision: { version: 1, fromSceneId: null, toSceneId: "intro", terminal: false, rationale: "declared_entry_scene", transitionIndex: null },
+      scene: {
+        id: "intro",
+        actions: [
+          { type: "ask", agent: "teacher", prompt: "Try", expects: "freeText", gate: true },
+        ],
+      },
+      decision: {
+        version: 1,
+        fromSceneId: null,
+        toSceneId: "intro",
+        terminal: false,
+        rationale: "declared_entry_scene",
+        transitionIndex: null,
+      },
     });
   });
 
@@ -204,52 +216,58 @@ describe("GET /api/study-arena-beta/assignments/:assignmentId/report", () => {
     delete process.env.STUDY_ARENA_BETA;
     h.user = { id: 9, role: "teacher" };
     h.pgQuery.mockResolvedValue({
-      rows: [{
-        student_id: 7,
-        student_name: "Ada Learner",
-        session_status: "active",
-        next_action_index: 3,
-        current_scene_id: "support",
-        adaptive_path: ["check", "support"],
-        adaptive_decision: {
-          version: 2,
-          fromSceneId: "check",
-          toSceneId: "support",
-          terminal: false,
-          rationale: "declared_transition_1_assessment_result",
-          transitionIndex: 1,
+      rows: [
+        {
+          student_id: 7,
+          student_name: "Ada Learner",
+          session_status: "active",
+          next_action_index: 3,
+          current_scene_id: "support",
+          adaptive_path: ["check", "support"],
+          adaptive_decision: {
+            version: 2,
+            fromSceneId: "check",
+            toSceneId: "support",
+            terminal: false,
+            rationale: "declared_transition_1_assessment_result",
+            transitionIndex: 1,
+          },
+          adaptive_decision_version: 2,
+          adaptive_rationale: "declared_transition_1_assessment_result",
+          assessment_correct: false,
+          assessment_submitted_at: new Date("2026-08-04T00:00:00.000Z"),
+          help_depth: 3,
         },
-        adaptive_decision_version: 2,
-        adaptive_rationale: "declared_transition_1_assessment_result",
-        assessment_correct: false,
-        assessment_submitted_at: new Date("2026-08-04T00:00:00.000Z"),
-        help_depth: 3,
-      }],
+      ],
     });
   });
 
   it("reports the latest server-owned adaptive decision, path, and rationale", async () => {
-    const res = await request(makeApp())
-      .get(`/api/study-arena-beta/assignments/${assignmentId}/report`);
+    const res = await request(makeApp()).get(
+      `/api/study-arena-beta/assignments/${assignmentId}/report`
+    );
 
     expect(res.status).toBe(200);
-    expect(h.pgQuery).toHaveBeenCalledWith(
-      expect.stringContaining("director_decision"),
-      [assignmentId, 42]
-    );
-    expect(res.body.students).toEqual([expect.objectContaining({
-      student_id: 7,
-      adaptive_path: ["check", "support"],
-      adaptive_decision: expect.objectContaining({ toSceneId: "support", version: 2 }),
-      adaptive_decision_version: 2,
-      adaptive_rationale: "declared_transition_1_assessment_result",
-    })]);
+    expect(h.pgQuery).toHaveBeenCalledWith(expect.stringContaining("director_decision"), [
+      assignmentId,
+      42,
+    ]);
+    expect(res.body.students).toEqual([
+      expect.objectContaining({
+        student_id: 7,
+        adaptive_path: ["check", "support"],
+        adaptive_decision: expect.objectContaining({ toSceneId: "support", version: 2 }),
+        adaptive_decision_version: 2,
+        adaptive_rationale: "declared_transition_1_assessment_result",
+      }),
+    ]);
   });
 
   it("rejects students before querying the teacher report", async () => {
     h.user = { id: 7, role: "student" };
-    const res = await request(makeApp())
-      .get(`/api/study-arena-beta/assignments/${assignmentId}/report`);
+    const res = await request(makeApp()).get(
+      `/api/study-arena-beta/assignments/${assignmentId}/report`
+    );
 
     expect(res.status).toBe(403);
     expect(h.pgQuery).not.toHaveBeenCalled();
@@ -488,7 +506,9 @@ describe("linear equations mastery sprint", () => {
   });
 
   it("serves the deterministic sprint without asking an AI provider to generate it", async () => {
-    const res = await request(makeApp()).post("/api/study-arena-beta/linear-equations-sprint").send({});
+    const res = await request(makeApp())
+      .post("/api/study-arena-beta/linear-equations-sprint")
+      .send({});
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ topic: "Linear equations", scenes: [] });
     expect(h.createLinearEquationsSprint).toHaveBeenCalledOnce();
@@ -575,7 +595,10 @@ describe("POST /api/study-arena-beta/assignment-assessment-instance", () => {
       studentId: 7,
       actionIndex: 2,
     });
-    expect(res.body).toMatchObject({ status: "issued", assessmentId: "linear-equations-immediate" });
+    expect(res.body).toMatchObject({
+      status: "issued",
+      assessmentId: "linear-equations-immediate",
+    });
   });
 
   it("allows teachers to issue assessments for preview sessions they own", async () => {
@@ -696,7 +719,9 @@ describe("POST /api/study-arena-beta/assignments", () => {
       });
 
     expect(res.status).toBe(400);
-    expect(res.body).toEqual({ message: "An assigned lesson requires a supported primary concept" });
+    expect(res.body).toEqual({
+      message: "An assigned lesson requires a supported primary concept",
+    });
     expect(h.pgQuery).not.toHaveBeenCalled();
   });
 });
@@ -714,7 +739,11 @@ describe("POST /api/study-arena-beta/assignments/:assignmentId/interventions", (
     h.pgQuery.mockResolvedValue({ rows: [{ id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" }] });
     const res = await request(makeApp())
       .post(`/api/study-arena-beta/assignments/${assignmentId}/interventions`)
-      .send({ cohortKey: "high_help", studentId: 7, actionNote: "Small-group prerequisite review" });
+      .send({
+        cohortKey: "high_help",
+        studentId: 7,
+        actionNote: "Small-group prerequisite review",
+      });
 
     expect(res.status).toBe(201);
     expect(res.body).toEqual({ interventionId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" });
@@ -766,7 +795,9 @@ describe("POST /api/study-arena-beta/assignment-assessment-submit", () => {
       answer: "x = 5",
       idempotencyKey: "99999999-9999-4999-8999-999999999999",
     };
-    const res = await request(makeApp()).post("/api/study-arena-beta/assignment-assessment-submit").send(body);
+    const res = await request(makeApp())
+      .post("/api/study-arena-beta/assignment-assessment-submit")
+      .send(body);
 
     expect(res.status).toBe(200);
     expect(h.submitAssignedAssessment).toHaveBeenCalledWith({ ...body, studentId: 7 });
@@ -787,7 +818,9 @@ describe("POST /api/study-arena-beta/assignment-assessment-submit", () => {
       answer: "x = 5",
       idempotencyKey: "99999999-9999-4999-8999-999999999999",
     };
-    const res = await request(makeApp()).post("/api/study-arena-beta/assignment-assessment-submit").send(body);
+    const res = await request(makeApp())
+      .post("/api/study-arena-beta/assignment-assessment-submit")
+      .send(body);
     expect(res.status).toBe(200);
     expect(h.submitAssignedAssessment).toHaveBeenCalledWith({ ...body, studentId: 9 });
   });

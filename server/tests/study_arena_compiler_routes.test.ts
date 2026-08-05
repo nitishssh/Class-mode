@@ -237,7 +237,9 @@ describe("POST /api/study-arena-beta/compiler/jobs/:id/cancel", () => {
   });
 
   it("cancels a compiler job for the owning teacher", async () => {
-    const res = await request(makeApp()).post(`/api/study-arena-beta/compiler/jobs/${JOB_ID}/cancel`);
+    const res = await request(makeApp()).post(
+      `/api/study-arena-beta/compiler/jobs/${JOB_ID}/cancel`
+    );
 
     expect(res.status).toBe(200);
     expect(h.cancelCompilerJob).toHaveBeenCalledWith(JOB_ID, { workspaceId: 42, teacherId: 9 });
@@ -246,7 +248,9 @@ describe("POST /api/study-arena-beta/compiler/jobs/:id/cancel", () => {
 
   it("returns 403 when another teacher tries to cancel the job", async () => {
     h.cancelCompilerJob.mockResolvedValue("forbidden");
-    const res = await request(makeApp()).post(`/api/study-arena-beta/compiler/jobs/${JOB_ID}/cancel`);
+    const res = await request(makeApp()).post(
+      `/api/study-arena-beta/compiler/jobs/${JOB_ID}/cancel`
+    );
 
     expect(res.status).toBe(403);
     expect(res.body).toEqual({ message: "Not your compiler job" });
@@ -254,7 +258,9 @@ describe("POST /api/study-arena-beta/compiler/jobs/:id/cancel", () => {
 
   it("returns 409 when the job is no longer cancellable", async () => {
     h.cancelCompilerJob.mockResolvedValue("not_cancellable");
-    const res = await request(makeApp()).post(`/api/study-arena-beta/compiler/jobs/${JOB_ID}/cancel`);
+    const res = await request(makeApp()).post(
+      `/api/study-arena-beta/compiler/jobs/${JOB_ID}/cancel`
+    );
 
     expect(res.status).toBe(409);
     expect(res.body).toEqual({ message: "Job cannot be cancelled" });

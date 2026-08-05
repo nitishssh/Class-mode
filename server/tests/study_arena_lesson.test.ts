@@ -61,16 +61,45 @@ describe("lesson scene graph contract", () => {
     const result = lessonScriptSchema.safeParse({
       topic: "Linear equations",
       scenes: [
-        { id: "intro", actions: [{ type: "ask", agent: "teacher", prompt: "Try it", expects: "freeText", gate: true }] },
-        { id: "support", actions: [{ type: "ask", agent: "coach", prompt: "Try again", expects: "freeText", gate: true }] },
-        { id: "transfer", actions: [{ type: "assessment", agent: "teacher", assessmentId: "linear-equations-immediate", prompt: "Solve it", gate: true }] },
+        {
+          id: "intro",
+          actions: [
+            { type: "ask", agent: "teacher", prompt: "Try it", expects: "freeText", gate: true },
+          ],
+        },
+        {
+          id: "support",
+          actions: [
+            { type: "ask", agent: "coach", prompt: "Try again", expects: "freeText", gate: true },
+          ],
+        },
+        {
+          id: "transfer",
+          actions: [
+            {
+              type: "assessment",
+              agent: "teacher",
+              assessmentId: "linear-equations-immediate",
+              prompt: "Solve it",
+              gate: true,
+            },
+          ],
+        },
       ],
       sceneGraph: {
         version: "v1",
         entrySceneId: "intro",
         transitions: [
-          { fromSceneId: "intro", toSceneId: "transfer", when: { kind: "assessment_result", correct: true } },
-          { fromSceneId: "intro", toSceneId: "support", when: { kind: "assessment_result", correct: false } },
+          {
+            fromSceneId: "intro",
+            toSceneId: "transfer",
+            when: { kind: "assessment_result", correct: true },
+          },
+          {
+            fromSceneId: "intro",
+            toSceneId: "support",
+            when: { kind: "assessment_result", correct: false },
+          },
           { fromSceneId: "support", toSceneId: "transfer" },
         ],
       },
@@ -82,8 +111,18 @@ describe("lesson scene graph contract", () => {
     const result = lessonScriptSchema.safeParse({
       topic: "Graph errors",
       scenes: [
-        { id: "entry", actions: [{ type: "ask", agent: "teacher", prompt: "Try it", expects: "freeText", gate: true }] },
-        { id: "orphan", actions: [{ type: "ask", agent: "teacher", prompt: "Try it", expects: "freeText", gate: true }] },
+        {
+          id: "entry",
+          actions: [
+            { type: "ask", agent: "teacher", prompt: "Try it", expects: "freeText", gate: true },
+          ],
+        },
+        {
+          id: "orphan",
+          actions: [
+            { type: "ask", agent: "teacher", prompt: "Try it", expects: "freeText", gate: true },
+          ],
+        },
       ],
       sceneGraph: {
         version: "v1",
@@ -103,8 +142,18 @@ describe("lesson scene graph contract", () => {
     const script = {
       topic: "Bounded retry",
       scenes: [
-        { id: "practice", actions: [{ type: "ask", agent: "teacher", prompt: "Try it", expects: "freeText", gate: true }] },
-        { id: "review", actions: [{ type: "ask", agent: "coach", prompt: "Try again", expects: "freeText", gate: true }] },
+        {
+          id: "practice",
+          actions: [
+            { type: "ask", agent: "teacher", prompt: "Try it", expects: "freeText", gate: true },
+          ],
+        },
+        {
+          id: "review",
+          actions: [
+            { type: "ask", agent: "coach", prompt: "Try again", expects: "freeText", gate: true },
+          ],
+        },
       ],
       sceneGraph: {
         version: "v1" as const,

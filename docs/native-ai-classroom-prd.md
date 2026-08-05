@@ -71,16 +71,16 @@ The wedge is stopped or redesigned if the teacher does not assign a second activ
 
 The scene contract must support the following action families:
 
-| Action | Purpose | Required learning control |
-| --- | --- | --- |
-| `speak` | Short teacher, coach, or classmate explanation | Must not reveal a gated answer |
-| `showSlide` | Text, images, and formula overview | Must be accessible and keyboard navigable |
-| `write` | Animated equation, text, or formula step | Must render from validated structured data |
-| `draw` | Diagram, graph, timeline, map, or labelled structure | Must use a constrained renderer specification |
-| `highlight` | Focus attention on a visual element | Must not replace a student explanation |
-| `ask` | Free-text, choice, or worked-response attempt | Must gate progression after non-empty student effort |
-| `assessment` | Immediate or delayed no-AI transfer check | Must disable AI hints and grade through a verified evaluator |
-| `simulation` | Sandboxed interactive model or experiment | Must have a declared learning objective and checkpoint |
+| Action       | Purpose                                              | Required learning control                                    |
+| ------------ | ---------------------------------------------------- | ------------------------------------------------------------ |
+| `speak`      | Short teacher, coach, or classmate explanation       | Must not reveal a gated answer                               |
+| `showSlide`  | Text, images, and formula overview                   | Must be accessible and keyboard navigable                    |
+| `write`      | Animated equation, text, or formula step             | Must render from validated structured data                   |
+| `draw`       | Diagram, graph, timeline, map, or labelled structure | Must use a constrained renderer specification                |
+| `highlight`  | Focus attention on a visual element                  | Must not replace a student explanation                       |
+| `ask`        | Free-text, choice, or worked-response attempt        | Must gate progression after non-empty student effort         |
+| `assessment` | Immediate or delayed no-AI transfer check            | Must disable AI hints and grade through a verified evaluator |
+| `simulation` | Sandboxed interactive model or experiment            | Must have a declared learning objective and checkpoint       |
 
 ### 7.3 Subject coverage
 
@@ -174,12 +174,12 @@ The implementation must reuse `server/services/study-arena/lesson-script.ts`, th
 
 ### Phase A experience and state contract
 
-| Surface | Primary hierarchy | Required states and recovery |
-| --- | --- | --- |
-| Teacher activity creation | source/objective → review evidence → preview → recipients → publish | Empty source, unsupported source, queued/generating/cancellable generation, generated-with-warning, failed/retryable generation, saved draft, publication blocked, published version |
-| Student activity | context → active attempt → bounded help → transfer result → next step | Assignment not yet available, revoked/expired assignment, invalid saved session, offline/submitted-unconfirmed attempt, incomplete exit, activity complete with transfer pending/pass/revisit |
-| Recall | due window → no-AI check → result → next step | Upcoming, due, overdue, completed, revoked, unavailable; late completion is tracked separately |
-| Teacher report | class evidence state → priority group → evidence explanation → intervention action | No assignments, no evidence, partial evidence, pending evaluation, insufficient sample, no intervention needed, scoped-access denied |
+| Surface                   | Primary hierarchy                                                                  | Required states and recovery                                                                                                                                                                  |
+| ------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Teacher activity creation | source/objective → review evidence → preview → recipients → publish                | Empty source, unsupported source, queued/generating/cancellable generation, generated-with-warning, failed/retryable generation, saved draft, publication blocked, published version          |
+| Student activity          | context → active attempt → bounded help → transfer result → next step              | Assignment not yet available, revoked/expired assignment, invalid saved session, offline/submitted-unconfirmed attempt, incomplete exit, activity complete with transfer pending/pass/revisit |
+| Recall                    | due window → no-AI check → result → next step                                      | Upcoming, due, overdue, completed, revoked, unavailable; late completion is tracked separately                                                                                                |
+| Teacher report            | class evidence state → priority group → evidence explanation → intervention action | No assignments, no evidence, partial evidence, pending evaluation, insufficient sample, no intervention needed, scoped-access denied                                                          |
 
 Generation errors preserve the teacher’s source and objective. Every error specifies whether retry is safe, whether a job continues in the background, and its support identifier. Assignment revocation preserves student work without counting it as completion or mastery.
 
@@ -259,14 +259,14 @@ Report projections are keyed and indexed by workspace, class, assignment, lesson
 
 ## 16. Verification plan
 
-| Flow | Required verification |
-| --- | --- |
-| Create and approve | Unit + route tests for source span coverage, rubric/evaluator version, approval invalidation, malformed renderer payload, moderation and grounding failures |
-| Assign and authorize | PostgreSQL integration tests with two workspaces/classes, cross-tenant access, enrollment snapshot, teacher preview isolation, revocation, expiry, and report scopes |
-| Attempt and assess | Unit/route tests for nonce validation, replay/idempotency, concurrency, hint boundary, no-AI assessment enforcement, evaluator disagreement, recall due windows, and persistence failure isolation |
-| Runtime recovery | Component/E2E tests for keyboard focus/live announcements, reduced motion, 320px mobile keyboard layout, offline/submitted-unconfirmed recovery, corrupt saved state, and revoke-after-resume |
-| Report and privacy | Integration tests for cohort predicates, insufficient evidence, intervention-action audit, raw-answer access audit, export, delete, retention, and report projection reconciliation |
-| Pilot safety | Feature-flag/allowlist rollout test, job retry/cancel/dedup, AI usage reconciliation, cost-budget enforcement, rollback preserving evidence, and an end-to-end create → approve → assign → learn → recall → report → intervention journey |
+| Flow                 | Required verification                                                                                                                                                                                                                     |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Create and approve   | Unit + route tests for source span coverage, rubric/evaluator version, approval invalidation, malformed renderer payload, moderation and grounding failures                                                                               |
+| Assign and authorize | PostgreSQL integration tests with two workspaces/classes, cross-tenant access, enrollment snapshot, teacher preview isolation, revocation, expiry, and report scopes                                                                      |
+| Attempt and assess   | Unit/route tests for nonce validation, replay/idempotency, concurrency, hint boundary, no-AI assessment enforcement, evaluator disagreement, recall due windows, and persistence failure isolation                                        |
+| Runtime recovery     | Component/E2E tests for keyboard focus/live announcements, reduced motion, 320px mobile keyboard layout, offline/submitted-unconfirmed recovery, corrupt saved state, and revoke-after-resume                                             |
+| Report and privacy   | Integration tests for cohort predicates, insufficient evidence, intervention-action audit, raw-answer access audit, export, delete, retention, and report projection reconciliation                                                       |
+| Pilot safety         | Feature-flag/allowlist rollout test, job retry/cancel/dedup, AI usage reconciliation, cost-budget enforcement, rollback preserving evidence, and an end-to-end create → approve → assign → learn → recall → report → intervention journey |
 
 ## 14. Deferred experience decisions
 
@@ -275,16 +275,17 @@ Report projections are keyed and indexed by workspace, class, assignment, lesson
 - Notification channels for recall begin with existing in-app Learn Hub cards. Email, WhatsApp, and external LMS reminders require consent, throttle policy, and pilot evidence.
 
 <!-- AUTONOMOUS DECISION LOG -->
+
 ## Decision Audit Trail
 
-| # | Phase | Decision | Classification | Principle | Rationale | Rejected |
-| --- | --- | --- | --- | --- | --- | --- |
-| 1 | CEO | Use a native Class-mode PRD, not a fork/embed of OpenMAIC | User premise | User decision | Preserves the existing stack, auth, learner model, and attempt-first rule | Separate upstream application |
-| 2 | CEO | Put an all-subject platform behind a teacher-owned mastery wedge | User challenge | User decision after dual-voice review | Both independent reviewers found that assignment, trustworthy assessment, and intervention evidence must be proven before renderer breadth | Renderer-first all-subject sequence |
-| 3 | Design | Add separate teacher, student, and report surfaces with a defined lifecycle state matrix | Mechanical | P1/P5 | The plan otherwise leaves recovery, roles, and success states to implementer invention | One shared self-serve screen |
-| 4 | Design | Define accessible, responsive scene and assessment behavior as testable acceptance criteria | Mechanical | P1 | Visual renderers without semantic and mobile contracts exclude learners and make QA subjective | Aspirational accessibility wording |
-| 5 | Eng | Make server-authoritative assignment/session/evidence the Phase A foundation | Mechanical | P1/P5 | Client-supplied lesson metadata and unscoped learner events cannot protect assessment integrity or tenant reports | Extending the beta request contract |
-| 6 | Eng | Require resource-scoped authorization, immutable provenance, retention, and replay protection | Mechanical | P1/P2 | The pilot handles minors’ learning evidence and direct API misuse is within the implementation blast radius | Authentication-only beta routes |
+| #   | Phase  | Decision                                                                                      | Classification | Principle                             | Rationale                                                                                                                                  | Rejected                            |
+| --- | ------ | --------------------------------------------------------------------------------------------- | -------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------- |
+| 1   | CEO    | Use a native Class-mode PRD, not a fork/embed of OpenMAIC                                     | User premise   | User decision                         | Preserves the existing stack, auth, learner model, and attempt-first rule                                                                  | Separate upstream application       |
+| 2   | CEO    | Put an all-subject platform behind a teacher-owned mastery wedge                              | User challenge | User decision after dual-voice review | Both independent reviewers found that assignment, trustworthy assessment, and intervention evidence must be proven before renderer breadth | Renderer-first all-subject sequence |
+| 3   | Design | Add separate teacher, student, and report surfaces with a defined lifecycle state matrix      | Mechanical     | P1/P5                                 | The plan otherwise leaves recovery, roles, and success states to implementer invention                                                     | One shared self-serve screen        |
+| 4   | Design | Define accessible, responsive scene and assessment behavior as testable acceptance criteria   | Mechanical     | P1                                    | Visual renderers without semantic and mobile contracts exclude learners and make QA subjective                                             | Aspirational accessibility wording  |
+| 5   | Eng    | Make server-authoritative assignment/session/evidence the Phase A foundation                  | Mechanical     | P1/P5                                 | Client-supplied lesson metadata and unscoped learner events cannot protect assessment integrity or tenant reports                          | Extending the beta request contract |
+| 6   | Eng    | Require resource-scoped authorization, immutable provenance, retention, and replay protection | Mechanical     | P1/P2                                 | The pilot handles minors’ learning evidence and direct API misuse is within the implementation blast radius                                | Authentication-only beta routes     |
 
 ## 17. Mandatory pre-implementation contracts
 
@@ -310,9 +311,9 @@ CI adds deterministic fake AI/evaluator behavior plus a Redis-backed integration
 
 ## GSTACK REVIEW REPORT
 
-| Review | Result | Key decision |
-| --- | --- | --- |
-| CEO | Approved after user challenge | Replace renderer-first delivery with a teacher-owned mastery wedge |
-| Design | Approved with plan changes | Separate teacher/student/report surfaces, lifecycle states, and WCAG/mobile requirements |
+| Review      | Result                            | Key decision                                                                                                       |
+| ----------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| CEO         | Approved after user challenge     | Replace renderer-first delivery with a teacher-owned mastery wedge                                                 |
+| Design      | Approved with plan changes        | Separate teacher/student/report surfaces, lifecycle states, and WCAG/mobile requirements                           |
 | Engineering | Approved with mandatory contracts | Server-authoritative assignment sessions, immutable scoped evidence, privacy lifecycle, and realistic verification |
-| DX | Not applicable | The product is teacher/student facing, not a developer product |
+| DX          | Not applicable                    | The product is teacher/student facing, not a developer product                                                     |

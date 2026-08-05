@@ -91,7 +91,10 @@ function flattenScript(script: LessonScript): { flat: FlatAction[]; totalGates: 
   let gateCount = 0;
   const flat = script.scenes.flatMap((scene, si) =>
     scene.actions.flatMap((action, ai) => {
-      if (!action || !["speak", "showSlide", "highlight", "ask", "assessment"].includes(action.type)) {
+      if (
+        !action ||
+        !["speak", "showSlide", "highlight", "ask", "assessment"].includes(action.type)
+      ) {
         console.error("[study-arena] skipped unknown scene action", action);
         return [];
       }
@@ -100,7 +103,8 @@ function flattenScript(script: LessonScript): { flat: FlatAction[]; totalGates: 
           key: `${si}-${ai}`,
           sceneIndex: si,
           action,
-          gateIndex: action.type === "ask" || action.type === "assessment" ? gateCount++ : undefined,
+          gateIndex:
+            action.type === "ask" || action.type === "assessment" ? gateCount++ : undefined,
         },
       ];
     })
@@ -110,7 +114,10 @@ function flattenScript(script: LessonScript): { flat: FlatAction[]; totalGates: 
 
 function flattenAssignedScene(scene: LessonScene, gateIndex: number): FlatAction[] {
   return scene.actions.flatMap((action, actionIndex) => {
-    if (!action || !["speak", "showSlide", "highlight", "ask", "assessment"].includes(action.type)) {
+    if (
+      !action ||
+      !["speak", "showSlide", "highlight", "ask", "assessment"].includes(action.type)
+    ) {
       console.error("[study-arena] skipped unknown assigned scene action", action);
       return [];
     }
@@ -223,8 +230,12 @@ export default function StudyArenaBeta() {
         setScript({ topic: "Assigned lesson", conceptIds: [], scenes: [segment.scene] });
         setFlat([...completedActions, ...sceneActions]);
         setCursor(completedActions.length);
-        const gate = sceneActions.find((fa) => fa.action.type === "ask" || fa.action.type === "assessment");
-        const a11yName = gate?.action.a11y?.name ?? (gate?.action.type === "assessment" ? "Independent assessment" : "Attempt gate");
+        const gate = sceneActions.find(
+          (fa) => fa.action.type === "ask" || fa.action.type === "assessment"
+        );
+        const a11yName =
+          gate?.action.a11y?.name ??
+          (gate?.action.type === "assessment" ? "Independent assessment" : "Attempt gate");
         setA11yStatus(`Scene ready. ${a11yName}.`);
       } catch (error) {
         console.error(error);
@@ -402,10 +413,10 @@ export default function StudyArenaBeta() {
   }, [attemptSessionId, cursor, flat, loadAssignedSegment]);
 
   const isAwaitingAnswer =
-    phase === "playing" && (current?.action.type === "ask" || current?.action.type === "assessment");
-  const finished =
     phase === "playing" &&
-    (isAssignedSession ? assignedCompleted : cursor >= flat.length);
+    (current?.action.type === "ask" || current?.action.type === "assessment");
+  const finished =
+    phase === "playing" && (isAssignedSession ? assignedCompleted : cursor >= flat.length);
   const sceneTotal = script?.scenes.length ?? 0;
   const sceneNow = current ? current.sceneIndex + 1 : sceneTotal;
 
@@ -452,12 +463,7 @@ export default function StudyArenaBeta() {
         )}
       </div>
 
-      <div
-        role="status"
-        aria-live="polite"
-        aria-atomic="true"
-        className="sr-only"
-      >
+      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
         {a11yStatus}
       </div>
 
@@ -561,8 +567,9 @@ export default function StudyArenaBeta() {
             <ActionView key={fa.key} action={fa.action} response={responses[fa.key]} />
           ))}
 
-          {isAwaitingAnswer && current && (
-            current.action.type === "assessment" ? (
+          {isAwaitingAnswer &&
+            current &&
+            (current.action.type === "assessment" ? (
               <AssessmentCard
                 key={current.key}
                 action={current.action}
@@ -591,8 +598,7 @@ export default function StudyArenaBeta() {
                 }}
                 onReconnect={isAssignedSession ? reconnectAssignedSession : undefined}
               />
-            ) : null
-          )}
+            ) : null)}
 
           {awaitingAssignedSegment && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -690,7 +696,9 @@ function ActionView({
   if (action.type === "highlight") {
     return (
       <div className="rounded-xl border-l-4 border-accent bg-accent-soft p-4" role="note">
-        <p className="text-xs font-bold uppercase tracking-widest text-accent">Focus: {action.target}</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-accent">
+          Focus: {action.target}
+        </p>
         <p className="mt-1 text-sm text-foreground">{action.label}</p>
       </div>
     );

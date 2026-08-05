@@ -158,7 +158,11 @@ describe("enqueueLessonCompile", () => {
       gradeLevel: "8",
     });
     expect(result.status).toBe("running");
-    if (result.status === "running" || result.status === "queued" || result.status === "completed") {
+    if (
+      result.status === "running" ||
+      result.status === "queued" ||
+      result.status === "completed"
+    ) {
       expect(result.deduped).toBe(true);
       expect(result.job.id).toBe(JOB_ID);
     }
@@ -259,7 +263,9 @@ describe("cancelCompilerJob", () => {
 
 describe("getCompilerJob", () => {
   it("maps a row to CompilerJobRow", async () => {
-    h.query.mockResolvedValueOnce({ rows: [baseJobRow({ status: "failed", error_message: "boom" })] });
+    h.query.mockResolvedValueOnce({
+      rows: [baseJobRow({ status: "failed", error_message: "boom" })],
+    });
     const job = await getCompilerJob(JOB_ID);
     expect(job?.status).toBe("failed");
     expect(job?.errorMessage).toBe("boom");

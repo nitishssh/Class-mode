@@ -30,7 +30,12 @@ interface AssignmentReport {
   independentlyAssessed: number;
   correct: number;
   students: StudentEvidence[];
-  groups: Array<{ key: "failed_transfer" | "high_help"; label: string; studentIds: number[]; suggestedAction: string }>;
+  groups: Array<{
+    key: "failed_transfer" | "high_help";
+    label: string;
+    studentIds: number[];
+    suggestedAction: string;
+  }>;
 }
 
 export default function StudyArenaReport() {
@@ -42,25 +47,42 @@ export default function StudyArenaReport() {
 
   useEffect(() => {
     if (!assignmentId) return;
-    void fetch(`/api/study-arena-beta/assignments/${assignmentId}/report`, { credentials: "include" })
+    void fetch(`/api/study-arena-beta/assignments/${assignmentId}/report`, {
+      credentials: "include",
+    })
       .then(async (response) => {
         if (!response.ok) throw new Error("Unable to load this assignment report.");
         return response.json() as Promise<AssignmentReport>;
       })
       .then(setReport)
-      .catch((loadError) => setError(loadError instanceof Error ? loadError.message : "Unable to load report."));
+      .catch((loadError) =>
+        setError(loadError instanceof Error ? loadError.message : "Unable to load report.")
+      );
   }, [assignmentId]);
 
-  if (!assignmentId) return <p className="text-sm text-muted-foreground">Choose an assignment to view its evidence.</p>;
+  if (!assignmentId)
+    return (
+      <p className="text-sm text-muted-foreground">Choose an assignment to view its evidence.</p>
+    );
   if (error) return <p className="text-sm text-rose-600">{error}</p>;
-  if (!report) return <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-accent" /></div>;
+  if (!report)
+    return (
+      <div className="flex justify-center py-16">
+        <Loader2 className="h-6 w-6 animate-spin text-accent" />
+      </div>
+    );
   const recordFollowUp = async (group: AssignmentReport["groups"][number]) => {
     const actionNote = window.prompt(`Follow-up for ${group.label}:`, group.suggestedAction);
     if (!actionNote) return;
-    const response = await fetch(`/api/study-arena-beta/assignments/${assignmentId}/interventions`, {
-      method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cohortKey: group.key, actionNote }),
-    });
+    const response = await fetch(
+      `/api/study-arena-beta/assignments/${assignmentId}/interventions`,
+      {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cohortKey: group.key, actionNote }),
+      }
+    );
     if (!response.ok) throw new Error("Could not record follow-up.");
     setRecordedGroups((current) => new Set(current).add(group.key));
   };
@@ -69,7 +91,9 @@ export default function StudyArenaReport() {
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-accent">Study Arena evidence</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-accent">
+            Study Arena evidence
+          </p>
           <h1 className="mt-1 font-display text-3xl text-foreground">Assignment progress</h1>
         </div>
         <Link href="/study-arena/create">
@@ -86,49 +110,97 @@ export default function StudyArenaReport() {
           ["Correct", report.correct],
         ].map(([label, value]) => (
           <div key={String(label)} className="rounded-xl border border-border bg-card p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {label}
+            </p>
             <p className="mt-1 text-2xl font-bold text-foreground">{value}</p>
           </div>
         ))}
       </div>
       <section className="space-y-3">
         <h2 className="font-display text-xl text-foreground">Recommended follow-up</h2>
-        {report.groups.length === 0 ? <p className="text-sm text-muted-foreground">Insufficient evidence for an intervention group.</p> : report.groups.map((group) => (
-          <div key={group.key} className="flex items-center justify-between gap-4 rounded-xl border border-border bg-card p-4">
-            <div><p className="font-medium">{group.label} · {group.studentIds.length}</p><p className="text-sm text-muted-foreground">{group.suggestedAction}</p></div>
-            <Button size="sm" variant="outline" disabled={recordedGroups.has(group.key)} onClick={() => void recordFollowUp(group)}>
-              {recordedGroups.has(group.key) ? "Recorded" : "Record follow-up"}
-            </Button>
-          </div>
-        ))}
+        {report.groups.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Insufficient evidence for an intervention group.
+          </p>
+        ) : (
+          report.groups.map((group) => (
+            <div
+              key={group.key}
+              className="flex items-center justify-between gap-4 rounded-xl border border-border bg-card p-4"
+            >
+              <div>
+                <p className="font-medium">
+                  {group.label} · {group.studentIds.length}
+                </p>
+                <p className="text-sm text-muted-foreground">{group.suggestedAction}</p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={recordedGroups.has(group.key)}
+                onClick={() => void recordFollowUp(group)}
+              >
+                {recordedGroups.has(group.key) ? "Recorded" : "Record follow-up"}
+              </Button>
+            </div>
+          ))
+        )}
       </section>
       <div className="overflow-hidden rounded-xl border border-border bg-card">
         <div className="grid gap-4 border-b border-border bg-muted/40 px-4 py-3 text-xs font-bold uppercase tracking-wide text-muted-foreground lg:grid-cols-[minmax(9rem,1fr)_auto_auto_minmax(14rem,1.5fr)]">
-          <span>Student</span><span>Progress</span><span>Independent check</span><span>Adaptive path</span>
+          <span>Student</span>
+          <span>Progress</span>
+          <span>Independent check</span>
+          <span>Adaptive path</span>
         </div>
         {report.students.map((student) => (
-          <div key={student.student_id} className="grid gap-4 border-b border-border px-4 py-3 text-sm last:border-0 lg:grid-cols-[minmax(9rem,1fr)_auto_auto_minmax(14rem,1.5fr)]">
+          <div
+            key={student.student_id}
+            className="grid gap-4 border-b border-border px-4 py-3 text-sm last:border-0 lg:grid-cols-[minmax(9rem,1fr)_auto_auto_minmax(14rem,1.5fr)]"
+          >
             <span>{student.student_name ?? `Student ${student.student_id}`}</span>
-            <span>{student.session_status ? `Step ${student.next_action_index ?? 0}` : "Not started"}</span>
-            <span className={student.assessment_correct ? "text-emerald-700" : student.assessment_submitted_at ? "text-amber-700" : "text-muted-foreground"}>
-              {student.assessment_correct ? "Correct" : student.assessment_submitted_at ? "Needs follow-up" : "Not submitted"}
+            <span>
+              {student.session_status ? `Step ${student.next_action_index ?? 0}` : "Not started"}
+            </span>
+            <span
+              className={
+                student.assessment_correct
+                  ? "text-emerald-700"
+                  : student.assessment_submitted_at
+                    ? "text-amber-700"
+                    : "text-muted-foreground"
+              }
+            >
+              {student.assessment_correct
+                ? "Correct"
+                : student.assessment_submitted_at
+                  ? "Needs follow-up"
+                  : "Not submitted"}
             </span>
             <div className="min-w-0">
               {student.adaptive_decision ? (
                 <>
                   <p className="truncate font-medium">
-                    {student.adaptive_path.length > 0 ? student.adaptive_path.join(" → ") : student.current_scene_id ?? "Terminal"}
+                    {student.adaptive_path.length > 0
+                      ? student.adaptive_path.join(" → ")
+                      : (student.current_scene_id ?? "Terminal")}
                   </p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {student.adaptive_rationale ?? student.adaptive_decision.rationale} · decision v{student.adaptive_decision_version ?? student.adaptive_decision.version}
+                    {student.adaptive_rationale ?? student.adaptive_decision.rationale} · decision v
+                    {student.adaptive_decision_version ?? student.adaptive_decision.version}
                   </p>
                 </>
-              ) : <span className="text-muted-foreground">Awaiting first decision</span>}
+              ) : (
+                <span className="text-muted-foreground">Awaiting first decision</span>
+              )}
             </div>
           </div>
         ))}
       </div>
-      <Button asChild variant="outline"><Link href={`/study-arena-beta?assignment=${assignmentId}`}>Open learner view</Link></Button>
+      <Button asChild variant="outline">
+        <Link href={`/study-arena-beta?assignment=${assignmentId}`}>Open learner view</Link>
+      </Button>
     </div>
   );
 }

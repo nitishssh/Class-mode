@@ -94,7 +94,7 @@ type MockState = {
 
 let mockState: MockState = {};
 
-const queryMock = vi.fn(async (sql: string, params: unknown[] = []) => {
+const queryMock = vi.fn(async (sql: string, _params: unknown[] = []) => {
   if (/^BEGIN|^COMMIT|^ROLLBACK/.test(sql.trim())) {
     return { rows: [] };
   }
@@ -130,7 +130,10 @@ const queryMock = vi.fn(async (sql: string, params: unknown[] = []) => {
     return { rows: mockState.masteryRows ?? [] };
   }
 
-  if (sql.includes("UPDATE study_arena_attempt_sessions") && sql.includes("RETURNING next_action_index")) {
+  if (
+    sql.includes("UPDATE study_arena_attempt_sessions") &&
+    sql.includes("RETURNING next_action_index")
+  ) {
     return { rows: [{ next_action_index: mockState.updateNextActionIndex ?? 1 }] };
   }
 
@@ -322,7 +325,10 @@ describe("openAssignmentAttemptSession", () => {
       lessonVersionId: LESSON_VERSION_ID,
       nextActionIndex: 0,
     });
-    expect(queryMock).toHaveBeenCalledWith(expect.stringContaining("INSERT INTO study_arena_attempt_sessions"), expect.any(Array));
+    expect(queryMock).toHaveBeenCalledWith(
+      expect.stringContaining("INSERT INTO study_arena_attempt_sessions"),
+      expect.any(Array)
+    );
   });
 });
 
@@ -342,19 +348,28 @@ describe("getAssignedNextSegment", () => {
 
   it("returns database_unavailable when postgres is not ready", async () => {
     h.pgReady = false;
-    const result = await getAssignedNextSegment({ attemptSessionId: SESSION_ID, studentId: STUDENT_ID });
+    const result = await getAssignedNextSegment({
+      attemptSessionId: SESSION_ID,
+      studentId: STUDENT_ID,
+    });
     expect(result).toEqual({ status: "database_unavailable" });
   });
 
   it("returns forbidden when the session belongs to another student", async () => {
     mockState.attemptSession = baseAttemptSession({ student_id: OTHER_STUDENT_ID });
-    const result = await getAssignedNextSegment({ attemptSessionId: SESSION_ID, studentId: STUDENT_ID });
+    const result = await getAssignedNextSegment({
+      attemptSessionId: SESSION_ID,
+      studentId: STUDENT_ID,
+    });
     expect(result).toEqual({ status: "forbidden" });
   });
 
   it("returns ready with the server-selected scene", async () => {
     mockState.attemptSession = baseAttemptSession();
-    const result = await getAssignedNextSegment({ attemptSessionId: SESSION_ID, studentId: STUDENT_ID });
+    const result = await getAssignedNextSegment({
+      attemptSessionId: SESSION_ID,
+      studentId: STUDENT_ID,
+    });
 
     expect(result.status).toBe("ready");
     if (result.status !== "ready") return;
@@ -371,7 +386,10 @@ describe("getAssignedNextSegment", () => {
       director_decision_version: 0,
     });
 
-    const result = await getAssignedNextSegment({ attemptSessionId: SESSION_ID, studentId: STUDENT_ID });
+    const result = await getAssignedNextSegment({
+      attemptSessionId: SESSION_ID,
+      studentId: STUDENT_ID,
+    });
 
     expect(h.resolveNextScene).toHaveBeenCalled();
     expect(result.status).toBe("ready");
@@ -395,7 +413,10 @@ describe("getAssignedNextSegment", () => {
       next_action_index: 3,
     });
 
-    const result = await getAssignedNextSegment({ attemptSessionId: SESSION_ID, studentId: STUDENT_ID });
+    const result = await getAssignedNextSegment({
+      attemptSessionId: SESSION_ID,
+      studentId: STUDENT_ID,
+    });
 
     expect(result).toEqual({
       status: "completed",
@@ -419,7 +440,10 @@ describe("getAssignedNextSegment", () => {
       director_decision_version: 0,
     });
 
-    const result = await getAssignedNextSegment({ attemptSessionId: SESSION_ID, studentId: STUDENT_ID });
+    const result = await getAssignedNextSegment({
+      attemptSessionId: SESSION_ID,
+      studentId: STUDENT_ID,
+    });
 
     expect(result.status).toBe("completed");
     if (result.status !== "completed") return;
@@ -568,7 +592,11 @@ describe("checkAssignedAction", () => {
   });
 
   it("returns forbidden when the session belongs to another student", async () => {
-    mockState.poolSession = { student_id: OTHER_STUDENT_ID, status: "active", next_action_index: 0 };
+    mockState.poolSession = {
+      student_id: OTHER_STUDENT_ID,
+      status: "active",
+      next_action_index: 0,
+    };
     const result = await checkAssignedAction({
       attemptSessionId: SESSION_ID,
       studentId: STUDENT_ID,
@@ -840,11 +868,7 @@ describe("submitAssignedAssessment", () => {
     });
 
     expect(result).toEqual({ status: "submitted", correct: true, nextActionIndex: 1 });
-    expect(h.evaluateAssessment).toHaveBeenCalledWith(
-      "linear-equations-immediate",
-      "x = 5",
-      {}
-    );
+    expect(h.evaluateAssessment).toHaveBeenCalledWith("linear-equations-immediate", "x = 5", {});
     expect(h.applyLearnerUpdateInTransaction).toHaveBeenCalledWith(
       expect.any(Object),
       STUDENT_ID,
@@ -873,11 +897,7 @@ describe("submitAssignedAssessment", () => {
     });
 
     expect(result).toEqual({ status: "submitted", correct: true, nextActionIndex: 1 });
-    expect(h.evaluateAssessment).toHaveBeenCalledWith(
-      "linear-equations-immediate",
-      "x = 5",
-      {}
-    );
+    expect(h.evaluateAssessment).toHaveBeenCalledWith("linear-equations-immediate", "x = 5", {});
     expect(h.applyLearnerUpdateInTransaction).not.toHaveBeenCalled();
     expect(
       queryMock.mock.calls.some(([sql]) =>
