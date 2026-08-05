@@ -80,6 +80,47 @@ export interface LearnerUpdate {
   interaction?: InteractionRecord;
 }
 
+/** Applies a learner update inside a caller-owned transaction. */
+export async function applyLearnerUpdateInTransaction(
+  client: PoolClient,
+  studentId: number,
+  update: LearnerUpdate
+): Promise<void> {
+  for (const d of update.masteryDeltas ?? []) {
+    await client.query(
+      `INSERT INTO learner_mastery (student_id, concept, subject, p_mastery, confidence, updated_at)
+       VALUES ($1, $2, $3, $4, $5, now())
+       ON CONFLICT (student_id, concept) DO UPDATE
+         SET subject = EXCLUDED.subject, p_mastery = EXCLUDED.p_mastery,
+             confidence = EXCLUDED.confidence, updated_at = now()`,
+      [studentId, d.concept, d.subject ?? null, d.pMastery, d.confidence]
+    );
+  }
+  for (const r of update.reviewUpdates ?? []) {
+    await client.query(
+      `INSERT INTO review_schedule
+         (student_id, concept, sm2_ef, interval_days, repetitions, due_at, last_reviewed_at)
+       VALUES ($1, $2, $3, $4, $5, $6, now())
+       ON CONFLICT (student_id, concept) DO UPDATE
+         SET sm2_ef = EXCLUDED.sm2_ef, interval_days = EXCLUDED.interval_days,
+             repetitions = EXCLUDED.repetitions, due_at = EXCLUDED.due_at, last_reviewed_at = now()`,
+      [studentId, r.concept, r.sm2Ef, r.intervalDays, r.repetitions, r.dueAt]
+    );
+  }
+  if (update.memoryNote?.trim()) {
+    await client.query(`INSERT INTO memory_notes (student_id, note) VALUES ($1, $2)`, [
+      studentId,
+      update.memoryNote,
+    ]);
+  }
+  if (update.interaction) {
+    await client.query(
+      `INSERT INTO interaction_log (student_id, kind, concept, payload) VALUES ($1, $2, $3, $4)`,
+      [studentId, update.interaction.kind, update.interaction.concept ?? null, JSON.stringify(update.interaction.payload ?? {})]
+    );
+  }
+}
+
 // ─── Row mappers ──────────────────────────────────────────────────────────────
 
 function mapMastery(r: any): LearnerMasteryRow {
@@ -230,53 +271,7 @@ export async function commitLearnerUpdate(
     client = await getPgPool().connect();
     await client.query("BEGIN");
 
-    for (const d of update.masteryDeltas ?? []) {
-      await client.query(
-        `INSERT INTO learner_mastery (student_id, concept, subject, p_mastery, confidence, updated_at)
-         VALUES ($1, $2, $3, $4, $5, now())
-         ON CONFLICT (student_id, concept) DO UPDATE
-           SET subject    = EXCLUDED.subject,
-               p_mastery  = EXCLUDED.p_mastery,
-               confidence = EXCLUDED.confidence,
-               updated_at = now()`,
-        [studentId, d.concept, d.subject ?? null, d.pMastery, d.confidence]
-      );
-    }
-
-    for (const r of update.reviewUpdates ?? []) {
-      await client.query(
-        `INSERT INTO review_schedule
-           (student_id, concept, sm2_ef, interval_days, repetitions, due_at, last_reviewed_at)
-         VALUES ($1, $2, $3, $4, $5, $6, now())
-         ON CONFLICT (student_id, concept) DO UPDATE
-           SET sm2_ef           = EXCLUDED.sm2_ef,
-               interval_days    = EXCLUDED.interval_days,
-               repetitions      = EXCLUDED.repetitions,
-               due_at           = EXCLUDED.due_at,
-               last_reviewed_at = now()`,
-        [studentId, r.concept, r.sm2Ef, r.intervalDays, r.repetitions, r.dueAt]
-      );
-    }
-
-    if (update.memoryNote != null && update.memoryNote.trim().length > 0) {
-      await client.query(`INSERT INTO memory_notes (student_id, note) VALUES ($1, $2)`, [
-        studentId,
-        update.memoryNote,
-      ]);
-    }
-
-    if (update.interaction) {
-      await client.query(
-        `INSERT INTO interaction_log (student_id, kind, concept, payload)
-         VALUES ($1, $2, $3, $4)`,
-        [
-          studentId,
-          update.interaction.kind,
-          update.interaction.concept ?? null,
-          JSON.stringify(update.interaction.payload ?? {}),
-        ]
-      );
-    }
+    await applyLearnerUpdateInTransaction(client, studentId, update);
 
     await client.query("COMMIT");
     return true;

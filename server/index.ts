@@ -270,13 +270,20 @@ app.use(
   // blocks startup.
   void aiHealthcheck();
 
-  // Start AI Job Workers (Study Arena)
+  // Start AI Job Workers (Study Arena classroom + lesson compiler)
   import("./services/study-arena/job-queue")
     .then(({ classroomWorker }) => {
       if (classroomWorker) logger.info("[StudyArena] Worker initialized");
     })
     .catch((err) => {
       logger.error("[StudyArena] Failed to initialize worker:", err);
+    });
+  import("./services/study-arena/lesson-compiler")
+    .then(({ lessonCompileWorker }) => {
+      if (lessonCompileWorker) logger.info("[StudyArena] Lesson compiler worker initialized");
+    })
+    .catch((err) => {
+      logger.error("[StudyArena] Failed to initialize lesson compiler worker:", err);
     });
 
   // Start SIS Automation Workers (needs Redis; scheduleAtRiskChecks no-ops without it)

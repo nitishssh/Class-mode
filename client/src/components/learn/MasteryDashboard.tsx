@@ -258,6 +258,14 @@ function ReviewCard({ review, due }: { review: ReviewRow; due?: boolean }) {
         {review.repetitions} review{review.repetitions === 1 ? "" : "s"} · interval{" "}
         {review.intervalDays} day{review.intervalDays === 1 ? "" : "s"}
       </div>
+      {due && review.concept === "linear-equations-isolation" && (
+        <a
+          href="/study-arena-beta?sprint=linear-equations&review=delayed"
+          className="mt-3 inline-flex text-sm font-semibold text-accent hover:underline"
+        >
+          Start no-AI recall check
+        </a>
+      )}
     </div>
   );
 }

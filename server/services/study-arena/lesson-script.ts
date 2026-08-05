@@ -20,16 +20,37 @@ import { logger } from "../../lib/logger";
 
 // ── Scene-script contract (the one schema that makes it work) ────────────────
 
+/** WCAG 2.2 AA / keyboard / aria-live contract for every interactive scene action. */
+export const sceneActionA11ySchema = z.object({
+  name: z.string().min(1),
+  keyboardOperation: z.string().min(1),
+  focusTarget: z.enum(["next-gate", "alert", "self"]).default("next-gate"),
+  textAlternative: z.string().min(1),
+  ariaLive: z.enum(["off", "polite", "assertive"]).default("polite"),
+});
+
+export type SceneActionA11y = z.infer<typeof sceneActionA11ySchema>;
+
 export const sceneActionSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("speak"),
     agent: z.enum(["teacher", "classmate", "coach"]),
     text: z.string().min(1),
+    a11y: sceneActionA11ySchema.optional(),
   }),
   z.object({
     type: z.literal("showSlide"),
     title: z.string().min(1),
     bullets: z.array(z.string()).max(6).default([]),
+    a11y: sceneActionA11ySchema.optional(),
+  }),
+  z.object({
+    // A semantic reference to content already rendered in the scene. The player
+    // announces the focus; it never relies on colour alone to convey meaning.
+    type: z.literal("highlight"),
+    target: z.string().min(1).max(120),
+    label: z.string().min(1).max(240),
+    a11y: sceneActionA11ySchema.optional(),
   }),
   z.object({
     type: z.literal("ask"),
@@ -41,23 +62,520 @@ export const sceneActionSchema = z.discriminatedUnion("type", [
     choices: z.array(z.string().min(1)).optional(),
     // The gate: playback MUST stop here until the student responds.
     gate: z.literal(true),
+    a11y: sceneActionA11ySchema.optional(),
+  }),
+  z.object({
+    // An independent retrieval check. Unlike an `ask`, this is graded locally
+    // by the server and never receives an AI-generated response.
+    type: z.literal("assessment"),
+    agent: z.enum(["teacher", "classmate", "coach"]),
+    prompt: z.string().min(1).max(2000),
+    assessmentId: z.enum([
+      "linear-equations-immediate",
+      "linear-equations-delayed",
+      "photosynthesis-transfer",
+      "english-reading-inference",
+      "social-studies-causation",
+    ]),
+    gate: z.literal(true),
+    a11y: sceneActionA11ySchema.optional(),
   }),
 ]);
+
+/** Fills WCAG defaults so every action has a usable accessible name and live region. */
+export function ensureActionA11y(
+  action: z.infer<typeof sceneActionSchema>
+): z.infer<typeof sceneActionSchema> {
+  if (action.a11y) {
+    return { ...action, a11y: sceneActionA11ySchema.parse(action.a11y) };
+  }
+  switch (action.type) {
+    case "speak":
+      return {
+        ...action,
+        a11y: {
+          name: `${action.agent} narration`,
+          keyboardOperation: "Listen; press Tab to move to the next control",
+          focusTarget: "next-gate",
+          textAlternative: action.text,
+          ariaLive: "polite",
+        },
+      };
+    case "showSlide":
+      return {
+        ...action,
+        a11y: {
+          name: action.title,
+          keyboardOperation: "Read slide content; press Tab to continue",
+          focusTarget: "next-gate",
+          textAlternative: [action.title, ...action.bullets].join(". "),
+          ariaLive: "polite",
+        },
+      };
+    case "highlight":
+      return {
+        ...action,
+        a11y: {
+          name: action.label,
+          keyboardOperation: "Focus moves to the highlighted content",
+          focusTarget: "self",
+          textAlternative: action.label,
+          ariaLive: "polite",
+        },
+      };
+    case "ask":
+      return {
+        ...action,
+        a11y: {
+          name: "Attempt gate",
+          keyboardOperation:
+            action.expects === "choice"
+              ? "Use arrow keys or Tab to choose an option, then Enter to submit"
+              : "Type your answer, then press Enter or activate Submit",
+          focusTarget: "self",
+          textAlternative: action.prompt,
+          ariaLive: "polite",
+        },
+      };
+    case "assessment":
+      return {
+        ...action,
+        a11y: {
+          name: "Independent assessment",
+          keyboardOperation: "Type your answer, then press Enter or activate Submit",
+          focusTarget: "self",
+          textAlternative: action.prompt,
+          ariaLive: "assertive",
+        },
+      };
+  }
+}
+
+/** Ensures every action in a script carries a11y defaults (templates + generated). */
+export function ensureScriptA11y<T extends { scenes: Array<{ actions: Array<z.infer<typeof sceneActionSchema>> }> }>(
+  script: T
+): T {
+  return {
+    ...script,
+    scenes: script.scenes.map((scene) => ({
+      ...scene,
+      actions: scene.actions.map((action) => ensureActionA11y(action)),
+    })),
+  };
+}
 
 export const lessonSceneSchema = z.object({
   id: z.string().min(1),
   actions: z.array(sceneActionSchema).min(1),
 });
 
-export const lessonScriptSchema = z.object({
+/**
+ * Predicates are declarations only. The future server-owned scene director
+ * evaluates them against trusted evidence; a player must never choose an edge.
+ */
+export const sceneTransitionPredicateSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("always") }),
+  z.object({
+    kind: z.literal("assessment_result"),
+    assessmentId: z.string().min(1).optional(),
+    correct: z.boolean(),
+  }),
+  z.object({
+    kind: z.literal("help_depth"),
+    operator: z.enum(["gte", "lt"]),
+    value: z.number().int().min(1).max(20),
+  }),
+  z.object({
+    kind: z.literal("mastery"),
+    conceptId: z.string().min(1),
+    operator: z.enum(["gte", "lt"]),
+    value: z.number().min(0).max(1),
+  }),
+  z.object({
+    kind: z.literal("prerequisite_mastery"),
+    conceptId: z.string().min(1),
+    operator: z.enum(["gte", "lt"]),
+    value: z.number().min(0).max(1),
+  }),
+]);
+
+export const sceneTransitionSchema = z
+  .object({
+    fromSceneId: z.string().min(1),
+    toSceneId: z.string().min(1).optional(),
+    terminal: z.literal(true).optional(),
+    when: sceneTransitionPredicateSchema.default({ kind: "always" }),
+    // Cycles are allowed only when every participating transition is explicitly
+    // bounded. The director will later enforce this limit from persisted state.
+    maxTraversals: z.number().int().min(1).max(20).optional(),
+  })
+  .superRefine((transition, ctx) => {
+    if ((transition.toSceneId === undefined) === (transition.terminal === undefined)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "A transition must declare exactly one of toSceneId or terminal: true",
+        path: ["toSceneId"],
+      });
+    }
+  });
+
+export const lessonSceneGraphSchema = z.object({
+  version: z.literal("v1"),
+  entrySceneId: z.string().min(1),
+  transitions: z.array(sceneTransitionSchema).min(1).max(100),
+});
+
+export type SceneTransitionPredicate = z.infer<typeof sceneTransitionPredicateSchema>;
+export type SceneTransition = z.infer<typeof sceneTransitionSchema>;
+export type LessonSceneGraph = z.infer<typeof lessonSceneGraphSchema>;
+
+type SceneGraphValidationInput = {
+  scenes: Array<{ id: string; actions: Array<{ type: string }> }>;
+  sceneGraph?: LessonSceneGraph;
+};
+
+/**
+ * Validates the immutable graph a teacher is about to publish. Scripts without
+ * a graph retain legacy linear behavior: each scene implicitly leads to the
+ * following scene and the final scene is terminal.
+ */
+export function validateLessonSceneGraph(
+  script: SceneGraphValidationInput,
+  ctx: z.RefinementCtx
+): void {
+  const sceneIds = script.scenes.map((scene) => scene.id);
+  const knownSceneIds = new Set(sceneIds);
+  const duplicateIds = sceneIds.filter((id, index) => sceneIds.indexOf(id) !== index);
+  for (const id of new Set(duplicateIds)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `Scene ID "${id}" must be unique`,
+      path: ["scenes"],
+    });
+  }
+
+  const graph = script.sceneGraph;
+  if (!graph || duplicateIds.length > 0) return;
+
+  if (!knownSceneIds.has(graph.entrySceneId)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `Entry scene "${graph.entrySceneId}" does not exist`,
+      path: ["sceneGraph", "entrySceneId"],
+    });
+  }
+
+  const transitionsByScene = new Map<string, SceneTransition[]>();
+  const adjacency = new Map<string, string[]>();
+  const reverseAdjacency = new Map<string, string[]>();
+  const terminalScenes = new Set<string>();
+  for (const sceneId of sceneIds) {
+    adjacency.set(sceneId, []);
+    reverseAdjacency.set(sceneId, []);
+  }
+
+  graph.transitions.forEach((transition, index) => {
+    if (!knownSceneIds.has(transition.fromSceneId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Transition source "${transition.fromSceneId}" does not exist`,
+        path: ["sceneGraph", "transitions", index, "fromSceneId"],
+      });
+      return;
+    }
+    const sourceTransitions = transitionsByScene.get(transition.fromSceneId) ?? [];
+    sourceTransitions.push(transition);
+    transitionsByScene.set(transition.fromSceneId, sourceTransitions);
+
+    if (transition.terminal) terminalScenes.add(transition.fromSceneId);
+    if (!transition.toSceneId) return;
+    if (!knownSceneIds.has(transition.toSceneId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Transition target "${transition.toSceneId}" does not exist`,
+        path: ["sceneGraph", "transitions", index, "toSceneId"],
+      });
+      return;
+    }
+    adjacency.get(transition.fromSceneId)?.push(transition.toSceneId);
+    reverseAdjacency.get(transition.toSceneId)?.push(transition.fromSceneId);
+  });
+
+  if (!knownSceneIds.has(graph.entrySceneId)) return;
+
+  const reachable = new Set<string>();
+  const pending = [graph.entrySceneId];
+  while (pending.length) {
+    const sceneId = pending.pop()!;
+    if (reachable.has(sceneId)) continue;
+    reachable.add(sceneId);
+    for (const target of adjacency.get(sceneId) ?? []) pending.push(target);
+  }
+  for (const sceneId of sceneIds) {
+    if (!reachable.has(sceneId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Scene "${sceneId}" is not reachable from the entry scene`,
+        path: ["sceneGraph"],
+      });
+    }
+  }
+
+  const assessmentScenes = new Set(
+    script.scenes
+      .filter((scene) => scene.actions.some((action) => action.type === "assessment"))
+      .map((scene) => scene.id)
+  );
+  const successfulEndings = new Set([...assessmentScenes, ...terminalScenes]);
+  const canReachEnding = new Set(successfulEndings);
+  const endingPending = [...successfulEndings];
+  while (endingPending.length) {
+    const sceneId = endingPending.pop()!;
+    for (const source of reverseAdjacency.get(sceneId) ?? []) {
+      if (!canReachEnding.has(source)) {
+        canReachEnding.add(source);
+        endingPending.push(source);
+      }
+    }
+  }
+  for (const sceneId of reachable) {
+    if (!canReachEnding.has(sceneId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Scene "${sceneId}" cannot reach an independent assessment or terminal transition`,
+        path: ["sceneGraph"],
+      });
+    }
+  }
+
+  // An edge belongs to a cycle if its target can reach its source. Requiring a
+  // traversal cap on each such edge prevents an authoring mistake from creating
+  // an endlessly routable lesson while still allowing bounded retry loops.
+  const hasPath = (from: string, to: string): boolean => {
+    const seen = new Set<string>();
+    const stack = [from];
+    while (stack.length) {
+      const current = stack.pop()!;
+      if (current === to) return true;
+      if (seen.has(current)) continue;
+      seen.add(current);
+      for (const next of adjacency.get(current) ?? []) stack.push(next);
+    }
+    return false;
+  };
+  graph.transitions.forEach((transition, index) => {
+    if (
+      transition.toSceneId &&
+      knownSceneIds.has(transition.fromSceneId) &&
+      knownSceneIds.has(transition.toSceneId) &&
+      hasPath(transition.toSceneId, transition.fromSceneId) &&
+      transition.maxTraversals === undefined
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Every transition in a cycle must declare maxTraversals",
+        path: ["sceneGraph", "transitions", index, "maxTraversals"],
+      });
+    }
+  });
+}
+
+export const lessonScriptSchema = z
+  .object({
   topic: z.string().min(1),
   conceptIds: z.array(z.string()).default([]),
+  primaryConceptId: z.string().min(1).optional(),
   scenes: z.array(lessonSceneSchema).min(1),
-});
+    sceneGraph: lessonSceneGraphSchema.optional(),
+  })
+  .superRefine(validateLessonSceneGraph);
 
 export type SceneAction = z.infer<typeof sceneActionSchema>;
 export type LessonScene = z.infer<typeof lessonSceneSchema>;
 export type LessonScript = z.infer<typeof lessonScriptSchema>;
+
+export const sourceSpanSchema = z.object({
+  sourceLabel: z.string().min(1).max(200),
+  sourceLocator: z.string().max(500).optional(),
+  excerpt: z.string().min(20).max(4000),
+});
+
+export const scienceTemplateSchema = z.object({
+  templateId: z.literal("science-explanation-v1"),
+  objectiveTaxonomy: z.enum(["predict", "explain-cause-effect", "interpret-observation"]),
+  sourceSpans: z.array(sourceSpanSchema).min(1),
+  evaluatorVersion: z.literal("science-explanation-v1"),
+});
+export type ScienceTemplate = z.infer<typeof scienceTemplateSchema>;
+
+/**
+ * English and Social Studies pilots use source-grounded, structured responses.
+ * Their evaluator targets stay in lesson-version metadata rather than the scene
+ * JSON, so students never receive an answer key with an assigned segment.
+ */
+export const englishTemplateSchema = z.object({
+  templateId: z.literal("english-reading-inference-v1"),
+  objectiveTaxonomy: z.enum(["identify-central-idea", "make-textual-inference", "analyze-claim-evidence"]),
+  sourceSpans: z.array(sourceSpanSchema).min(1),
+  evaluatorVersion: z.literal("english-reading-inference-v1"),
+  evaluationTargets: z.object({
+    acceptedInferences: z.array(z.string().min(2).max(200)).min(1).max(8),
+    requiredEvidenceTerms: z.array(z.string().min(2).max(100)).min(1).max(8),
+  }),
+});
+export type EnglishTemplate = z.infer<typeof englishTemplateSchema>;
+
+export const socialStudiesTemplateSchema = z.object({
+  templateId: z.literal("social-studies-causation-v1"),
+  objectiveTaxonomy: z.enum(["chronological-reasoning", "analyze-source-perspective", "explain-cause-effect"]),
+  sourceSpans: z.array(sourceSpanSchema).min(1),
+  evaluatorVersion: z.literal("social-studies-causation-v1"),
+  evaluationTargets: z.object({
+    acceptedCauses: z.array(z.string().min(2).max(200)).min(1).max(8),
+    acceptedEffects: z.array(z.string().min(2).max(200)).min(1).max(8),
+  }),
+});
+export type SocialStudiesTemplate = z.infer<typeof socialStudiesTemplateSchema>;
+
+export const subjectTemplateSchema = z.discriminatedUnion("templateId", [
+  scienceTemplateSchema,
+  englishTemplateSchema,
+  socialStudiesTemplateSchema,
+]);
+export type SubjectTemplate = z.infer<typeof subjectTemplateSchema>;
+
+export function subjectForTemplate(template: SubjectTemplate): string {
+  switch (template.templateId) {
+    case "science-explanation-v1":
+      return "science";
+    case "english-reading-inference-v1":
+      return "english";
+    case "social-studies-causation-v1":
+      return "social studies";
+  }
+}
+
+export function requiredAssessmentForTemplate(
+  template: SubjectTemplate
+): "photosynthesis-transfer" | "english-reading-inference" | "social-studies-causation" {
+  switch (template.templateId) {
+    case "science-explanation-v1":
+      return "photosynthesis-transfer";
+    case "english-reading-inference-v1":
+      return "english-reading-inference";
+    case "social-studies-causation-v1":
+      return "social-studies-causation";
+  }
+}
+
+export const LINEAR_EQUATIONS_SPRINT_TOPIC = "Linear equations";
+
+/**
+ * A deterministic first pilot, rather than a model-generated lesson. Keeping
+ * the practice and transfer item stable is essential when evaluating whether
+ * the attempt-first harness improves independent learning.
+ */
+export function createLinearEquationsSprint(): LessonScript {
+  return ensureScriptA11y({
+    topic: LINEAR_EQUATIONS_SPRINT_TOPIC,
+    conceptIds: ["linear-equations-isolation"],
+    scenes: [
+      {
+        id: "balance",
+        actions: [
+          {
+            type: "showSlide",
+            title: "Keep both sides balanced",
+            bullets: [
+              "An equation says two expressions have the same value.",
+              "Whatever you do to one side, do to the other.",
+              "Your goal is to get x on its own.",
+            ],
+          },
+          {
+            type: "ask",
+            agent: "teacher",
+            prompt: "For x + 4 = 11, what would you do first to get x by itself? Explain why.",
+            expects: "freeText",
+            gate: true,
+          },
+        ],
+      },
+      {
+        id: "inverse-operations",
+        actions: [
+          {
+            type: "speak",
+            agent: "coach",
+            text: "Use inverse operations in reverse order: undo addition or subtraction before undoing multiplication.",
+          },
+          {
+            type: "ask",
+            agent: "teacher",
+            prompt: "Solve 2x + 5 = 17. Show the two operations you would undo.",
+            expects: "freeText",
+            gate: true,
+          },
+        ],
+      },
+      {
+        id: "immediate-transfer",
+        actions: [
+          {
+            type: "assessment",
+            agent: "teacher",
+            assessmentId: "linear-equations-immediate",
+            prompt:
+              "Independent check — no hints this time: solve 3x + 6 = 21. Enter the value of x and a short reason.",
+            gate: true,
+          },
+        ],
+      },
+    ],
+  });
+}
+
+/** A scheduled, no-AI recall check that follows the initial sprint after 72 hours. */
+export function createLinearEquationsDelayedCheck(): LessonScript {
+  return ensureScriptA11y({
+    topic: LINEAR_EQUATIONS_SPRINT_TOPIC,
+    conceptIds: ["linear-equations-isolation"],
+    scenes: [
+      {
+        id: "delayed-transfer",
+        actions: [
+          {
+            type: "assessment",
+            agent: "teacher",
+            assessmentId: "linear-equations-delayed",
+            prompt:
+              "Delayed recall check — no hints or notes: solve 4x - 5 = 23. Enter the value of x.",
+            gate: true,
+          },
+        ],
+      },
+    ],
+  });
+}
+
+const LINEAR_EQUATIONS_ANSWERS = {
+  "linear-equations-immediate": 5,
+  "linear-equations-delayed": 7,
+} as const;
+
+export type LinearEquationsAssessmentId = keyof typeof LINEAR_EQUATIONS_ANSWERS;
+
+/**
+ * Accept common answer forms such as `5`, `x = 5`, or `x=5`. This deliberately
+ * grades a small fixed pilot item without asking an LLM to judge its own help.
+ */
+export function gradeLinearEquationsAssessment(
+  assessmentId: LinearEquationsAssessmentId,
+  answer: string
+): boolean {
+  const normalized = answer.trim().replace(/\s/g, "").replace(/^x=/i, "");
+  return Number(normalized) === LINEAR_EQUATIONS_ANSWERS[assessmentId];
+}
 
 export interface GenerateLessonOptions {
   language?: string;
@@ -159,7 +677,7 @@ export async function generateLessonScript(
     throw new Error("Generated lesson had no interactive checkpoints");
   }
 
-  return script;
+  return ensureScriptA11y(script);
 }
 
 // ── Attempt-first interaction (reuses the AI Tutor's Socratic prompt) ────────

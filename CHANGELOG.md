@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.9.1.1] - 2026-08-05
+
+### Added
+
+- **Adaptive Study Arena (Phase A)** — scene director branches lessons on mastery; concept registry + adaptive recommendations (`continue` / `supported_retry` / `prerequisite_refresh` / `schedule_recall`); server-owned assignment sessions with nonce-checked assessments and teacher reports.
+- **Teacher create flow** — four-step `/study-arena/create` with draft → objective/source/assessment approvals → preview → publish (publish blocked until all three approvals).
+- **Teacher preview isolation** — preview sessions (`is_preview`) never write learner evidence or mastery.
+- **Lesson compiler jobs** — durable fingerprint-deduped compile queue with cancel/retry and sync fallback when Redis is off.
+- **Scene a11y contracts** — optional `a11y` on scene actions (name, keyboard, aria-live, text alternative) wired into the player live region.
+
+### Fixed
+
+- Concurrent approval writes no longer drop sibling approvals; compiler enqueue unique races return the in-flight job; cancel after complete cleans orphan drafts.
+- Assignment publish/create enrolls only users with `role = 'student'`.
+
 ## [1.9.1.0] - 2026-07-31
 
 ### Added
