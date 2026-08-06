@@ -62,6 +62,7 @@ function makeApp() {
 }
 
 const ASSIGNMENT_ID = "33333333-3333-4333-8333-333333333333";
+const SESSION_ID = "44444444-4444-4444-8444-444444444444";
 
 /** Every route below is an authoring/oversight surface behind the same gate. */
 const GUARDED = [
@@ -87,6 +88,38 @@ const GUARDED = [
       request(app)
         .post(`/api/study-arena-beta/assignments/${ASSIGNMENT_ID}/interventions`)
         .send({ studentIds: [4], label: "needs review", suggestedAction: "reteach" }),
+  },
+  {
+    // The legacy assign route carries its own inline copy of the gate, and it
+    // validates the body BEFORE checking the role — so the payload has to be
+    // schema-valid (scenes needs >= 1) or the request 400s short of the gate.
+    name: "assign a lesson via the legacy route",
+    call: (app: express.Express) =>
+      request(app)
+        .post("/api/study-arena-beta/assignments")
+        .send({
+          subject: "math",
+          objective: "Solve one-step linear equations",
+          script: {
+            topic: "Linear equations",
+            conceptIds: [],
+            scenes: [
+              {
+                id: "check",
+                actions: [
+                  {
+                    type: "ask",
+                    agent: "teacher",
+                    prompt: "Solve for x",
+                    expects: "freeText",
+                    gate: true,
+                  },
+                ],
+              },
+            ],
+          },
+          studentIds: [4],
+        }),
   },
 ];
 
@@ -130,6 +163,41 @@ describe("Study Arena role gating (ISSUE-005)", () => {
       expect(res.status).toBe(401);
     });
   }
+
+  // canUseAttemptSession has its own role list (students PLUS authoring roles).
+  // Without school_admin there, a principal could open a lesson preview but the
+  // very next call would 403 — so it needs its own coverage.
+  describe("canUseAttemptSession via /assignment-next-segment", () => {
+    const nextSegment = (app: express.Express) =>
+      request(app)
+        .post("/api/study-arena-beta/assignment-next-segment")
+        .send({ assignmentId: ASSIGNMENT_ID, attemptSessionId: SESSION_ID });
+
+    // This route calls the real service, which also 403s (for session ownership)
+    // against the empty mock DB. Assert on the GATE's own message so an
+    // ownership 403 can never be mistaken for a role-gate pass or failure.
+    const ROLE_GATE_MESSAGE =
+      "Only assigned students or previewing teachers can load a lesson segment";
+
+    it("admits school_admin (needed for teacher/principal lesson preview)", async () => {
+      h.user = { id: 3, role: "school_admin" };
+      const res = await nextSegment(makeApp());
+      expect(res.body?.message).not.toBe(ROLE_GATE_MESSAGE);
+    });
+
+    it("admits student (unchanged)", async () => {
+      h.user = { id: 4, role: "student" };
+      const res = await nextSegment(makeApp());
+      expect(res.body?.message).not.toBe(ROLE_GATE_MESSAGE);
+    });
+
+    it("still denies parent at the role gate", async () => {
+      h.user = { id: 5, role: "parent" };
+      const res = await nextSegment(makeApp());
+      expect(res.status).toBe(403);
+      expect(res.body?.message).toBe(ROLE_GATE_MESSAGE);
+    });
+  });
 
   it("does not grant principal — that remains a product decision (see TODOS.md)", async () => {
     h.user = { id: 8, role: "principal" };

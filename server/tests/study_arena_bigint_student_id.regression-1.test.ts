@@ -51,7 +51,12 @@ const validScript: LessonScript = {
 let attemptSession: Record<string, unknown> | undefined;
 
 const queryMock = vi.fn(async (sql: string) => {
-  if (sql.includes("FROM study_arena_attempt_sessions s") && sql.includes("FOR UPDATE")) {
+  // submitAssignedAssessment selects FROM the instances table and JOINs the
+  // session, so it must be matched before the session branch below.
+  if (sql.includes("FROM study_arena_assessment_instances i")) {
+    return { rows: attemptSession ? [attemptSession] : [] };
+  }
+  if (sql.includes("FROM study_arena_attempt_sessions s")) {
     return { rows: attemptSession ? [attemptSession] : [] };
   }
   if (sql.includes("UPDATE study_arena_attempt_sessions")) return { rows: [] };
@@ -91,6 +96,9 @@ vi.mock("../lib/ai/learner-model", () => ({
 import {
   getAssignedNextSegment,
   checkAssignedAction,
+  recordAssignedEvidence,
+  issueAssignedAssessment,
+  submitAssignedAssessment,
 } from "../services/study-arena/assignment-sessions";
 
 /** Mirrors what node-postgres actually returns: bigint -> string. */
@@ -144,6 +152,71 @@ describe("bigint student_id ownership checks (ISSUE-001)", () => {
       actionIndex: 0,
     });
     expect(result).toEqual({ status: "ok" });
+  });
+
+  /**
+   * The ownership gate is the first thing each function does after its SELECT.
+   * Past that gate these functions do substantial downstream work that a minimal
+   * mock cannot satisfy, so they may throw. A throw therefore PROVES the gate
+   * admitted the caller; only a returned "forbidden" means the gate rejected.
+   */
+  async function passesOwnershipGate(call: () => Promise<{ status: string }>) {
+    try {
+      return (await call()).status !== "forbidden";
+    } catch {
+      // A throw only proves the gate opened if the SELECT actually ran. Without
+      // this check a broken mock could throw BEFORE the gate and the test would
+      // pass for the wrong reason.
+      const ranTheSelect = queryMock.mock.calls.some(([sql]) =>
+        String(sql).includes("FROM study_arena_")
+      );
+      return ranTheSelect;
+    }
+  }
+
+  // The remaining three fixed sites. Each must get PAST the ownership check on a
+  // string id — asserting on the gate alone keeps the test about ownership
+  // rather than about each function's downstream work.
+  it("recordAssignedEvidence admits the owner when student_id arrives as a string", async () => {
+    attemptSession = sessionRow();
+    const admitted = await passesOwnershipGate(() =>
+      recordAssignedEvidence({
+        attemptSessionId: SESSION_ID,
+        studentId: STUDENT_ID,
+        actionIndex: 0,
+        idempotencyKey: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        eventKind: "attempt",
+        evidence: { answer: "x = 4" },
+      })
+    );
+    expect(admitted).toBe(true);
+  });
+
+  it("issueAssignedAssessment admits the owner when student_id arrives as a string", async () => {
+    attemptSession = sessionRow({ session_status: "active", assignment_status: "published" });
+    const admitted = await passesOwnershipGate(() =>
+      issueAssignedAssessment({
+        attemptSessionId: SESSION_ID,
+        studentId: STUDENT_ID,
+        actionIndex: 0,
+      })
+    );
+    expect(admitted).toBe(true);
+  });
+
+  it("submitAssignedAssessment admits the owner when student_id arrives as a string", async () => {
+    attemptSession = sessionRow();
+    const admitted = await passesOwnershipGate(() =>
+      submitAssignedAssessment({
+        attemptSessionId: SESSION_ID,
+        assessmentInstanceId: "77777777-7777-4777-8777-777777777777",
+        studentId: STUDENT_ID,
+        actionNonce: "88888888-8888-4888-8888-888888888888",
+        answer: "x = 4",
+        idempotencyKey: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      })
+    );
+    expect(admitted).toBe(true);
   });
 
   it("still forbids a different student when ids arrive as strings", async () => {
