@@ -316,7 +316,7 @@ export async function getAssignedNextSegment(input: {
       [input.attemptSessionId]
     );
     const session = result.rows[0];
-    if (!session || session.student_id !== input.studentId) {
+    if (!session || Number(session.student_id) !== input.studentId) {
       await client.query("ROLLBACK");
       return { status: "forbidden" };
     }
@@ -503,7 +503,7 @@ export async function recordAssignedEvidence(input: {
       [input.attemptSessionId]
     );
     const session = sessionResult.rows[0];
-    if (!session || session.student_id !== input.studentId) {
+    if (!session || Number(session.student_id) !== input.studentId) {
       await client.query("ROLLBACK");
       return { status: "forbidden" };
     }
@@ -617,7 +617,7 @@ export async function checkAssignedAction(input: {
     [input.attemptSessionId]
   );
   const session = result.rows[0];
-  if (!session || session.student_id !== input.studentId) return { status: "forbidden" };
+  if (!session || Number(session.student_id) !== input.studentId) return { status: "forbidden" };
   if (session.status !== "active") return { status: "inactive" };
   if (session.next_action_index !== input.actionIndex) return { status: "out_of_sequence" };
   return { status: "ok" };
@@ -657,7 +657,7 @@ export async function issueAssignedAssessment(input: {
       [input.attemptSessionId]
     );
     const session = result.rows[0];
-    if (!session || session.student_id !== input.studentId) {
+    if (!session || Number(session.student_id) !== input.studentId) {
       await client.query("ROLLBACK");
       return { status: "forbidden" };
     }
@@ -763,7 +763,7 @@ export async function submitAssignedAssessment(input: {
       [input.assessmentInstanceId, input.attemptSessionId]
     );
     const row = result.rows[0];
-    if (!row || row.student_id !== input.studentId) { await client.query("ROLLBACK"); return { status: "forbidden" }; }
+    if (!row || Number(row.student_id) !== input.studentId) { await client.query("ROLLBACK"); return { status: "forbidden" }; }
     if (row.instance_status === "submitted" && row.correct !== null) {
       await client.query("COMMIT");
       return { status: "replayed", correct: row.correct, nextActionIndex: row.next_action_index };
