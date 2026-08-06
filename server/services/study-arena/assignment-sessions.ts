@@ -350,8 +350,8 @@ export async function getAssignedNextSegment(input: {
       currentSceneId = initial.toSceneId;
       await client.query(
         `UPDATE study_arena_attempt_sessions
-            SET current_scene_id = $2,
-                branch_path = CASE WHEN $2 IS NULL THEN branch_path ELSE branch_path || to_jsonb($2::text) END,
+            SET current_scene_id = $2::text,
+                branch_path = CASE WHEN $2::text IS NULL THEN branch_path ELSE branch_path || to_jsonb($2::text) END,
                 director_decision = $3,
                 director_decision_version = $4
           WHERE id = $1`,
