@@ -206,9 +206,20 @@ const MyProgressRoute = withLayout(protect(MyProgress, ["student", "parent"]), {
 const SettingsRoute = withLayout(protect(Settings));
 const AiStudyPlansRoute = withLayout(protect(AiStudyPlans, ["student"]));
 const AIClassroomRoute = withLayout(protect(AIClassroom, ["student", "teacher"]));
-const StudyArenaBetaRoute = withLayout(protect(StudyArenaBeta, ["student", "teacher"]));
-const StudyArenaReportRoute = withLayout(protect(StudyArenaReport, ["teacher", "admin"]));
-const StudyArenaCreateRoute = withLayout(protect(StudyArenaCreate, ["teacher", "admin"]));
+// `school_admin` is the tenant admin (school owner), distinct from the platform
+// super-role `admin`. It is gated in alongside teachers so a principal running
+// their own school can author lessons, preview them, and read their school's
+// reports. Mirrors AUTHORING_ROLES in server/routes/study-arena-beta.ts — keep
+// the two lists in step.
+const StudyArenaBetaRoute = withLayout(
+  protect(StudyArenaBeta, ["student", "teacher", "school_admin"])
+);
+const StudyArenaReportRoute = withLayout(
+  protect(StudyArenaReport, ["teacher", "admin", "school_admin"])
+);
+const StudyArenaCreateRoute = withLayout(
+  protect(StudyArenaCreate, ["teacher", "admin", "school_admin"])
+);
 const DynamicSISRoute = withLayout(
   protect(DynamicSIS, ["admin", "school_admin", "principal", "teacher"])
 );
