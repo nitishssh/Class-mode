@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.9.2.0] - 2026-08-07
+
+### Fixed
+
+- **Assigned Study Arena lessons now actually run.** Every student was blocked from their own lesson: opening a lesson worked, but loading the first step failed, and so did answering, being assessed, and submitting. Two separate faults caused it — student ids arriving from the database as text were compared against numbers and never matched, and the query that advances a lesson to its first scene was rejected outright. Assigned lessons were unusable for every learner before this release.
+- **The attempt question is readable in dark mode.** On the attempt card, the question a learner is asked to answer, and their own recorded answer, were near-white text on a near-white panel (about 1:1 contrast). Both now meet accessibility contrast in dark and light themes.
+- **Principals can use Study Arena.** A school owner (`school_admin`) hit "Access Denied" on the lesson, report, and create pages, and was refused by the API even though the same role is trusted across attendance, analytics, fees, and exports. School owners can now author lessons, preview them, read their school's reports, and record follow-up. Access stays scoped to their own school, and they still cannot edit another teacher's draft.
+- **The teacher and principal evidence report opens.** `/study-arena-report` ignored the assignment in the address bar and always showed its empty "choose an assignment" state, so the report could not be opened by anyone. It now loads the assignment's progress, per-student rows, and adaptive path.
+
+### Changed
+
+- Study Arena authoring and oversight permissions are defined in one place on the server instead of five copies, so the lesson, report, preview, assign, and follow-up surfaces can no longer drift apart.
+
 ## [1.9.1.1] - 2026-08-05
 
 ### Added
