@@ -80,7 +80,7 @@
     "google-auth-library": "^10.7.0",
     "helmet": "^8.1.0",
     "input-otp": "^1.2.4",
-    "ioredis": "^5.11.0",
+    "ioredis": "^6.0.0",
     "jotai": "^2.20.1",
     "jsonrepair": "^3.14.0",
     "jsonwebtoken": "^9.0.3",
