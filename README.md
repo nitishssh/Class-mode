@@ -7,7 +7,7 @@
 **The complete school & business operating system.** AI tutoring, multi-tenant workspaces, live classes, real-time messaging, Google OAuth, LMS integrations, and role-based dashboards — all in one open-source platform.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.9.2.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.9.3.0-blue.svg)](CHANGELOG.md)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-green.svg)](https://nodejs.org)
 [![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](docker/Dockerfile)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg)](https://www.typescriptlang.org)
@@ -33,7 +33,7 @@ EduAI is a robust multi-tenant platform. Whether you're a school, a coaching cen
 - **Secure Sessions**: Dual-token JWT + PostgreSQL session management with rotation.
 - **Invitation System**: Onboard members and students via secure email invites.
 - **RBAC**: Granular permissions (Owner, Admin, Member) per workspace.
-- **Gamified Onboarding**: New teachers see a floating "Get Started" quest panel with three activation quests (create a test, set up a class, invite a student). Confetti fires on completion. Panel auto-hides after 7 days or when all quests are done.
+- **Gamified Onboarding**: New teachers see a floating "Get Started" quest panel with three activation quests (create a test, set up a class, invite a student). Confetti fires on completion. Panel auto-hides after 7 days or when all quests are done, and never opens on the attendance or absentee screens so it cannot cover the register controls.
 
 ### 👑 Admin & Workspace Management
 
