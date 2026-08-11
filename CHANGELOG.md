@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.9.3.0] - 2026-08-11
+
+### Fixed
+
+- **New teachers can mark the register again.** The "Get started" onboarding panel floated over the attendance screen and physically covered the Present/Absent/Late/Excused buttons, so tapping them did nothing. On a desktop it blocked 6 of the 7 students on screen; on a phone it covered nearly half the display and stayed there as the page scrolled, leaving a teacher unable to finish the register at all without first closing the panel. The panel appears only for teachers in their first week, so the people it stopped were the ones marking their very first register. It no longer opens on the attendance or absentee screens, and returns as soon as the teacher moves to another page.
+
 ## [1.9.2.0] - 2026-08-11
 
 ### Fixed
