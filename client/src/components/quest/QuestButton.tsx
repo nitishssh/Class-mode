@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles } from "lucide-react";
+import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/auth-context";
-import { QUESTS } from "@/lib/quest-config";
+import { QUESTS, isQuestPanelSuppressed } from "@/lib/quest-config";
 import { useQuestProgress, setPanelDismissed } from "@/hooks/use-quest-progress";
 
 export function QuestButton() {
@@ -10,6 +11,7 @@ export function QuestButton() {
   const role = currentUser?.profile?.role;
   const { progress, expired } = useQuestProgress();
   const [visible, setVisible] = useState(true);
+  const [location] = useLocation();
 
   const allDone = progress.completedIds.length === QUESTS.length;
 
@@ -23,7 +25,15 @@ export function QuestButton() {
 
   if (role !== "teacher") return null;
 
-  const shouldShow = visible && !expired && (progress.panelDismissed || allDone);
+  // Suppressed alongside the panel on the register screens: showing the launcher
+  // there would be a control that does nothing, since clicking it only clears
+  // panelDismissed and the panel stays suppressed. The quests reappear as soon
+  // as the teacher navigates anywhere else.
+  const shouldShow =
+    visible &&
+    !expired &&
+    !isQuestPanelSuppressed(location) &&
+    (progress.panelDismissed || allDone);
 
   return (
     <AnimatePresence>

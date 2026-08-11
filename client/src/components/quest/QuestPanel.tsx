@@ -2,8 +2,9 @@ import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import confetti from "canvas-confetti";
 import { X } from "lucide-react";
+import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/auth-context";
-import { QUESTS } from "@/lib/quest-config";
+import { QUESTS, isQuestPanelSuppressed } from "@/lib/quest-config";
 import {
   useQuestProgress,
   setFirstSeenAt,
@@ -16,6 +17,7 @@ import { QuestItem } from "./QuestItem";
 export function QuestPanel() {
   const { currentUser } = useAuth();
   const role = currentUser?.profile?.role;
+  const [location] = useLocation();
 
   const { progress, expired } = useQuestProgress();
 
@@ -42,7 +44,10 @@ export function QuestPanel() {
   if (role !== "teacher") return null;
 
   const visible =
-    !expired && !progress.panelDismissed && progress.completedIds.length < QUESTS.length;
+    !expired &&
+    !progress.panelDismissed &&
+    !isQuestPanelSuppressed(location) &&
+    progress.completedIds.length < QUESTS.length;
 
   return (
     // AnimatePresence must wrap the conditional so it can play exit animations
