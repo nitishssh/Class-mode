@@ -24,8 +24,13 @@
  * that matters: someone trimming the suppression list and silently re-covering the
  * register.
  */
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, it, expect } from "vitest";
 import { isQuestPanelSuppressed, QUEST_PANEL_SUPPRESSED_ROUTES } from "@/lib/quest-config";
+
+const componentSource = (file: string) =>
+  readFileSync(resolve(process.cwd(), "client/src/components/quest", file), "utf8");
 
 describe("quest panel route suppression", () => {
   describe("routes where the panel must NOT render", () => {
@@ -68,6 +73,39 @@ describe("quest panel route suppression", () => {
 
     it("does not match a suppressed route appearing mid-path", () => {
       expect(isQuestPanelSuppressed("/reports/attendance")).toBe(false);
+    });
+  });
+
+  // Without these, the suite has a hole: deleting the guard from BOTH components
+  // reintroduces the bug while every assertion above stays green, because they
+  // only exercise the helper and never its callers. Raised by Codex adversarial
+  // review during /ship on 2026-08-11.
+  //
+  // These are source-level assertions, not behavioural ones — the repo has no
+  // client test lane to render the components in (TODOS P3). They catch the
+  // realistic regression (someone removes the guard) rather than proving the
+  // rendered output, which was verified by measurement in a real browser.
+  describe("the components actually consume the helper", () => {
+    it("QuestPanel gates its visibility on isQuestPanelSuppressed", () => {
+      const src = componentSource("QuestPanel.tsx");
+      expect(src).toContain("isQuestPanelSuppressed");
+      expect(src).toMatch(/!isQuestPanelSuppressed\(\s*location\s*\)/);
+    });
+
+    it("QuestButton gates its visibility on isQuestPanelSuppressed", () => {
+      const src = componentSource("QuestButton.tsx");
+      expect(src).toContain("isQuestPanelSuppressed");
+      expect(src).toMatch(/!isQuestPanelSuppressed\(\s*location\s*\)/);
+    });
+
+    it("both components read the route from wouter's useLocation", () => {
+      // useLocation returns the pathname only, which is what the helper expects.
+      // A switch to useSearch or window.location.href would silently break
+      // matching, so pin the accessor.
+      for (const file of ["QuestPanel.tsx", "QuestButton.tsx"]) {
+        const src = componentSource(file);
+        expect(src).toMatch(/import\s*\{[^}]*useLocation[^}]*\}\s*from\s*["']wouter["']/);
+      }
     });
   });
 
