@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [1.9.2.0] - 2026-08-07
+## [1.9.2.0] - 2026-08-11
 
 ### Fixed
 
@@ -16,6 +16,10 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - Study Arena authoring and oversight permissions are defined in one place on the server instead of five copies, so the lesson, report, preview, assign, and follow-up surfaces can no longer drift apart.
+
+### Removed
+
+- **A dead end on the evidence report.** The report carried an "Open learner view" button that could never work — it opened the student lesson player, which only students are allowed to start, so every teacher and school owner who clicked it was told "Only assigned students can start a lesson". It went unnoticed because the report page itself could not be opened until this release. Removed rather than shipped as a broken control.
 
 ## [1.9.1.1] - 2026-08-05
 
