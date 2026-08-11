@@ -209,8 +209,14 @@ const AIClassroomRoute = withLayout(protect(AIClassroom, ["student", "teacher"])
 // `school_admin` is the tenant admin (school owner), distinct from the platform
 // super-role `admin`. It is gated in alongside teachers so a principal running
 // their own school can author lessons, preview them, and read their school's
-// reports. Mirrors AUTHORING_ROLES in server/routes/study-arena-beta.ts — keep
-// the two lists in step.
+// reports. The authoring surfaces (report, create) mirror AUTHORING_ROLES in
+// server/routes/study-arena-beta.ts — keep those two lists in step.
+//
+// The player route below does NOT include `admin`, and that asymmetry predates
+// this change: the server's canUseAttemptSession() accepts admin for preview
+// sessions, so an admin author can reach step 3 of /study-arena/create and then
+// hit Access Denied on "Open preview player". Left as-is here because widening a
+// role's reach is a product decision, not a drive-by fix; tracked in TODOS.md.
 const StudyArenaBetaRoute = withLayout(
   protect(StudyArenaBeta, ["student", "teacher", "school_admin"])
 );
