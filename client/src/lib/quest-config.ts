@@ -1,3 +1,27 @@
+/**
+ * Routes where the expanded quest panel must never render.
+ *
+ * The panel is `fixed bottom-20 right-4 w-80` at z-72, so on these screens it
+ * physically covers the controls it floats over — `document.elementFromPoint`
+ * at a button's centre returns the panel, not the button. On the attendance
+ * register that made 6 of 7 status buttons unclickable at 1280x800, and on a
+ * 375px phone the panel occupies 370px of an 812px viewport and follows the
+ * scroll, so a teacher could not complete the register at all without
+ * dismissing it first. Found by /qa on 2026-08-11.
+ *
+ * QuestButton is suppressed on these routes too — it only clears
+ * panelDismissed, so with the panel suppressed it would be a control that
+ * visibly does nothing. The quests reappear on any other route.
+ */
+export const QUEST_PANEL_SUPPRESSED_ROUTES = ["/attendance", "/absentees"] as const;
+
+/** Pathname-only match (wouter's useLocation never includes the query string). */
+export function isQuestPanelSuppressed(pathname: string): boolean {
+  return QUEST_PANEL_SUPPRESSED_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`)
+  );
+}
+
 export interface Quest {
   id: string;
   emoji: string;
