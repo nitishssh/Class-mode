@@ -167,3 +167,10 @@ Codex CEO findings deliberately left out of scope because they reopen settled CE
 ### Verified working (2026-08-11 QA, local seeded pilot school)
 
 Teacher login → register loads → mark → save → persists to Postgres → survives reload → principal sees the absent student on `/absentees` with the parent's phone → both CSVs export with correct attribution. Teacher is correctly denied `/absentees`. CSV formula-injection guard confirmed empirically: `=HYPERLINK(...)` is written as `'=HYPERLINK(...)`. Print stylesheet intact. Zero console errors on every page visited.
+
+## From /ship adversarial review, quest-panel QA branch (2026-08-11)
+
+Both are pre-existing `QuestButton` collisions, untouched by that branch, and both are the same bug class as the one it fixed: a `fixed` floating control landing on top of another control.
+
+- [ ] **P2 — QuestButton and the Achievers Book toggle occupy the identical position**: `client/src/components/quest/QuestButton.tsx:51` is `fixed bottom-6 right-6 z-[70]` and `client/src/pages/test-page.tsx:566` is `fixed bottom-6 right-6 z-[70] md:hidden`. Same coordinates, same z-index, so DOM order alone decides which one a mobile user can tap. Applies to a teacher who has dismissed the quest panel and then opens a test page. Give one of them a different anchor, or suppress the launcher on `/test/*` the way it is now suppressed on the register routes.
+- [ ] **P2 — QuestButton overlaps the mobile bottom navigation on every route**: `client/src/components/layout/mobile-nav.tsx:53` is `fixed bottom-0 left-0 right-0 z-40 md:hidden` with a 5-column grid; the launcher sits at `bottom-6 right-6 z-[70]`, above it and over the rightmost nav target. This is not specific to one page — it affects any mobile route rendering the bottom nav for a teacher who dismissed the panel. Raise the launcher above the nav bar's height, or hide it while the mobile nav is present.
