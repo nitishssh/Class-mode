@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "wouter";
+import { Link, useSearch } from "wouter";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -39,8 +39,13 @@ interface AssignmentReport {
 }
 
 export default function StudyArenaReport() {
-  const [location] = useLocation();
-  const assignmentId = new URLSearchParams(location.split("?")[1]).get("assignment");
+  // wouter's useLocation() returns the PATHNAME only — it never contains "?",
+  // so splitting it for the query string always yielded undefined and this page
+  // was permanently stuck on the "choose an assignment" empty state.
+  // useSearch() is the reactive accessor for the query string (same pattern as
+  // accept-invite.tsx).
+  const search = useSearch();
+  const assignmentId = new URLSearchParams(search).get("assignment");
   const [report, setReport] = useState<AssignmentReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [recordedGroups, setRecordedGroups] = useState<Set<string>>(() => new Set());
@@ -198,9 +203,15 @@ export default function StudyArenaReport() {
           </div>
         ))}
       </div>
-      <Button asChild variant="outline">
-        <Link href={`/study-arena-beta?assignment=${assignmentId}`}>Open learner view</Link>
-      </Button>
+      {/*
+        "Open learner view" used to link to /study-arena-beta?assignment=... here.
+        It could never work: the player opens by POSTing /assignment-session, which
+        rejects any role that is not "student", so every role that can reach this
+        report (teacher, admin, school_admin) got "Only assigned students can start
+        a lesson". It went unnoticed because this page was itself unreachable until
+        the useSearch() fix above. Removed rather than shipped as a dead end; see
+        TODOS.md for rebuilding it on a read-only preview session.
+      */}
     </div>
   );
 }

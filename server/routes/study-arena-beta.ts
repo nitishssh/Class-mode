@@ -155,18 +155,33 @@ const compileEnqueueSchema = z.object({
   gradeLevel: z.string().max(80).optional(),
 });
 
+/**
+ * Roles that may author and oversee Study Arena lessons.
+ *
+ * `school_admin` is the tenant admin (the school owner) — distinct from the
+ * platform super-role `admin` (see server/lib/auth/tenant.ts). It is included
+ * here for the same reason it appears in lifecycle/attendance/analytics: a
+ * principal running their own school must be able to author lessons and read
+ * their school's reports without a teacher account. Every route below is still
+ * scoped by workspace_id, so this grants no cross-school reach.
+ *
+ * NOTE: `principal` is deliberately NOT included — see TODOS.md. Granting a
+ * role access to learners' evidence is a product decision, not an inference.
+ */
+const AUTHORING_ROLES = new Set(["teacher", "admin", "school_admin"]);
+
 function requireTeacher(req: Request, res: Response): number | null {
-  if (req.user?.role !== "teacher" && req.user?.role !== "admin") {
+  if (!AUTHORING_ROLES.has(req.user?.role ?? "")) {
     res.status(403).json({ message: "Only teachers can perform this action" });
     return null;
   }
   return (req.user?.id || req.session?.userId) as number;
 }
 
-/** Students for real assignments; teachers/admins for preview sessions they own. */
+/** Students for real assignments; authoring roles for preview sessions they own. */
 function canUseAttemptSession(req: Request): boolean {
   const role = req.user?.role;
-  return role === "student" || role === "teacher" || role === "admin";
+  return role === "student" || AUTHORING_ROLES.has(role ?? "");
 }
 
 function approvalsComplete(approvals: unknown): boolean {
@@ -184,7 +199,7 @@ router.post("/assignments", requireFlag, authenticateToken, async (req: Request,
   const parsed = createAssignedLessonSchema.safeParse(req.body);
   if (!parsed.success)
     return res.status(400).json({ message: "Invalid input", errors: parsed.error.errors });
-  if (req.user?.role !== "teacher" && req.user?.role !== "admin") {
+  if (!AUTHORING_ROLES.has(req.user?.role ?? "")) {
     return res.status(403).json({ message: "Only teachers can assign Study Arena lessons" });
   }
   const workspaceId = (req as any).workspace?.id as number | undefined;
@@ -766,7 +781,7 @@ router.get(
   requireFlag,
   authenticateToken,
   async (req: Request, res: Response) => {
-    if (req.user?.role !== "teacher" && req.user?.role !== "admin") {
+    if (!AUTHORING_ROLES.has(req.user?.role ?? "")) {
       return res.status(403).json({ message: "Only teachers can view assignment reports" });
     }
     const assignmentId = z.string().uuid().safeParse(req.params.assignmentId);
@@ -865,7 +880,7 @@ router.post(
   requireFlag,
   authenticateToken,
   async (req, res) => {
-    if (req.user?.role !== "teacher" && req.user?.role !== "admin")
+    if (!AUTHORING_ROLES.has(req.user?.role ?? ""))
       return res.status(403).json({ message: "Only teachers can record follow-up" });
     const assignmentId = z.string().uuid().safeParse(req.params.assignmentId);
     const body = interventionSchema.safeParse(req.body);

@@ -726,7 +726,7 @@ function ActionView({
   }
   // Completed ask (history): show question + the student's own answer + feedback.
   return (
-    <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-4">
+    <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-800 dark:bg-amber-950/30">
       <AgentBubble agent={action.agent}>
         <span className="font-medium">{action.prompt}</span>
       </AgentBubble>
@@ -974,7 +974,7 @@ function AskCard({
 
   return (
     <div
-      className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-5 shadow-soft"
+      className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-5 shadow-soft dark:border-amber-700 dark:bg-amber-950/40"
       role="group"
       aria-label={action.a11y?.name ?? "Attempt gate"}
     >

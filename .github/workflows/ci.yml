@@ -49,8 +49,54 @@ jobs:
       # as of 2026-07-31 the only high findings are a brace-expansion/minimatch
       # DoS reachable solely through eslint and eslint-plugin-react, whose only
       # remedy is a semver-major eslint change. Revisit if eslint is upgraded.
+      #
+      # ALLOWLIST (2026-08-11): two image-size advisories have NO patched
+      # release anywhere — both cover `<=2.0.2` and 2.0.2 is the newest
+      # published version. They reach the production tree through
+      # pptxgenjs@4.0.1, whose latest release still depends on
+      # image-size@^1.2.1. npm's only offered remedy is pptxgenjs@1.1.5,
+      # three majors back, which would break server/services/study-arena/
+      # pptx-export.ts. Both are infinite-loop DoS in the ICNS/JXL/HEIF
+      # parsers, reachable only if an untrusted image is fed to
+      # generatePPTX.
+      #
+      #   GHSA-w3rx-r6r6-pgpr  image-size ICNS parser DoS
+      #   GHSA-5p2g-fcmc-qvqq  image-size JXL/HEIF parser DoS
+      #
+      # This allowlist names those two advisories ONLY. Any other high or
+      # critical advisory in the production tree still fails the build.
+      # Remove both entries as soon as a patched image-size ships — tracked
+      # in TODOS.md.
       - name: Audit dependencies (production tree)
-        run: npm audit --audit-level=high --omit=dev
+        run: |
+          ALLOWED='["GHSA-w3rx-r6r6-pgpr","GHSA-5p2g-fcmc-qvqq"]'
+          npm audit --json --omit=dev > /tmp/audit.json || true
+          if ! jq -e . /tmp/audit.json > /dev/null 2>&1; then
+            echo "❌ npm audit did not produce parseable JSON"
+            cat /tmp/audit.json
+            exit 1
+          fi
+          BLOCKING=$(jq --argjson allowed "$ALLOWED" '
+            [ .vulnerabilities // {} | to_entries[]
+              | select(.value.severity == "high" or .value.severity == "critical")
+              | . as $pkg
+              | ($pkg.value.via // [])
+                | map(select(type == "object"))
+                | map(select((.url // "" | split("/") | last) as $id | ($allowed | index($id)) == null))
+                | select(length > 0)
+                | { package: $pkg.key, severity: $pkg.value.severity,
+                    advisories: map(.url // .title) }
+            ]' /tmp/audit.json)
+          COUNT=$(echo "$BLOCKING" | jq 'length')
+          if [ "$COUNT" -gt 0 ]; then
+            echo "❌ $COUNT non-allowlisted high/critical advisory group(s) in the production tree:"
+            echo "$BLOCKING" | jq -r '.[] | "  \(.package) [\(.severity)]\n" + (.advisories | map("    " + .) | join("\n"))'
+            echo ""
+            echo "Fix them, or add the advisory ID to ALLOWLIST above with a written rationale."
+            exit 1
+          fi
+          echo "✅ No non-allowlisted high/critical advisories in the production tree."
+          echo "   Allowlisted (unfixable upstream, see comment above): $ALLOWED"
 
       - name: Check Types
         run: npm run check
