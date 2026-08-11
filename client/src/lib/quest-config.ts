@@ -9,8 +9,9 @@
  * scroll, so a teacher could not complete the register at all without
  * dismissing it first. Found by /qa on 2026-08-11.
  *
- * On these routes QuestButton renders the collapsed launcher instead, so the
- * quests stay one tap away rather than being hidden.
+ * QuestButton is suppressed on these routes too — it only clears
+ * panelDismissed, so with the panel suppressed it would be a control that
+ * visibly does nothing. The quests reappear on any other route.
  */
 export const QUEST_PANEL_SUPPRESSED_ROUTES = ["/attendance", "/absentees"] as const;
 
