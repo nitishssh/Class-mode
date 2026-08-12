@@ -84,10 +84,21 @@ export default function AttendancePage() {
     enabled: !!className,
   });
 
-  const { data: existing = [] } = useQuery<AttendanceRow[]>({
+  // Eng review T3: surface read errors. A failed read must NOT fall through to an
+  // empty, editable register — that lets a teacher re-mark and overwrite a day
+  // that is already recorded. When this errors we block marking and offer retry.
+  const {
+    data: existing = [],
+    isLoading: existingLoading,
+    error: existingError,
+    refetch: refetchExisting,
+  } = useQuery<AttendanceRow[]>({
     queryKey: [`/api/attendance?className=${encodeURIComponent(className)}&date=${date}`],
     enabled: !!className && !!date,
   });
+
+  // Marking is unsafe until we know the current saved state for this class/date.
+  const readBlocked = !!existingError && !isPermissionError(existingError);
 
   // Seed local marks from saved rows whenever class/date/roster changes.
   useEffect(() => {
@@ -112,6 +123,14 @@ export default function AttendancePage() {
       const payload = {
         className,
         date,
+        // Idempotency key (eng review T4): one id per save attempt so a replay
+        // (future offline queue) fires parent notifications exactly once. Today
+        // it is generated per online save; the offline queue will persist and
+        // reuse it across retries.
+        opId:
+          typeof crypto !== "undefined" && "randomUUID" in crypto
+            ? crypto.randomUUID()
+            : `${date}-${className}-${Date.now()}`,
         marks: roster
           .filter((s) => marks[s.id])
           .map((s) => ({ studentId: s.id, status: marks[s.id] })),
@@ -203,13 +222,13 @@ export default function AttendancePage() {
                 variant="outline"
                 size="sm"
                 onClick={() => markAll("present")}
-                disabled={roster.length === 0}
+                disabled={roster.length === 0 || readBlocked}
               >
                 <Check className="mr-1 h-4 w-4" /> All present
               </Button>
               <Button
                 onClick={() => saveMutation.mutate()}
-                disabled={markedCount === 0 || saveMutation.isPending}
+                disabled={markedCount === 0 || saveMutation.isPending || readBlocked}
                 data-testid="save-attendance"
               >
                 {saveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -226,7 +245,20 @@ export default function AttendancePage() {
             {counts.unmarked > 0 && <Badge variant="outline">{counts.unmarked} unmarked</Badge>}
           </div>
 
-          {rosterLoading ? (
+          {readBlocked ? (
+            <div
+              className="flex flex-col items-center justify-center gap-3 py-10 text-center"
+              data-testid="attendance-read-error"
+            >
+              <p className="text-sm text-destructive">
+                Could not load today's saved attendance for this class. Marking is disabled to avoid
+                overwriting a record that may already exist. Please retry.
+              </p>
+              <Button variant="outline" size="sm" onClick={() => refetchExisting()}>
+                Retry
+              </Button>
+            </div>
+          ) : rosterLoading || existingLoading ? (
             <div className="flex items-center justify-center py-10 text-muted-foreground">
               <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading roster…
             </div>

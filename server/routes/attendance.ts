@@ -4,6 +4,7 @@ import { authenticateToken, requireRole } from "../middleware";
 import { resolveTenantScope } from "../lib/auth/tenant";
 import {
   pgMarkAttendance,
+  pgClaimOperation,
   pgGetAttendanceByClassDate,
   pgGetStudentAttendanceSummary,
   pgGetSchoolAttendanceSummary,
@@ -29,6 +30,11 @@ const MarkSchema = z.object({
   className: z.string().min(1),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "date must be YYYY-MM-DD"),
   markedAt: z.string().datetime().optional(),
+  // Idempotency key (eng review T4). The offline queue stamps one opId per save
+  // attempt and reuses it on every replay, so the server fires side effects
+  // (feature_usage, parent WhatsApp) exactly once. Optional: online saves that
+  // omit it keep the legacy always-fire behaviour.
+  opId: z.string().min(1).max(128).optional(),
   marks: z
     .array(
       z.object({
@@ -172,6 +178,23 @@ router.post(
         error: String(err),
       });
       return res.status(500).json({ message: "Attendance save failed — please retry" });
+    }
+
+    // Eng review T4: side effects fire exactly once per save. An offline replay
+    // carries the same opId; the claim conflicts and we skip the effects so we
+    // do not double-count adoption or re-message a parent. Saves without an opId
+    // (online, legacy) always run — pgClaimOperation returns true.
+    const opId = parsed.data.opId;
+    const sideEffectsFresh = opId ? await pgClaimOperation(opId) : true;
+    if (!sideEffectsFresh) {
+      logger.info("[attendance] replay detected, skipping side effects", { userId: user.id, opId });
+      return res.json({
+        success: true,
+        written,
+        notified: 0,
+        replay: true,
+        alerts: { channel: "whatsapp", enabled: false, attempted: 0 },
+      });
     }
 
     pgTrackFeatureUsage({ feature: "attendance", userId: user.id, schoolCode });
@@ -326,12 +349,26 @@ router.get(
       return res.status(400).json({ message: "className and date (YYYY-MM-DD) are required" });
     }
 
-    const rows = await pgGetAttendanceByClassDate({
-      schoolCode: t.scope.isPlatformAdmin ? undefined : t.scope.schoolCode,
-      className,
-      date,
-    });
-    res.json(rows);
+    // Eng review T3: a read failure must surface as 500, never a false-empty 200.
+    // pgGetAttendanceByClassDate now throws instead of returning []; the client
+    // checks this error and blocks marking rather than showing an empty,
+    // editable register for a day that may already be recorded.
+    try {
+      const rows = await pgGetAttendanceByClassDate({
+        schoolCode: t.scope.isPlatformAdmin ? undefined : t.scope.schoolCode,
+        className,
+        date,
+      });
+      res.json(rows);
+    } catch (err) {
+      logger.error("[attendance] read failed", {
+        userId: user.id,
+        className,
+        date,
+        error: String(err),
+      });
+      res.status(500).json({ message: "Could not load saved attendance — please retry" });
+    }
   }
 );
 

@@ -2733,6 +2733,32 @@ export async function pgMarkAttendance(params: {
   }
 }
 
+/**
+ * Idempotency key for attendance saves (eng review T4). Claims an operation id
+ * exactly once: returns true the first time an opId is seen, false on any replay.
+ * The attendance ROW upsert is already replay-safe, but the SIDE EFFECTS
+ * (feature_usage tracking, parent WhatsApp notify) are not — an offline queue
+ * replaying a save after a lost ack would otherwise double-count adoption and
+ * re-message a parent. Callers run side effects only when this returns true.
+ * No pg configured => true (fail-open: never suppress a real notification just
+ * because the dedup store is unavailable).
+ */
+export async function pgClaimOperation(opId: string): Promise<boolean> {
+  if (!isPgReady()) return true;
+  try {
+    const { rowCount } = await getPgPool().query(
+      `INSERT INTO processed_operations (op_id) VALUES ($1) ON CONFLICT (op_id) DO NOTHING`,
+      [opId]
+    );
+    return (rowCount ?? 0) === 1;
+  } catch (err) {
+    // Fail-open on a dedup-store error: better to risk a duplicate notification
+    // than to silently drop a real one. Logged so the failure is visible.
+    logger.error("[pg] pgClaimOperation failed", { opId, err: String(err) });
+    return true;
+  }
+}
+
 /** List attendance rows for a class on a date, scoped to a school. */
 export async function pgGetAttendanceByClassDate(params: {
   schoolCode?: string;
@@ -2758,8 +2784,13 @@ export async function pgGetAttendanceByClassDate(params: {
     );
     return rows;
   } catch (err) {
+    // Eng review T3 (prior learning: pg-queries-swallows-read-failures): do NOT
+    // return [] on error. An empty array here renders an empty, EDITABLE register
+    // for a day that may already be recorded — the teacher re-marks and the write
+    // path overwrites real data. Surface the failure so the route returns 500 and
+    // the client blocks marking instead of showing a false-empty register.
     logger.error("[pg] pgGetAttendanceByClassDate failed", { err: String(err) });
-    return [];
+    throw err;
   }
 }
 

@@ -538,6 +538,17 @@ CREATE TABLE IF NOT EXISTS feature_usage (
   created_at   timestamptz  NOT NULL DEFAULT now()
 );
 
+-- Idempotency keys for attendance saves (eng review T4). The attendance row
+-- upsert is already replay-safe, but its side effects (feature_usage tracking,
+-- parent WhatsApp notify) are not. An offline queue replaying a save after a
+-- lost ack claims its op_id here first; a second claim conflicts, and the route
+-- skips the side effects so parents are not re-messaged and adoption is not
+-- double-counted. Insert-only; prune old rows out of band if it ever grows.
+CREATE TABLE IF NOT EXISTS processed_operations (
+  op_id        text         PRIMARY KEY,
+  created_at   timestamptz  NOT NULL DEFAULT now()
+);
+
 -- ─── Attendance ──────────────────────────────────────────────────────────────
 -- Daily attendance is the operational-lock-in loop (teachers mark it every
 -- morning). Scoped by school_code for multi-tenant isolation; one row per

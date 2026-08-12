@@ -44,6 +44,15 @@ interface Snapshot {
   fees: { activeStaff: number; rowsCreated: number };
   featureUsage: Array<{ feature: string; events: number; distinctUsers: number }>;
   totals: { users: number; teachers: number; students: number };
+  // Sep-30 adoption gate input (eng review T2): per-teacher marking days this
+  // week, from the append-only feature_usage log. The ≥60%/≥4-days verdict is
+  // computed in renderTable against totals.teachers (the denominator).
+  adoptionMatrix: Array<{
+    userId: number;
+    name: string;
+    markingDays: number;
+    weekdays: string[];
+  }>;
   // Study Arena adoption signal (the payment-gate decision input). A "completed
   // lesson" = a student answered every gate in one generated lesson.
   studyArena: {
@@ -81,11 +90,28 @@ function isoWeekOf(d: Date): { isoWeek: string; weekStart: Date; weekEnd: Date }
 
 const ymd = (d: Date) => d.toISOString().slice(0, 10);
 
+// Eng review T1 (Codex #2): scope to a single pilot school when PILOT_SCHOOL_CODE
+// is set, so the number quoted in a payment conversation is THIS school's, not an
+// all-schools aggregate. Validated against a safe charset before interpolation —
+// operator-set, but the honesty/safety invariant means we refuse a malformed
+// code loudly rather than build unsafe SQL. Unset => original all-real-schools
+// behaviour (unchanged).
+const PILOT_SCHOOL_CODE = process.env.PILOT_SCHOOL_CODE?.trim() || null;
+if (PILOT_SCHOOL_CODE && !/^[A-Za-z0-9_-]{1,64}$/.test(PILOT_SCHOOL_CODE)) {
+  throw new Error(
+    "PILOT_SCHOOL_CODE must match [A-Za-z0-9_-]{1,64} (got an unsafe value) — refusing to build SQL"
+  );
+}
+const PILOT_AND = PILOT_SCHOOL_CODE ? ` AND school_code = '${PILOT_SCHOOL_CODE}'` : "";
+
 // E2E seed schools carry an 'E2E' school-code prefix; adoption metrics must
 // never count them. One SQL fragment per null-semantics so the exclusion
 // can't drift apart across the queries below (change here = change everywhere).
-const REAL_SCHOOL_SQL = `school_code IS NOT NULL AND school_code NOT LIKE 'E2E%'`;
-const REAL_OR_NO_SCHOOL_SQL = `(school_code IS NULL OR school_code NOT LIKE 'E2E%')`;
+// When PILOT_SCHOOL_CODE is set both fragments additionally pin to that school.
+const REAL_SCHOOL_SQL = `school_code IS NOT NULL AND school_code NOT LIKE 'E2E%'${PILOT_AND}`;
+const REAL_OR_NO_SCHOOL_SQL = PILOT_SCHOOL_CODE
+  ? `school_code = '${PILOT_SCHOOL_CODE}'`
+  : `(school_code IS NULL OR school_code NOT LIKE 'E2E%')`;
 
 // Platform-admin (founder) activity must never read as school adoption, even
 // when the admin account is linked to the pilot school for demos — same
@@ -136,6 +162,35 @@ async function collect(
         AND ${notAdminSql("user_id")}
       GROUP BY feature
       ORDER BY events DESC`,
+    [weekStart, weekEnd]
+  );
+
+  // Eng review T2 (Tension 2): the Sep-30 gate is "≥60% of teachers marking ≥4
+  // days/week". Derive it from the APPEND-ONLY feature_usage log (created_at =
+  // real activity time), NOT the mutable attendance table — a correction there
+  // overwrites marked_by, and a backfilled date would inflate "daily" usage.
+  // Dedup to one marking-day per (teacher, calendar day). Group on feature_usage
+  // first (unaliased, so REAL_SCHOOL_SQL binds to feature_usage.school_code),
+  // then join users for names.
+  const matrix = await q<{ user_id: number; name: string; marking_days: number; weekdays: string[] }>(
+    `WITH marks AS (
+        SELECT user_id, (created_at AT TIME ZONE 'UTC')::date AS d,
+               to_char(created_at AT TIME ZONE 'UTC', 'Dy')   AS wd
+          FROM feature_usage
+         WHERE feature = 'attendance'
+           AND created_at >= $1 AND created_at < $2
+           AND ${REAL_SCHOOL_SQL}
+           AND ${notAdminSql("user_id")}
+         GROUP BY user_id, (created_at AT TIME ZONE 'UTC')::date,
+                  to_char(created_at AT TIME ZONE 'UTC', 'Dy')
+     )
+     SELECT m.user_id, u.name,
+            COUNT(DISTINCT m.d)::int  AS marking_days,
+            ARRAY_AGG(DISTINCT m.wd)  AS weekdays
+       FROM marks m
+       JOIN users u ON u.id = m.user_id AND u.role = 'teacher'
+      GROUP BY m.user_id, u.name
+      ORDER BY marking_days DESC, u.name ASC`,
     [weekStart, weekEnd]
   );
 
@@ -280,6 +335,12 @@ async function collect(
       distinctUsers: u.distinct_users,
     })),
     totals: { users: totals.users, teachers: totals.teachers, students: totals.students },
+    adoptionMatrix: matrix.map((m) => ({
+      userId: m.user_id,
+      name: m.name,
+      markingDays: m.marking_days,
+      weekdays: m.weekdays ?? [],
+    })),
     studyArena: {
       lessonsStarted: arena?.lessons_started ?? 0,
       completedLessons: arena?.completed_lessons ?? 0,
@@ -355,6 +416,37 @@ function renderTable(s: Snapshot, prior: Snapshot[]): string {
   );
   lines.push(
     `| Study Arena: distinct students completing | ${s.studyArena.studentsCompleted} | — | — |`
+  );
+  lines.push("");
+
+  // Sep-30 adoption gate (eng review T2): ≥60% of teachers marking ≥4 days/week,
+  // from the append-only feature_usage log. Denominator = all teacher accounts in
+  // scope (totals.teachers) — the conservative, explicit definition (Codex #3).
+  const WD_ORDER = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const meetingBar = s.adoptionMatrix.filter((t) => t.markingDays >= 4).length;
+  const denom = s.totals.teachers;
+  const pct = denom > 0 ? Math.round((meetingBar / denom) * 100) : 0;
+  lines.push(`## Adoption matrix — per-teacher marking days (feature_usage, append-only)`);
+  lines.push("");
+  lines.push(`| Teacher | Marking days | Weekdays |`);
+  lines.push(`|---------|--------------|----------|`);
+  if (s.adoptionMatrix.length === 0) {
+    lines.push(`| _(no teacher marked attendance this week)_ | 0 | — |`);
+  } else {
+    for (const t of s.adoptionMatrix) {
+      const days = WD_ORDER.filter((d) => t.weekdays.includes(d)).join(" ");
+      lines.push(
+        `| ${t.name} | ${t.markingDays}${t.markingDays >= 4 ? " ✓" : ""} | ${days || "—"} |`
+      );
+    }
+  }
+  lines.push("");
+  lines.push(
+    `Sep-30 gate: ${meetingBar}/${denom} teachers marked ≥4 days = **${pct}%** (target ≥60%) — ` +
+      `${pct >= 60 ? "**PASS**" : "not yet met"}.` +
+      (PILOT_SCHOOL_CODE
+        ? ` [scoped to ${PILOT_SCHOOL_CODE}]`
+        : " [ALL real schools — set PILOT_SCHOOL_CODE to scope to the pilot]")
   );
   lines.push("");
 
