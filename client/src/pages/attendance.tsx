@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { CalendarCheck, Check, Loader2, Phone, Users, X } from "lucide-react";
+import { CalendarCheck, Check, CloudOff, Loader2, Phone, Users, X } from "lucide-react";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
@@ -16,9 +16,20 @@ import {
 } from "@/components/ui/select";
 import { PermissionDenied } from "@/components/ui/permission-denied";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/auth-context";
 import { todayISO } from "@/lib/dates";
-import { apiRequest, isPermissionError } from "@/lib/queryClient";
+import { ApiError, apiRequest, isPermissionError } from "@/lib/queryClient";
 import { trackFeatureView } from "@/lib/track-usage";
+import {
+  drainQueue,
+  enqueueSave,
+  getQueued,
+  getUnsynced,
+  ownerToken,
+  syncRecord,
+  type PostResult,
+  type QueuedSave,
+} from "@/lib/attendance-queue";
 import { cn } from "@/lib/utils";
 
 type Status = "present" | "absent" | "late" | "excused";
@@ -46,15 +57,57 @@ const STATUS_OPTIONS: { value: Status; label: string; activeClass: string }[] = 
   { value: "excused", label: "Excused", activeClass: "bg-sky-600 text-white hover:bg-sky-600" },
 ];
 
+function genOpId(className: string, date: string): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  return `${date}-${className}-${Date.now()}-${Math.floor(performance.now())}`;
+}
+
 export default function AttendancePage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { currentUser } = useAuth();
 
   const [className, setClassName] = useState<string>("");
   const [date, setDate] = useState<string>(todayISO());
   const [marks, setMarks] = useState<Record<number, Status>>({});
   const [editingPhoneId, setEditingPhoneId] = useState<number | null>(null);
   const [phoneDraft, setPhoneDraft] = useState("");
+  const [unsyncedCount, setUnsyncedCount] = useState(0);
+
+  // T8 isolation: every queued record is namespaced by user+school so a shared
+  // device never replays or shows one teacher's marks under another account.
+  const owner = ownerToken(currentUser.profile?.id ?? null, currentUser.profile?.school_code ?? null);
+
+  // Poster used by both the immediate save and the reconnect drain. apiRequest
+  // throws ApiError (with .status) on non-2xx and a network error when offline;
+  // we translate both into a PostResult the queue can classify (T9).
+  const postSave = useCallback(async (rec: QueuedSave): Promise<PostResult> => {
+    try {
+      await apiRequest("POST", "/api/attendance", {
+        className: rec.className,
+        date: rec.date,
+        opId: rec.opId,
+        markedAt: rec.markedAt,
+        marks: rec.marks,
+      });
+      return { ok: true };
+    } catch (err) {
+      if (err instanceof ApiError) return { ok: false, status: err.status, error: err.message };
+      return { ok: false, error: String(err) }; // offline / network → transient
+    }
+  }, []);
+
+  const invalidateAttendanceReads = useCallback(() => {
+    queryClient.invalidateQueries({
+      predicate: (q) =>
+        typeof q.queryKey[0] === "string" && (q.queryKey[0] as string).startsWith("/api/attendance"),
+    });
+  }, [queryClient]);
+
+  const refreshUnsynced = useCallback(async () => {
+    const recs = await getUnsynced(owner);
+    setUnsyncedCount(recs.filter((r) => r.status === "pending").length);
+  }, [owner]);
 
   // Distribution instrumentation (#337): one attendance_view per page visit.
   // Ref guard: StrictMode double-mounts effects in dev, which would double
@@ -100,13 +153,46 @@ export default function AttendancePage() {
   // Marking is unsafe until we know the current saved state for this class/date.
   const readBlocked = !!existingError && !isPermissionError(existingError);
 
-  // Seed local marks from saved rows whenever class/date/roster changes.
+  // Seed local marks when class/date/roster changes. Issue 5 (ownership): an
+  // unsynced queued save is the source of truth for its class-day and MUST win
+  // over the server refetch — otherwise a background read clobbers marks the
+  // teacher entered offline. Fall back to the server rows only when nothing is
+  // queued for this class-day.
   useEffect(() => {
-    const seeded: Record<number, Status> = {};
-    for (const row of existing) seeded[row.studentId] = row.status;
-    setMarks(seeded);
+    let cancelled = false;
+    (async () => {
+      if (!className || !date) return;
+      const queued = await getQueued(owner, className, date);
+      if (cancelled) return;
+      const seeded: Record<number, Status> = {};
+      if (queued) {
+        for (const m of queued.marks) seeded[m.studentId] = m.status;
+      } else {
+        for (const row of existing) seeded[row.studentId] = row.status;
+      }
+      setMarks(seeded);
+    })();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [className, date, existing.length]);
+  }, [className, date, existing.length, owner]);
+
+  // Drain the offline queue on mount and whenever the network returns. A
+  // recovered save (one that had failed before) beacons attendance_sync_recovered
+  // so the weekly metrics can measure how often offline kicked in (T7).
+  useEffect(() => {
+    const drain = async () => {
+      const summary = await drainQueue(owner, postSave, () =>
+        trackFeatureView("attendance_sync_recovered")
+      );
+      if (summary.synced > 0) invalidateAttendanceReads();
+      refreshUnsynced();
+    };
+    void drain();
+    window.addEventListener("online", drain);
+    return () => window.removeEventListener("online", drain);
+  }, [owner, postSave, invalidateAttendanceReads, refreshUnsynced]);
 
   const counts = useMemo(() => {
     const c = { present: 0, absent: 0, late: 0, excused: 0, unmarked: 0 };
@@ -118,37 +204,47 @@ export default function AttendancePage() {
     return c;
   }, [roster, marks]);
 
+  // Offline-first save (T6): persist the batch to the local queue FIRST, then
+  // attempt the network POST. A dropped signal can no longer lose the day — the
+  // mark is on the device and the reconnect drain will sync it. The opId is
+  // generated once here and reused on every retry so the server fires side
+  // effects (parent WhatsApp) exactly once (T4).
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const payload = {
+      const markList = roster
+        .filter((s) => marks[s.id])
+        .map((s) => ({ studentId: s.id, status: marks[s.id]! }));
+      const rec = await enqueueSave({
+        owner,
+        opId: genOpId(className, date),
         className,
         date,
-        // Idempotency key (eng review T4): one id per save attempt so a replay
-        // (future offline queue) fires parent notifications exactly once. Today
-        // it is generated per online save; the offline queue will persist and
-        // reuse it across retries.
-        opId:
-          typeof crypto !== "undefined" && "randomUUID" in crypto
-            ? crypto.randomUUID()
-            : `${date}-${className}-${Date.now()}`,
-        marks: roster
-          .filter((s) => marks[s.id])
-          .map((s) => ({ studentId: s.id, status: marks[s.id] })),
-      };
-      const res = await apiRequest("POST", "/api/attendance", payload);
-      return res.json();
+        markedAt: new Date().toISOString(),
+        marks: markList,
+      });
+      const outcome = await syncRecord(rec, postSave);
+      return { outcome, count: markList.length };
     },
-    onSuccess: (data: { written: number }) => {
-      // Honesty invariant: never claim parents were notified — absence-alert
-      // delivery is asynchronous and the automated WhatsApp pipe is paused,
-      // so a "notified" claim here would be fabricated (issue #335).
-      toast({
-        title: "Attendance saved",
-        description: `${data.written} students marked.`,
-      });
-      queryClient.invalidateQueries({
-        queryKey: [`/api/attendance?className=${encodeURIComponent(className)}&date=${date}`],
-      });
+    onSuccess: ({ outcome, count }) => {
+      if (outcome === "synced") {
+        // Honesty invariant: never claim parents were notified here — absence
+        // alerts are async and the WhatsApp pipe is paused (issue #335).
+        toast({ title: "Attendance saved", description: `${count} students marked.` });
+        invalidateAttendanceReads();
+      } else if (outcome === "retry") {
+        toast({
+          title: "Saved on device",
+          description: "You're offline — this will sync automatically when you reconnect.",
+        });
+      } else {
+        toast({
+          title: "Couldn't save this day",
+          description:
+            "The server rejected it (for example it's older than the editable window). Contact your school admin.",
+          variant: "destructive",
+        });
+      }
+      refreshUnsynced();
     },
     onError: (err: Error) =>
       toast({
@@ -243,6 +339,12 @@ export default function AttendancePage() {
             <Badge variant="warning">{counts.late} late</Badge>
             <Badge variant="accent">{counts.excused} excused</Badge>
             {counts.unmarked > 0 && <Badge variant="outline">{counts.unmarked} unmarked</Badge>}
+            {unsyncedCount > 0 && (
+              <Badge variant="outline" className="gap-1" data-testid="unsynced-badge">
+                <CloudOff className="h-3 w-3" />
+                {unsyncedCount} saved on device, syncing…
+              </Badge>
+            )}
           </div>
 
           {readBlocked ? (

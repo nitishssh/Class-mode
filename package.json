@@ -151,6 +151,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-unused-imports": "^4.4.1",
+    "fake-indexeddb": "^6.2.5",
     "globals": "^17.7.0",
     "playwright": "^1.58.2",
     "postcss": "^8.5.14",
