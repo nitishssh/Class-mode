@@ -2700,7 +2700,7 @@ export async function pgMarkAttendance(params: {
   const client = await getPgPool().connect();
   try {
     await client.query("BEGIN");
-    await client.query(
+    const result = await client.query(
       // note: COALESCE, not EXCLUDED.note. The web marking page sends status
       // only (no note field), so a routine re-save of a class would otherwise
       // write NULL over a note entered elsewhere (e.g. the mobile app) —
@@ -2717,9 +2717,13 @@ export async function pgMarkAttendance(params: {
       values
     );
     await client.query("COMMIT");
-    // A skipped stale replay is still safely handled: it did not clobber a
-    // newer web/mobile correction, and the mobile queue may dequeue it.
-    return deduped.length;
+    // Honesty invariant (eng review T5): return the rows ACTUALLY written, not
+    // deduped.length. A stale offline replay hits the `updated_at <= EXCLUDED`
+    // guard and updates zero rows — Postgres omits it from rowCount. Returning
+    // the input count would let the client show "50 students marked" when 0
+    // were applied. A skipped stale replay is still safely handled: it did not
+    // clobber a newer web/mobile correction, and the mobile queue may dequeue it.
+    return result.rowCount ?? 0;
   } catch (err) {
     await client.query("ROLLBACK").catch(() => undefined);
     logger.error("[pg] pgMarkAttendance failed", { err: String(err) });
