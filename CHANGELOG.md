@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.9.4.0] - 2026-08-13
+
+### Added
+
+- **Attendance marks survive a lost signal.** On a patchy connection a teacher's mark is now saved to the device before the network request goes out. If the connection drops, the mark stays queued and syncs automatically the moment the device is back online. Nothing is lost between pressing Save and the network reconnecting.
+- **No more double parent-alerts on a retry.** Every attendance save now carries a unique operation ID. If the same save is replayed (offline queue draining after a lost acknowledgement), the server fires parent notifications and adoption tracking exactly once — not twice.
+- **Adoption gate is now measurable.** The weekly metrics report now shows a per-teacher × weekday matrix and a pass/fail verdict for the Sep-30 gate (≥60% of teachers marking ≥4 days per week). The number is sourced from the append-only usage log, not the mutable attendance table, so corrections and backfills cannot inflate it.
+- **Pilot-school scoping for metrics.** Set `PILOT_SCHOOL_CODE` and every weekly metric — attendance, fees, usage, Study Arena completions and cost — is scoped to that school's cohort. The payment-gate report now cites this school's numbers, not an all-schools aggregate.
+
+### Fixed
+
+- **A read failure can no longer wipe a day's marks.** Previously, if the server failed to return the current attendance for a class, the register silently showed an empty, editable list. A teacher who then pressed Save would overwrite a correctly-recorded day with a blank. The register is now locked and shows a retry prompt until the read succeeds.
+- **The save count in the toast is now honest.** The "N students marked" confirmation now uses the server's actual written count. If a stale device clock caused the upsert to skip some rows, the teacher sees the real number, not the submitted count.
+- **Offline marks on a shared device are isolated per account.** Queued attendance records are namespaced by user and school. Logging out purges your queue so the next teacher's session cannot see or replay your marks.
+- **A transient roster DB fault no longer permanently strands a save.** A database blip that produced an empty student list used to be classified as a permanent rejection, silently dropping the queued save forever. It now surfaces as a transient error and the queue retries it on reconnect.
+- **Idempotency keys are scoped per teacher.** The server-side operation-claim table is now keyed by `(op_id, user_id)` so one teacher's retry identifier cannot collide with — or suppress — another teacher's save.
+- **Study Arena metrics respect the pilot school filter.** When `PILOT_SCHOOL_CODE` is set, lesson completions and AI cost rows are now filtered to that school's students. Previously those queries aggregated all schools and could cause the payment gate to pass on activity from outside the pilot cohort.
+
+### Changed
+
+- The offline queue only uses a pending queued record as the source of truth for the attendance register. A terminally-rejected record (server declined it permanently) no longer silently seeds the display with its rejected marks.
+- `processed_operations` now indexes `created_at` to keep future out-of-band pruning cheap as the table grows.
+
 ## [1.9.3.0] - 2026-08-11
 
 ### Fixed

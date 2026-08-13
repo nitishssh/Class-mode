@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { clearServerToken, setServerToken } from "@/lib/queryClient";
+import { ownerToken, purgeOwner } from "@/lib/attendance-queue";
 
 // Authentication is now fully server-backed (local password + server-side
 // Google OAuth). The Firebase client SDK has been removed; this type used to
@@ -236,6 +237,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    // T8: purge this user's offline attendance queue before clearing the
+    // session so a shared device never leaves one teacher's un-synced marks
+    // behind for the next account. Best-effort — never block logout on it.
+    const prev = currentUser.profile;
+    await purgeOwner(ownerToken(prev?.id ?? null, prev?.school_code ?? null)).catch(() => {});
     await fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
     clearServerToken();
     setCurrentUser({ user: null, profile: null });

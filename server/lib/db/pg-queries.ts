@@ -479,7 +479,11 @@ export async function pgFindUsers(filters: {
     return rows.map(mapUser);
   } catch (err) {
     logger.error("[pg] pgFindUsers failed", { err: String(err) });
-    return [];
+    // Throw rather than returning [] — a DB error producing an empty roster
+    // would cause the attendance route to reject every student as a foreign
+    // student (403), which the offline queue classifies as a terminal failure,
+    // permanently stranding the save. A thrown error surfaces as 500 (transient).
+    throw err;
   }
 }
 
@@ -2700,7 +2704,7 @@ export async function pgMarkAttendance(params: {
   const client = await getPgPool().connect();
   try {
     await client.query("BEGIN");
-    await client.query(
+    const result = await client.query(
       // note: COALESCE, not EXCLUDED.note. The web marking page sends status
       // only (no note field), so a routine re-save of a class would otherwise
       // write NULL over a note entered elsewhere (e.g. the mobile app) —
@@ -2717,15 +2721,45 @@ export async function pgMarkAttendance(params: {
       values
     );
     await client.query("COMMIT");
-    // A skipped stale replay is still safely handled: it did not clobber a
-    // newer web/mobile correction, and the mobile queue may dequeue it.
-    return deduped.length;
+    // Honesty invariant (eng review T5): return the rows ACTUALLY written, not
+    // deduped.length. A stale offline replay hits the `updated_at <= EXCLUDED`
+    // guard and updates zero rows — Postgres omits it from rowCount. Returning
+    // the input count would let the client show "50 students marked" when 0
+    // were applied. A skipped stale replay is still safely handled: it did not
+    // clobber a newer web/mobile correction, and the mobile queue may dequeue it.
+    return result.rowCount ?? 0;
   } catch (err) {
     await client.query("ROLLBACK").catch(() => undefined);
     logger.error("[pg] pgMarkAttendance failed", { err: String(err) });
     throw err;
   } finally {
     client.release();
+  }
+}
+
+/**
+ * Idempotency key for attendance saves (eng review T4). Claims an operation id
+ * exactly once: returns true the first time an opId is seen, false on any replay.
+ * The attendance ROW upsert is already replay-safe, but the SIDE EFFECTS
+ * (feature_usage tracking, parent WhatsApp notify) are not — an offline queue
+ * replaying a save after a lost ack would otherwise double-count adoption and
+ * re-message a parent. Callers run side effects only when this returns true.
+ * No pg configured => true (fail-open: never suppress a real notification just
+ * because the dedup store is unavailable).
+ */
+export async function pgClaimOperation(opId: string, userId: number): Promise<boolean> {
+  if (!isPgReady()) return true;
+  try {
+    const { rowCount } = await getPgPool().query(
+      `INSERT INTO processed_operations (op_id, user_id) VALUES ($1, $2) ON CONFLICT (op_id, user_id) DO NOTHING`,
+      [opId, userId]
+    );
+    return (rowCount ?? 0) === 1;
+  } catch (err) {
+    // Fail-open on a dedup-store error: better to risk a duplicate notification
+    // than to silently drop a real one. Logged so the failure is visible.
+    logger.error("[pg] pgClaimOperation failed", { opId, userId, err: String(err) });
+    return true;
   }
 }
 
@@ -2754,8 +2788,13 @@ export async function pgGetAttendanceByClassDate(params: {
     );
     return rows;
   } catch (err) {
+    // Eng review T3 (prior learning: pg-queries-swallows-read-failures): do NOT
+    // return [] on error. An empty array here renders an empty, EDITABLE register
+    // for a day that may already be recorded — the teacher re-marks and the write
+    // path overwrites real data. Surface the failure so the route returns 500 and
+    // the client blocks marking instead of showing a false-empty register.
     logger.error("[pg] pgGetAttendanceByClassDate failed", { err: String(err) });
-    return [];
+    throw err;
   }
 }
 

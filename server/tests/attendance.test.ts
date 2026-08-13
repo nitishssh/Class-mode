@@ -15,6 +15,7 @@ const h = vi.hoisted(() => ({
   mockSend: vi.fn(),
   mockWhatsappConfigured: vi.fn(),
   mockTrack: vi.fn(),
+  mockClaim: vi.fn(),
 }));
 
 vi.mock("../middleware", () => ({
@@ -43,6 +44,7 @@ vi.mock("../lib/db/pg-queries", () => ({
   pgFindUserById: h.mockFindUserById,
   pgUpdateUser: h.mockUpdateUser,
   pgTrackFeatureUsage: h.mockTrack,
+  pgClaimOperation: h.mockClaim,
 }));
 
 vi.mock("../services/whatsapp", () => ({
@@ -69,6 +71,8 @@ describe("Attendance API", () => {
     app = makeApp();
     h.currentUser = { id: 10, role: "teacher", school_code: "SCHOOL123" };
     h.mockWhatsappConfigured.mockReturnValue(true);
+    // T4: by default every opId is fresh (first time seen).
+    h.mockClaim.mockResolvedValue(true);
     // #335 follow-up: dispatch requires BOTH configured creds AND the explicit
     // opt-in flag — configuring creds alone must never enable sends.
     process.env.WHATSAPP_ALERTS_ENABLED = "true";
@@ -263,6 +267,67 @@ describe("Attendance API", () => {
   it("requires className and a valid date on GET", async () => {
     const res = await request(app).get("/api/attendance").query({ className: "Grade 10" });
     expect(res.status).toBe(400);
+  });
+
+  it("returns 500 (not a false-empty 200) when the attendance read fails (T3)", async () => {
+    // Prior learning pg-queries-swallows-read-failures: the read must surface an
+    // error, never [] — a false-empty register lets a teacher overwrite a
+    // recorded day. pgGetAttendanceByClassDate now throws; the route returns 500.
+    h.mockGetByClass.mockRejectedValue(new Error("db read failed"));
+    const res = await request(app)
+      .get("/api/attendance")
+      .query({ className: "Grade 10", date: "2026-07-01" });
+    expect(res.status).toBe(500);
+    expect(res.body).not.toEqual([]);
+    expect(res.body.message).toMatch(/retry/i);
+  });
+
+  it("passes through the honest written count from the write layer (T5)", async () => {
+    // A stale offline replay updates zero rows; pgMarkAttendance returns the real
+    // rowCount (0), and the route must report that, not the input length.
+    h.mockMark.mockResolvedValue(0);
+    const res = await request(app)
+      .post("/api/attendance")
+      .send({
+        className: "Grade 10",
+        date: "2026-07-02",
+        marks: [
+          { studentId: 1, status: "present" },
+          { studentId: 2, status: "present" },
+        ],
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.written).toBe(0);
+  });
+
+  it("fires side effects once and skips them on a replayed opId (T4)", async () => {
+    h.mockMark.mockResolvedValue(1);
+    h.mockSend.mockResolvedValue({ success: true });
+    const body = {
+      className: "Grade 10",
+      date: "2026-07-02",
+      opId: "op-abc-123",
+      marks: [{ studentId: 1, status: "absent" }],
+    };
+
+    // First save: opId is fresh → side effects run (usage tracked, parent messaged).
+    h.mockClaim.mockResolvedValueOnce(true);
+    const first = await request(app).post("/api/attendance").send(body);
+    expect(first.status).toBe(200);
+    expect(first.body.notified).toBe(1);
+    expect(h.mockClaim).toHaveBeenCalledWith("op-abc-123", expect.any(Number));
+    expect(h.mockSend).toHaveBeenCalledTimes(1);
+    expect(h.mockTrack).toHaveBeenCalledWith(expect.objectContaining({ feature: "attendance" }));
+
+    // Replay of the SAME opId: claim conflicts → side effects skipped, no 2nd message.
+    h.mockClaim.mockResolvedValueOnce(false);
+    h.mockTrack.mockClear();
+    const replay = await request(app).post("/api/attendance").send(body);
+    expect(replay.status).toBe(200);
+    expect(replay.body.replay).toBe(true);
+    expect(replay.body.notified).toBe(0);
+    expect(h.mockSend).toHaveBeenCalledTimes(1); // still just the first
+    expect(h.mockTrack).not.toHaveBeenCalled();
   });
 
   it("returns a student attendance summary scoped to school", async () => {
