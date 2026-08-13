@@ -317,9 +317,7 @@ describe("Attendance API", () => {
     expect(first.body.notified).toBe(1);
     expect(h.mockClaim).toHaveBeenCalledWith("op-abc-123", expect.any(Number));
     expect(h.mockSend).toHaveBeenCalledTimes(1);
-    expect(h.mockTrack).toHaveBeenCalledWith(
-      expect.objectContaining({ feature: "attendance" })
-    );
+    expect(h.mockTrack).toHaveBeenCalledWith(expect.objectContaining({ feature: "attendance" }));
 
     // Replay of the SAME opId: claim conflicts → side effects skipped, no 2nd message.
     h.mockClaim.mockResolvedValueOnce(false);

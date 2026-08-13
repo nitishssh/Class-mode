@@ -172,7 +172,12 @@ async function collect(
   // Dedup to one marking-day per (teacher, calendar day). Group on feature_usage
   // first (unaliased, so REAL_SCHOOL_SQL binds to feature_usage.school_code),
   // then join users for names.
-  const matrix = await q<{ user_id: number; name: string; marking_days: number; weekdays: string[] }>(
+  const matrix = await q<{
+    user_id: number;
+    name: string;
+    marking_days: number;
+    weekdays: string[];
+  }>(
     `WITH marks AS (
         SELECT user_id, (created_at AT TIME ZONE 'UTC')::date AS d,
                to_char(created_at AT TIME ZONE 'UTC', 'Dy')   AS wd

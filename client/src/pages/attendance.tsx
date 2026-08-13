@@ -76,7 +76,10 @@ export default function AttendancePage() {
 
   // T8 isolation: every queued record is namespaced by user+school so a shared
   // device never replays or shows one teacher's marks under another account.
-  const owner = ownerToken(currentUser.profile?.id ?? null, currentUser.profile?.school_code ?? null);
+  const owner = ownerToken(
+    currentUser.profile?.id ?? null,
+    currentUser.profile?.school_code ?? null
+  );
 
   // Poster used by both the immediate save and the reconnect drain. apiRequest
   // throws ApiError (with .status) on non-2xx and a network error when offline;
@@ -101,7 +104,8 @@ export default function AttendancePage() {
   const invalidateAttendanceReads = useCallback(() => {
     queryClient.invalidateQueries({
       predicate: (q) =>
-        typeof q.queryKey[0] === "string" && (q.queryKey[0] as string).startsWith("/api/attendance"),
+        typeof q.queryKey[0] === "string" &&
+        (q.queryKey[0] as string).startsWith("/api/attendance"),
     });
   }, [queryClient]);
 
@@ -229,7 +233,10 @@ export default function AttendancePage() {
       const { outcome, written } = await syncRecord(rec, postSave);
       // Use the server's actual written count (T5 honesty invariant). Fall back
       // to markList.length only when offline (no server response yet).
-      return { outcome, count: outcome === "synced" ? (written ?? markList.length) : markList.length };
+      return {
+        outcome,
+        count: outcome === "synced" ? (written ?? markList.length) : markList.length,
+      };
     },
     onSuccess: ({ outcome, count }) => {
       if (outcome === "synced") {

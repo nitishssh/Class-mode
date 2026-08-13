@@ -18,11 +18,7 @@ const router = Router();
 // how often offline kicked in — the signal that decides whether the deferred
 // service-worker/offline-reload work is justified. It is a real client-observed
 // event the server cannot otherwise see (the original failure never reached it).
-const VIEW_FEATURES = new Set([
-  "attendance_view",
-  "report_view",
-  "attendance_sync_recovered",
-]);
+const VIEW_FEATURES = new Set(["attendance_view", "report_view", "attendance_sync_recovered"]);
 
 /**
  * POST /api/usage — record a single page-view feature usage event.

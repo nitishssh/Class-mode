@@ -31,7 +31,11 @@ function sampleInput(over: Partial<Parameters<typeof enqueueSave>[0]> = {}) {
 
 const okPoster = async (): Promise<PostResult> => ({ ok: true });
 const offlinePoster = async (): Promise<PostResult> => ({ ok: false, error: "network" });
-const rejectedPoster = async (): Promise<PostResult> => ({ ok: false, status: 400, error: "too old" });
+const rejectedPoster = async (): Promise<PostResult> => ({
+  ok: false,
+  status: 400,
+  error: "too old",
+});
 
 describe("attendance-queue", () => {
   beforeEach(async () => {
@@ -62,7 +66,9 @@ describe("attendance-queue", () => {
     });
 
     it("coalesces a re-edit of the same class-day into one record (latest wins)", async () => {
-      await enqueueSave(sampleInput({ opId: "op-1", marks: [{ studentId: 1, status: "present" }] }));
+      await enqueueSave(
+        sampleInput({ opId: "op-1", marks: [{ studentId: 1, status: "present" }] })
+      );
       await enqueueSave(sampleInput({ opId: "op-2", marks: [{ studentId: 1, status: "absent" }] }));
       const all = await attendanceQueueDb.saves.where("owner").equals(OWNER).toArray();
       expect(all).toHaveLength(1);

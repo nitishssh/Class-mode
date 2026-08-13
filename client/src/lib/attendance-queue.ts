@@ -56,7 +56,10 @@ class AttendanceQueueDatabase extends Dexie {
 export const attendanceQueueDb = new AttendanceQueueDatabase();
 
 /** Namespace token for the signed-in user on this device (T8). */
-export function ownerToken(userId: number | null | undefined, schoolCode: string | null | undefined): string {
+export function ownerToken(
+  userId: number | null | undefined,
+  schoolCode: string | null | undefined
+): string {
   return `${userId ?? "anon"}:${schoolCode ?? "none"}`;
 }
 
