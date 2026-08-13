@@ -13,7 +13,6 @@ import {
   queueKey,
   syncRecord,
   type PostResult,
-  type QueuedSave,
 } from "./attendance-queue";
 
 const OWNER = ownerToken(10, "SCHOOL123");
@@ -75,14 +74,15 @@ describe("attendance-queue", () => {
   describe("syncRecord", () => {
     it("removes the record from the queue on success", async () => {
       const rec = await enqueueSave(sampleInput());
-      const outcome = await syncRecord(rec, okPoster);
+      const { outcome, written } = await syncRecord(rec, okPoster);
       expect(outcome).toBe("synced");
+      expect(written).toBeUndefined(); // okPoster returns no written count
       expect(await getQueued(OWNER, "Grade 10", "2026-08-13")).toBeUndefined();
     });
 
     it("keeps the record pending and bumps attempts on a transient failure", async () => {
       const rec = await enqueueSave(sampleInput());
-      const outcome = await syncRecord(rec, offlinePoster);
+      const { outcome } = await syncRecord(rec, offlinePoster);
       expect(outcome).toBe("retry");
       const after = await getQueued(OWNER, "Grade 10", "2026-08-13");
       expect(after?.status).toBe("pending");
@@ -92,7 +92,7 @@ describe("attendance-queue", () => {
 
     it("marks the record failed (terminal) on a permanent rejection", async () => {
       const rec = await enqueueSave(sampleInput());
-      const outcome = await syncRecord(rec, rejectedPoster);
+      const { outcome } = await syncRecord(rec, rejectedPoster);
       expect(outcome).toBe("failed");
       const after = await getQueued(OWNER, "Grade 10", "2026-08-13");
       expect(after?.status).toBe("failed");
@@ -103,7 +103,7 @@ describe("attendance-queue", () => {
       const throwing = async (): Promise<PostResult> => {
         throw new Error("boom");
       };
-      const outcome = await syncRecord(rec, throwing);
+      const { outcome } = await syncRecord(rec, throwing);
       expect(outcome).toBe("retry");
       expect((await getQueued(OWNER, "Grade 10", "2026-08-13"))?.status).toBe("pending");
     });
@@ -113,7 +113,7 @@ describe("attendance-queue", () => {
     it("only drains pending records, skipping terminal failures", async () => {
       await enqueueSave(sampleInput({ opId: "a", date: "2026-08-13" }));
       const failedRec = await enqueueSave(sampleInput({ opId: "b", date: "2026-08-12" }));
-      await markFailed(failedRec.key, "rejected");
+      await markFailed(failedRec.key, failedRec.opId, "rejected");
       expect(await getPending(OWNER)).toHaveLength(1);
 
       const summary = await drainQueue(OWNER, okPoster);

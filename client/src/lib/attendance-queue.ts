@@ -112,15 +112,21 @@ export async function getUnsynced(owner: string): Promise<QueuedSave[]> {
   return attendanceQueueDb.saves.where("owner").equals(owner).toArray();
 }
 
-/** A save landed on the server: drop it from the queue. */
-export async function markSynced(key: string): Promise<void> {
-  await attendanceQueueDb.saves.delete(key);
+/**
+ * A save landed on the server: drop it from the queue.
+ * CAS guard: only delete if the record still carries the same opId — a newer
+ * enqueueSave for the same class-day may have replaced it while this POST was
+ * in flight, and we must not clobber that newer edit.
+ */
+export async function markSynced(key: string, opId: string): Promise<void> {
+  const rec = await attendanceQueueDb.saves.get(key);
+  if (rec && rec.opId === opId) await attendanceQueueDb.saves.delete(key);
 }
 
 /** A transient failure: keep it pending, record the reason, bump the attempt count. */
-export async function markPendingRetry(key: string, error: string): Promise<void> {
+export async function markPendingRetry(key: string, opId: string, error: string): Promise<void> {
   const rec = await attendanceQueueDb.saves.get(key);
-  if (!rec) return;
+  if (!rec || rec.opId !== opId) return;
   await attendanceQueueDb.saves.put({
     ...rec,
     status: "pending",
@@ -131,9 +137,9 @@ export async function markPendingRetry(key: string, error: string): Promise<void
 }
 
 /** A permanent failure (T9): mark terminal so the drain stops retrying it. */
-export async function markFailed(key: string, error: string): Promise<void> {
+export async function markFailed(key: string, opId: string, error: string): Promise<void> {
   const rec = await attendanceQueueDb.saves.get(key);
-  if (!rec) return;
+  if (!rec || rec.opId !== opId) return;
   await attendanceQueueDb.saves.put({
     ...rec,
     status: "failed",
@@ -153,6 +159,7 @@ export interface PostResult {
   ok: boolean;
   status?: number;
   error?: string;
+  written?: number; // server's actual rowCount — honesty invariant (T5)
 }
 
 /**
@@ -170,24 +177,26 @@ export function classifyFailure(httpStatus: number | undefined): "retry" | "fail
   return "retry";
 }
 
+export type SyncResult = { outcome: SyncOutcome; written?: number };
+
 /** Sync one record via the injected poster; update the queue by outcome. */
 export async function syncRecord(
   rec: QueuedSave,
   poster: (rec: QueuedSave) => Promise<PostResult>
-): Promise<SyncOutcome> {
+): Promise<SyncResult> {
   const res = await poster(rec).catch(
     (err): PostResult => ({ ok: false, status: undefined, error: String(err) })
   );
   if (res.ok) {
-    await markSynced(rec.key);
-    return "synced";
+    await markSynced(rec.key, rec.opId);
+    return { outcome: "synced", written: res.written };
   }
   if (classifyFailure(res.status) === "failed") {
-    await markFailed(rec.key, res.error ?? `HTTP ${res.status}`);
-    return "failed";
+    await markFailed(rec.key, rec.opId, res.error ?? `HTTP ${res.status}`);
+    return { outcome: "failed" };
   }
-  await markPendingRetry(rec.key, res.error ?? "network error");
-  return "retry";
+  await markPendingRetry(rec.key, rec.opId, res.error ?? "network error");
+  return { outcome: "retry" };
 }
 
 /**
@@ -204,7 +213,7 @@ export async function drainQueue(
   const pending = await getPending(owner);
   const summary = { synced: 0, retry: 0, failed: 0 };
   for (const rec of pending) {
-    const outcome = await syncRecord(rec, poster);
+    const { outcome } = await syncRecord(rec, poster);
     summary[outcome] += 1;
     if (outcome === "synced" && rec.attempts > 0) onRecovered?.(rec);
   }

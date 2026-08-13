@@ -543,11 +543,19 @@ CREATE TABLE IF NOT EXISTS feature_usage (
 -- parent WhatsApp notify) are not. An offline queue replaying a save after a
 -- lost ack claims its op_id here first; a second claim conflicts, and the route
 -- skips the side effects so parents are not re-messaged and adoption is not
--- double-counted. Insert-only; prune old rows out of band if it ever grows.
+-- double-counted.
+--
+-- user_id scoping: op_id uniqueness is per-user, not global, so one teacher
+-- cannot suppress another teacher's side effects by guessing their opId.
+-- An index on created_at keeps future out-of-band pruning cheap.
 CREATE TABLE IF NOT EXISTS processed_operations (
-  op_id        text         PRIMARY KEY,
-  created_at   timestamptz  NOT NULL DEFAULT now()
+  op_id        text         NOT NULL,
+  user_id      integer      NOT NULL,
+  created_at   timestamptz  NOT NULL DEFAULT now(),
+  PRIMARY KEY (op_id, user_id)
 );
+CREATE INDEX IF NOT EXISTS idx_processed_operations_created_at
+  ON processed_operations (created_at);
 
 -- ─── Attendance ──────────────────────────────────────────────────────────────
 -- Daily attendance is the operational-lock-in loop (teachers mark it every

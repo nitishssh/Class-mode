@@ -315,7 +315,7 @@ describe("Attendance API", () => {
     const first = await request(app).post("/api/attendance").send(body);
     expect(first.status).toBe(200);
     expect(first.body.notified).toBe(1);
-    expect(h.mockClaim).toHaveBeenCalledWith("op-abc-123");
+    expect(h.mockClaim).toHaveBeenCalledWith("op-abc-123", expect.any(Number));
     expect(h.mockSend).toHaveBeenCalledTimes(1);
     expect(h.mockTrack).toHaveBeenCalledWith(
       expect.objectContaining({ feature: "attendance" })

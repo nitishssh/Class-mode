@@ -202,20 +202,32 @@ async function collect(
       WHERE ${REAL_OR_NO_SCHOOL_SQL}`
   );
 
+  // When PILOT_SCHOOL_CODE is set, Study Arena queries must also be pinned to
+  // that school — otherwise the gate report can pass on students from other
+  // schools and the payment conversation cites the wrong cohort.
+  // interaction_log has no school_code column, so we join users for scoping.
+  const ARENA_SCHOOL_JOIN = PILOT_SCHOOL_CODE
+    ? `JOIN users _u ON _u.id = il.student_id AND _u.school_code = '${PILOT_SCHOOL_CODE}'`
+    : "";
+  const ARENA_SCHOOL_JOIN_COST = PILOT_SCHOOL_CODE
+    ? `JOIN users _u ON _u.id = l.user_id AND _u.school_code = '${PILOT_SCHOOL_CODE}'`
+    : "";
+
   // Study Arena: roll gate-answer rows up into "did the student finish a full
   // gated lesson?". A lesson is complete when the distinct gates answered under
   // one lessonId reach that lesson's totalGates. Only student-role rows are
   // logged (see the beta route), so no role filter is needed here.
   const [arena] = await q(
     `WITH gate_answers AS (
-        SELECT student_id,
-               payload->>'lessonId'         AS lesson_id,
-               payload->>'actionKey'        AS action_key,
-               (payload->>'totalGates')::int AS total_gates
-          FROM interaction_log
-         WHERE kind = 'study_arena_gate_answer'
-           AND created_at >= $1 AND created_at < $2
-           AND payload->>'lessonId' IS NOT NULL
+        SELECT il.student_id,
+               il.payload->>'lessonId'         AS lesson_id,
+               il.payload->>'actionKey'        AS action_key,
+               (il.payload->>'totalGates')::int AS total_gates
+          FROM interaction_log il
+          ${ARENA_SCHOOL_JOIN}
+         WHERE il.kind = 'study_arena_gate_answer'
+           AND il.created_at >= $1 AND il.created_at < $2
+           AND il.payload->>'lessonId' IS NOT NULL
      ),
      lessons AS (
         SELECT student_id, lesson_id,
@@ -254,16 +266,17 @@ async function collect(
     pilotEndsAt = end.toISOString();
     const [pilot] = await q(
       `WITH gate_answers AS (
-          SELECT student_id,
-                 payload->>'lessonId'          AS lesson_id,
-                 payload->>'actionKey'         AS action_key,
-                 (payload->>'totalGates')::int AS total_gates,
-                 (payload->>'attempt')::int    AS attempt
-            FROM interaction_log
-           WHERE kind = 'study_arena_gate_answer'
-             AND created_at >= $1::timestamptz
-             AND created_at < $2::timestamptz
-             AND payload->>'lessonId' IS NOT NULL
+          SELECT il.student_id,
+                 il.payload->>'lessonId'          AS lesson_id,
+                 il.payload->>'actionKey'         AS action_key,
+                 (il.payload->>'totalGates')::int AS total_gates,
+                 (il.payload->>'attempt')::int    AS attempt
+            FROM interaction_log il
+            ${ARENA_SCHOOL_JOIN}
+           WHERE il.kind = 'study_arena_gate_answer'
+             AND il.created_at >= $1::timestamptz
+             AND il.created_at < $2::timestamptz
+             AND il.payload->>'lessonId' IS NOT NULL
        ), lessons AS (
           SELECT student_id, lesson_id,
                  COUNT(DISTINCT action_key) AS gates_answered,
@@ -289,10 +302,11 @@ async function collect(
     const [cost] = await q(
       `WITH expected AS (
          SELECT COUNT(*)::int AS interactions,
-                COUNT(DISTINCT payload->>'lessonId')::int AS lessons
-           FROM interaction_log
-          WHERE kind = 'study_arena_gate_answer'
-            AND created_at >= $1::timestamptz AND created_at < $2::timestamptz
+                COUNT(DISTINCT il.payload->>'lessonId')::int AS lessons
+           FROM interaction_log il
+           ${ARENA_SCHOOL_JOIN}
+          WHERE il.kind = 'study_arena_gate_answer'
+            AND il.created_at >= $1::timestamptz AND il.created_at < $2::timestamptz
        ), usage AS (
          SELECT COALESCE(SUM((l.metadata->>'estimatedCostInr')::numeric), 0)::float AS estimated_cost_inr,
                 COUNT(*) FILTER (WHERE l.metadata->>'estimatedCostInr' IS NULL)::int AS null_cost_rows,
@@ -302,6 +316,7 @@ async function collect(
                 )::int AS lessons
            FROM ai_usage_logs l
            JOIN users u ON u.id = l.user_id AND u.role = 'student'
+           ${ARENA_SCHOOL_JOIN_COST}
           WHERE l.created_at >= $1::timestamptz AND l.created_at < $2::timestamptz
             AND l.metadata->>'type' IN ('study_arena_lesson', 'study_arena_interaction')
        )

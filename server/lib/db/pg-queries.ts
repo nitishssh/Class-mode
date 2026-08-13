@@ -479,7 +479,11 @@ export async function pgFindUsers(filters: {
     return rows.map(mapUser);
   } catch (err) {
     logger.error("[pg] pgFindUsers failed", { err: String(err) });
-    return [];
+    // Throw rather than returning [] — a DB error producing an empty roster
+    // would cause the attendance route to reject every student as a foreign
+    // student (403), which the offline queue classifies as a terminal failure,
+    // permanently stranding the save. A thrown error surfaces as 500 (transient).
+    throw err;
   }
 }
 
@@ -2743,18 +2747,18 @@ export async function pgMarkAttendance(params: {
  * No pg configured => true (fail-open: never suppress a real notification just
  * because the dedup store is unavailable).
  */
-export async function pgClaimOperation(opId: string): Promise<boolean> {
+export async function pgClaimOperation(opId: string, userId: number): Promise<boolean> {
   if (!isPgReady()) return true;
   try {
     const { rowCount } = await getPgPool().query(
-      `INSERT INTO processed_operations (op_id) VALUES ($1) ON CONFLICT (op_id) DO NOTHING`,
-      [opId]
+      `INSERT INTO processed_operations (op_id, user_id) VALUES ($1, $2) ON CONFLICT (op_id, user_id) DO NOTHING`,
+      [opId, userId]
     );
     return (rowCount ?? 0) === 1;
   } catch (err) {
     // Fail-open on a dedup-store error: better to risk a duplicate notification
     // than to silently drop a real one. Logged so the failure is visible.
-    logger.error("[pg] pgClaimOperation failed", { opId, err: String(err) });
+    logger.error("[pg] pgClaimOperation failed", { opId, userId, err: String(err) });
     return true;
   }
 }

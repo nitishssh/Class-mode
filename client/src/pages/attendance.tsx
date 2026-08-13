@@ -83,14 +83,15 @@ export default function AttendancePage() {
   // we translate both into a PostResult the queue can classify (T9).
   const postSave = useCallback(async (rec: QueuedSave): Promise<PostResult> => {
     try {
-      await apiRequest("POST", "/api/attendance", {
+      const res = await apiRequest("POST", "/api/attendance", {
         className: rec.className,
         date: rec.date,
         opId: rec.opId,
         markedAt: rec.markedAt,
         marks: rec.marks,
       });
-      return { ok: true };
+      const data = await res.json().catch(() => ({}));
+      return { ok: true, written: (data as { written?: number }).written };
     } catch (err) {
       if (err instanceof ApiError) return { ok: false, status: err.status, error: err.message };
       return { ok: false, error: String(err) }; // offline / network → transient
@@ -165,7 +166,10 @@ export default function AttendancePage() {
       const queued = await getQueued(owner, className, date);
       if (cancelled) return;
       const seeded: Record<number, Status> = {};
-      if (queued) {
+      // Only seed from a *pending* queued save — a terminal `failed` record is
+      // not a source of truth (it was rejected by the server) and must not
+      // silently override the server rows in the register.
+      if (queued && queued.status === "pending") {
         for (const m of queued.marks) seeded[m.studentId] = m.status;
       } else {
         for (const row of existing) seeded[row.studentId] = row.status;
@@ -222,8 +226,10 @@ export default function AttendancePage() {
         markedAt: new Date().toISOString(),
         marks: markList,
       });
-      const outcome = await syncRecord(rec, postSave);
-      return { outcome, count: markList.length };
+      const { outcome, written } = await syncRecord(rec, postSave);
+      // Use the server's actual written count (T5 honesty invariant). Fall back
+      // to markList.length only when offline (no server response yet).
+      return { outcome, count: outcome === "synced" ? (written ?? markList.length) : markList.length };
     },
     onSuccess: ({ outcome, count }) => {
       if (outcome === "synced") {

@@ -185,7 +185,7 @@ router.post(
     // do not double-count adoption or re-message a parent. Saves without an opId
     // (online, legacy) always run — pgClaimOperation returns true.
     const opId = parsed.data.opId;
-    const sideEffectsFresh = opId ? await pgClaimOperation(opId) : true;
+    const sideEffectsFresh = opId ? await pgClaimOperation(opId, user.id) : true;
     if (!sideEffectsFresh) {
       logger.info("[attendance] replay detected, skipping side effects", { userId: user.id, opId });
       return res.json({
