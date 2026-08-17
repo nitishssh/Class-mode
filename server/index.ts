@@ -299,9 +299,19 @@ app.use(
         );
         return;
       }
+      // #324.1: both calls used to be floating promises, so a failure inside
+      // the scheduler surfaced as a bare [unhandledRejection] with no route
+      // context and at-risk detection stayed dead until someone read the logs
+      // by hand. Catch per run: the failure is named and loud, and one bad run
+      // no longer decides whether the next one happens.
+      const runAtRiskChecks = () =>
+        scheduleAtRiskChecks().catch((err) =>
+          logger.error("[SIS Automation] at-risk check failed", { error: String(err) })
+        );
+
       // Run initial check and then every hour
-      scheduleAtRiskChecks();
-      setInterval(scheduleAtRiskChecks, 60 * 60 * 1000);
+      void runAtRiskChecks();
+      setInterval(runAtRiskChecks, 60 * 60 * 1000);
     })
     .catch((err) => {
       logger.error("[SIS Automation] Failed to initialize worker:", err);
