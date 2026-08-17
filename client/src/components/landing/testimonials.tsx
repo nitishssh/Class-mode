@@ -43,8 +43,8 @@ const steps = [
   },
   {
     icon: BellRing,
-    label: "Parents hear from you tomorrow",
-    desc: "8:00 AM register, 8:03 AM WhatsApp. From the very first morning.",
+    label: "Parents hear from you, not from the diary",
+    desc: "The morning register becomes the day's absentee call list, with every parent's number on it.",
     color: "bg-secondary",
   },
 ];

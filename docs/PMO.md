@@ -43,17 +43,17 @@ From `docs/win-plan-eoy2026.md` §6. Five proofs, not revenue:
 
 Everything on the board below must trace to one of these. Work that traces to none is on the frozen list (§9).
 
-## 4. Runway (as of 2026-08-17, Monday)
+## 4. Runway (as of 2026-08-18, Tuesday)
 
 | Milestone                                              | Date       | Distance                                |
 | ------------------------------------------------------ | ---------- | --------------------------------------- |
-| First invoice **paid** (money moved)                   | 2026-08-14 | **3 days past — status unknown to PMO** |
-| 30-school-day streak must **start**                    | 2026-09-08 | 22 days / 16 weekdays                   |
-| Adoption read (≥60% teachers, ≥4 days, founder absent) | 2026-09-30 | 44 days / 32 weekdays                   |
-| School #2 signed                                       | 2026-10-31 | 75 days / 54 weekdays                   |
-| EOY scoreboard                                         | 2026-12-31 | 136 days / 98 weekdays                  |
+| First invoice **paid** (money moved)                   | 2026-08-14 | **4 days past — status unknown to PMO** |
+| 30-school-day streak must **start**                    | 2026-09-08 | 21 days / 15 weekdays                   |
+| Adoption read (≥60% teachers, ≥4 days, founder absent) | 2026-09-30 | 43 days / 31 weekdays                   |
+| School #2 signed                                       | 2026-10-31 | 74 days / 53 weekdays                   |
+| EOY scoreboard                                         | 2026-12-31 | 135 days / 97 weekdays                  |
 
-**16 weekdays** is the real budget. Everything in §6 is sized against that number.
+**15 weekdays** is the real budget. Everything in §6 is sized against that number.
 
 ## 5. Open decisions blocking the PMO (need a human answer)
 
@@ -70,15 +70,15 @@ Ranked by whether it blocks a dated gate. **WS-0 blocks everything.**
 
 ### WS-0 — Production cannot onboard a school (BLOCKER)
 
-| Item                                                    | Evidence                                                                                                                                                                                                                                                                                                                                         | Status           |
-| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- |
-| Signup email dead in production (#322) — **ops half**   | Production still holds an invalid Resend key. Rotate → `SMTP_PASS` in Secret Manager → redeploy → re-test signup on prod. **Only the founder can do this**; it needs credential access. Open **38 days**.                                                                                                                                        | OPEN P0, founder |
-| Email failures are silent (#322) — **engineering half** | DONE 2026-08-17. One `deliver()` path logs at error level with mail type + recipient and throws `EmailDeliveryError`; signup returns `verificationEmailSent`, resend returns 502 not 401, `/verify-email` stops claiming a dispatch that didn't happen. 12 regression cases.                                                                     | SHIPPED          |
-| At-risk cron crashes every run (#324.1)                 | **Stale issue.** The SQL was fixed in `4ace341` on 2026-07-13 — inside the Azure migration PR, unlabelled — and has been in production since. What was genuinely open: the scheduler's floating promises (any failure became an anonymous `unhandledRejection`) and the absence of any guard that could catch SQL drift. Both closed 2026-08-17. | SHIPPED          |
-| `GET /api/chat/dms` → 404 (#324.2)                      | Client calls an endpoint prod does not have.                                                                                                                                                                                                                                                                                                     | OPEN             |
-| Fabricated header badges (#324.3)                       | DONE 2026-08-17. Both counts were literals on buttons that did nothing. The bell now shows the real unread count (no badge at zero) and both buttons navigate; the messages badge was removed rather than invented, since no server-side unread total exists. Verified in a browser against a live database, both directions.                    | SHIPPED          |
-| Attendance copy over-promises WhatsApp (#324.6)         | Copy claims automatic parent alerts while the pipe is deliberately off.                                                                                                                                                                                                                                                                          | OPEN             |
-| CSP blocks `blob:` worker / `data:` font (#324.4/5)     | Console errors on every page.                                                                                                                                                                                                                                                                                                                    | OPEN             |
+| Item                                                    | Evidence                                                                                                                                                                                                                                                                                                                                                                                             | Status           |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| Signup email dead in production (#322) — **ops half**   | Production still holds an invalid Resend key. Rotate → `SMTP_PASS` in Secret Manager → redeploy → re-test signup on prod. **Only the founder can do this**; it needs credential access. Open **38 days**.                                                                                                                                                                                            | OPEN P0, founder |
+| Email failures are silent (#322) — **engineering half** | DONE 2026-08-17. One `deliver()` path logs at error level with mail type + recipient and throws `EmailDeliveryError`; signup returns `verificationEmailSent`, resend returns 502 not 401, `/verify-email` stops claiming a dispatch that didn't happen. 12 regression cases.                                                                                                                         | SHIPPED          |
+| At-risk cron crashes every run (#324.1)                 | **Stale issue.** The SQL was fixed in `4ace341` on 2026-07-13 — inside the Azure migration PR, unlabelled — and has been in production since. What was genuinely open: the scheduler's floating promises (any failure became an anonymous `unhandledRejection`) and the absence of any guard that could catch SQL drift. Both closed 2026-08-17.                                                     | SHIPPED          |
+| `GET /api/chat/dms` → 404 (#324.2)                      | Client calls an endpoint prod does not have.                                                                                                                                                                                                                                                                                                                                                         | OPEN             |
+| Fabricated header badges (#324.3)                       | DONE 2026-08-17. Both counts were literals on buttons that did nothing. The bell now shows the real unread count (no badge at zero) and both buttons navigate; the messages badge was removed rather than invented, since no server-side unread total exists. Verified in a browser against a live database, both directions.                                                                        | SHIPPED          |
+| Attendance copy over-promises WhatsApp (#324.6)         | DONE 2026-08-18. The register's own toast was already honest (v1.9.0.0) — the real gaps were `/absentees` saying nothing at all about dispatch state, and the public marketing promising alerts "instantly" and "from the very first morning". `/absentees` now reports the server's real `alerts.enabled`; marketing keeps the capability but drops every already-running claim (founder decision). | SHIPPED          |
+| CSP blocks `blob:` worker / `data:` font (#324.4/5)     | Console errors on every page.                                                                                                                                                                                                                                                                                                                                                                        | OPEN             |
 
 > A paid pilot cannot be onboarded through the front door until the key is rotated. The engineering half landed on 2026-08-17 — the failure is now loud in logs and honest on screen — but **loud is not working**. Until the key is replaced in production, the new banner simply tells a school the truth: no code was sent.
 
@@ -137,7 +137,7 @@ Teachers mark the register on phones. Currently: 64px dead sidebar gutter on a 3
 
 1. ~~**#322 fail-loud email (engineering)**~~ — **done 2026-08-17.** Now blocked on the founder rotating the production Resend key; nothing else matters until a school can sign up. (WS-0)
 2. ~~**#324.1 at-risk cron crash**~~ — **done 2026-08-17.** The SQL was already fixed a month ago; the reporting hole and the missing drift guard were not. Both closed. (WS-0)
-3. **Honesty defects** — ~~fabricated badges~~ **done 2026-08-17**; WhatsApp copy still open. A principal who catches the product lying once will not trust the term report. (WS-0)
+3. ~~**Honesty defects** — fabricated badges, WhatsApp copy~~ — **done 2026-08-17/18.** A principal who catches the product lying once will not trust the term report. (WS-0)
 4. **`PILOT_SCHOOL_CODE` set + metric semantics frozen** — must be done _before_ day 1 of the streak, not after. (WS-2)
 5. **Mobile floor on the register only** — the phone is the device. Not the whole app; the register. (WS-4)
 

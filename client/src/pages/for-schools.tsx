@@ -68,12 +68,13 @@ const features: AudienceFeature[] = [
   {
     icon: CalendarCheck,
     name: "Attendance Automation",
-    headline: "Retire the paper register — and inform parents automatically.",
+    headline: "Retire the paper register — and reach parents the same morning.",
     description:
-      "Teachers mark attendance in seconds; the system compiles records, flags patterns, and can notify parents of absences without extra admin.",
+      "Teachers mark attendance in seconds; the system compiles records, flags patterns, and turns the day's absences into a call list with every parent's number on it.",
     bullets: [
       "Fast, structured attendance capture",
-      "Automatic parent notifications on absence",
+      "The day's absentee call list, ready to print",
+      "Parent WhatsApp alerts, switched on when your school is ready",
       "Term and year reports generated for you",
     ],
   },
