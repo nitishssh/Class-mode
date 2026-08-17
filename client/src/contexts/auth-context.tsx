@@ -123,6 +123,9 @@ async function localPasswordLogin(email: string, password: string): Promise<User
   return profileFromMe(data);
 }
 
+/** Set at signup when the verification email failed to send; read by /verify-email. */
+export const VERIFICATION_EMAIL_FAILED_KEY = "classmode:verification-email-failed";
+
 async function localPasswordSignup(args: {
   email: string;
   password: string;
@@ -138,6 +141,19 @@ async function localPasswordSignup(args: {
   if (!res.ok) throw await parseError(res, "Signup failed");
   const data = await res.json();
   if (data.token) setServerToken(data.token);
+  // #322: the account is created either way, but if the verification email did
+  // not go out the /verify-email page must not claim a code was sent. Handed
+  // over via sessionStorage so the signup response shape stays the profile.
+  try {
+    if (data.verificationEmailSent === false) {
+      sessionStorage.setItem(VERIFICATION_EMAIL_FAILED_KEY, "1");
+    } else {
+      sessionStorage.removeItem(VERIFICATION_EMAIL_FAILED_KEY);
+    }
+  } catch {
+    // Private browsing can refuse sessionStorage; the resend path still tells
+    // the truth on its own.
+  }
   return profileFromMe(data);
 }
 

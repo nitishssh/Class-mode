@@ -2,6 +2,9 @@ import { vi } from "vitest";
 
 // Mock mailer at the very top to prevent Vitest import hoisting issues
 vi.mock("../lib/integrations/mailer", () => ({
+  EmailDeliveryError: class EmailDeliveryError extends Error {
+    kind = "email_delivery_failed" as const;
+  },
   sendEmailVerification: vi.fn().mockResolvedValue(undefined),
   sendPasswordReset: vi.fn().mockResolvedValue(undefined),
   sendWorkspaceInvite: vi.fn().mockResolvedValue(undefined),

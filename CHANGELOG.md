@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Signup no longer claims to have sent a code it couldn't send.** When the email provider refuses a message, the verify screen now says the code could not be sent and that checking the inbox won't help, instead of showing "we've dispatched a 4-digit secure code" for a message that never left. The account is still created and saved — only the claim changed.
+- **Resending a code reports the real problem.** If the email provider is down, pressing Resend now says so. Previously the failure came back as "Not authenticated", which sent a correctly signed-in user off to log in again — something that could never fix it.
+- **Email failures are visible in production logs.** Every send failure is now logged at error level with the kind of email that failed and who it was for, so a dead provider key raises an alert instead of passing silently. SMTP credentials echoed back by the provider are redacted before anything is logged.
+
 ## [1.9.4.0] - 2026-08-13
 
 ### Added

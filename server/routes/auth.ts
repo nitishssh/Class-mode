@@ -41,6 +41,7 @@ import {
   type PgWorkspaceMembership,
 } from "../lib/db/pg-queries";
 import {
+  EmailDeliveryError,
   sendEmailVerification,
   sendPasswordReset,
   sendWelcomeEmail,
@@ -686,12 +687,22 @@ router.post("/signup", signupLimiter, async (req: Request, res: Response) => {
     const verifyToken = await createVerificationToken(user.id);
     const { accessToken } = await createLoginSession(req, res, user.id);
 
-    sendEmailVerification(user.email, user.displayName || user.name, verifyToken).catch((e) =>
-      logger.warn("[auth/signup] Failed to send verification email", { error: String(e) })
-    );
-    sendWelcomeEmail(user.email, user.displayName || user.name).catch((e) =>
-      logger.warn("[auth/signup] Failed to send welcome email", { error: String(e) })
-    );
+    // #322: this send used to be fire-and-forget, so a dead provider key left
+    // the user staring at "we've dispatched a code" that was never sent. Await
+    // it and report the truth. The catch is deliberately local — the outer
+    // handler unwinds the whole signup, and a mail outage must not delete an
+    // account that was otherwise created successfully. The mailer has already
+    // logged the failure at error level.
+    let verificationEmailSent = true;
+    try {
+      await sendEmailVerification(user.email, user.displayName || user.name, verifyToken);
+    } catch {
+      verificationEmailSent = false;
+    }
+
+    sendWelcomeEmail(user.email, user.displayName || user.name).catch(() => {
+      // Non-blocking and not on the signup critical path; the mailer logs it.
+    });
 
     recordAuditEvent({
       actorUserId: user.id,
@@ -700,7 +711,11 @@ router.post("/signup", signupLimiter, async (req: Request, res: Response) => {
       payload: { provider: "local", workspaceId: workspace.id, workspaceRole: "owner" },
     });
 
-    return res.status(201).json({ token: accessToken, ...(await currentAuthPayload(user.id)) });
+    return res.status(201).json({
+      token: accessToken,
+      verificationEmailSent,
+      ...(await currentAuthPayload(user.id)),
+    });
   } catch (err) {
     logger.error("[auth/signup] Error", { error: String(err) });
     if (workspaceId !== null) {
@@ -1011,7 +1026,16 @@ router.post("/email/verify/request", verifyRequestLimiter, async (req: Request, 
     const verifyToken = await createVerificationToken(user.id);
     await sendEmailVerification(user.email, user.displayName || user.name, verifyToken);
     return res.json({ message: "Verification email sent" });
-  } catch {
+  } catch (err) {
+    // #322: this used to be a bare `catch {}` returning 401 "Not authenticated",
+    // so a provider outage was reported to a correctly-authenticated user as an
+    // auth problem — sending them to re-login, which could never help. A send
+    // failure is ours, not theirs, and says so.
+    if (err instanceof EmailDeliveryError) {
+      return res.status(502).json({
+        message: "We couldn't send the code right now. Please try again in a few minutes.",
+      });
+    }
     return res.status(401).json({ message: "Not authenticated" });
   }
 });
@@ -1104,9 +1128,11 @@ router.post("/password/forgot", forgotLimiter, async (req: Request, res: Respons
       expiresAt: new Date(Date.now() + 30 * 60 * 1000),
       used: false,
     });
-    sendPasswordReset(user.email, user.displayName || user.name, token).catch((e) =>
-      logger.warn("[auth/password/forgot] Failed to send reset email", { error: String(e) })
-    );
+    // Deliberately fire-and-forget, unlike signup (#322): this route must return
+    // an identical response whether or not the account exists, so the delivery
+    // outcome cannot reach the caller without leaking account existence. The
+    // mailer logs the failure at error level, which is where it belongs.
+    sendPasswordReset(user.email, user.displayName || user.name, token).catch(() => {});
   }
   return res.status(200).json({ message: "If the account exists, reset instructions were sent" });
 });
