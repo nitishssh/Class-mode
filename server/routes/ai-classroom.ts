@@ -4,7 +4,12 @@ import multer from "multer";
 import OpenAI from "openai";
 import { createRequire } from "module";
 const _require = createRequire(import.meta.url);
-const archiver = _require("archiver") as typeof import("archiver");
+// archiver 8 removed the callable factory export — the module now exposes only
+// the Archive classes. package.json has been on ^8.0.0 while @types/archiver
+// stayed on ^7.0.0, and the v7 types still described a callable default, so
+// `archiver("zip", …)` typechecked and threw `archiver is not a function` on
+// every request to the ZIP export route. Construct the class directly.
+const { ZipArchive } = _require("archiver") as typeof import("archiver");
 import { studyArenaInternalService } from "../services/study-arena/internal-service";
 import { pgFindAIClassroomById } from "../lib/db/pg-queries";
 import { orchestrateChat } from "../services/study-arena/orchestrator";
@@ -428,8 +433,8 @@ router.get("/export/:classroomId/zip", async (req: Request, res: Response) => {
     res.setHeader("Content-Type", "application/zip");
     res.setHeader("Content-Disposition", `attachment; filename="classroom-${topicSlug}.zip"`);
 
-    const archive = archiver("zip", { zlib: { level: 6 } });
-    archive.on("error", (err) => {
+    const archive = new ZipArchive({ zlib: { level: 6 } });
+    archive.on("error", (err: Error) => {
       logger.error("ZIP error:", err);
     });
     archive.pipe(res);
