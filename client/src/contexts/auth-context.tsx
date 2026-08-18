@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { clearServerToken, setServerToken } from "@/lib/queryClient";
+import { clearServerToken, queryClient, setServerToken } from "@/lib/queryClient";
 import { ownerToken, purgeOwner } from "@/lib/attendance-queue";
 
 // Authentication is now fully server-backed (local password + server-side
@@ -260,6 +260,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await purgeOwner(ownerToken(prev?.id ?? null, prev?.school_code ?? null)).catch(() => {});
     await fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
     clearServerToken();
+    // Same shared-device reasoning as the queue purge above, for cached server
+    // state. React Query holds every fetched response in memory keyed by path
+    // alone — no user id — with a 5-minute stale window, so without this the
+    // next account to log in on this tab reads the previous user's cached
+    // notifications (and their unread badge) until each key refetches.
+    queryClient.clear();
+    // #322's "we never sent your code" flag is per-tab, not per-account. Left
+    // behind, it tells the NEXT unverified user their code failed to send.
+    try {
+      sessionStorage.removeItem(VERIFICATION_EMAIL_FAILED_KEY);
+    } catch {
+      // Private browsing can refuse sessionStorage; nothing to clear.
+    }
     setCurrentUser({ user: null, profile: null });
     toast({ title: "Logged out", description: "You have been successfully logged out." });
   };
