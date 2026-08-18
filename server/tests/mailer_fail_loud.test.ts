@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // Regression cover for #322: a dead Resend key made every signup fail while the
 // product reported success — nothing above warn was logged, and the resend
@@ -88,6 +88,89 @@ describe("email delivery failures are loud", () => {
     expect(logged).not.toContain("re_super_secret_key");
     expect(logged).toContain("[redacted]");
     delete process.env.SMTP_PASS;
+  });
+
+  // The redaction guard bails out when there is no usable secret. Both exits
+  // must leave the provider's text intact — a blank or one-character SMTP_PASS
+  // that split() on would shred every message into "[redacted]" noise and
+  // destroy the diagnostic the error-level log exists to carry.
+  it("leaves the provider message intact when no SMTP_PASS is set", async () => {
+    delete process.env.SMTP_PASS;
+    mockSendMail.mockRejectedValue(new Error("connection refused by smtp.example"));
+
+    await expect(sendEmailVerification("head@school.example", "Asha", "1234")).rejects.toThrow();
+
+    const logged = JSON.stringify(mockLogger.error.mock.calls);
+    expect(logged).toContain("connection refused by smtp.example");
+    expect(logged).not.toContain("[redacted]");
+  });
+
+  it("does not shred the message when SMTP_PASS is too short to be a real secret", async () => {
+    process.env.SMTP_PASS = "abc";
+    mockSendMail.mockRejectedValue(new Error("abc host abc refused abc"));
+
+    await expect(sendEmailVerification("head@school.example", "Asha", "1234")).rejects.toThrow();
+
+    const logged = JSON.stringify(mockLogger.error.mock.calls);
+    expect(logged).toContain("abc host abc refused abc");
+    expect(logged).not.toContain("[redacted]");
+    delete process.env.SMTP_PASS;
+  });
+
+  // #322's original bug was "configured provider refuses the send". Missing
+  // configuration was a second, quieter path to the same user experience: the
+  // module falls back to a jsonTransport mock that RESOLVES, so signup would
+  // report verificationEmailSent: true for a code that went nowhere — and log
+  // the plaintext OTP while doing it.
+  describe("unconfigured SMTP in production is a delivery failure, not a success", () => {
+    const savedNodeEnv = process.env.NODE_ENV;
+    const savedUser = process.env.SMTP_USER;
+    const savedPass = process.env.SMTP_PASS;
+
+    afterEach(() => {
+      process.env.NODE_ENV = savedNodeEnv;
+      if (savedUser === undefined) delete process.env.SMTP_USER;
+      else process.env.SMTP_USER = savedUser;
+      if (savedPass === undefined) delete process.env.SMTP_PASS;
+      else process.env.SMTP_PASS = savedPass;
+    });
+
+    it("throws instead of silently mocking the send", async () => {
+      // The module was imported without SMTP credentials, so it is on the mock
+      // transport — exactly the shape a misconfigured production deploy has.
+      process.env.NODE_ENV = "production";
+
+      await expect(sendEmailVerification("head@school.example", "Asha", "1234")).rejects.toThrow(
+        EmailDeliveryError
+      );
+    });
+
+    it("never hands the mock transport the message in production", async () => {
+      process.env.NODE_ENV = "production";
+
+      await expect(sendEmailVerification("head@school.example", "Asha", "1234")).rejects.toThrow();
+
+      // The plaintext OTP must not reach the mock transport's log line.
+      expect(mockSendMail).not.toHaveBeenCalled();
+    });
+
+    it("names the missing configuration so triage is one log line", async () => {
+      process.env.NODE_ENV = "production";
+
+      await expect(sendEmailVerification("head@school.example", "Asha", "1234")).rejects.toThrow();
+
+      const logged = JSON.stringify(mockLogger.error.mock.calls);
+      expect(logged).toMatch(/not configured/i);
+    });
+
+    it("still uses the mock transport outside production, so dev keeps working", async () => {
+      process.env.NODE_ENV = "development";
+
+      await sendEmailVerification("head@school.example", "Asha", "1234");
+
+      expect(mockSendMail).toHaveBeenCalledTimes(1);
+      expect(mockLogger.error).not.toHaveBeenCalled();
+    });
   });
 
   it("stays silent on the happy path", async () => {

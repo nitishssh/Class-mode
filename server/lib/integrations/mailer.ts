@@ -13,6 +13,17 @@ const transporter = useRealSmtp
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
+      // #322 made signup AWAIT the verification send so it can report the
+      // truth. That turns nodemailer's defaults into a user-facing latency
+      // budget: 2 min to connect, 30s for the greeting, 10 min of socket
+      // inactivity (node_modules/nodemailer/lib/smtp-connection/index.js:14-16).
+      // An unreachable provider would hold the signup request open for two
+      // minutes before returning. Fail fast instead — a signup that reports
+      // "we couldn't send the code" in 10s is the honest outcome; one that
+      // hangs for two minutes is a new way to lose the school.
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 20_000,
     })
   : nodemailer.createTransport({
       jsonTransport: true,
@@ -107,6 +118,19 @@ async function deliver(
   to: string,
   message: Parameters<typeof transporter.sendMail>[0]
 ): Promise<void> {
+  // #322 closed the case where a configured provider REFUSES a send. Missing
+  // configuration was still silent: with no SMTP_USER/SMTP_PASS the module
+  // falls back to a jsonTransport mock that resolves successfully and logs the
+  // message body — including the plaintext OTP. In production that reproduces
+  // the original bug exactly (signup reports verificationEmailSent: true, the
+  // user waits for a code that was never sent), just from a different cause.
+  // Dev and test still get the mock; production does not.
+  if (!useRealSmtp && process.env.NODE_ENV === "production") {
+    const detail = "SMTP is not configured (SMTP_USER/SMTP_PASS unset)";
+    logger.error("[mailer] Delivery failed", { mailType, to, detail });
+    throw new EmailDeliveryError(mailType, to, detail);
+  }
+
   try {
     await transporter.sendMail(message);
   } catch (err) {
