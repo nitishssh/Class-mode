@@ -15,7 +15,11 @@ import {
   pgUpsertWorkspaceMembership,
 } from "../lib/db/pg-queries";
 import { tokenHash } from "../lib/auth/auth-workspace";
-import { EmailDeliveryError, sendEmailVerification } from "../lib/integrations/mailer";
+import {
+  EmailDeliveryError,
+  sendEmailVerification,
+  sendPasswordReset,
+} from "../lib/integrations/mailer";
 import { storage } from "../storage";
 
 vi.mock("../lib/integrations/mailer", () => ({
@@ -504,5 +508,66 @@ describe("#322 — a dead mail provider is reported honestly", () => {
     const res = await request(app).post("/api/auth/email/verify/request").send({});
 
     expect(res.status).toBe(401);
+  });
+
+  // #322 made every other send await-and-report. /password/forgot is the one
+  // route that must NOT: its response has to be byte-identical whether or not
+  // the account exists, so surfacing a delivery failure here would turn the
+  // mailer into an account-enumeration oracle. Pinned so a later "make it
+  // consistent with signup" refactor has to delete this test on purpose.
+  describe("/password/forgot stays enumeration-safe when mail is down", () => {
+    const verifiedUser = { ...unverifiedUser, emailVerified: true };
+
+    // forgotLimiter is module-level state keyed on email+IP (max 3/hour), and
+    // the router is imported once for the whole file — so tests that share an
+    // address poison each other with 429s. Each test gets its own bucket.
+    const forgot = (email: string) =>
+      request(app).post("/api/auth/password/forgot").send({ email });
+
+    it("returns the same 200 body whether the send succeeds or fails", async () => {
+      (pgFindUserByEmail as any).mockResolvedValue(verifiedUser);
+      (sendPasswordReset as any).mockResolvedValue(undefined);
+      const ok = await forgot("ok@school.example");
+
+      (sendPasswordReset as any).mockRejectedValue(
+        new EmailDeliveryError("password_reset", "down@school.example", "401 API key is invalid")
+      );
+      const down = await forgot("down@school.example");
+
+      expect(ok.status).toBe(200);
+      expect(down.status).toBe(200);
+      expect(down.body).toEqual(ok.body);
+    });
+
+    it("does not 500 or leak the provider error when the send rejects", async () => {
+      (pgFindUserByEmail as any).mockResolvedValue(verifiedUser);
+      (sendPasswordReset as any).mockRejectedValue(
+        new EmailDeliveryError("password_reset", "leak@school.example", "401 API key is invalid")
+      );
+
+      const res = await forgot("leak@school.example");
+
+      expect(res.status).toBe(200);
+      expect(JSON.stringify(res.body)).not.toMatch(/api key|delivery failed/i);
+    });
+
+    it("answers identically for an address with no account at all", async () => {
+      (sendPasswordReset as any).mockResolvedValue(undefined);
+
+      (pgFindUserByEmail as any).mockResolvedValue(verifiedUser);
+      const known = await forgot("known@school.example");
+      const sendsAfterKnown = (sendPasswordReset as any).mock.calls.length;
+
+      (pgFindUserByEmail as any).mockResolvedValue(null);
+      const unknown = await forgot("nobody@school.example");
+
+      expect(known.status).toBe(200);
+      expect(unknown.status).toBe(known.status);
+      expect(unknown.body).toEqual(known.body);
+      // The bodies match, so the only remaining tell is whether a send fired.
+      // Compare the delta: the known-account request legitimately sent one.
+      expect(sendsAfterKnown).toBe(1);
+      expect((sendPasswordReset as any).mock.calls.length).toBe(sendsAfterKnown);
+    });
   });
 });
