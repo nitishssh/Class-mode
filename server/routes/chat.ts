@@ -589,6 +589,13 @@ router.get("/users/me/dms", authenticateToken, async (req: Request, res: Respons
               partner: {
                 id: partner.id,
                 username: partner.username,
+                // #324.2: `username` is empty for every seeded and invited
+                // account (only self-signup generates one), and the client
+                // uses it as the conversation title — so a working DM list
+                // would still have rendered blank rows. Added rather than
+                // substituted so existing consumers of `username` are
+                // untouched.
+                name: partner.name || partner.username,
                 avatar: partner.avatar,
                 role: partner.role,
               },
