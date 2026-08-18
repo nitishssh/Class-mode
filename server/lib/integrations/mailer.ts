@@ -13,6 +13,17 @@ const transporter = useRealSmtp
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
+      // #322 made signup AWAIT the verification send so it can report the
+      // truth. That turns nodemailer's defaults into a user-facing latency
+      // budget: 2 min to connect, 30s for the greeting, 10 min of socket
+      // inactivity (node_modules/nodemailer/lib/smtp-connection/index.js:14-16).
+      // An unreachable provider would hold the signup request open for two
+      // minutes before returning. Fail fast instead — a signup that reports
+      // "we couldn't send the code" in 10s is the honest outcome; one that
+      // hangs for two minutes is a new way to lose the school.
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 20_000,
     })
   : nodemailer.createTransport({
       jsonTransport: true,
@@ -48,6 +59,86 @@ if (!useRealSmtp) {
 
 const APP_URL = process.env.APP_URL || "http://localhost:5001";
 const FROM = process.env.SMTP_FROM || "Class Mode Platform <no-reply@classmode.com>";
+
+/**
+ * Every kind of mail this module sends. Carried on the failure so triage can
+ * tell "nobody can sign up" (email_verification) from "one invite bounced".
+ */
+export type MailType =
+  | "email_verification"
+  | "password_reset"
+  | "welcome"
+  | "teacher_invite"
+  | "student_invite"
+  | "principal_invite"
+  | "school_admin_invite"
+  | "workspace_invite"
+  | "lead_notification";
+
+/**
+ * Thrown when the provider refuses or fails a send.
+ *
+ * #322: a dead Resend key returned 401 on every send for 38 days while signup
+ * reported success. Sends used to be fire-and-forget with a `warn`, so nothing
+ * above `warn` ever reached Cloud Logging and no alert could fire. Delivery
+ * failure is now an error-level event AND a thrown value, so a caller has to
+ * decide what the user is told rather than defaulting to a false success.
+ */
+export class EmailDeliveryError extends Error {
+  readonly kind = "email_delivery_failed" as const;
+  readonly mailType: MailType;
+  readonly recipient: string;
+
+  constructor(mailType: MailType, recipient: string, detail: string) {
+    super(`[${mailType}] email delivery failed: ${detail}`);
+    this.name = "EmailDeliveryError";
+    this.mailType = mailType;
+    this.recipient = recipient;
+  }
+}
+
+/**
+ * Providers echo the credential they rejected back in the error text, and that
+ * text lands in Cloud Logging. Strip the SMTP password out of anything we log
+ * or re-throw. Read from env at call time — the value can be rotated under a
+ * running process.
+ */
+function redactSecrets(text: string): string {
+  const secret = process.env.SMTP_PASS;
+  if (!secret || secret.length < 8) return text;
+  return text.split(secret).join("[redacted]");
+}
+
+/**
+ * The single send path. Logs at error level and throws EmailDeliveryError —
+ * silence is the bug this exists to prevent.
+ */
+async function deliver(
+  mailType: MailType,
+  to: string,
+  message: Parameters<typeof transporter.sendMail>[0]
+): Promise<void> {
+  // #322 closed the case where a configured provider REFUSES a send. Missing
+  // configuration was still silent: with no SMTP_USER/SMTP_PASS the module
+  // falls back to a jsonTransport mock that resolves successfully and logs the
+  // message body — including the plaintext OTP. In production that reproduces
+  // the original bug exactly (signup reports verificationEmailSent: true, the
+  // user waits for a code that was never sent), just from a different cause.
+  // Dev and test still get the mock; production does not.
+  if (!useRealSmtp && process.env.NODE_ENV === "production") {
+    const detail = "SMTP is not configured (SMTP_USER/SMTP_PASS unset)";
+    logger.error("[mailer] Delivery failed", { mailType, to, detail });
+    throw new EmailDeliveryError(mailType, to, detail);
+  }
+
+  try {
+    await transporter.sendMail(message);
+  } catch (err) {
+    const detail = redactSecrets(err instanceof Error ? err.message : String(err));
+    logger.error("[mailer] Delivery failed", { mailType, to, detail });
+    throw new EmailDeliveryError(mailType, to, detail);
+  }
+}
 
 function escapeHtml(value: unknown): string {
   if (value === null || value === undefined) return "";
@@ -178,7 +269,7 @@ export async function sendTeacherInvite(
   const safeSchoolName = escapeHtml(schoolName);
   const safeLink = escapeUrl(link);
 
-  await transporter.sendMail({
+  await deliver("teacher_invite", email, {
     from: FROM,
     to: email,
     subject: `You've been invited to join ${schoolName} on Class Mode`,
@@ -209,7 +300,7 @@ export async function sendStudentInvite(
   const safeClassName = escapeHtml(className);
   const safeLink = escapeUrl(link);
 
-  await transporter.sendMail({
+  await deliver("student_invite", parentEmail, {
     from: FROM,
     to: parentEmail,
     subject: `${studentName} has been invited to join ${className} on Class Mode`,
@@ -240,7 +331,7 @@ export async function sendPrincipalInvite(
   const safeSchoolName = escapeHtml(schoolName);
   const safeLink = escapeUrl(link);
 
-  await transporter.sendMail({
+  await deliver("principal_invite", email, {
     from: FROM,
     to: email,
     subject: `You've been invited as Principal of ${schoolName} on Class Mode`,
@@ -269,7 +360,7 @@ export async function sendSchoolAdminInvite(
   const safeSchoolName = escapeHtml(schoolName);
   const safeLink = escapeUrl(link);
 
-  await transporter.sendMail({
+  await deliver("school_admin_invite", email, {
     from: FROM,
     to: email,
     subject: `You've been invited as School Administrator of ${schoolName} on Class Mode`,
@@ -308,7 +399,7 @@ export async function sendWorkspaceInvite(
   const safeWorkspaceName = escapeHtml(workspaceName);
   const safeLink = escapeUrl(link);
 
-  await transporter.sendMail({
+  await deliver("workspace_invite", email, {
     from: FROM,
     to: email,
     subject,
@@ -332,7 +423,7 @@ export async function sendEmailVerification(email: string, name: string, token: 
   const safeLink = escapeUrl(link);
   const safeToken = escapeHtml(token);
 
-  await transporter.sendMail({
+  await deliver("email_verification", email, {
     from: FROM,
     to: email,
     subject: "Unlock Your Intellectual Frontier - Verify Your Email",
@@ -354,7 +445,7 @@ export async function sendPasswordReset(email: string, name: string, token: stri
   const safeName = escapeHtml(name);
   const safeLink = escapeUrl(link);
 
-  await transporter.sendMail({
+  await deliver("password_reset", email, {
     from: FROM,
     to: email,
     subject: "Reset your Class Mode password",
@@ -372,7 +463,7 @@ export async function sendPasswordReset(email: string, name: string, token: stri
 
 export async function sendWelcomeEmail(email: string, name: string) {
   const safeName = escapeHtml(name);
-  await transporter.sendMail({
+  await deliver("welcome", email, {
     from: FROM,
     to: email,
     subject: "Welcome to Class Mode! 🚀",
@@ -438,7 +529,7 @@ export async function sendLeadNotification(lead: LeadNotificationPayload) {
     )
     .join("");
 
-  await transporter.sendMail({
+  await deliver("lead_notification", to, {
     from: FROM,
     to,
     subject: `New pilot lead: ${lead.name}${lead.school ? ` (${lead.school})` : ""}`,

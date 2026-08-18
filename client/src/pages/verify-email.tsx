@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth, VERIFICATION_EMAIL_FAILED_KEY } from "@/contexts/auth-context";
 import { Loader2, Mail, ShieldCheck, RefreshCw, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
@@ -16,6 +16,17 @@ export default function VerifyEmailPage() {
   const [isStartingOver, setIsStartingOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
+  // #322: true when we know the code was never sent — at signup, or after a
+  // resend the provider refused. The page must not claim a dispatch that
+  // didn't happen; a teacher waiting on a code that cannot arrive is the
+  // failure that blocked every production signup for 38 days.
+  const [deliveryFailed, setDeliveryFailed] = useState(() => {
+    try {
+      return sessionStorage.getItem(VERIFICATION_EMAIL_FAILED_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const { currentUser, refreshSession, logout, isLoading } = useAuth();
   const [, setLocation] = useLocation();
@@ -194,9 +205,33 @@ export default function VerifyEmailPage() {
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
+        // 502 means our mail provider refused the send. That is our fault, not
+        // a bad session — say so instead of blaming the user's credentials.
+        if (res.status === 502) {
+          setDeliveryFailed(true);
+          try {
+            sessionStorage.setItem(VERIFICATION_EMAIL_FAILED_KEY, "1");
+          } catch {
+            // sessionStorage unavailable; the banner still shows this session.
+          }
+          setResendCooldown(30);
+          toast({
+            title: "Couldn't send the code",
+            description:
+              body.message || "Our email service isn't responding. Try again in a few minutes.",
+            variant: "destructive",
+          });
+          return;
+        }
         throw new Error(body.message || "Failed to resend code");
       }
 
+      setDeliveryFailed(false);
+      try {
+        sessionStorage.removeItem(VERIFICATION_EMAIL_FAILED_KEY);
+      } catch {
+        // Nothing to clear if storage is unavailable.
+      }
       setResendCooldown(60);
       toast({
         title: "Code Resent!",
@@ -283,8 +318,17 @@ export default function VerifyEmailPage() {
                 {t("verify.title", "Verify Your Email")}
               </h1>
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                {t("verify.dispatched", "We've dispatched a")}{" "}
-                <span className="font-bold text-primary">4-digit secure code</span> to
+                {deliveryFailed ? (
+                  <>
+                    We <span className="font-bold text-destructive">could not send</span> your
+                    4-digit code to
+                  </>
+                ) : (
+                  <>
+                    {t("verify.dispatched", "We've dispatched a")}{" "}
+                    <span className="font-bold text-primary">4-digit secure code</span> to
+                  </>
+                )}
               </p>
               <p
                 className="mt-1 truncate text-sm font-bold text-foreground"
@@ -292,9 +336,21 @@ export default function VerifyEmailPage() {
               >
                 {userEmail}
               </p>
-              <p className="mt-2 text-xs text-muted-foreground">
-                Code expires in 15 minutes. Check your spam folder if you don't see it.
-              </p>
+              {deliveryFailed ? (
+                <p
+                  className="mt-3 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs leading-relaxed text-foreground"
+                  data-testid="verify-email-delivery-failed"
+                >
+                  Our email service didn't accept the message, so nothing has arrived — checking
+                  your inbox won't help. Your account is saved. Press{" "}
+                  <span className="font-bold">Resend</span> below in a few minutes, or contact
+                  support if it keeps failing.
+                </p>
+              ) : (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Code expires in 15 minutes. Check your spam folder if you don't see it.
+                </p>
+              )}
             </div>
 
             {/* OTP Digit Inputs */}

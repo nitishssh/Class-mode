@@ -15,7 +15,7 @@ const metrics = [
     icon: Clock,
     metric: "One tap",
     title: "attendance → parent alert",
-    desc: "absent students' parents get a WhatsApp in minutes, not at day's end",
+    desc: "the register becomes the day's call list — and a parent WhatsApp once you switch it on",
     color: "bg-blue-500/10 text-blue-500",
   },
   {

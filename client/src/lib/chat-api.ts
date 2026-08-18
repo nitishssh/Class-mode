@@ -26,6 +26,8 @@ export interface ApiChannel {
   partner?: {
     id: number;
     username: string;
+    /** Display name; `username` is empty for seeded and invited accounts. */
+    name?: string;
     role: string;
   };
 }
@@ -93,9 +95,17 @@ export async function fetchChannels(workspaceId: number): Promise<ApiChannel[]> 
   return apiFetch<ApiChannel[]>(`/workspaces/${workspaceId}/channels`);
 }
 
-/** Fetch all DM conversations for the current user. */
+/**
+ * Fetch all DM conversations for the current user.
+ *
+ * #324.2: this called "/chat/dms", which the server has never served — the
+ * route is registered as "/users/me/dms". Every request 404'd, the query
+ * failed quietly, and the DM list rendered empty for everyone with no error
+ * shown. The contract test in server/tests/chat_api_contract.test.ts now
+ * checks every path in this file against the router's real route table.
+ */
 export async function fetchDMs(): Promise<ApiChannel[]> {
-  return apiFetch<ApiChannel[]>("/chat/dms");
+  return apiFetch<ApiChannel[]>("/users/me/dms");
 }
 
 /**

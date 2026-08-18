@@ -15,9 +15,27 @@ import {
   pgUpsertWorkspaceMembership,
 } from "../lib/db/pg-queries";
 import { tokenHash } from "../lib/auth/auth-workspace";
+import {
+  EmailDeliveryError,
+  sendEmailVerification,
+  sendPasswordReset,
+} from "../lib/integrations/mailer";
 import { storage } from "../storage";
 
 vi.mock("../lib/integrations/mailer", () => ({
+  // Real class, not a stub: auth.ts branches on `instanceof EmailDeliveryError`
+  // to tell a provider outage apart from a bad session (#322).
+  EmailDeliveryError: class EmailDeliveryError extends Error {
+    kind = "email_delivery_failed" as const;
+    mailType: string;
+    recipient: string;
+    constructor(mailType: string, recipient: string, detail: string) {
+      super(`[${mailType}] email delivery failed: ${detail}`);
+      this.name = "EmailDeliveryError";
+      this.mailType = mailType;
+      this.recipient = recipient;
+    }
+  },
   sendEmailVerification: vi.fn().mockResolvedValue(undefined),
   sendPasswordReset: vi.fn().mockResolvedValue(undefined),
   sendWelcomeEmail: vi.fn().mockResolvedValue(undefined),
@@ -381,5 +399,175 @@ describe("W-1 mobile client auth contract (X-Client: mobile)", () => {
     expect(res.status).toBe(200);
     expect(res.headers["set-cookie"]).toBeUndefined();
     expect(storage.deleteSession).toHaveBeenCalledWith(99);
+  });
+});
+
+// ─── #322 regression: email delivery failures must be honest ─────────────────
+// A dead Resend key returned 401 on every send for 38 days while signup told
+// users a code had been dispatched, and the resend endpoint reported the
+// provider outage as "Not authenticated" — sending correctly-authenticated
+// users to re-login, which could never help.
+describe("#322 — a dead mail provider is reported honestly", () => {
+  let app: express.Express;
+
+  const unverifiedUser = {
+    id: 1,
+    email: "head@school.example",
+    name: "Asha",
+    displayName: "Asha",
+    role: "school_admin",
+    status: "active",
+    emailVerified: false,
+    subjects: [],
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    app = express();
+    app.use(express.json());
+    app.use(session({ secret: "test-secret", resave: false, saveUninitialized: false }));
+    app.use("/api/auth", authRouter);
+    (storage.createSession as any).mockResolvedValue({ id: 99 });
+    (storage.createOtp as any).mockResolvedValue({ id: 101 });
+    (pgFindFirstWorkspaceMembership as any).mockResolvedValue({
+      workspace: { id: 10, name: "Sunrise", slug: "sunrise", type: "business" },
+      membership: { id: 5, workspaceId: 10, userId: 1, role: "owner", status: "active" },
+    });
+    (pgFindUserByEmail as any).mockResolvedValue(null);
+    (pgFindWorkspaceBySlug as any).mockResolvedValue(null);
+    (pgCreateUser as any).mockResolvedValue(unverifiedUser);
+    (pgCreateWorkspace as any).mockResolvedValue({
+      id: 10,
+      name: "Sunrise",
+      slug: "sunrise",
+      type: "business",
+    });
+    (pgUpsertWorkspaceMembership as any).mockResolvedValue({ id: 5 });
+    (pgFindUserById as any).mockResolvedValue(unverifiedUser);
+  });
+
+  const signup = () =>
+    request(app).post("/api/auth/signup").send({
+      name: "Asha",
+      email: "head@school.example",
+      password: "secret123",
+      workspaceName: "Sunrise",
+    });
+
+  it("reports verificationEmailSent: true when the send succeeds", async () => {
+    const res = await signup();
+
+    expect(res.status).toBe(201);
+    expect(res.body.verificationEmailSent).toBe(true);
+  });
+
+  it("reports verificationEmailSent: false instead of claiming a code was sent", async () => {
+    (sendEmailVerification as any).mockRejectedValue(
+      new EmailDeliveryError("email_verification", "head@school.example", "401 API key is invalid")
+    );
+
+    const res = await signup();
+
+    expect(res.status).toBe(201);
+    expect(res.body.verificationEmailSent).toBe(false);
+  });
+
+  it("keeps the account when the verification email fails", async () => {
+    // The signup handler unwinds user + workspace on any throw. A mail outage
+    // must not reach that path — the account and session were created fine.
+    // (The pg-queries mock omits pgDeleteUser/getPgPool, so if the compensating
+    // cleanup ever ran here this test would fail on the missing export.)
+    (sendEmailVerification as any).mockRejectedValue(
+      new EmailDeliveryError("email_verification", "head@school.example", "connection refused")
+    );
+
+    const res = await signup();
+
+    expect(res.status).toBe(201);
+    expect(typeof res.body.token).toBe("string");
+  });
+
+  it("returns 502, not 401, when a resend hits a provider outage", async () => {
+    const signupRes = await signup();
+    const token = signupRes.body.token as string;
+
+    (sendEmailVerification as any).mockRejectedValue(
+      new EmailDeliveryError("email_verification", "head@school.example", "401 API key is invalid")
+    );
+
+    const res = await request(app)
+      .post("/api/auth/email/verify/request")
+      .set("Authorization", `Bearer ${token}`)
+      .send({});
+
+    expect(res.status).toBe(502);
+    expect(res.body.message).not.toMatch(/not authenticated/i);
+  });
+
+  it("still returns 401 when the caller genuinely is not authenticated", async () => {
+    const res = await request(app).post("/api/auth/email/verify/request").send({});
+
+    expect(res.status).toBe(401);
+  });
+
+  // #322 made every other send await-and-report. /password/forgot is the one
+  // route that must NOT: its response has to be byte-identical whether or not
+  // the account exists, so surfacing a delivery failure here would turn the
+  // mailer into an account-enumeration oracle. Pinned so a later "make it
+  // consistent with signup" refactor has to delete this test on purpose.
+  describe("/password/forgot stays enumeration-safe when mail is down", () => {
+    const verifiedUser = { ...unverifiedUser, emailVerified: true };
+
+    // forgotLimiter is module-level state keyed on email+IP (max 3/hour), and
+    // the router is imported once for the whole file — so tests that share an
+    // address poison each other with 429s. Each test gets its own bucket.
+    const forgot = (email: string) =>
+      request(app).post("/api/auth/password/forgot").send({ email });
+
+    it("returns the same 200 body whether the send succeeds or fails", async () => {
+      (pgFindUserByEmail as any).mockResolvedValue(verifiedUser);
+      (sendPasswordReset as any).mockResolvedValue(undefined);
+      const ok = await forgot("ok@school.example");
+
+      (sendPasswordReset as any).mockRejectedValue(
+        new EmailDeliveryError("password_reset", "down@school.example", "401 API key is invalid")
+      );
+      const down = await forgot("down@school.example");
+
+      expect(ok.status).toBe(200);
+      expect(down.status).toBe(200);
+      expect(down.body).toEqual(ok.body);
+    });
+
+    it("does not 500 or leak the provider error when the send rejects", async () => {
+      (pgFindUserByEmail as any).mockResolvedValue(verifiedUser);
+      (sendPasswordReset as any).mockRejectedValue(
+        new EmailDeliveryError("password_reset", "leak@school.example", "401 API key is invalid")
+      );
+
+      const res = await forgot("leak@school.example");
+
+      expect(res.status).toBe(200);
+      expect(JSON.stringify(res.body)).not.toMatch(/api key|delivery failed/i);
+    });
+
+    it("answers identically for an address with no account at all", async () => {
+      (sendPasswordReset as any).mockResolvedValue(undefined);
+
+      (pgFindUserByEmail as any).mockResolvedValue(verifiedUser);
+      const known = await forgot("known@school.example");
+      const sendsAfterKnown = (sendPasswordReset as any).mock.calls.length;
+
+      (pgFindUserByEmail as any).mockResolvedValue(null);
+      const unknown = await forgot("nobody@school.example");
+
+      expect(known.status).toBe(200);
+      expect(unknown.status).toBe(known.status);
+      expect(unknown.body).toEqual(known.body);
+      // The bodies match, so the only remaining tell is whether a send fired.
+      // Compare the delta: the known-account request legitimately sent one.
+      expect(sendsAfterKnown).toBe(1);
+      expect((sendPasswordReset as any).mock.calls.length).toBe(sendsAfterKnown);
+    });
   });
 });

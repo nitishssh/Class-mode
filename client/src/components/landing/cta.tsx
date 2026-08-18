@@ -90,7 +90,8 @@ const plans = [
     price: "Free",
     desc: "Full product, direct line to the people building it. All we ask for is honest feedback from your mornings.",
     features: [
-      "One-tap attendance with instant parent WhatsApp alerts",
+      "One-tap attendance, with the day's absentee call list",
+      "Parent WhatsApp alerts, switched on together when you're ready",
       "Fee tracking & automatic reminders",
       "Live dashboard for principals",
       "AI learning tools for every student",
@@ -618,7 +619,7 @@ export const ContactForm = () => {
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-muted-foreground md:text-xl">
               Two minutes now. We&apos;ll call you within 24 hours, set you up the same day — and
-              tomorrow at 8:03 AM, a parent gets the message.
+              your teachers mark their first register the next morning.
             </p>
           </div>
 

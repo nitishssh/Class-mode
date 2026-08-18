@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { scheduleAtRiskChecks, automationQueue } from "../services/whatsapp-automation";
 import { whatsappService } from "../services/whatsapp";
 import { isPgReady, getPgPool } from "../db-pg";
+import { findUnknownColumnRefs } from "./helpers/schema-columns";
 
 vi.mock("../lib/db/pg-queries", () => ({
   pgFindUserById: vi.fn(),
@@ -168,5 +169,62 @@ describe("WhatsApp Automation Service", () => {
       expect(mockQuery).toHaveBeenCalledTimes(2);
       expect(automationQueue.add).toHaveBeenCalledTimes(2);
     });
+  });
+});
+
+// ─── #324.1 regression: at-risk cron crashed on a nonexistent column ─────────
+// `SELECT id, workspace_id FROM users` ran hourly in production and threw
+// `column "workspace_id" does not exist` every time — `users` has no such
+// column, membership lives in `workspace_memberships`. At-risk detection was
+// silently dead and every unit test still passed, because the pool is mocked
+// and a mock never validates SQL. Fixed in 4ace341; these pin it.
+describe("#324.1 — at-risk queries match the real schema", () => {
+  beforeEach(() => {
+    process.env.WHATSAPP_ALERTS_ENABLED = "true";
+  });
+  afterEach(() => {
+    delete process.env.WHATSAPP_ALERTS_ENABLED;
+  });
+
+  async function capturedQueries(): Promise<string[]> {
+    (isPgReady as any).mockReturnValue(true);
+    const mockQuery = vi.fn().mockResolvedValue({ rows: [] });
+    (getPgPool as any).mockReturnValue({ query: mockQuery });
+
+    await scheduleAtRiskChecks();
+
+    return mockQuery.mock.calls.map((call) => String(call[0]));
+  }
+
+  it("every column reference resolves against scripts/pg-schema.sql", async () => {
+    for (const sql of await capturedQueries()) {
+      const unknown = findUnknownColumnRefs(sql);
+      expect(
+        unknown,
+        `Unknown column(s) ${unknown.map((u) => `${u.ref} (${u.table} has no "${u.column}")`).join(", ")} in:\n${sql}`
+      ).toEqual([]);
+    }
+  });
+
+  it("reads workspace_id from the membership table, never from users", async () => {
+    const [inactivity] = await capturedQueries();
+
+    expect(inactivity).toMatch(/workspace_memberships/);
+  });
+
+  // Pins the guard itself. A schema check that cannot reproduce the original
+  // failure is worse than none — it reports safety it does not provide. The
+  // production SQL was fully unqualified, so both forms have to be caught.
+  it("the guard flags the exact SQL that crashed production", () => {
+    const historical =
+      "SELECT id, workspace_id FROM users WHERE role = 'student' " +
+      "AND (last_login_at < $1 OR (last_login_at IS NULL AND created_at < $1))";
+
+    expect(findUnknownColumnRefs(historical)).toEqual([
+      { ref: "workspace_id", table: "users", column: "workspace_id" },
+    ]);
+    expect(findUnknownColumnRefs("SELECT u.workspace_id FROM users u")).toEqual([
+      { ref: "u.workspace_id", table: "users", column: "workspace_id" },
+    ]);
   });
 });
