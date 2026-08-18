@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.5.1] - 2026-08-19
+
+### Fixed
+
+- **Downloading a classroom as a ZIP works again.** The export threw an error on every request. The archiving library had been upgraded to a version that removed the function the code called, but the accompanying type definitions were left a version behind and still described that function as present — so nothing failed to build and the break only appeared when someone actually pressed the button.
+
 ## [1.9.5.0] - 2026-08-19
 
 ### Fixed
