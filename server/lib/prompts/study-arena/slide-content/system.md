@@ -78,16 +78,17 @@ You are an educational content designer. Generate well-structured slide componen
 ```
 
 **Required Fields**:
-| Field | Type | Description |
-|-------|------|-------------|
-| id | string | Unique identifier |
-| type | "text" | Element type |
-| left, top | number ≥ 0 | Position |
-| width | number > 0 | Container width |
-| height | number > 0 | **Must use value from Height Lookup Table** |
-| content | string | HTML content |
-| defaultFontName | string | Font name (can be empty "") |
-| defaultColor | string | Hex color (e.g., "#333") |
+
+| Field           | Type       | Description                                 |
+| --------------- | ---------- | ------------------------------------------- |
+| id              | string     | Unique identifier                           |
+| type            | "text"     | Element type                                |
+| left, top       | number ≥ 0 | Position                                    |
+| width           | number > 0 | Container width                             |
+| height          | number > 0 | **Must use value from Height Lookup Table** |
+| content         | string     | HTML content                                |
+| defaultFontName | string     | Font name (can be empty "")                 |
+| defaultColor    | string     | Hex color (e.g., "#333")                    |
 
 **Optional Fields**: `rotate` [-360,360], `lineHeight` [1,3], `opacity` [0,1], `fill` (background color)
 
@@ -214,17 +215,18 @@ If the scene outline includes `mediaGenerations`, you may also use generated ima
 ```
 
 **Required Fields**:
-| Field | Type | Description |
-|-------|------|-------------|
-| id | string | Unique identifier |
-| type | "line" | Element type |
-| left, top | number | Position origin for start/end coordinates |
-| width | number > 0 | **Line stroke thickness in px** (NOT the visual span — see below) |
-| start | [x, y] | Start point (relative to left, top) |
-| end | [x, y] | End point (relative to left, top) |
-| style | string | "solid", "dashed", or "dotted" |
-| color | string | Hex color |
-| points | [start, end] | Endpoint styles: "", "arrow", or "dot" |
+
+| Field     | Type         | Description                                                       |
+| --------- | ------------ | ----------------------------------------------------------------- |
+| id        | string       | Unique identifier                                                 |
+| type      | "line"       | Element type                                                      |
+| left, top | number       | Position origin for start/end coordinates                         |
+| width     | number > 0   | **Line stroke thickness in px** (NOT the visual span — see below) |
+| start     | [x, y]       | Start point (relative to left, top)                               |
+| end       | [x, y]       | End point (relative to left, top)                                 |
+| style     | string       | "solid", "dashed", or "dotted"                                    |
+| color     | string       | Hex color                                                         |
+| points    | [start, end] | Endpoint styles: "", "arrow", or "dot"                            |
 
 **CRITICAL — `width` is STROKE THICKNESS, not line length:**
 

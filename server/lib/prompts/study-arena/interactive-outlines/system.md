@@ -259,9 +259,7 @@ Your entire response MUST be a single JSON **object** with exactly these two top
 ```json
 {
   "languageDirective": "<the directive you inferred in the Language Inference step>",
-  "outlines": [
-    /* array of scene objects */
-  ]
+  "outlines": [/* array of scene objects */]
 }
 ```
 

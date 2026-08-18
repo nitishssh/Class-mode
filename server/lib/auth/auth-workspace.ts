@@ -91,12 +91,7 @@ export function extractAccessToken(req: {
 }
 
 export type WorkspaceRole =
-  | "owner"
-  | "admin"
-  | "co-teacher"
-  | "teaching-assistant"
-  | "member"
-  | "auditor";
+  "owner" | "admin" | "co-teacher" | "teaching-assistant" | "member" | "auditor";
 
 export type WorkspacePermission =
   | "workspace:read"

@@ -187,9 +187,11 @@ export async function syncRecord(
   rec: QueuedSave,
   poster: (rec: QueuedSave) => Promise<PostResult>
 ): Promise<SyncResult> {
-  const res = await poster(rec).catch(
-    (err): PostResult => ({ ok: false, status: undefined, error: String(err) })
-  );
+  const res = await poster(rec).catch((err): PostResult => ({
+    ok: false,
+    status: undefined,
+    error: String(err),
+  }));
   if (res.ok) {
     await markSynced(rec.key, rec.opId);
     return { outcome: "synced", written: res.written };
