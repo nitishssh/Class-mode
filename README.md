@@ -162,6 +162,11 @@ SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
 ```
 
+`SMTP_USER` and `SMTP_PASS` are genuinely required in production: without them the
+server treats every send as a delivery failure rather than reporting success for a
+message it never sent. Locally they are optional — mail falls back to a log-only
+transport that prints verification codes to the console.
+
 See [docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md) for the full variable reference.
 
 ---
