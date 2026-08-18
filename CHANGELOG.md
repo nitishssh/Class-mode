@@ -2,19 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.9.5.0] - 2026-08-19
 
 ### Fixed
 
-- **Signup no longer claims to have sent a code it couldn't send.** When the email provider refuses a message, the verify screen now says the code could not be sent and that checking the inbox won't help, instead of showing "we've dispatched a 4-digit secure code" for a message that never left. The account is still created and saved — only the claim changed.
-- **Resending a code reports the real problem.** If the email provider is down, pressing Resend now says so. Previously the failure came back as "Not authenticated", which sent a correctly signed-in user off to log in again — something that could never fix it.
-- **Email failures are visible in production logs.** Every send failure is now logged at error level with the kind of email that failed and who it was for, so a dead provider key raises an alert instead of passing silently. SMTP credentials echoed back by the provider are redacted before anything is logged.
-- **Direct messages appear again.** The messages screen asked the server for the DM list at an address the server has never had, so the request failed and the list rendered empty for everyone, with no error shown. It now asks the right address.
+- **Nobody can see conversations they are not part of.** The direct-message list matched participants with a database pattern in which `_` means "any character", so a user numbered 2 was also matched against conversations belonging to users 20, 21 and so on — and the list showed those strangers by name. Two related checks were wrong the same way: one authorised anyone whose id appeared anywhere inside a conversation's identifier, and another let any signed-in account open a conversation between two other people. Participation is now matched exactly, in one place, for the list, the history, sending, and the live connection.
+- **Direct messages can actually be opened.** Conversations belong to no workspace, and the screen that loads a conversation's history rejected anything without one — so every conversation refused to open. Sending a message and joining the live connection failed for the same reason, each looking for participants in the wrong format. A conversation you can see is now a conversation you can read and reply to.
+- **Direct messages appear again.** The messages screen asked the server for the conversation list at an address the server has never had, so the request failed and the list rendered empty for everyone, with no error shown. It now asks the right address.
 - **Conversations show the person's name.** A direct message was titled with the account's username, which is blank for every school-created and invited account — so conversations would have appeared as empty rows. They now show the person's name.
+- **Signup no longer claims to have sent a code it couldn't send.** When the provider refuses a message, the verify screen now says the code could not be sent and that checking the inbox won't help, instead of showing "we've dispatched a 4-digit secure code" for a message that never left. The account is still created and saved — only the claim changed.
+- **Resending a code reports the real problem.** If the provider is down, pressing Resend now says so. Previously the failure came back as "Not authenticated", which sent a correctly signed-in user off to log in again — something that could never fix it.
+- **A missing provider configuration is a failure, not a silent success.** With no credentials set, the server quietly swapped in a stand-in that accepted every message, logged its full contents including the plaintext code, and reported success. In production that reproduced the original fault exactly: a signup told the user a code was on its way when nothing had been sent. Production now treats an unconfigured provider as a delivery failure; local development is unchanged.
+- **A stalled provider no longer holds up signup.** Signup now waits for the message to be accepted so it can report the truth, which made the underlying two-minute connection timeout something a person sits through. Waiting is capped so a signup either completes or tells the user it could not send the code, in seconds.
+- **Delivery failures are visible in production logs.** Every failure is logged at error level with the kind of message that failed and who it was for, so a dead provider key raises an alert instead of passing silently. Credentials echoed back by the provider are redacted before anything is logged.
+- **Signing out clears what was on screen for the previous account.** Server responses already fetched — including the unread notification count — were held in memory for five minutes, keyed without any account identity, so the next person to sign in on a shared device could briefly see the previous account's data. Signing out now discards them, along with the flag that records a code failing to send.
 - **The absentee list now says whether parents have been messaged.** The page never mentioned that automatic parent messages are switched off, so a principal could reasonably assume the school had already made contact and skip the calls — the one thing the list is for. It now states plainly, when alerts are off, that nobody has been contacted yet.
 - **Copy no longer promises parent alerts that aren't switched on.** The site said parents get a WhatsApp "instantly", "in minutes", and "from the very first morning". Automatic parent messaging is real but is turned on with each school rather than running from day one, so the wording now describes what a school gets on the first morning — the day's absentee call list with every parent's number — and presents WhatsApp alerts as something switched on when the school is ready.
 - **The header no longer invents messages and notifications.** A school that had just signed up was shown "3" messages and "5" notifications that did not exist, on two buttons that did nothing when pressed. The bell now shows the real number of unread notifications and nothing at all when there are none, and it opens the notifications page. The message button opens messages; it carries no count, because there is no messages unread total to show yet — an empty space is honest, an invented number is not.
 - **A failing at-risk check no longer disappears.** The hourly at-risk student check ran as an uncaught background task, so when it failed the only trace was an anonymous crash line and the check stayed dead until someone read the logs by hand. Failures are now reported with the name of the job, and one bad run no longer decides whether the next hour's run happens.
+
+### Added
+
+- **A programme board.** `docs/PMO.md` records what is in flight, what is blocked on a decision rather than on code, and what is deliberately not being worked on, with the dated milestones each item serves.
+- **Shared coordination for the tools that work on this repo.** `scripts/hq-mcp.mjs` and `scripts/discord-notify.mjs` let the assistants working on this project read and post to a shared channel, so work can be claimed and handed over instead of duplicated. Both read their credentials from the environment.
+
+### Changed
+
+- Password reset still answers identically whether or not an account exists, even when the provider is failing. This is deliberately unlike signup: reporting a delivery outcome here would reveal which addresses are registered. The failure is recorded in the logs instead, and the behaviour is now pinned by tests so it cannot be "made consistent" by accident.
 
 ## [1.9.4.0] - 2026-08-13
 
