@@ -29,15 +29,7 @@ export interface ServerMessage {
 }
 export type MessageStatus = "sending" | "sent" | "delivered" | "read";
 export type MessageType =
-  | "text"
-  | "image"
-  | "video"
-  | "audio"
-  | "doc"
-  | "announcement"
-  | "assignment"
-  | "doubt"
-  | "system";
+  "text" | "image" | "video" | "audio" | "doc" | "announcement" | "assignment" | "doubt" | "system";
 export type ConversationCategory = "announcement" | "class" | "teacher" | "friend" | "parent";
 
 export interface Message {

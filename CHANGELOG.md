@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.5.2] - 2026-08-19
+
+### Changed
+
+- **Dependency updates.** 36 package upgrades, covering the full Dependabot backlog: the Radix UI component set, LangChain, `pg`, `ioredis` 6, `google-auth-library` 11, DOMPurify, cmdk, PostCSS, Prettier and the TypeScript type packages. No downgrades. Five files were reformatted to satisfy the new Prettier release; the change is whitespace only.
+
 ## [1.9.5.1] - 2026-08-19
 
 ### Fixed
