@@ -13,6 +13,7 @@ import {
   pgFindWorkspaceById,
   pgCreateWorkspaceInvite,
 } from "../lib/db/pg-queries";
+import { isDmParticipant } from "../lib/chat/dm-channel";
 import { randomToken, tokenHash } from "../lib/auth/auth-workspace";
 import { sendWorkspaceInvite } from "../lib/integrations/mailer";
 import { logger } from "../lib/logger";
@@ -267,6 +268,18 @@ router.get("/channels/:id/messages", authenticateToken, async (req: Request, res
     const channel = await storage.getChannel(channelId);
     if (!channel) return res.status(404).json({ message: "Channel not found" });
 
+    // DM channels carry no workspace_id, so the workspace gate below rejected
+    // every one of them — this is the route the client loads DM history from,
+    // so a conversation you could see in the list 403'd the moment you opened
+    // it. Authorize DMs by exact participation instead.
+    if (channel.type === "dm") {
+      if (!isDmParticipant(channel.name, req.session.userId))
+        return res.status(403).json({ message: "Access denied" });
+      const dmLimit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+      const dmBefore = req.query.before ? parseInt(req.query.before as string) : undefined;
+      return res.status(200).json(await storage.getMessagesByChannel(channelId, dmLimit, dmBefore));
+    }
+
     if (channel.workspaceId === null || channel.workspaceId === undefined)
       return res.status(403).json({ message: "Access denied" });
     const workspace = await storage.getWorkspace(channel.workspaceId);
@@ -412,10 +425,10 @@ router.get("/messages/:channelId", authenticateToken, async (req: Request, res: 
       if (!workspace || !workspace.members.includes(req.session.userId)) {
         return res.status(403).json({ message: "Access denied" });
       }
-    } else {
-      if (!channel.name.includes(req.session.userId.toString())) {
-        return res.status(403).json({ message: "Access denied" });
-      }
+    } else if (!isDmParticipant(channel.name, req.session.userId)) {
+      // Was `name.includes(userId)`: user 1 passed for channel `dm_10_20` and
+      // read a conversation between two strangers.
+      return res.status(403).json({ message: "Access denied" });
     }
 
     const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
@@ -443,7 +456,9 @@ router.post("/messages", authenticateToken, async (req: Request, res: Response) 
     if (!channel) return res.status(404).json({ message: "Channel not found" });
 
     if (channel.type === "dm") {
-      if (!channel.name.split("-").includes(userId.toString())) {
+      // Was `split("-")` against `dm_1_2` names, so this denied every DM send
+      // including the participants' own.
+      if (!isDmParticipant(channel.name, userId)) {
         return res.status(403).json({ message: "Access denied" });
       }
     } else {
@@ -560,6 +575,13 @@ router.post("/channels/dm", authenticateToken, async (req: Request, res: Respons
       return res.status(400).json({ message: "Invalid user IDs" });
     }
 
+    // The caller has to be in the conversation they are opening. Without this
+    // any authenticated user could mint or fetch the channel id for any two
+    // strangers, which is the handle every other DM check keys off.
+    if (id1 !== req.session.userId && id2 !== req.session.userId) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
     const channel = await storage.getOrCreateDMChannel(id1, id2);
     return res.status(200).json(channel);
   } catch {
@@ -569,6 +591,10 @@ router.post("/channels/dm", authenticateToken, async (req: Request, res: Respons
 
 router.get("/users/me/dms", authenticateToken, async (req: Request, res: Response) => {
   try {
+    // NOTE: session-only, like all 43 other auth checks in this router. Mobile
+    // clients are token-only by contract (W-1) and therefore cannot use chat at
+    // all — making just this route token-aware would hand mobile a DM list it
+    // could not open. Tracked in TODOS.md as its own change.
     if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
 
     const currentUserId = req.session.userId;
@@ -589,6 +615,13 @@ router.get("/users/me/dms", authenticateToken, async (req: Request, res: Respons
               partner: {
                 id: partner.id,
                 username: partner.username,
+                // #324.2: `username` is empty for every seeded and invited
+                // account (only self-signup generates one), and the client
+                // uses it as the conversation title — so a working DM list
+                // would still have rendered blank rows. Added rather than
+                // substituted so existing consumers of `username` are
+                // untouched.
+                name: partner.name || partner.username,
                 avatar: partner.avatar,
                 role: partner.role,
               },

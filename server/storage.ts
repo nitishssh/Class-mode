@@ -1265,9 +1265,18 @@ export class PgStorage implements IStorage {
   }
 
   async getDMsByUser(userId: number): Promise<Channel[]> {
+    // `_` is a single-character WILDCARD in SQL LIKE, not a literal. The old
+    // patterns `dm_${id}_%` / `dm_%_${id}` therefore matched other people's
+    // conversations: for user 2, `dm_2_%` also matches `dm_20_30`. That leak
+    // was unreachable only because the client requested a path the server
+    // never served; the moment the DM list loaded, it returned strangers'
+    // channels — enriched with their real names. Split the name into its two
+    // encoded ids and compare exactly.
     const { rows } = await this.pool.query(
-      `SELECT * FROM channels WHERE type = 'dm' AND (name LIKE $1 OR name LIKE $2)`,
-      [`dm_${userId}_%`, `dm_%_${userId}`]
+      `SELECT * FROM channels
+         WHERE type = 'dm'
+           AND (split_part(name, '_', 2) = $1 OR split_part(name, '_', 3) = $1)`,
+      [String(userId)]
     );
     return rows.map(mapChannel);
   }

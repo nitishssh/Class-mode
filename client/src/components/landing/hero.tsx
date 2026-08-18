@@ -56,15 +56,15 @@ export const Hero = () => {
               <span className="relative inline-block font-mono font-medium text-primary">8:02</span>
               . Mum knows <br />
               <span className="font-display italic text-energy-dark underline decoration-primary decoration-wavy decoration-[3px] underline-offset-8 dark:text-energy">
-                by 8:03.
+                the same morning.
               </span>
             </h1>
           </div>
 
           <p className="max-w-xl text-lg leading-relaxed text-muted-foreground md:text-xl">
-            Your teacher taps the morning register once. Class Mode does the rest — the instant
-            WhatsApp alert to the parent, the fee reminder, and the live dashboard on the
-            principal's desk. AI tutoring for every student, built-in.
+            Your teacher taps the morning register once. Class Mode does the rest — the day's
+            absentee call list, the WhatsApp alert to the parent, the fee reminder, and the live
+            dashboard on the principal's desk. AI tutoring for every student, built-in.
           </p>
 
           <div className="flex flex-wrap gap-4 pt-2">

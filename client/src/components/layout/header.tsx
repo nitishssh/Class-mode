@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Menu, Bell, Search, MessageSquare, Settings, Moon, Sun } from "lucide-react";
 import { useTheme } from "@/contexts/theme-context";
 import { useAuth } from "@/contexts/auth-context";
@@ -21,6 +23,12 @@ interface HeaderProps {
   title?: string;
 }
 
+/** Only the fields the badge needs; the full shape lives on the notifications page. */
+interface HeaderNotification {
+  id: number;
+  isRead: boolean;
+}
+
 export function Header({ title }: HeaderProps) {
   const { theme, setTheme } = useTheme();
   const {
@@ -28,6 +36,15 @@ export function Header({ title }: HeaderProps) {
     logout,
   } = useAuth();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // Shares a cache key with the notifications page, so opening it and marking
+  // things read updates this badge without a second request. A failed or
+  // unauthenticated fetch yields no badge — the honest state is "we don't know
+  // of any", never an invented number.
+  const { data: notifications } = useQuery<HeaderNotification[]>({
+    queryKey: ["/api/notifications"],
+  });
+  const unreadCount = notifications?.filter((n) => !n.isRead).length ?? 0;
 
   const handleToggleSidebar = () => {
     const event = new CustomEvent("toggle-sidebar");
@@ -74,20 +91,31 @@ export function Header({ title }: HeaderProps) {
           <span className="sr-only">Toggle theme</span>
         </Button>
 
-        <Button variant="ghost" size="icon" className="relative">
-          <MessageSquare className="h-5 w-5" />
-          <span className="sr-only">Messages</span>
-          <Badge className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center p-0 text-[10px]">
-            3
-          </Badge>
+        {/* #324.3: both of these carried hardcoded badges — "3" and "5" — so a
+            school that had just signed up was shown messages and notifications
+            that did not exist, on buttons that did nothing when pressed. The
+            notification count is now the real unread count; messages has no
+            server-side unread total to read, so it gets no badge rather than an
+            invented one. Both now go where they claim to go. */}
+        <Button variant="ghost" size="icon" asChild>
+          <Link href="/messages">
+            <MessageSquare className="h-5 w-5" />
+            <span className="sr-only">Messages</span>
+          </Link>
         </Button>
 
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          <span className="sr-only">Notifications</span>
-          <Badge className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center p-0 text-[10px]">
-            5
-          </Badge>
+        <Button variant="ghost" size="icon" className="relative" asChild>
+          <Link href="/notifications">
+            <Bell className="h-5 w-5" />
+            <span className="sr-only">
+              {unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"}
+            </span>
+            {unreadCount > 0 && (
+              <Badge className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center p-0 px-1 text-[10px] tabular-nums">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </Badge>
+            )}
+          </Link>
         </Button>
 
         <DropdownMenu>

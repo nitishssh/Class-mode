@@ -29,8 +29,18 @@ interface AbsenteesResponse {
  * artifact the pilot offer promises — the school calls parents from this
  * list; nothing is auto-sent.
  */
+interface AuthConfig {
+  alerts?: { channel: string; enabled: boolean };
+}
+
 export default function AbsenteesPage() {
   const [date, setDate] = useState(todayISO());
+  // Real dispatch state from the server's own gate (credentials AND the master
+  // switch). Undefined while loading or if the call fails — the banner only
+  // renders on a definite `false`, so a failed lookup never asserts something
+  // about messages we cannot actually confirm.
+  const { data: authConfig } = useQuery<AuthConfig>({ queryKey: ["/api/auth/config"] });
+  const alertsEnabled = authConfig?.alerts?.enabled;
   // Which export is in flight ("attendance" | "fees"), so slow connections
   // can't queue duplicate downloads by double-clicking.
   const [downloading, setDownloading] = useState<string | null>(null);
@@ -86,6 +96,21 @@ export default function AbsenteesPage() {
         title="Absentees"
         subtitle="Today's absent students with parent contact — for manual follow-up calls."
       />
+
+      {/* #324.6: the code comment above has always said "nothing is auto-sent",
+          but nobody using the page could see that. A principal who believes
+          parents were already messaged does not make the call — the one action
+          this page exists for. State the real dispatch status, read from the
+          server's own flag rather than assumed either way. */}
+      {alertsEnabled === false && (
+        <p
+          className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
+          data-testid="absentees-alerts-status"
+        >
+          Automatic parent messages are <span className="font-medium text-foreground">off</span>.
+          Nobody has been contacted about these absences — call the numbers below.
+        </p>
+      )}
 
       <div className="flex flex-wrap items-center gap-3 print:hidden">
         <Input

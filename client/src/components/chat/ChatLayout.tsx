@@ -72,7 +72,7 @@ const ChatLayoutInner = () => {
     retry: 1,
   });
 
-  // ── Merge server data with mock data as fallback ──────────────────────────
+  // ── Server data only: no mock fallback (honesty invariant) ────────────────
   const conversations = useMemo<Conversation[]>(() => {
     const serverConvs: Conversation[] = [];
 
@@ -93,11 +93,11 @@ const ChatLayoutInner = () => {
         else conv.category = "friend";
         // Use partner name if available
         if (dm.partner) {
-          conv.name = dm.partner.username;
+          conv.name = dm.partner.name || dm.partner.username;
           conv.participants = [
             {
               id: String(dm.partner.id),
-              name: dm.partner.username,
+              name: dm.partner.name || dm.partner.username,
               role: (dm.partner.role as "student" | "teacher" | "parent") || "student",
               isOnline: false,
             },

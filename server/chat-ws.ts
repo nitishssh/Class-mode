@@ -16,6 +16,7 @@ import { type User } from "@shared/schema";
 import { storage } from "./storage";
 import { generate } from "./lib/ai/gateway";
 import { getPgPool, isPgReady } from "./db-pg";
+import { isDmParticipant } from "./lib/chat/dm-channel";
 
 const AI_TUTOR_ID = 999;
 const AI_TUTOR_NAME = "AI Tutor";
@@ -285,8 +286,9 @@ export function setupChatWebSocket(httpServer: Server, sessionStore: Store) {
 
           // Access check
           if (channel.type === "dm") {
-            const dmParts = channel.name.split("-");
-            if (!dmParts.includes(userId.toString())) {
+            // Was `split("-")` against `dm_1_2` names, so every DM join was
+            // refused — including both participants'.
+            if (!isDmParticipant(channel.name, userId)) {
               send(ws, { type: "error", message: "Access denied to this DM." });
               return;
             }

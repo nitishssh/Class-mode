@@ -10,7 +10,44 @@ test.describe("Landing Page", () => {
       "Class Mode — Attendance, fees & parent WhatsApp alerts for your school"
     );
     await expect(page.locator("h1")).toContainText("Marked absent");
-    await expect(page.locator("h1")).toContainText("by 8:03");
+    // #324.6: the headline used to promise "by 8:03". Automatic parent
+    // messaging is real but is switched on per school rather than running from
+    // day one, so the claim was removed. This test pinned the old promise.
+    await expect(page.locator("h1")).toContainText("the same morning");
+  });
+
+  // Guards the #324.6 decision: keep parent WhatsApp alerts as a capability,
+  // drop every claim that it is already running. Without this the removed
+  // wording can drift straight back in and nothing fails.
+  test("landing copy does not claim parent alerts already run", async ({ page }) => {
+    // Wait for hydration before reading text: the SPA shell renders
+    // "Loading..." first, and asserting against that passes every "must not
+    // contain" check vacuously while failing the positive one.
+    await expect(page.locator("h1")).toContainText("Marked absent");
+    await page.waitForLoadState("networkidle");
+
+    const body = (await page.locator("body").innerText()).toLowerCase();
+
+    // Prose claims only. The hero's WhatsApp illustration still carries 8:02 /
+    // 8:03 AM timestamps, kept deliberately: it is a labelled product mock, not
+    // a sentence asserting the alert already goes out today. So "by 8:03"
+    // (prose) is banned while a bare "8:03 AM" (the mock) is not.
+    for (const claim of ["by 8:03", "in minutes", "very first morning"]) {
+      expect(body, `landing page must not promise "${claim}"`).not.toContain(claim);
+    }
+
+    // "instant" is only dishonest when attached to the alert. Elsewhere on the
+    // site it describes things that really are instant, so pair the words
+    // rather than banning the adverb outright.
+    const immediacyNearAlert =
+      /(instant\w*|immediat\w*)[^.!?]{0,60}(whatsapp|parent alert|alert)|(whatsapp|parent alert)[^.!?]{0,60}(instant\w*|immediat\w*)/i;
+    expect(body, "landing page must not claim the parent alert is instant").not.toMatch(
+      immediacyNearAlert
+    );
+
+    // The capability itself should still be described — the fix removed the
+    // false immediacy, not the feature.
+    expect(body).toContain("whatsapp");
   });
 
   test("hero primary CTA scrolls to contact form", async ({ page }) => {

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { clearServerToken, setServerToken } from "@/lib/queryClient";
+import { clearServerToken, queryClient, setServerToken } from "@/lib/queryClient";
 import { ownerToken, purgeOwner } from "@/lib/attendance-queue";
 
 // Authentication is now fully server-backed (local password + server-side
@@ -123,6 +123,9 @@ async function localPasswordLogin(email: string, password: string): Promise<User
   return profileFromMe(data);
 }
 
+/** Set at signup when the verification email failed to send; read by /verify-email. */
+export const VERIFICATION_EMAIL_FAILED_KEY = "classmode:verification-email-failed";
+
 async function localPasswordSignup(args: {
   email: string;
   password: string;
@@ -138,6 +141,19 @@ async function localPasswordSignup(args: {
   if (!res.ok) throw await parseError(res, "Signup failed");
   const data = await res.json();
   if (data.token) setServerToken(data.token);
+  // #322: the account is created either way, but if the verification email did
+  // not go out the /verify-email page must not claim a code was sent. Handed
+  // over via sessionStorage so the signup response shape stays the profile.
+  try {
+    if (data.verificationEmailSent === false) {
+      sessionStorage.setItem(VERIFICATION_EMAIL_FAILED_KEY, "1");
+    } else {
+      sessionStorage.removeItem(VERIFICATION_EMAIL_FAILED_KEY);
+    }
+  } catch {
+    // Private browsing can refuse sessionStorage; the resend path still tells
+    // the truth on its own.
+  }
   return profileFromMe(data);
 }
 
@@ -244,6 +260,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await purgeOwner(ownerToken(prev?.id ?? null, prev?.school_code ?? null)).catch(() => {});
     await fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
     clearServerToken();
+    // Same shared-device reasoning as the queue purge above, for cached server
+    // state. React Query holds every fetched response in memory keyed by path
+    // alone — no user id — with a 5-minute stale window, so without this the
+    // next account to log in on this tab reads the previous user's cached
+    // notifications (and their unread badge) until each key refetches.
+    queryClient.clear();
+    // #322's "we never sent your code" flag is per-tab, not per-account. Left
+    // behind, it tells the NEXT unverified user their code failed to send.
+    try {
+      sessionStorage.removeItem(VERIFICATION_EMAIL_FAILED_KEY);
+    } catch {
+      // Private browsing can refuse sessionStorage; nothing to clear.
+    }
     setCurrentUser({ user: null, profile: null });
     toast({ title: "Logged out", description: "You have been successfully logged out." });
   };
