@@ -1,4 +1,5 @@
 import baseConfetti from "canvas-confetti";
+import { CONFETTI_GLOBAL_OPTIONS } from "./confetti-options";
 
 /**
  * Confetti, with the web worker disabled.
@@ -21,9 +22,6 @@ import baseConfetti from "canvas-confetti";
  * `resize: true` matches the default instance so behaviour is otherwise
  * identical. Import this instead of `canvas-confetti` directly.
  */
-export const confetti = baseConfetti.create(undefined, {
-  useWorker: false,
-  resize: true,
-});
+export const confetti = baseConfetti.create(undefined, { ...CONFETTI_GLOBAL_OPTIONS });
 
 export default confetti;
