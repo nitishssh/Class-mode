@@ -102,6 +102,15 @@ app.use(
               // data: — the client bundle inlines a woff2 as a data URI;
               // without it the browser blocks the font on every page load.
               fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
+              // #324.4: previously unset, so workers fell through to
+              // script-src and were blocked with no stated intent. Stated
+              // explicitly now, and deliberately WITHOUT blob: — a blob:
+              // worker source would let any XSS execute attacker-supplied
+              // code in a worker. The only thing that wanted one was
+              // canvas-confetti's off-main-thread mode, which we now switch
+              // off at the call site (client/src/lib/confetti.ts) rather than
+              // widening the policy for a decorative animation.
+              workerSrc: ["'self'"],
               objectSrc: ["'none'"],
               upgradeInsecureRequests: [],
             },
