@@ -3,6 +3,19 @@ import fs from "node:fs";
 import path from "node:path";
 import { connectPostgres, getPgPool } from "../server/db-pg";
 import { renderStudyArenaGate } from "./study-arena-gate";
+import {
+  METRIC_VERSION,
+  METRIC_SEMANTICS,
+  resolveTimezone,
+  isoWeekOf,
+  weekIsComplete,
+  zonedMidnightInstant,
+  partitionByVersion,
+  selectBaseline,
+  selectPreviousWeek,
+  evaluateThreshold,
+  type IsoWeek,
+} from "./metric-semantics";
 
 /**
  * Weekly adoption metrics — the dependence-probe instrument from the
@@ -28,9 +41,30 @@ import { renderStudyArenaGate } from "./study-arena-gate";
  *   as school adoption (demo-data honesty invariant).
  * - Decision threshold (from the plan): wedge weekly-active-teachers below 50%
  *   of the baseline week for 2 consecutive weeks => adoption failing, act.
+ *
+ * These definitions are FROZEN and versioned in ./metric-semantics.ts. Every
+ * snapshot records the version it was measured under, and snapshots from a
+ * different version are quarantined rather than compared. Changing a rule
+ * without bumping METRIC_VERSION is how a redefinition becomes an invisible
+ * trend — see METRIC_SEMANTICS for the full contract.
  */
 
 interface Snapshot {
+  /**
+   * The rules this snapshot was measured under. Snapshots carrying a different
+   * version are quarantined rather than compared — see ./metric-semantics.
+   */
+  metricVersion: number;
+  /** IANA timezone the week boundary was evaluated in. */
+  timezone: string;
+  /** False when generated before the week ended. Never eligible as a baseline. */
+  complete: boolean;
+  /**
+   * The frozen rules, copied in verbatim. A snapshot read six months from now
+   * states the definitions that produced it instead of requiring archaeology
+   * against whatever the script says by then.
+   */
+  semantics: typeof METRIC_SEMANTICS;
   isoWeek: string;
   generatedAt: string;
   weekStart: string; // inclusive, YYYY-MM-DD (Monday)
@@ -69,26 +103,7 @@ interface Snapshot {
   };
 }
 
-function isoWeekOf(d: Date): { isoWeek: string; weekStart: Date; weekEnd: Date } {
-  // Monday-based ISO week containing `d`, formatted 2026-W29.
-  const day = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-  const dow = (day.getUTCDay() + 6) % 7; // Mon=0
-  const weekStart = new Date(day);
-  weekStart.setUTCDate(day.getUTCDate() - dow);
-  const weekEnd = new Date(weekStart);
-  weekEnd.setUTCDate(weekStart.getUTCDate() + 7);
-  const thursday = new Date(weekStart);
-  thursday.setUTCDate(weekStart.getUTCDate() + 3);
-  const yearStart = new Date(Date.UTC(thursday.getUTCFullYear(), 0, 1));
-  const weekNo = Math.ceil(((thursday.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-  return {
-    isoWeek: `${thursday.getUTCFullYear()}-W${String(weekNo).padStart(2, "0")}`,
-    weekStart,
-    weekEnd,
-  };
-}
-
-const ymd = (d: Date) => d.toISOString().slice(0, 10);
+// Week arithmetic lives in ./metric-semantics — frozen and versioned.
 
 // Eng review T1 (Codex #2): scope to a single pilot school when PILOT_SCHOOL_CODE
 // is set, so the number quoted in a payment conversation is THIS school's, not an
@@ -121,8 +136,23 @@ const notAdminSql = (actorCol: string) =>
 
 async function collect(
   weekStart: string,
-  weekEnd: string
-): Promise<Omit<Snapshot, "isoWeek" | "generatedAt" | "weekStart" | "weekEnd">> {
+  weekEnd: string,
+  weekStartInstant: string,
+  weekEndInstant: string,
+  tz: string
+): Promise<
+  Omit<
+    Snapshot,
+    | "isoWeek"
+    | "generatedAt"
+    | "weekStart"
+    | "weekEnd"
+    | "metricVersion"
+    | "timezone"
+    | "complete"
+    | "semantics"
+  >
+> {
   const pool = getPgPool();
   const q = async <T = any>(sql: string, params: unknown[] = []): Promise<T[]> => {
     // No []-on-error fallback (spec E5): a failed query kills the run loudly.
@@ -146,10 +176,10 @@ async function collect(
     `SELECT COUNT(DISTINCT created_by) FILTER (WHERE created_by IS NOT NULL)::int AS active_staff,
             COUNT(*)::int                                                          AS rows_created
        FROM fees
-      WHERE created_at >= $1 AND created_at < $2
+      WHERE created_at >= $1::timestamptz AND created_at < $2::timestamptz
         AND ${REAL_SCHOOL_SQL}
         AND ${notAdminSql("created_by")}`,
-    [weekStart, weekEnd]
+    [weekStartInstant, weekEndInstant]
   );
 
   const usage = await q(
@@ -157,12 +187,12 @@ async function collect(
             COUNT(*)::int                 AS events,
             COUNT(DISTINCT user_id)::int  AS distinct_users
        FROM feature_usage
-      WHERE created_at >= $1 AND created_at < $2
+      WHERE created_at >= $1::timestamptz AND created_at < $2::timestamptz
         AND ${REAL_SCHOOL_SQL}
         AND ${notAdminSql("user_id")}
       GROUP BY feature
       ORDER BY events DESC`,
-    [weekStart, weekEnd]
+    [weekStartInstant, weekEndInstant]
   );
 
   // Eng review T2 (Tension 2): the Sep-30 gate is "≥60% of teachers marking ≥4
@@ -179,15 +209,15 @@ async function collect(
     weekdays: string[];
   }>(
     `WITH marks AS (
-        SELECT user_id, (created_at AT TIME ZONE 'UTC')::date AS d,
-               to_char(created_at AT TIME ZONE 'UTC', 'Dy')   AS wd
+        SELECT user_id, (created_at AT TIME ZONE $3)::date AS d,
+               to_char(created_at AT TIME ZONE $3, 'Dy')   AS wd
           FROM feature_usage
          WHERE feature = 'attendance'
-           AND created_at >= $1 AND created_at < $2
+           AND created_at >= $1::timestamptz AND created_at < $2::timestamptz
            AND ${REAL_SCHOOL_SQL}
            AND ${notAdminSql("user_id")}
-         GROUP BY user_id, (created_at AT TIME ZONE 'UTC')::date,
-                  to_char(created_at AT TIME ZONE 'UTC', 'Dy')
+         GROUP BY user_id, (created_at AT TIME ZONE $3)::date,
+                  to_char(created_at AT TIME ZONE $3, 'Dy')
      )
      SELECT m.user_id, u.name,
             COUNT(DISTINCT m.d)::int  AS marking_days,
@@ -196,7 +226,7 @@ async function collect(
        JOIN users u ON u.id = m.user_id AND u.role = 'teacher'
       GROUP BY m.user_id, u.name
       ORDER BY marking_days DESC, u.name ASC`,
-    [weekStart, weekEnd]
+    [weekStartInstant, weekEndInstant, tz]
   );
 
   const [totals] = await q(
@@ -231,7 +261,7 @@ async function collect(
           FROM interaction_log il
           ${ARENA_SCHOOL_JOIN}
          WHERE il.kind = 'study_arena_gate_answer'
-           AND il.created_at >= $1 AND il.created_at < $2
+           AND il.created_at >= $1::timestamptz AND il.created_at < $2::timestamptz
            AND il.payload->>'lessonId' IS NOT NULL
      ),
      lessons AS (
@@ -249,7 +279,7 @@ async function collect(
               WHERE total_gates IS NOT NULL AND gates_answered >= total_gates
             )::int AS students_completed
        FROM lessons`,
-    [weekStart, weekEnd]
+    [weekStartInstant, weekEndInstant]
   );
 
   // The adoption decision is anchored to the explicit pilot-enable timestamp,
@@ -385,13 +415,13 @@ function loadPriorSnapshots(dir: string): Snapshot[] {
     .map((f) => JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")) as Snapshot);
 }
 
-function renderTable(s: Snapshot, prior: Snapshot[]): string {
-  // Baseline = the FIRST week with real wedge activity. Anchoring on prior[0]
-  // unconditionally would pin the threshold bar to the launch week's zeros
-  // forever (0 * 0.5 = 0 can never be breached) — the kill-switch this script
-  // exists to provide would be permanently disarmed.
-  const baseline = prior.find((p) => p.attendance.activeTeachers > 0);
-  const prev = prior[prior.length - 1];
+function renderTable(s: Snapshot, prior: Snapshot[], week: IsoWeek, tz: string): string {
+  // Both selections are frozen rules, not local judgement — see
+  // ./metric-semantics. Baseline skips zero-activity AND partial weeks; the
+  // comparison week must be the immediately preceding ISO week and complete,
+  // so a gap disarms the breach check instead of being compared across.
+  const baseline = selectBaseline(prior);
+  const prev = selectPreviousWeek(prior, week, tz);
   const delta = (cur: number, past?: number) =>
     past === undefined
       ? "—"
@@ -486,23 +516,29 @@ function renderTable(s: Snapshot, prior: Snapshot[]): string {
     })
   );
 
-  // Decision threshold (plan objective 3): wedge WAT < 50% of baseline, 2 consecutive weeks.
-  if (baseline && prev && baseline.isoWeek !== s.isoWeek) {
-    const bar = baseline.attendance.activeTeachers * 0.5;
-    const thisBelow = s.attendance.activeTeachers < bar;
-    const prevBelow = prev.attendance.activeTeachers < bar;
-    if (thisBelow && prevBelow) {
-      lines.push(
-        `> **THRESHOLD BREACHED:** attendance weekly-active-teachers below 50% of baseline (${baseline.attendance.activeTeachers}) for 2 consecutive weeks. Per the plan: adoption is failing — act, don't average it away.`
-      );
-    } else if (thisBelow) {
-      lines.push(
-        `> WARN: attendance weekly-active-teachers below 50% of baseline this week (1st week — threshold fires at 2 consecutive).`
-      );
-    }
-  } else if (!baseline || baseline.isoWeek === s.isoWeek) {
+  // Decision threshold (plan objective 3). The arithmetic lives in
+  // ./metric-semantics so it is testable — this only renders the verdict.
+  const verdict = evaluateThreshold({
+    currentIsoWeek: s.isoWeek,
+    currentActiveTeachers: s.attendance.activeTeachers,
+    baseline,
+    previous: prev,
+  });
+  if (verdict.state === "breached") {
     lines.push(
-      `> No baseline week with nonzero weekly-active-teachers yet — the 50% adoption threshold is NOT armed. It arms the week after the first week with real teacher activity.`
+      `> **THRESHOLD BREACHED:** attendance weekly-active-teachers below 50% of baseline (${baseline!.attendance.activeTeachers}) for 2 consecutive weeks. Per the plan: adoption is failing — act, don't average it away.`
+    );
+  } else if (verdict.state === "warn") {
+    lines.push(
+      `> WARN: attendance weekly-active-teachers below 50% of baseline this week (1st week — threshold fires at 2 consecutive).`
+    );
+  } else if (verdict.state === "not_armed") {
+    lines.push(`> Threshold NOT armed: ${verdict.reason}.`);
+  }
+  if (!s.complete) {
+    lines.push("");
+    lines.push(
+      `> **PARTIAL WEEK.** Generated before ${s.weekEnd} (${tz}), so this week is still accumulating. It is recorded but excluded from baseline selection and from the threshold check. Re-run after the week closes to supersede it.`
     );
   }
   return lines.join("\n");
@@ -510,43 +546,112 @@ function renderTable(s: Snapshot, prior: Snapshot[]): string {
 
 async function main() {
   const makeReport = process.argv.includes("--report");
-  const { isoWeek, weekStart, weekEnd } = isoWeekOf(new Date());
+  // Persisting is the default, but a snapshot written from a QA or local
+  // database silently joins the trend and there is no way to tell later which
+  // rows it came from. Any run not pointed at production should use --dry-run.
+  const dryRun = process.argv.includes("--dry-run");
+  const tz = resolveTimezone();
+  const now = new Date();
+  const week = isoWeekOf(now, tz);
+  const complete = weekIsComplete(week, now, tz);
 
   await connectPostgres();
-  const body = await collect(ymd(weekStart), ymd(weekEnd));
+
+  // Cohort integrity (spec E5 / adoption-denominator P0): a PILOT_SCHOOL_CODE
+  // that matches no school makes every scoped query return zero — and zero is
+  // indistinguishable from "the school did nothing". A typo would read as
+  // total adoption failure. Abort instead of quoting a fabricated zero.
+  if (PILOT_SCHOOL_CODE) {
+    const { rows } = await getPgPool().query(
+      `SELECT COUNT(*)::int AS n FROM schools WHERE code = $1`,
+      [PILOT_SCHOOL_CODE]
+    );
+    if ((rows[0]?.n ?? 0) === 0) {
+      throw new Error(
+        `PILOT_SCHOOL_CODE='${PILOT_SCHOOL_CODE}' matches no row in schools. ` +
+          `Every scoped metric would return 0, which reads as "no adoption" rather ` +
+          `than "wrong code". Fix the value or unset it.`
+      );
+    }
+  }
+
+  const body = await collect(
+    week.weekStart,
+    week.weekEnd,
+    zonedMidnightInstant(week.weekStart, tz).toISOString(),
+    zonedMidnightInstant(week.weekEnd, tz).toISOString(),
+    tz
+  );
   const snapshot: Snapshot = {
-    isoWeek,
-    generatedAt: new Date().toISOString(),
-    weekStart: ymd(weekStart),
-    weekEnd: ymd(weekEnd),
+    metricVersion: METRIC_VERSION,
+    timezone: tz,
+    complete,
+    semantics: METRIC_SEMANTICS,
+    isoWeek: week.isoWeek,
+    generatedAt: now.toISOString(),
+    weekStart: week.weekStart,
+    weekEnd: week.weekEnd,
     ...body,
   };
 
   const metricsDir = path.resolve("docs/dashboard/metrics");
-  const prior = loadPriorSnapshots(metricsDir).filter((p) => p.isoWeek !== isoWeek);
-  fs.mkdirSync(metricsDir, { recursive: true });
-  fs.writeFileSync(path.join(metricsDir, `${isoWeek}.json`), JSON.stringify(snapshot, null, 2));
+  const all = loadPriorSnapshots(metricsDir).filter((p) => p.isoWeek !== week.isoWeek);
+  const { compatible: prior, quarantined } = partitionByVersion(all);
+  if (!dryRun) {
+    fs.mkdirSync(metricsDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(metricsDir, `${week.isoWeek}.json`),
+      JSON.stringify(snapshot, null, 2)
+    );
+  }
 
-  const table = renderTable(snapshot, prior);
+  const table = renderTable(snapshot, prior, week, tz);
   console.log(table);
-  console.log(`\nSnapshot persisted: docs/dashboard/metrics/${isoWeek}.json`);
+  console.log(
+    dryRun
+      ? `\n--dry-run: nothing persisted. Snapshot WOULD be docs/dashboard/metrics/${week.isoWeek}.json`
+      : `\nSnapshot persisted: docs/dashboard/metrics/${week.isoWeek}.json`
+  );
+  console.log(
+    `Metric semantics v${METRIC_VERSION}, week boundary in ${tz}, week ${complete ? "complete" : "PARTIAL"}.`
+  );
+  if (quarantined.length > 0) {
+    // Loud, not silent: these are real files on disk that a reader would
+    // reasonably assume are part of the trend. They are not.
+    console.log(
+      `\n${quarantined.length} snapshot(s) QUARANTINED — measured under different rules, excluded from every comparison:`
+    );
+    for (const s2 of quarantined) {
+      console.log(
+        `  - ${s2.isoWeek}: metricVersion=${(s2 as Snapshot).metricVersion ?? "none (pre-freeze)"}`
+      );
+    }
+    console.log(
+      `  These cannot be repaired by re-stamping: the rules that produced them are unknown, and`
+    );
+    console.log(
+      `  the queries are live, so a past week cannot be recomputed. They stay as historical record only.`
+    );
+  }
 
-  if (makeReport) {
+  if (makeReport && dryRun) {
+    console.log("--dry-run: skipping weekly report scaffold.");
+  } else if (makeReport) {
     const weeklyDir = path.resolve("docs/dashboard/weekly");
     fs.mkdirSync(weeklyDir, { recursive: true });
-    const reportPath = path.join(weeklyDir, `${isoWeek}.md`);
+    const reportPath = path.join(weeklyDir, `${week.isoWeek}.md`);
     if (fs.existsSync(reportPath)) {
       console.log(
-        `Weekly report already exists, not overwriting: docs/dashboard/weekly/${isoWeek}.md`
+        `Weekly report already exists, not overwriting: docs/dashboard/weekly/${week.isoWeek}.md`
       );
     } else {
       const template = fs.readFileSync(path.resolve("docs/dashboard/weekly/TEMPLATE.md"), "utf8");
       fs.writeFileSync(
         reportPath,
-        template.replaceAll("{{WEEK}}", isoWeek).replace("{{METRICS_TABLE}}", table)
+        template.replaceAll("{{WEEK}}", week.isoWeek).replace("{{METRICS_TABLE}}", table)
       );
       console.log(
-        `Weekly report scaffolded: docs/dashboard/weekly/${isoWeek}.md — fill in the narrative sections.`
+        `Weekly report scaffolded: docs/dashboard/weekly/${week.isoWeek}.md — fill in the narrative sections.`
       );
     }
   }
