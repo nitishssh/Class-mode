@@ -4,6 +4,7 @@ import { logger } from "./lib/logger";
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
 import helmet from "helmet";
+import { productionCspDirectives } from "./lib/security/csp";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import session from "express-session";
@@ -77,44 +78,7 @@ app.use(
   helmet({
     contentSecurityPolicy:
       process.env.NODE_ENV === "production"
-        ? {
-            directives: {
-              defaultSrc: ["'self'"],
-              scriptSrc: [
-                "'self'",
-                "'unsafe-inline'",
-                "https://apis.google.com",
-                "https://www.gstatic.com",
-              ],
-              styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-              imgSrc: [
-                "'self'",
-                "data:",
-                "https://firebasestorage.googleapis.com",
-                "https://lh3.googleusercontent.com",
-              ],
-              connectSrc: [
-                "'self'",
-                "https://*.firebaseio.com",
-                "https://*.googleapis.com",
-                "https://*.run.app",
-              ],
-              // data: — the client bundle inlines a woff2 as a data URI;
-              // without it the browser blocks the font on every page load.
-              fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
-              // #324.4: previously unset, so workers fell through to
-              // script-src and were blocked with no stated intent. Stated
-              // explicitly now, and deliberately WITHOUT blob: — a blob:
-              // worker source would let any XSS execute attacker-supplied
-              // code in a worker. The only thing that wanted one was
-              // canvas-confetti's off-main-thread mode, which we now switch
-              // off at the call site (client/src/lib/confetti.ts) rather than
-              // widening the policy for a decorative animation.
-              workerSrc: ["'self'"],
-              objectSrc: ["'none'"],
-              upgradeInsecureRequests: [],
-            },
-          }
+        ? { directives: { ...productionCspDirectives } }
         : false, // CSP handled by Vite in dev
     // Firebase signInWithPopup requires the popup to share an opener
     // context with the parent window so it can postMessage the credential
