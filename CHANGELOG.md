@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.9.6.0] - 2026-08-20
 
 ### Changed
 
@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 - **Monday mornings were being counted as the previous week.** Week boundaries were measured in UTC while the schools are on IST, so every mark made before 5:30am IST on a Monday — the start of the school day — landed in the week that had just ended. This understated Mondays and inflated the prior week, on the exact number the September adoption gate reads.
 - **A half-finished week can no longer become the baseline.** Running the report mid-week saved that partial week as if it were whole. Because the alert threshold is set at half the baseline, a partial baseline set the bar permanently too low and the alert could never fire. Partial weeks are still recorded, but are now excluded from the baseline and from the two-week check until re-run after the week closes.
 - **The two-week alert no longer compares weeks that aren't consecutive.** It previously compared against whatever the most recent saved week happened to be, which could be months earlier, and reported that as two consecutive weeks below target. When there's no adjacent complete week, the check now says it isn't running rather than reporting a breach that never happened.
+- **The report now distinguishes "no adoption yet" from "we never finished measuring".** Excluding half-finished weeks from the baseline fixed one silent failure but created another: someone who only ever runs the report mid-week produces nothing complete, so the alert can never arm, and the output looks identical to a pilot that simply has not started. The report now names the unfinished weeks that are holding the baseline back and says a re-run will clear them.
 - **A mistyped pilot school code stops the report instead of reading as failure.** Scoping the report to a school that doesn't exist made every number come back zero, which looks identical to a school that did nothing at all.
 
 ## [1.9.5.2] - 2026-08-19
