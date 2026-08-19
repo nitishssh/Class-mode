@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+
+- **The weekly adoption numbers now follow written, versioned rules.** Six choices decide every figure the pilot is judged on — which schools count, which timezone, where a week starts and ends, which week is the baseline, whether two compared weeks are actually adjacent, and what happens to a week that hasn't finished. Those rules are now fixed in one place and stamped onto every weekly snapshot, so a change to any of them has to be declared instead of quietly rewriting the comparison against earlier weeks. The rules are written out in `docs/METRIC-SEMANTICS.md`.
+
+### Fixed
+
+- **Monday mornings were being counted as the previous week.** Week boundaries were measured in UTC while the schools are on IST, so every mark made before 5:30am IST on a Monday — the start of the school day — landed in the week that had just ended. This understated Mondays and inflated the prior week, on the exact number the September adoption gate reads.
+- **A half-finished week can no longer become the baseline.** Running the report mid-week saved that partial week as if it were whole. Because the alert threshold is set at half the baseline, a partial baseline set the bar permanently too low and the alert could never fire. Partial weeks are still recorded, but are now excluded from the baseline and from the two-week check until re-run after the week closes.
+- **The two-week alert no longer compares weeks that aren't consecutive.** It previously compared against whatever the most recent saved week happened to be, which could be months earlier, and reported that as two consecutive weeks below target. When there's no adjacent complete week, the check now says it isn't running rather than reporting a breach that never happened.
+- **A mistyped pilot school code stops the report instead of reading as failure.** Scoping the report to a school that doesn't exist made every number come back zero, which looks identical to a school that did nothing at all.
+
 ## [1.9.5.2] - 2026-08-19
 
 ### Changed
