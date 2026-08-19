@@ -201,6 +201,22 @@ export function selectBaseline<T extends ComparableSnapshot>(priors: T[]): T | u
 }
 
 /**
+ * Partial snapshots that WOULD have qualified as the baseline had they been
+ * complete.
+ *
+ * Without this, the partial-week rule recreates the failure it exists to
+ * prevent. Excluding partial weeks stops a mid-week snapshot from understating
+ * the bar — but an operator who only ever runs mid-week produces nothing
+ * complete, so `selectBaseline` returns undefined forever and the threshold
+ * never arms. Silently, and looking exactly like a pilot that has not started
+ * yet. Name them so a re-run is an obvious action rather than a guess.
+ */
+export function blockedBaselineCandidates<T extends ComparableSnapshot>(priors: T[]): T[] {
+  if (selectBaseline(priors)) return [];
+  return priors.filter((p) => p.complete !== true && p.attendance.activeTeachers > 0);
+}
+
+/**
  * The prior week eligible for the 2-consecutive-week breach check: it must be
  * the immediately preceding ISO week AND complete. `priors[priors.length - 1]`
  * is merely the most recent snapshot, which may be months earlier — comparing
@@ -268,4 +284,31 @@ export function evaluateThreshold(args: {
   if (thisBelow && prevBelow) return { state: "breached", bar };
   if (thisBelow) return { state: "warn", bar };
   return { state: "ok", bar };
+}
+
+// ── Cohort integrity ─────────────────────────────────────────────────────────
+
+/**
+ * Refuse to measure a cohort that does not exist.
+ *
+ * A PILOT_SCHOOL_CODE matching no school makes every scoped query return 0, and
+ * 0 is indistinguishable from "the school did nothing" — a typo reads as total
+ * adoption failure in the one report a payment conversation is based on.
+ *
+ * Takes a counting function rather than a pool so the rule is testable without
+ * a database, and so this module stays free of server imports.
+ */
+export async function assertCohortExists(
+  countSchoolsWithCode: (code: string) => Promise<number>,
+  pilotSchoolCode: string | null
+): Promise<void> {
+  if (!pilotSchoolCode) return;
+  const n = await countSchoolsWithCode(pilotSchoolCode);
+  if (n === 0) {
+    throw new Error(
+      `PILOT_SCHOOL_CODE='${pilotSchoolCode}' matches no row in schools. ` +
+        `Every scoped metric would return 0, which reads as "no adoption" rather ` +
+        `than "wrong code". Fix the value or unset it.`
+    );
+  }
 }

@@ -13,6 +13,8 @@ import {
   partitionByVersion,
   selectBaseline,
   selectPreviousWeek,
+  assertCohortExists,
+  blockedBaselineCandidates,
   evaluateThreshold,
   type IsoWeek,
 } from "./metric-semantics";
@@ -533,7 +535,22 @@ function renderTable(s: Snapshot, prior: Snapshot[], week: IsoWeek, tz: string):
       `> WARN: attendance weekly-active-teachers below 50% of baseline this week (1st week — threshold fires at 2 consecutive).`
     );
   } else if (verdict.state === "not_armed") {
-    lines.push(`> Threshold NOT armed: ${verdict.reason}.`);
+    // A partial week with real activity is a MEASUREMENT GAP, not an absent
+    // pilot, and the two look identical in the generic message below. Say which
+    // it is: an operator who only ever runs mid-week produces nothing complete,
+    // so the threshold never arms — the exact silent disarmament the
+    // partial-week rule exists to prevent, in a new shape.
+    const blocked = blockedBaselineCandidates(prior);
+    if (!baseline && blocked.length > 0) {
+      lines.push(
+        `> **THRESHOLD BLOCKED, NOT UNARMED.** ${blocked.length} week(s) with real teacher activity ` +
+          `(${blocked.map((b) => b.isoWeek).join(", ")}) are recorded as PARTIAL, so none can serve as ` +
+          `the baseline and the 50% threshold can never fire. This is a measurement gap, not "no ` +
+          `adoption yet". Re-run after those weeks closed to supersede them.`
+      );
+    } else {
+      lines.push(`> Threshold NOT armed: ${verdict.reason}.`);
+    }
   }
   if (!s.complete) {
     lines.push("");
@@ -557,23 +574,15 @@ async function main() {
 
   await connectPostgres();
 
-  // Cohort integrity (spec E5 / adoption-denominator P0): a PILOT_SCHOOL_CODE
-  // that matches no school makes every scoped query return zero — and zero is
-  // indistinguishable from "the school did nothing". A typo would read as
-  // total adoption failure. Abort instead of quoting a fabricated zero.
-  if (PILOT_SCHOOL_CODE) {
+  // Cohort integrity (spec E5 / adoption-denominator P0). Rule lives in
+  // ./metric-semantics so it is testable without a database.
+  await assertCohortExists(async (code) => {
     const { rows } = await getPgPool().query(
       `SELECT COUNT(*)::int AS n FROM schools WHERE code = $1`,
-      [PILOT_SCHOOL_CODE]
+      [code]
     );
-    if ((rows[0]?.n ?? 0) === 0) {
-      throw new Error(
-        `PILOT_SCHOOL_CODE='${PILOT_SCHOOL_CODE}' matches no row in schools. ` +
-          `Every scoped metric would return 0, which reads as "no adoption" rather ` +
-          `than "wrong code". Fix the value or unset it.`
-      );
-    }
-  }
+    return rows[0]?.n ?? 0;
+  }, PILOT_SCHOOL_CODE);
 
   const body = await collect(
     week.weekStart,

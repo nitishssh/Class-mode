@@ -12,10 +12,25 @@ import {
   resolveTimezone,
   evaluateThreshold,
   BREACH_FRACTION,
+  assertCohortExists,
+  blockedBaselineCandidates,
   DEFAULT_METRICS_TIMEZONE,
 } from "../../scripts/metric-semantics";
 
 const IST = "Asia/Kolkata";
+
+/**
+ * Restore an env var to its previous state.
+ *
+ * `process.env.X = undefined` writes the STRING "undefined" rather than
+ * unsetting, which leaks a value that makes resolveTimezone() throw for every
+ * later caller in the same worker. The suite already has a documented
+ * cross-file state-leak flake; do not add to it.
+ */
+function restoreEnv(key: string, prev: string | undefined): void {
+  if (prev === undefined) delete process.env[key];
+  else process.env[key] = prev;
+}
 
 /**
  * The frozen measurement rules. These are not incidental helpers — each one
@@ -53,14 +68,23 @@ describe("week boundary is evaluated in the reporting timezone", () => {
     const prev = process.env.METRICS_TIMEZONE;
     process.env.METRICS_TIMEZONE = "Mars/Olympus_Mons";
     expect(() => resolveTimezone()).toThrow(/not a valid IANA timezone/);
-    process.env.METRICS_TIMEZONE = prev;
+    restoreEnv("METRICS_TIMEZONE", prev);
   });
 
   it("defaults to the schools' timezone", () => {
     const prev = process.env.METRICS_TIMEZONE;
     delete process.env.METRICS_TIMEZONE;
     expect(resolveTimezone()).toBe(DEFAULT_METRICS_TIMEZONE);
-    if (prev !== undefined) process.env.METRICS_TIMEZONE = prev;
+    restoreEnv("METRICS_TIMEZONE", prev);
+  });
+});
+
+describe("env hygiene", () => {
+  it("leaves METRICS_TIMEZONE unset after the tests that mutate it", () => {
+    // Guards the leak directly: the string "undefined" is not the same as unset,
+    // and resolveTimezone() rejects it as an invalid zone for every later caller.
+    expect(process.env.METRICS_TIMEZONE).not.toBe("undefined");
+    expect(() => resolveTimezone()).not.toThrow();
   });
 });
 
@@ -257,5 +281,61 @@ describe("the kill switch", () => {
 
   it("uses the documented 50% fraction", () => {
     expect(BREACH_FRACTION).toBe(0.5);
+  });
+});
+
+describe("cohort integrity", () => {
+  it("aborts when the pilot school code matches nothing", async () => {
+    // Zero rows and "the school did nothing" produce identical numbers. A typo
+    // would read as total adoption failure in the report a payment conversation
+    // is based on, so the run must stop rather than quote a fabricated zero.
+    await expect(assertCohortExists(async () => 0, "TYPO01")).rejects.toThrow(
+      /matches no row in schools/
+    );
+  });
+
+  it("proceeds when the school exists", async () => {
+    await expect(assertCohortExists(async () => 1, "PILOT01")).resolves.toBeUndefined();
+  });
+
+  it("is a no-op when no pilot school is set (all-schools mode)", async () => {
+    let called = false;
+    await assertCohortExists(async () => {
+      called = true;
+      return 0;
+    }, null);
+    expect(called).toBe(false);
+  });
+});
+
+describe("partial weeks must not silently disarm the threshold", () => {
+  const snap = (isoWeek: string, activeTeachers: number, complete: boolean) => ({
+    isoWeek,
+    metricVersion: METRIC_VERSION,
+    complete,
+    attendance: { activeTeachers },
+  });
+
+  it("names partial weeks that are blocking the baseline", () => {
+    // The operator who only ever runs mid-week produces nothing complete, so
+    // the threshold never arms — indistinguishable from a pilot that has not
+    // started. That is the failure the partial-week rule was meant to prevent,
+    // reappearing in a new shape.
+    const priors = [snap("2026-W30", 5, false), snap("2026-W31", 6, false)];
+    expect(blockedBaselineCandidates(priors).map((p) => p.isoWeek)).toEqual([
+      "2026-W30",
+      "2026-W31",
+    ]);
+  });
+
+  it("stays quiet once a real baseline exists", () => {
+    const priors = [snap("2026-W30", 5, false), snap("2026-W31", 6, true)];
+    expect(blockedBaselineCandidates(priors)).toEqual([]);
+  });
+
+  it("does not flag partial weeks with no activity", () => {
+    // A partial launch week with zero teachers is not blocking anything —
+    // it would not have qualified as a baseline even if complete.
+    expect(blockedBaselineCandidates([snap("2026-W29", 0, false)])).toEqual([]);
   });
 });
