@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/auth-context";
 import { z } from "zod";
@@ -28,6 +29,12 @@ const GoogleMark = ({ className = "h-4 w-4" }: { className?: string }) => (
     />
   </svg>
 );
+
+// Auth capability flags from GET /api/auth/config. Only the fields this
+// component actually gates on are declared.
+interface AuthConfig {
+  googleSignInEnabled?: boolean;
+}
 
 // Heuristic: parse a server error and detect rate-limiting so we can show
 // a friendly cooldown message instead of a generic "Login failed".
@@ -310,6 +317,13 @@ export function AuthDialog() {
     [login, setLocation]
   );
 
+  // Whether to offer Google at all. Rendered on a definite `true` only: while
+  // the request is in flight, or if it failed, we show nothing rather than a
+  // button that may strand the user on Google's error page. Email + password
+  // is always present, so hiding this never leaves the dialog unusable.
+  const { data: authConfig } = useQuery<AuthConfig>({ queryKey: ["/api/auth/config"] });
+  const googleSignInEnabled = authConfig?.googleSignInEnabled === true;
+
   // Shared "Continue with Google" handler used by both Login and Register tabs.
   //
   // Drives a SERVER-SIDE OAuth code flow (/api/auth/google/start) — not the
@@ -491,27 +505,31 @@ export function AuthDialog() {
                     {loginError}
                   </div>
                 )}
-                <button
-                  type="button"
-                  onClick={onGoogleClick}
-                  disabled={isLoginSubmitting || isGoogleSubmitting}
-                  className="flex w-full items-center justify-center gap-3 rounded-full border border-input bg-card py-3 text-sm font-medium text-foreground transition-all hover:bg-muted/40 active:scale-[0.99] disabled:opacity-60"
-                  data-testid="login-google-btn"
-                >
-                  {isGoogleSubmitting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <GoogleMark />
-                  )}
-                  Continue with Google
-                </button>
-                <div className="flex items-center gap-3">
-                  <div className="h-px flex-1 bg-border" />
-                  <span className="text-[11px] uppercase tracking-wider text-muted-foreground/70">
-                    or
-                  </span>
-                  <div className="h-px flex-1 bg-border" />
-                </div>
+                {googleSignInEnabled && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={onGoogleClick}
+                      disabled={isLoginSubmitting || isGoogleSubmitting}
+                      className="flex w-full items-center justify-center gap-3 rounded-full border border-input bg-card py-3 text-sm font-medium text-foreground transition-all hover:bg-muted/40 active:scale-[0.99] disabled:opacity-60"
+                      data-testid="login-google-btn"
+                    >
+                      {isGoogleSubmitting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <GoogleMark />
+                      )}
+                      Continue with Google
+                    </button>
+                    <div className="flex items-center gap-3">
+                      <div className="h-px flex-1 bg-border" />
+                      <span className="text-[11px] uppercase tracking-wider text-muted-foreground/70">
+                        or
+                      </span>
+                      <div className="h-px flex-1 bg-border" />
+                    </div>
+                  </>
+                )}
                 <FormField
                   control={loginForm.control}
                   name="email"
@@ -602,27 +620,31 @@ export function AuthDialog() {
                     {registerError}
                   </div>
                 )}
-                <button
-                  type="button"
-                  onClick={onGoogleClick}
-                  disabled={isRegSubmitting || isGoogleSubmitting}
-                  className="flex w-full items-center justify-center gap-3 rounded-full border border-input bg-card py-3 text-sm font-medium text-foreground transition-all hover:bg-muted/40 active:scale-[0.99] disabled:opacity-60"
-                  data-testid="register-google-btn"
-                >
-                  {isGoogleSubmitting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <GoogleMark />
-                  )}
-                  Continue with Google
-                </button>
-                <div className="flex items-center gap-3">
-                  <div className="h-px flex-1 bg-border" />
-                  <span className="text-[11px] uppercase tracking-wider text-muted-foreground/70">
-                    or
-                  </span>
-                  <div className="h-px flex-1 bg-border" />
-                </div>
+                {googleSignInEnabled && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={onGoogleClick}
+                      disabled={isRegSubmitting || isGoogleSubmitting}
+                      className="flex w-full items-center justify-center gap-3 rounded-full border border-input bg-card py-3 text-sm font-medium text-foreground transition-all hover:bg-muted/40 active:scale-[0.99] disabled:opacity-60"
+                      data-testid="register-google-btn"
+                    >
+                      {isGoogleSubmitting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <GoogleMark />
+                      )}
+                      Continue with Google
+                    </button>
+                    <div className="flex items-center gap-3">
+                      <div className="h-px flex-1 bg-border" />
+                      <span className="text-[11px] uppercase tracking-wider text-muted-foreground/70">
+                        or
+                      </span>
+                      <div className="h-px flex-1 bg-border" />
+                    </div>
+                  </>
+                )}
                 <FormField
                   control={registerForm.control}
                   name="name"
