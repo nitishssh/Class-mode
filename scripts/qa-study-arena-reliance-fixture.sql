@@ -143,3 +143,25 @@ VALUES
   ('dddddddd-0000-4000-8000-000000000003','v1',false)
   ON CONFLICT DO NOTHING;
 COMMIT;
+
+-- ── Phase 2: learner-model state behind the diagnostic cohorts ───────────────
+-- Mastery and review rows are keyed by the lesson's primary concept, falling
+-- back to its objective — the same expression the player writes them under.
+BEGIN;
+INSERT INTO learner_mastery (student_id, concept, subject, p_mastery, confidence) VALUES
+  -- Meena failed transfer with weak mastery: a prerequisite gap, not a crutch.
+  (103, 'Solve linear equations', 'maths', 0.2, 0.5),
+  -- Asha mastered it and is now overdue for recall.
+  (101, 'Solve linear equations', 'maths', 0.9, 0.8),
+  -- Ravi mastered it and is not yet due.
+  (102, 'Solve linear equations', 'maths', 0.85, 0.8)
+  ON CONFLICT (student_id, concept) DO UPDATE SET p_mastery = EXCLUDED.p_mastery;
+
+INSERT INTO review_schedule (student_id, concept, sm2_ef, interval_days, repetitions, due_at) VALUES
+  (101, 'Solve linear equations', 2.5, 7, 2, now() - interval '4 days'),
+  (102, 'Solve linear equations', 2.5, 7, 2, now() + interval '4 days'),
+  -- Meena has a row but has never completed a review: never "overdue".
+  (103, 'Solve linear equations', 2.5, 0, 0, now() - interval '9 days')
+  ON CONFLICT (student_id, concept) DO UPDATE SET due_at = EXCLUDED.due_at,
+    repetitions = EXCLUDED.repetitions;
+COMMIT;

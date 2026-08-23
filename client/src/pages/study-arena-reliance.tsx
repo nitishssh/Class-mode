@@ -26,13 +26,15 @@ interface StudentReliance {
   assessed: number;
   transferCorrect: number;
   transferFailed: number;
+  prerequisiteGapConcepts: string[];
+  recallOverdueConcepts: string[];
 }
 
 interface RelianceModel {
   windowDays: number;
   students: StudentReliance[];
   cohorts: Array<{
-    key: "failed_transfer" | "high_help";
+    key: "failed_transfer" | "high_help" | "prerequisite_gap" | "recall_overdue";
     label: string;
     studentIds: number[];
     suggestedAction: string;
@@ -88,6 +90,25 @@ export default function StudyArenaReliance() {
     setModel(null);
     setError(null);
     setWindowDays(days);
+  };
+
+  // A cohort is who; the concepts behind it are what to actually reteach.
+  const conceptsFor = (cohort: RelianceModel["cohorts"][number]): string[] => {
+    if (!model) return [];
+    const key =
+      cohort.key === "prerequisite_gap"
+        ? "prerequisiteGapConcepts"
+        : cohort.key === "recall_overdue"
+          ? "recallOverdueConcepts"
+          : null;
+    if (!key) return [];
+    return [
+      ...new Set(
+        model.students
+          .filter((student) => cohort.studentIds.includes(student.studentId))
+          .flatMap((student) => student[key])
+      ),
+    ];
   };
 
   const recordFollowUp = async (cohort: RelianceModel["cohorts"][number]) => {
@@ -176,6 +197,11 @@ export default function StudyArenaReliance() {
                       {cohort.label} · {cohort.studentIds.length}
                     </p>
                     <p className="text-sm text-muted-foreground">{cohort.suggestedAction}</p>
+                    {conceptsFor(cohort).length > 0 && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {conceptsFor(cohort).join(" · ")}
+                      </p>
+                    )}
                   </div>
                   <Button
                     size="sm"
@@ -191,17 +217,18 @@ export default function StudyArenaReliance() {
           </section>
 
           <div className="overflow-hidden rounded-xl border border-border bg-card">
-            <div className="grid gap-4 border-b border-border bg-muted/40 px-4 py-3 text-xs font-bold uppercase tracking-wide text-muted-foreground lg:grid-cols-[minmax(9rem,1fr)_auto_auto_auto_minmax(8rem,1fr)]">
+            <div className="grid gap-4 border-b border-border bg-muted/40 px-4 py-3 text-xs font-bold uppercase tracking-wide text-muted-foreground lg:grid-cols-[minmax(9rem,1fr)_auto_auto_auto_minmax(8rem,1fr)_minmax(8rem,1fr)]">
               <span>Student</span>
               <span>Lessons</span>
               <span>Hints before trying</span>
               <span>Trend</span>
               <span>On their own</span>
+              <span>Concept flags</span>
             </div>
             {model.students.map((student) => (
               <div
                 key={student.studentId}
-                className="grid gap-4 border-b border-border px-4 py-3 text-sm last:border-0 lg:grid-cols-[minmax(9rem,1fr)_auto_auto_auto_minmax(8rem,1fr)]"
+                className="grid gap-4 border-b border-border px-4 py-3 text-sm last:border-0 lg:grid-cols-[minmax(9rem,1fr)_auto_auto_auto_minmax(8rem,1fr)_minmax(8rem,1fr)]"
               >
                 <span>{student.studentName ?? `Student ${student.studentId}`}</span>
                 <span className="text-muted-foreground">
@@ -235,6 +262,21 @@ export default function StudyArenaReliance() {
                   {student.assessed === 0
                     ? "Not checked yet"
                     : `${student.transferCorrect} of ${student.assessed} correct`}
+                </span>
+                <span className="min-w-0 text-xs text-muted-foreground">
+                  {student.prerequisiteGapConcepts.length > 0 && (
+                    <span className="block truncate text-amber-700">
+                      Prerequisite: {student.prerequisiteGapConcepts.join(", ")}
+                    </span>
+                  )}
+                  {student.recallOverdueConcepts.length > 0 && (
+                    <span className="block truncate">
+                      Recall due: {student.recallOverdueConcepts.join(", ")}
+                    </span>
+                  )}
+                  {student.prerequisiteGapConcepts.length === 0 &&
+                    student.recallOverdueConcepts.length === 0 &&
+                    "—"}
                 </span>
               </div>
             ))}

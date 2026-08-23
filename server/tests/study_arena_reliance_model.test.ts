@@ -23,6 +23,10 @@ function row(overrides: Partial<RelianceGateRow> = {}): RelianceGateRow {
     hintFirstGates: 0,
     assessed: true,
     transferCorrect: true,
+    concept: "linear-equations",
+    pMastery: 0.8,
+    repetitions: 0,
+    reviewDueAt: null,
     ...overrides,
   };
 }
@@ -152,5 +156,102 @@ describe("reliance query shape", () => {
 
   it("scopes every read to one workspace", () => {
     expect(source).toContain("e.workspace_id = $1");
+  });
+});
+
+// Phase 2: the two cohort keys the interventions endpoint has always accepted
+// but nothing ever produced.
+describe("diagnostic cohorts", () => {
+  it("calls a failed transfer with weak mastery a prerequisite gap, not a crutch", () => {
+    const model = buildRelianceModel(
+      [row({ studentId: 5, transferCorrect: false, pMastery: 0.2 })],
+      30
+    );
+    expect(model.students[0].prerequisiteGapConcepts).toEqual(["linear-equations"]);
+    expect(model.cohorts.find((c) => c.key === "prerequisite_gap")?.studentIds).toEqual([5]);
+  });
+
+  it("does not list the same student under both prerequisite gap and failed transfer", () => {
+    const model = buildRelianceModel(
+      [
+        row({ studentId: 5, transferCorrect: false, pMastery: 0.2 }),
+        row({ studentId: 6, assignmentId: "a2", transferCorrect: false, pMastery: 0.9 }),
+      ],
+      30
+    );
+    expect(model.cohorts.find((c) => c.key === "prerequisite_gap")?.studentIds).toEqual([5]);
+    expect(model.cohorts.find((c) => c.key === "failed_transfer")?.studentIds).toEqual([6]);
+  });
+
+  it("does not call a failed transfer a prerequisite gap when mastery is unknown", () => {
+    const model = buildRelianceModel(
+      [row({ studentId: 7, transferCorrect: false, pMastery: null })],
+      30
+    );
+    expect(model.students[0].prerequisiteGapConcepts).toEqual([]);
+    expect(model.cohorts.find((c) => c.key === "failed_transfer")?.studentIds).toEqual([7]);
+  });
+
+  it("flags a mastered concept whose review has come due", () => {
+    const model = buildRelianceModel(
+      [
+        row({
+          studentId: 8,
+          pMastery: 0.9,
+          repetitions: 2,
+          reviewDueAt: "2026-01-01T00:00:00Z",
+        }),
+      ],
+      30
+    );
+    expect(model.students[0].recallOverdueConcepts).toEqual(["linear-equations"]);
+    expect(model.cohorts.find((c) => c.key === "recall_overdue")?.studentIds).toEqual([8]);
+  });
+
+  it("leaves a not-yet-due review alone", () => {
+    const model = buildRelianceModel(
+      [
+        row({
+          studentId: 9,
+          pMastery: 0.9,
+          repetitions: 2,
+          reviewDueAt: new Date(Date.now() + 86_400_000).toISOString(),
+        }),
+      ],
+      30
+    );
+    expect(model.cohorts.find((c) => c.key === "recall_overdue")).toBeUndefined();
+  });
+
+  it("does not call a never-reviewed concept overdue", () => {
+    const model = buildRelianceModel(
+      [row({ studentId: 10, pMastery: 0.9, repetitions: 0, reviewDueAt: "2026-01-01T00:00:00Z" })],
+      30
+    );
+    expect(model.students[0].recallOverdueConcepts).toEqual([]);
+  });
+
+  it("names each distinct concept once", () => {
+    const model = buildRelianceModel(
+      [
+        row({ studentId: 11, transferCorrect: false, pMastery: 0.1, concept: "fractions" }),
+        row({
+          studentId: 11,
+          assignmentId: "a2",
+          transferCorrect: false,
+          pMastery: 0.1,
+          concept: "fractions",
+        }),
+        row({
+          studentId: 11,
+          assignmentId: "a3",
+          transferCorrect: false,
+          pMastery: 0.1,
+          concept: "decimals",
+        }),
+      ],
+      30
+    );
+    expect(model.students[0].prerequisiteGapConcepts).toEqual(["fractions", "decimals"]);
   });
 });

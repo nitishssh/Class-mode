@@ -1,4 +1,8 @@
 import { getPgPool, isPgReady } from "../../db-pg";
+import {
+  MASTERED_THRESHOLD,
+  WEAK_PREREQUISITE_THRESHOLD,
+} from "./adaptive-policy";
 
 /**
  * Cross-assignment reliance read model.
@@ -32,6 +36,12 @@ export interface RelianceGateRow {
   hintFirstGates: number;
   assessed: boolean;
   transferCorrect: boolean | null;
+  /** Concept the lesson tracks mastery under: primary_concept_id, else objective. */
+  concept: string;
+  /** Learner-model state for that concept, null when the student has no row yet. */
+  pMastery: number | null;
+  repetitions: number;
+  reviewDueAt: Date | string | null;
 }
 
 export interface StudentReliance {
@@ -55,10 +65,16 @@ export interface StudentReliance {
   assessed: number;
   transferCorrect: number;
   transferFailed: number;
+  /**
+   * Named concepts behind the diagnostic cohorts. A cohort tells a teacher who;
+   * these tell them what to actually sit down and do.
+   */
+  prerequisiteGapConcepts: string[];
+  recallOverdueConcepts: string[];
 }
 
 export interface RelianceCohort {
-  key: "failed_transfer" | "high_help";
+  key: "failed_transfer" | "high_help" | "prerequisite_gap" | "recall_overdue";
   label: string;
   studentIds: number[];
   suggestedAction: string;
@@ -87,6 +103,10 @@ export function relianceScore(input: {
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+function unique(values: string[]): string[] {
+  return [...new Set(values)];
 }
 
 /**
@@ -133,6 +153,32 @@ export function buildRelianceModel(rows: RelianceGateRow[], windowDays: number):
           )
         : null;
 
+    // A student can trip several diagnostics; name the concept behind each so the
+    // teacher gets "fractions", not just a list of names.
+    const now = Date.now();
+    const prerequisiteGapConcepts = unique(
+      ordered
+        .filter(
+          (row) =>
+            row.transferCorrect === false &&
+            row.pMastery !== null &&
+            row.pMastery < WEAK_PREREQUISITE_THRESHOLD
+        )
+        .map((row) => row.concept)
+    );
+    const recallOverdueConcepts = unique(
+      ordered
+        .filter(
+          (row) =>
+            row.repetitions > 0 &&
+            row.pMastery !== null &&
+            row.pMastery >= MASTERED_THRESHOLD &&
+            row.reviewDueAt !== null &&
+            new Date(row.reviewDueAt).getTime() < now
+        )
+        .map((row) => row.concept)
+    );
+
     students.push({
       studentId,
       studentName: ordered[ordered.length - 1]?.studentName ?? null,
@@ -144,27 +190,54 @@ export function buildRelianceModel(rows: RelianceGateRow[], windowDays: number):
       assessed: ordered.filter((row) => row.assessed).length,
       transferCorrect: ordered.filter((row) => row.transferCorrect === true).length,
       transferFailed: ordered.filter((row) => row.transferCorrect === false).length,
+      prerequisiteGapConcepts,
+      recallOverdueConcepts,
     });
   }
 
   students.sort((a, b) => (b.reliance ?? -1) - (a.reliance ?? -1) || a.studentId - b.studentId);
 
-  const cohorts: RelianceCohort[] = ([
-    {
-      key: "failed_transfer" as const,
-      label: "Failed independent transfer",
-      studentIds: students.filter((s) => s.transferFailed > 0).map((s) => s.studentId),
-      suggestedAction: "Review the misconception and assign supported practice.",
-    },
-    {
-      key: "high_help" as const,
-      label: "Reaching for hints before trying",
-      studentIds: students
-        .filter((s) => s.reliance !== null && s.reliance >= HIGH_RELIANCE_THRESHOLD)
-        .map((s) => s.studentId),
-      suggestedAction: "Sit with the first gate before they open a hint.",
-    },
-  ] satisfies RelianceCohort[]).filter((cohort) => cohort.studentIds.length > 0);
+  const cohorts: RelianceCohort[] = (
+    [
+      {
+        // A named prerequisite gap is a more actionable diagnosis than "failed
+        // transfer", so it claims the student and failed_transfer below skips
+        // them. Two overlapping lists of the same child is noise a teacher has
+        // to reconcile by hand.
+        key: "prerequisite_gap" as const,
+        label: "Missing a prerequisite",
+        studentIds: students
+          .filter((s) => s.prerequisiteGapConcepts.length > 0)
+          .map((s) => s.studentId),
+        suggestedAction: "Reteach the earlier concept before repeating this lesson.",
+      },
+      {
+        key: "failed_transfer" as const,
+        label: "Failed independent transfer",
+        studentIds: students
+          .filter((s) => s.transferFailed > 0 && s.prerequisiteGapConcepts.length === 0)
+          .map((s) => s.studentId),
+        suggestedAction: "Review the misconception and assign supported practice.",
+      },
+      {
+        key: "high_help" as const,
+        label: "Reaching for hints before trying",
+        studentIds: students
+          .filter((s) => s.reliance !== null && s.reliance >= HIGH_RELIANCE_THRESHOLD)
+          .map((s) => s.studentId),
+        suggestedAction: "Sit with the first gate before they open a hint.",
+      },
+      {
+        // Not a problem with this lesson: something they had, now going stale.
+        key: "recall_overdue" as const,
+        label: "Mastered, now due for recall",
+        studentIds: students
+          .filter((s) => s.recallOverdueConcepts.length > 0)
+          .map((s) => s.studentId),
+        suggestedAction: "Drop a short recall check into the next lesson.",
+      },
+    ] satisfies RelianceCohort[]
+  ).filter((cohort) => cohort.studentIds.length > 0);
 
   return { windowDays, students, cohorts, insufficientEvidence };
 }
@@ -199,6 +272,10 @@ export async function getRelianceCohorts(
     hint_first_gates: number;
     assessed: boolean;
     transfer_correct: boolean | null;
+    concept: string;
+    p_mastery: number | null;
+    repetitions: number;
+    review_due_at: Date | null;
   }>(
     `WITH scoped AS (
        SELECT e.student_id, e.assignment_id, e.attempt_session_id, e.action_index,
@@ -242,10 +319,24 @@ export async function getRelianceCohorts(
             p.assignment_id, a.created_at AS assignment_at,
             p.gates, p.attempts, p.hints, p.hint_first_gates,
             (assessment.submitted_at IS NOT NULL) AS assessed,
-            assessment.correct AS transfer_correct
+            assessment.correct AS transfer_correct,
+            -- Mastery and review rows are keyed by the same expression the
+            -- player writes them under (assignment-sessions.ts): the lesson's
+            -- primary concept, falling back to its objective.
+            COALESCE(lv.primary_concept_id, lv.objective) AS concept,
+            lm.p_mastery,
+            COALESCE(rs.repetitions, 0)::int AS repetitions,
+            rs.due_at AS review_due_at
        FROM per_assignment p
        JOIN users u ON u.id = p.student_id
        JOIN study_arena_assignments a ON a.id = p.assignment_id
+       JOIN study_arena_lesson_versions lv ON lv.id = a.lesson_version_id
+       LEFT JOIN learner_mastery lm
+         ON lm.student_id = p.student_id
+        AND lm.concept = COALESCE(lv.primary_concept_id, lv.objective)
+       LEFT JOIN review_schedule rs
+         ON rs.student_id = p.student_id
+        AND rs.concept = COALESCE(lv.primary_concept_id, lv.objective)
        LEFT JOIN LATERAL (
          SELECT ai.submitted_at, ev.correct
            FROM study_arena_attempt_sessions s
@@ -275,6 +366,10 @@ export async function getRelianceCohorts(
       hintFirstGates: Number(row.hint_first_gates),
       assessed: Boolean(row.assessed),
       transferCorrect: row.transfer_correct,
+      concept: row.concept,
+      pMastery: row.p_mastery === null ? null : Number(row.p_mastery),
+      repetitions: Number(row.repetitions),
+      reviewDueAt: row.review_due_at,
     })),
     windowDays
   );

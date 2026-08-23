@@ -1,6 +1,6 @@
 # Over-Reliance Dashboard — Feature Plan
 
-> **Status:** Phase 1 built (help_depth fix + reliance read model, endpoint, page). Phases 2–3 open.
+> **Status:** Phases 1 and 2 built. Phase 3 (rollup table + weekly digest) open.
 > **Lineage:** the Phase-3 piece named "teacher-facing over-reliance dashboard" in
 > [study-arena-inspired-by-openmaic.md](study-arena-inspired-by-openmaic.md) — **specced, not built**.
 > **Payment-trigger check:** this does _not_ compete on model-interaction quality. It reads
@@ -116,7 +116,31 @@ existing per-assignment interventions endpoint. No schema change, as planned.
 5. Link from `study-arena-report.tsx` ("see this student across assignments") and from
    `educator/dashboard.tsx`.
 
-### Phase 2 — The two dormant cohorts
+### Phase 2 — The two dormant cohorts — **BUILT**
+
+Both cohorts now produce, and both reuse the player's own thresholds, exported from
+`adaptive-policy.ts` (`MASTERED_THRESHOLD` 0.7, `WEAK_PREREQUISITE_THRESHOLD` 0.4) rather than a
+second set of constants — a student the player routed to `prerequisite_refresh` is the student
+the dashboard calls a prerequisite gap.
+
+Two judgement calls worth knowing:
+
+- **`prerequisite_gap` claims the student from `failed_transfer`.** A named prerequisite is the
+  more actionable diagnosis, and two overlapping lists of the same child is work a teacher has to
+  reconcile by hand. Failed transfer now means "failed, and mastery does not explain why".
+- **The rows carry concept names**, not just cohort membership: `prerequisiteGapConcepts` and
+  `recallOverdueConcepts` per student, shown on the cohort card and in a table column. A cohort
+  says who; the concept says what to reteach.
+- **Unknown mastery is never a gap.** A student with no `learner_mastery` row stays in
+  `failed_transfer`; absence of evidence is not evidence of a gap.
+- **`recall_overdue` requires `repetitions > 0`.** A `review_schedule` row defaults `due_at` to
+  `now()`, so a never-reviewed concept is perpetually "due" — that would have flagged everyone.
+
+**Scope limit:** the window only sees students with attempt evidence in it, so a student who
+mastered a concept and has since done nothing will not appear as recall-overdue. Widening that
+means reading the review schedule independently of the evidence window — Phase 3 territory.
+
+### Phase 2 — original spec
 
 `prerequisite_gap` (low reliance + failed transfer + weak `learner_mastery` on the lesson's
 `primary_concept_id`) and `recall_overdue` (mastered once, now past SM-2 `due_at`). Both write
@@ -140,20 +164,25 @@ the lesson player, the director, or scene generation; anything requiring an LLM 
 Phase 1 was verified against a real Postgres (`npm run migrate` + `seed-pilot` + the fixture at
 `scripts/qa-study-arena-reliance-fixture.sql`), not just mocks. What the run proved:
 
-| Case | Result |
-| --- | --- |
-| Attempts only, 10 attempts / 0 hints | reliance 0 — the pre-fix code would have called this maximally reliant |
-| Hint before attempt at every gate | reliance 1.0, in the high-help cohort |
-| Same hint count taken *after* attempting | reliance 0.4, **not** in the cohort |
-| Attempted unaided, still failed transfer | `failed_transfer` only — a gap, not a crutch |
-| 2 gates of evidence | score withheld, listed in `insufficientEvidence` |
-| Improving student across two lessons | trend −0.75 |
-| Assignment 200 days old | excluded; `sinceDays` clamps to the 90-day cap |
-| `classId` / `subject` filters | narrow correctly |
-| Second workspace's evidence | never appears in workspace 1's read |
-| Follow-up POST on another tenant's assignment | 404, nothing written |
+| Case                                                 | Result                                                                 |
+| ---------------------------------------------------- | ---------------------------------------------------------------------- |
+| Attempts only, 10 attempts / 0 hints                 | reliance 0 — the pre-fix code would have called this maximally reliant |
+| Hint before attempt at every gate                    | reliance 1.0, in the high-help cohort                                  |
+| Same hint count taken _after_ attempting             | reliance 0.4, **not** in the cohort                                    |
+| Attempted unaided, still failed transfer             | `failed_transfer` only — a gap, not a crutch                           |
+| 2 gates of evidence                                  | score withheld, listed in `insufficientEvidence`                       |
+| Improving student across two lessons                 | trend −0.75                                                            |
+| Assignment 200 days old                              | excluded; `sinceDays` clamps to the 90-day cap                         |
+| `classId` / `subject` filters                        | narrow correctly                                                       |
+| Second workspace's evidence                          | never appears in workspace 1's read                                    |
+| Follow-up POST on another tenant's assignment        | 404, nothing written                                                   |
+| **Phase 2:** failed transfer + mastery 0.2           | `prerequisite_gap`, concept named, removed from `failed_transfer`      |
+| **Phase 2:** mastered 0.9, review 4 days overdue     | `recall_overdue`                                                       |
+| **Phase 2:** mastered 0.85, review due in 4 days     | not flagged                                                            |
+| **Phase 2:** past due but `repetitions = 0`          | not flagged                                                            |
+| **Phase 2:** follow-up POST with each new cohort key | 201, rows written                                                      |
 
-**One bug found and fixed by this run:** the query counted *teacher preview* sessions as learner
+**One bug found and fixed by this run:** the query counted _teacher preview_ sessions as learner
 evidence, so a teacher walking their own lesson appeared in their class's reliance list at
 reliance 1.0. The player declines to write preview evidence, so this was unreachable in
 production today — but the read model should not depend on the writer for tenant hygiene. The
