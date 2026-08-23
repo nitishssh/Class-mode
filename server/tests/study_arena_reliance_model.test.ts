@@ -3,6 +3,7 @@
 // the evidence floor, and the trend arrow.
 
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "fs";
 import {
   buildRelianceModel,
   relianceScore,
@@ -132,5 +133,24 @@ describe("buildRelianceModel follow-up target", () => {
       30
     );
     expect(model.students[0].latestAssignmentId).toBe("newest");
+  });
+});
+
+// The aggregation above is pure, but two properties live in SQL the unit tests
+// cannot reach. Both were caught by running the query against a seeded database
+// (scripts/qa-study-arena-reliance-fixture.sql); these assertions stop a future
+// edit from silently dropping them.
+describe("reliance query shape", () => {
+  const source = readFileSync(
+    new URL("../services/study-arena/reliance-model.ts", import.meta.url),
+    "utf8"
+  );
+
+  it("excludes teacher preview sessions from learner evidence", () => {
+    expect(source).toContain("s.is_preview = false");
+  });
+
+  it("scopes every read to one workspace", () => {
+    expect(source).toContain("e.workspace_id = $1");
   });
 });

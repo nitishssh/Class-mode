@@ -206,6 +206,11 @@ export async function getRelianceCohorts(
          FROM study_arena_evidence_events e
          JOIN study_arena_assignments a ON a.id = e.assignment_id
          JOIN study_arena_lesson_versions lv ON lv.id = e.lesson_version_id
+         -- Teacher preview sessions are not learner evidence. The player already
+         -- declines to write them, but a teacher walking their own lesson must
+         -- never be able to appear in their class's reliance list.
+         JOIN study_arena_attempt_sessions s
+           ON s.id = e.attempt_session_id AND s.is_preview = false
         WHERE e.workspace_id = $1
           AND e.event_kind IN ('attempt', 'hint')
           AND e.created_at >= now() - make_interval(days => $2::int)

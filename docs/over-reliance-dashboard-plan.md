@@ -135,6 +135,34 @@ the lesson player, the director, or scene generation; anything requiring an LLM 
 
 ---
 
+## QA against a seeded database
+
+Phase 1 was verified against a real Postgres (`npm run migrate` + `seed-pilot` + the fixture at
+`scripts/qa-study-arena-reliance-fixture.sql`), not just mocks. What the run proved:
+
+| Case | Result |
+| --- | --- |
+| Attempts only, 10 attempts / 0 hints | reliance 0 — the pre-fix code would have called this maximally reliant |
+| Hint before attempt at every gate | reliance 1.0, in the high-help cohort |
+| Same hint count taken *after* attempting | reliance 0.4, **not** in the cohort |
+| Attempted unaided, still failed transfer | `failed_transfer` only — a gap, not a crutch |
+| 2 gates of evidence | score withheld, listed in `insufficientEvidence` |
+| Improving student across two lessons | trend −0.75 |
+| Assignment 200 days old | excluded; `sinceDays` clamps to the 90-day cap |
+| `classId` / `subject` filters | narrow correctly |
+| Second workspace's evidence | never appears in workspace 1's read |
+| Follow-up POST on another tenant's assignment | 404, nothing written |
+
+**One bug found and fixed by this run:** the query counted *teacher preview* sessions as learner
+evidence, so a teacher walking their own lesson appeared in their class's reliance list at
+reliance 1.0. The player declines to write preview evidence, so this was unreachable in
+production today — but the read model should not depend on the writer for tenant hygiene. The
+`scoped` CTE now joins `study_arena_attempt_sessions ... is_preview = false`.
+
+Response codes exercised over HTTP: 200 (teacher), 401 (anonymous), 409 (no active workspace),
+400 (`sinceDays` over the cap, non-numeric), 201 + row written (follow-up), 404 (cross-tenant
+follow-up).
+
 ## Risks
 
 - **Wrong-metric risk.** Reliance is inferred, not observed. Mitigations: the ≥3-gate floor, always
