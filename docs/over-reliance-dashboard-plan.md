@@ -1,6 +1,6 @@
 # Over-Reliance Dashboard — Feature Plan
 
-> **Status:** Phases 1 and 2 built. Phase 3 (rollup table + weekly digest) open.
+> **Status:** Phases 1–3 built, except the rollup table — measured and found unjustified (below).
 > **Lineage:** the Phase-3 piece named "teacher-facing over-reliance dashboard" in
 > [study-arena-inspired-by-openmaic.md](study-arena-inspired-by-openmaic.md) — **specced, not built**.
 > **Payment-trigger check:** this does _not_ compete on model-interaction quality. It reads
@@ -146,7 +146,44 @@ means reading the review schedule independently of the evidence window — Phase
 `primary_concept_id`) and `recall_overdue` (mastered once, now past SM-2 `due_at`). Both write
 through the existing interventions endpoint. Needs no schema change either.
 
-### Phase 3 — Trend durability
+### Phase 3 — **BUILT, minus the rollup**
+
+**The rollup table was measured, not built.** The plan gated it on adoption, so it was measured
+before writing any of it: 400 students, 20 assignments, 480k evidence events, two years of
+history (an implausibly heavy single school), 5 runs per window.
+
+| Window | Median | Students |
+| --- | --- | --- |
+| 7 days | 63 ms | 402 |
+| 30 days | 227 ms | 404 |
+| 90 days | 266 ms | 404 |
+
+A covering index on `(workspace_id, created_at)` was tried and **removed**: identical timings, so
+the cost is aggregating the rows inside the window, not finding them — and an index that does not
+pay for itself still taxes every evidence write on a hot append path. At ~230 ms for a page a
+teacher opens a few times a day, a nightly rollup would add a table, a job, and a staleness
+window to save nothing anyone can feel. Revisit if a single workspace exceeds roughly 2k students
+or the window widens past 90 days.
+
+**Built instead:**
+
+1. **Recall-overdue now reads independently of the evidence window.** The scope limit flagged at
+   the end of Phase 2 was real: the student most likely to be forgetting is the one who has *not*
+   opened a lesson recently, so an in-window read structurally cannot see them. A second query
+   walks the review schedule for students enrolled in this workspace, and they join the model with
+   `gates: 0`, `reliance: null`, `latestAssignmentId: null`. Verified: a student with zero
+   evidence events now surfaces under `recall_overdue`.
+2. **Weekly digest line** in `scripts/metrics-weekly.ts`: hint-first gates as a rate, plus how many
+   students were mostly hint-first. It mirrors the dashboard's definition, excludes preview
+   sessions, and renders a small-but-real rate as `<1%` rather than `0%` — on that instrument a
+   zero is a claim ("nobody offloaded"), and rounding one into existence is the same dishonesty as
+   substituting a blank for an error.
+
+**One defect the scale run exposed**, introduced in Phase 1: recording a cohort follow-up fired one
+POST per student in a single `Promise.all`. Harmless for the four-student fixture, 400 parallel
+requests for a real year group. It now walks in batches of 8 and reports how many actually landed.
+
+### Phase 3 — original spec
 
 Only if teachers use Phase 1: a nightly rollup table so the window is not recomputed per page
 load, and a weekly digest via `scripts/metrics-weekly.ts`.

@@ -16,7 +16,7 @@ interface StudentReliance {
   studentId: number;
   studentName: string | null;
   assignments: number;
-  latestAssignmentId: string;
+  latestAssignmentId: string | null;
   gates: number;
   attempts: number;
   hints: number;
@@ -43,6 +43,8 @@ interface RelianceModel {
 }
 
 const WINDOWS = [7, 30, 90];
+/** Follow-up writes go one student at a time; keep the fan-out civil. */
+const FOLLOW_UP_BATCH = 8;
 
 function TrendIcon({ trend }: { trend: number | null }) {
   if (trend === null)
@@ -117,23 +119,43 @@ export default function StudyArenaReliance() {
     // on their own most recent assignment rather than an arbitrary shared one.
     const actionNote = window.prompt(`Follow-up for ${cohort.label}:`, cohort.suggestedAction);
     if (!actionNote) return;
-    const targets = model.students.filter((student) =>
-      cohort.studentIds.includes(student.studentId)
+    // A student surfaced only by an overdue recall has no assignment in the
+    // window, so there is nothing to attach a note to. Skip them rather than
+    // inventing a target.
+    const targets = model.students.filter(
+      (student) =>
+        cohort.studentIds.includes(student.studentId) && student.latestAssignmentId !== null
     );
-    await Promise.all(
-      targets.map((student) =>
-        fetch(`/api/study-arena-beta/assignments/${student.latestAssignmentId}/interventions`, {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            cohortKey: cohort.key,
-            studentId: student.studentId,
-            actionNote,
-          }),
-        })
-      )
-    );
+    // The interventions endpoint takes one student at a time, and a cohort can
+    // be the whole year group — firing the fan-out at once would open hundreds
+    // of parallel requests and half of them would fail. Walk it in small
+    // batches instead, and report what actually landed.
+    let recorded = 0;
+    for (let i = 0; i < targets.length; i += FOLLOW_UP_BATCH) {
+      const batch = targets.slice(i, i + FOLLOW_UP_BATCH);
+      const results = await Promise.all(
+        batch.map((student) =>
+          fetch(`/api/study-arena-beta/assignments/${student.latestAssignmentId!}/interventions`, {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              cohortKey: cohort.key,
+              studentId: student.studentId,
+              actionNote,
+            }),
+          }).then(
+            (response) => response.ok,
+            () => false
+          )
+        )
+      );
+      recorded += results.filter(Boolean).length;
+    }
+    if (recorded < targets.length) {
+      setError(`Recorded ${recorded} of ${targets.length} follow-ups. Try the rest again.`);
+      return;
+    }
     setRecordedGroups((current) => new Set(current).add(cohort.key));
   };
 
@@ -232,7 +254,9 @@ export default function StudyArenaReliance() {
               >
                 <span>{student.studentName ?? `Student ${student.studentId}`}</span>
                 <span className="text-muted-foreground">
-                  {student.assignments} · {student.gates} gates
+                  {student.assignments === 0
+                    ? "None this window"
+                    : `${student.assignments} · ${student.gates} gates`}
                 </span>
                 {student.reliance === null ? (
                   <span className="text-muted-foreground">Not enough evidence</span>

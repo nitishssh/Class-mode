@@ -51,9 +51,11 @@ export interface StudentReliance {
   /**
    * Most recent assignment in the window. Follow-up is recorded through the
    * existing per-assignment interventions endpoint, so a cross-assignment view
-   * still needs one assignment to hang the note on.
+   * still needs one assignment to hang the note on. Null for a student whose
+   * only signal is an overdue recall — there is nothing in the window to
+   * attach a note to, and the UI drops the follow-up affordance for them.
    */
-  latestAssignmentId: string;
+  latestAssignmentId: string | null;
   gates: number;
   attempts: number;
   hints: number;
@@ -78,6 +80,18 @@ export interface RelianceCohort {
   label: string;
   studentIds: number[];
   suggestedAction: string;
+}
+
+/**
+ * A concept a student mastered whose SM-2 review has come due. Read separately
+ * from the attempt evidence: the student most likely to be forgetting is exactly
+ * the one who has not touched a lesson inside the window, so a recall list keyed
+ * off in-window evidence would miss them.
+ */
+export interface OverdueRecallRow {
+  studentId: number;
+  studentName: string | null;
+  concept: string;
 }
 
 export interface RelianceModel {
@@ -113,12 +127,23 @@ function unique(values: string[]): string[] {
  * Pure aggregation, split from the query so the metric is testable without a
  * database. Rows are one per (student, assignment).
  */
-export function buildRelianceModel(rows: RelianceGateRow[], windowDays: number): RelianceModel {
+export function buildRelianceModel(
+  rows: RelianceGateRow[],
+  windowDays: number,
+  overdueRecalls: OverdueRecallRow[] = []
+): RelianceModel {
   const byStudent = new Map<number, RelianceGateRow[]>();
   for (const row of rows) {
     const bucket = byStudent.get(row.studentId);
     if (bucket) bucket.push(row);
     else byStudent.set(row.studentId, [row]);
+  }
+
+  const overdueByStudent = new Map<number, OverdueRecallRow[]>();
+  for (const row of overdueRecalls) {
+    const bucket = overdueByStudent.get(row.studentId);
+    if (bucket) bucket.push(row);
+    else overdueByStudent.set(row.studentId, [row]);
   }
 
   const students: StudentReliance[] = [];
@@ -166,8 +191,9 @@ export function buildRelianceModel(rows: RelianceGateRow[], windowDays: number):
         )
         .map((row) => row.concept)
     );
-    const recallOverdueConcepts = unique(
-      ordered
+    const recallOverdueConcepts = unique([
+      ...(overdueByStudent.get(studentId) ?? []).map((row) => row.concept),
+      ...ordered
         .filter(
           (row) =>
             row.repetitions > 0 &&
@@ -176,8 +202,8 @@ export function buildRelianceModel(rows: RelianceGateRow[], windowDays: number):
             row.reviewDueAt !== null &&
             new Date(row.reviewDueAt).getTime() < now
         )
-        .map((row) => row.concept)
-    );
+        .map((row) => row.concept),
+    ]);
 
     students.push({
       studentId,
@@ -192,6 +218,29 @@ export function buildRelianceModel(rows: RelianceGateRow[], windowDays: number):
       transferFailed: ordered.filter((row) => row.transferCorrect === false).length,
       prerequisiteGapConcepts,
       recallOverdueConcepts,
+    });
+  }
+
+  // Students whose only signal is a stale concept: no attempt evidence in the
+  // window at all. They are the point of reading the review schedule separately.
+  for (const [studentId, overdue] of overdueByStudent) {
+    if (byStudent.has(studentId)) continue;
+    students.push({
+      studentId,
+      studentName: overdue[0]?.studentName ?? null,
+      assignments: 0,
+      latestAssignmentId: null,
+      gates: 0,
+      attempts: 0,
+      hints: 0,
+      hintFirstGates: 0,
+      reliance: null,
+      trend: null,
+      assessed: 0,
+      transferCorrect: 0,
+      transferFailed: 0,
+      prerequisiteGapConcepts: [],
+      recallOverdueConcepts: unique(overdue.map((row) => row.concept)),
     });
   }
 
@@ -354,6 +403,36 @@ export async function getRelianceCohorts(
     [workspaceId, windowDays, filters.classId ?? null, filters.subject ?? null]
   );
 
+  // Read separately from the evidence window on purpose: the student most likely
+  // to be forgetting is the one who has not opened a lesson recently. Scoped to
+  // students enrolled in this workspace's assignments so it stays tenant-safe,
+  // and to concepts this workspace actually teaches.
+  const overdue = await getPgPool().query<{
+    student_id: number;
+    student_name: string | null;
+    concept: string;
+  }>(
+    `SELECT DISTINCT e.student_id,
+            COALESCE(u.display_name, u.name, u.username) AS student_name,
+            rs.concept
+       FROM study_arena_assignment_enrollments e
+       JOIN study_arena_assignments a ON a.id = e.assignment_id
+       JOIN study_arena_lesson_versions lv ON lv.id = a.lesson_version_id
+       JOIN users u ON u.id = e.student_id
+       JOIN review_schedule rs
+         ON rs.student_id = e.student_id
+        AND rs.concept = COALESCE(lv.primary_concept_id, lv.objective)
+       JOIN learner_mastery lm
+         ON lm.student_id = e.student_id AND lm.concept = rs.concept
+      WHERE a.workspace_id = $1
+        AND rs.repetitions > 0
+        AND rs.due_at < now()
+        AND lm.p_mastery >= $2
+        AND ($3::bigint IS NULL OR a.school_class_id = $3::bigint)
+        AND ($4::text IS NULL OR lv.subject = $4::text)`,
+    [workspaceId, MASTERED_THRESHOLD, filters.classId ?? null, filters.subject ?? null]
+  );
+
   return buildRelianceModel(
     result.rows.map((row) => ({
       studentId: Number(row.student_id),
@@ -371,6 +450,11 @@ export async function getRelianceCohorts(
       repetitions: Number(row.repetitions),
       reviewDueAt: row.review_due_at,
     })),
-    windowDays
+    windowDays,
+    overdue.rows.map((row) => ({
+      studentId: Number(row.student_id),
+      studentName: row.student_name,
+      concept: row.concept,
+    }))
   );
 }

@@ -255,3 +255,63 @@ describe("diagnostic cohorts", () => {
     expect(model.students[0].prerequisiteGapConcepts).toEqual(["fractions", "decimals"]);
   });
 });
+
+// Phase 3: the recall list is read independently of the attempt window, because
+// the student most likely to be forgetting is the one who has not opened a
+// lesson recently — exactly the student an in-window read cannot see.
+describe("overdue recalls outside the evidence window", () => {
+  it("surfaces a student with no in-window evidence at all", () => {
+    const model = buildRelianceModel([], 30, [
+      { studentId: 20, studentName: "Quiet", concept: "fractions" },
+    ]);
+    expect(model.students).toHaveLength(1);
+    expect(model.students[0]).toMatchObject({
+      studentId: 20,
+      assignments: 0,
+      gates: 0,
+      reliance: null,
+      latestAssignmentId: null,
+      recallOverdueConcepts: ["fractions"],
+    });
+    expect(model.cohorts.find((c) => c.key === "recall_overdue")?.studentIds).toEqual([20]);
+  });
+
+  it("does not invent reliance or transfer numbers for such a student", () => {
+    const model = buildRelianceModel([], 30, [
+      { studentId: 20, studentName: "Quiet", concept: "fractions" },
+    ]);
+    expect(model.students[0].attempts).toBe(0);
+    expect(model.students[0].assessed).toBe(0);
+    expect(model.students[0].trend).toBeNull();
+    expect(model.cohorts.find((c) => c.key === "high_help")).toBeUndefined();
+    expect(model.cohorts.find((c) => c.key === "failed_transfer")).toBeUndefined();
+  });
+
+  it("merges the schedule's concepts into an active student's row without duplicating", () => {
+    const model = buildRelianceModel(
+      [
+        row({
+          studentId: 21,
+          concept: "fractions",
+          pMastery: 0.9,
+          repetitions: 2,
+          reviewDueAt: "2026-01-01T00:00:00Z",
+        }),
+      ],
+      30,
+      [{ studentId: 21, studentName: "Active", concept: "fractions" }]
+    );
+    expect(model.students).toHaveLength(1);
+    expect(model.students[0].recallOverdueConcepts).toEqual(["fractions"]);
+  });
+
+  it("keeps a student's in-window reliance when the schedule also flags them", () => {
+    const model = buildRelianceModel([row({ studentId: 22, hints: 4, hintFirstGates: 4 })], 30, [
+      { studentId: 22, studentName: "Both", concept: "decimals" },
+    ]);
+    expect(model.students[0].reliance).toBe(1);
+    expect(model.students[0].recallOverdueConcepts).toEqual(["decimals"]);
+    expect(model.cohorts.find((c) => c.key === "high_help")?.studentIds).toEqual([22]);
+    expect(model.cohorts.find((c) => c.key === "recall_overdue")?.studentIds).toEqual([22]);
+  });
+});
