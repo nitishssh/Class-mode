@@ -152,11 +152,11 @@ through the existing interventions endpoint. Needs no schema change either.
 before writing any of it: 400 students, 20 assignments, 480k evidence events, two years of
 history (an implausibly heavy single school), 5 runs per window.
 
-| Window | Median | Students |
-| --- | --- | --- |
-| 7 days | 63 ms | 402 |
-| 30 days | 227 ms | 404 |
-| 90 days | 266 ms | 404 |
+| Window  | Median | Students |
+| ------- | ------ | -------- |
+| 7 days  | 63 ms  | 402      |
+| 30 days | 227 ms | 404      |
+| 90 days | 266 ms | 404      |
 
 A covering index on `(workspace_id, created_at)` was tried and **removed**: identical timings, so
 the cost is aggregating the rows inside the window, not finding them — and an index that does not
@@ -168,7 +168,7 @@ or the window widens past 90 days.
 **Built instead:**
 
 1. **Recall-overdue now reads independently of the evidence window.** The scope limit flagged at
-   the end of Phase 2 was real: the student most likely to be forgetting is the one who has *not*
+   the end of Phase 2 was real: the student most likely to be forgetting is the one who has _not_
    opened a lesson recently, so an in-window read structurally cannot see them. A second query
    walks the review schedule for students enrolled in this workspace, and they join the model with
    `gates: 0`, `reliance: null`, `latestAssignmentId: null`. Verified: a student with zero
