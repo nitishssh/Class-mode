@@ -76,7 +76,7 @@
     "express": "^4.22.2",
     "express-rate-limit": "^8.5.1",
     "express-session": "^1.18.1",
-    "framer-motion": "^11.18.2",
+    "framer-motion": "^13.1.1",
     "google-auth-library": "^11.0.0",
     "helmet": "^8.1.0",
     "input-otp": "^1.2.4",
