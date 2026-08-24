@@ -166,7 +166,7 @@
   },
   "optionalDependencies": {
     "bufferutil": "4.0.8",
-    "cassandra-driver": "4.8.0"
+    "cassandra-driver": "4.9.0"
   },
   "overrides": {
     "vite": {
