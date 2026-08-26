@@ -33,6 +33,7 @@ const Navbar = () => {
   const pageLinks = [
     { label: "For Parents", href: "/for-parents" },
     { label: "For Principals", href: "/for-schools" },
+    { label: "Get the App", href: "/app" },
   ];
 
   return (
@@ -190,6 +191,9 @@ const Footer = () => {
               <a href="#contact" className="block transition-colors hover:text-foreground">
                 {t("landing.contact", "Contact")}
               </a>
+              <Link href="/app" className="block transition-colors hover:text-foreground">
+                {t("landing.getTheApp", "Get the App")}
+              </Link>
             </div>
           </div>
           <div>

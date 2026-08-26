@@ -19,6 +19,9 @@ const navLinks = [
   { label: "Contact", href: "/#contact" },
 ];
 
+// Routes of their own, so they use wouter's <Link> instead of a full page load.
+const navPageLinks = [{ label: "Get the app", href: "/app" }];
+
 export const MarketingNav = () => {
   const [open, setOpen] = useState(false);
   const [, setLocation] = useLocation();
@@ -39,6 +42,15 @@ export const MarketingNav = () => {
             >
               {l.label}
             </a>
+          ))}
+          {navPageLinks.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {l.label}
+            </Link>
           ))}
           <Button
             className="sketch-border sketch-shadow-yellow hover-tilt rounded-full bg-primary font-heading text-sm text-primary-foreground hover:bg-primary/90"
@@ -66,6 +78,16 @@ export const MarketingNav = () => {
             >
               {l.label}
             </a>
+          ))}
+          {navPageLinks.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className="block text-sm font-medium text-muted-foreground"
+              onClick={() => setOpen(false)}
+            >
+              {l.label}
+            </Link>
           ))}
           <Button
             className="sketch-border sketch-shadow-yellow w-full rounded-full bg-primary font-heading text-sm text-primary-foreground hover:bg-primary/90"
@@ -111,6 +133,9 @@ export const MarketingFooter = () => (
             </Link>
             <Link href="/for-schools" className="block transition-colors hover:text-foreground">
               For Principals &amp; Boards
+            </Link>
+            <Link href="/app" className="block transition-colors hover:text-foreground">
+              Get the app
             </Link>
             <a href="/#features" className="block transition-colors hover:text-foreground">
               Features

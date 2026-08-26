@@ -51,6 +51,7 @@ import TestsList from "@/pages/tests-list";
 import Landing from "@/pages/landing";
 import ForParents from "@/pages/for-parents";
 import ForSchools from "@/pages/for-schools";
+import GetApp from "@/pages/get-app";
 import LoginPage from "@/pages/login";
 import AcceptInvite from "@/pages/accept-invite";
 import VerifyEmailPage from "@/pages/verify-email";
@@ -341,6 +342,7 @@ function App() {
       {/* Public marketing subpages — accessible to everyone, logged in or not */}
       <Route path="/for-parents" component={ForParents} />
       <Route path="/for-schools" component={ForSchools} />
+      <Route path="/app" component={GetApp} />
 
       {/* /login: show login page; if already authenticated go to dashboard (or verify-email if unverified) */}
       <Route path="/login">
