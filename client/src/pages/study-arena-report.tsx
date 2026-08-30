@@ -101,11 +101,18 @@ export default function StudyArenaReport() {
           </p>
           <h1 className="mt-1 font-display text-3xl text-foreground">Assignment progress</h1>
         </div>
-        <Link href="/study-arena/create">
-          <Button variant="outline" className="min-h-11">
-            Create lesson
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/study-arena-reliance">
+            <Button variant="outline" className="min-h-11">
+              See students across lessons
+            </Button>
+          </Link>
+          <Link href="/study-arena/create">
+            <Button variant="outline" className="min-h-11">
+              Create lesson
+            </Button>
+          </Link>
+        </div>
       </div>
       <div className="grid gap-3 sm:grid-cols-4">
         {[

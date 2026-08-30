@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import express from "express";
 import request from "supertest";
 import session from "express-session";
@@ -53,6 +53,12 @@ vi.mock("../lib/audit", () => ({
 
 vi.mock("../services/whatsapp", () => ({
   whatsappService: { isConfigured: vi.fn(() => false) },
+}));
+
+vi.mock("../lib/auth/google-signin", () => ({
+  isGoogleSignInConfigured: vi.fn(() => true),
+  getSignInAuthUrl: vi.fn(() => "https://accounts.google.com/o/oauth2/v2/auth?fake=1"),
+  exchangeSignInCode: vi.fn(),
 }));
 
 vi.mock("../storage", () => ({
@@ -203,6 +209,44 @@ describe("custom auth routes", () => {
     // In test env NODE_ENV != "production", so local password is enabled by default.
     expect(res.body.localPasswordAuthEnabled).toBe(true);
     expect(res.body.alerts).toEqual({ channel: "whatsapp", enabled: false });
+    // Configured (per the module mock) and not killed, so the client may
+    // render the button.
+    expect(res.body.googleSignInEnabled).toBe(true);
+  });
+
+  // A deleted OAuth client still has a client id + secret set, so config
+  // presence alone cannot hide the button — the operator switch has to.
+  describe("ENABLE_GOOGLE_SIGNIN kill switch", () => {
+    const original = process.env.ENABLE_GOOGLE_SIGNIN;
+
+    afterEach(() => {
+      if (original === undefined) delete process.env.ENABLE_GOOGLE_SIGNIN;
+      else process.env.ENABLE_GOOGLE_SIGNIN = original;
+    });
+
+    it("reports googleSignInEnabled=false even while credentials are present", async () => {
+      process.env.ENABLE_GOOGLE_SIGNIN = "false";
+      const res = await request(app).get("/api/auth/config");
+      expect(res.status).toBe(200);
+      expect(res.body.googleSignInEnabled).toBe(false);
+      // Password login must remain untouched — it is the fallback the hidden
+      // button leaves users with.
+      expect(res.body.localPasswordAuthEnabled).toBe(true);
+    });
+
+    it("refuses /google/start instead of bouncing the user to Google", async () => {
+      process.env.ENABLE_GOOGLE_SIGNIN = "false";
+      const res = await request(app).get("/api/auth/google/start");
+      expect(res.status).toBe(302);
+      expect(res.headers.location).toBe("/login?error=google_signin_disabled");
+    });
+
+    it("still redirects to Google when the switch is unset", async () => {
+      delete process.env.ENABLE_GOOGLE_SIGNIN;
+      const res = await request(app).get("/api/auth/google/start");
+      expect(res.status).toBe(302);
+      expect(res.headers.location).toContain("accounts.google.com");
+    });
   });
 
   it("hides /dev/last-otp outside dev-without-db mode", async () => {

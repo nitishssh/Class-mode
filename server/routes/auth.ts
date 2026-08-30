@@ -73,6 +73,23 @@ const emailIpKey = (req: Request) => {
 
 const tooMany = (msg: string) => ({ message: msg });
 
+// IP-only ceiling for /login. The global /api/auth limiter in server/index.ts
+// now skips this route: at 10/min/IP a school behind a single NAT address
+// locks itself out during the 8:55am sign-in rush — the same reasoning that
+// already exempts /me and /refresh there (W-1). Brute force against one
+// account is handled by loginLimiter below, which keys on email+IP; this
+// limiter exists only to bound credential stuffing that fans out across many
+// accounts from one host, so it is set well above a whole school arriving at
+// once and well below what a stuffing run needs.
+const loginIpLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 60,
+  keyGenerator: (req: Request) => ipKeyGenerator(req.ip ?? ""),
+  message: tooMany("Too many login attempts from this network. Please try again shortly."),
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 const loginLimiter = rateLimit({
   windowMs: 15 * 60_000,
   max: 10,
@@ -130,6 +147,21 @@ const resetLimiter = rateLimit({
 
 function isLocalPasswordAuthEnabled(): boolean {
   return process.env.ENABLE_LOCAL_PASSWORD_AUTH === "true" || process.env.NODE_ENV !== "production";
+}
+
+// Google sign-in has two independent failure modes and only one of them is
+// visible from here. `isGoogleSignInConfigured()` proves a client id + secret
+// are set; it cannot prove the OAuth client still exists at Google. A deleted
+// client passes that check and then strands the user on Google's own
+// "Error 401: deleted_client" page — they never come back to /login, so none
+// of the ?error= codes the callback sets can ever be shown. Google exposes no
+// cheap liveness check for a client, so the second gate is an explicit
+// operator switch: set ENABLE_GOOGLE_SIGNIN=false to hide the button and
+// refuse the redirect until a working client is in place.
+async function isGoogleSignInEnabled(): Promise<boolean> {
+  if (process.env.ENABLE_GOOGLE_SIGNIN === "false") return false;
+  const { isGoogleSignInConfigured } = await import("../lib/auth/google-signin");
+  return isGoogleSignInConfigured();
 }
 
 type DevSession = {
@@ -442,10 +474,15 @@ async function findOtpByTokenHash(hash: string, type: "registration" | "password
 
 // Public auth-capability flags so the client can decide whether to attempt
 // local password, etc. Safe to expose.
-router.get("/config", (_req: Request, res: Response) => {
+router.get("/config", async (_req: Request, res: Response) => {
   res.status(200).json({
     localPasswordAuthEnabled: isLocalPasswordAuthEnabled(),
     devAuthWithoutDb: isDevAuthWithoutDbEnabled(),
+    // The client renders "Continue with Google" only on a definite `true`.
+    // Unknown (request failed) must not render the button: showing one that
+    // dead-ends is the exact defect this flag exists to close, and local
+    // password login is always available as the fallback.
+    googleSignInEnabled: await isGoogleSignInEnabled(),
     alerts: {
       channel: "whatsapp",
       // Credentials alone are not "alerts on" — the explicit master switch
@@ -493,9 +530,11 @@ router.get("/dev/last-otp", (req: Request, res: Response) => {
 // Server-side flow has none of these failure modes.
 
 router.get("/google/start", async (req: Request, res: Response) => {
-  const { getSignInAuthUrl, isGoogleSignInConfigured } = await import("../lib/auth/google-signin");
-  if (!isGoogleSignInConfigured()) {
-    return res.status(503).send("Google sign-in is not configured on this server.");
+  const { getSignInAuthUrl } = await import("../lib/auth/google-signin");
+  if (!(await isGoogleSignInEnabled())) {
+    // Same gate as /config, so a stale tab or a bookmarked link cannot reach
+    // Google after the button has been hidden.
+    return res.redirect("/login?error=google_signin_disabled");
   }
   const state = crypto.randomBytes(32).toString("hex");
   req.session.googleSignInState = state;
@@ -832,7 +871,7 @@ router.post("/workspace-invite/signup", signupLimiter, async (req: Request, res:
 
 const loginSchema = z.object({ email: z.string().email(), password: z.string().min(1) });
 
-router.post("/login", loginLimiter, async (req: Request, res: Response) => {
+router.post("/login", loginIpLimiter, loginLimiter, async (req: Request, res: Response) => {
   if (!isLocalPasswordAuthEnabled()) {
     return res.status(410).json({
       message: "Password login is disabled on this server.",
@@ -1174,82 +1213,25 @@ router.get("/invite/validate/:token", async (req: Request, res: Response) => {
   });
 });
 
-const acceptInviteSchema = z.object({
-  token: z.string().min(10),
-  name: z.string().min(1).optional(),
-  displayName: z.string().min(1).optional(),
-  password: passwordSchema,
-});
-
-async function acceptWorkspaceInvite(req: Request, res: Response) {
-  const parsed = acceptInviteSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
-  const invite = await pgFindWorkspaceInviteByTokenHash(tokenHash(parsed.data.token));
-  if (!invite) return res.status(404).json({ message: "Invalid invite link" });
-  if (invite.status !== "pending") return res.status(409).json({ message: "Invite already used" });
-  if (invite.expiresAt < new Date())
-    return res.status(410).json({ message: "This invite has expired" });
-
-  const displayName =
-    parsed.data.name || parsed.data.displayName || invite.name || invite.email.split("@")[0];
-  let user = await pgFindUserByEmail(invite.email);
-  if (!user) {
-    user = await pgCreateUser({
-      authProvider: "local",
-      authSubject: invite.email,
-      email: invite.email,
-      username: `${invite.email.split("@")[0]}_${Date.now()}`,
-      passwordHash: await bcrypt.hash(parsed.data.password, 12),
-      name: displayName,
-      displayName,
-      // invite.role is a WORKSPACE role (owner/admin/member). A workspace
-      // "admin" maps to the tenant-level user role "school_admin" — never the
-      // platform "admin" super-role, which is granted only via the
-      // platform-admin invite flow.
-      role:
-        invite.kind === "student"
-          ? "student"
-          : invite.role === "admin"
-            ? "school_admin"
-            : "teacher",
-      status: "active",
-      emailVerified: true,
-      grade: invite.studentMeta?.grade ?? null,
-      className: invite.studentMeta?.className ?? null,
-    });
-    sendWelcomeEmail(user.email, user.displayName || user.name).catch((e) =>
-      logger.warn("[invite/accept] Failed to send welcome email", { error: String(e) })
-    );
-  } else {
-    // Keep original password hash to prevent corruption when accepting new workspace invites
-    await pgUpdateUser(user.id, {
-      displayName,
-      emailVerified: true,
-    });
-  }
-
-  await pgUpsertWorkspaceMembership({
-    workspaceId: invite.workspaceId,
-    userId: user.id,
-    role: invite.role,
-  });
-  await pgAcceptWorkspaceInvite(invite.id);
-  const { accessToken } = await createLoginSession(req, res, user.id);
-
-  recordAuditEvent({
-    targetUserId: user.id,
-    eventType: AUDIT_EVENTS.INVITE_ACCEPTED,
-    payload: { workspaceId: invite.workspaceId, kind: invite.kind, workspaceRole: invite.role },
-  });
-
-  return res.status(201).json({ token: accessToken, ...(await currentAuthPayload(user.id)) });
-}
-
-router.post("/invites/:token/accept", (req, res) => {
-  req.body = { ...req.body, token: req.params.token };
-  return acceptWorkspaceInvite(req, res);
-});
-router.post("/invite/accept", acceptWorkspaceInvite);
+// SECURITY (#invite-accept-auth-bypass): `acceptWorkspaceInvite` and its two
+// mounts — POST /invite/accept and POST /invites/:token/accept — were removed.
+// Both were mounted WITHOUT authenticateToken. When the invited email already
+// had an account, the handler looked the user up by email, skipped any password
+// check, and called createLoginSession — so possession of an invite link granted
+// a full session as that existing account. Nothing called these routes: the web
+// client uses /api/auth/workspace-invite/signup (below) for workspace invites and
+// /api/onboarding/invite/accept for school invites, and the mobile app has no
+// invite flow at all.
+//
+// The correct behaviour already lives in /workspace-invite/signup: an invite for
+// an email that already has an account returns 409 { accountExists: true } and
+// tells the person to sign in, instead of minting a session for whoever holds
+// the link.
+//
+// Known gap, deliberately not closed here: an existing user still has no way to
+// accept a workspace invite (they get the 409 dead-end). That needs an
+// authenticated, email-matched "link account" endpoint — tracked separately.
+// Restoring an unauthenticated accept path is not the fix.
 
 router.post("/register", (_req: Request, res: Response) => {
   return res.status(403).json({

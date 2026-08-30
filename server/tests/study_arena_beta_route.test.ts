@@ -24,6 +24,7 @@ const h = vi.hoisted(() => ({
   issueAssignedAssessment: vi.fn(),
   submitAssignedAssessment: vi.fn(),
   pgQuery: vi.fn(),
+  getRelianceCohorts: vi.fn(),
 }));
 
 vi.mock("../middleware", () => ({
@@ -67,6 +68,11 @@ vi.mock("../lib/ai/learner-model", () => ({
   commitLearnerUpdate: h.commitLearnerUpdate,
   getLearnerSnapshot: h.getLearnerSnapshot,
 }));
+
+vi.mock("../services/study-arena/reliance-model", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../services/study-arena/reliance-model")>();
+  return { ...actual, getRelianceCohorts: h.getRelianceCohorts };
+});
 
 vi.mock("../services/study-arena/assignment-sessions", () => ({
   checkAssignedAction: h.checkAssignedAction,
@@ -823,5 +829,126 @@ describe("POST /api/study-arena-beta/assignment-assessment-submit", () => {
       .send(body);
     expect(res.status).toBe(200);
     expect(h.submitAssignedAssessment).toHaveBeenCalledWith({ ...body, studentId: 9 });
+  });
+});
+
+// Regression: help_depth is HINTS ONLY. The original subquery counted
+// event_kind IN ('attempt','hint'), so a student who attempted four times with
+// zero hints scored help_depth = 4 and landed in the "High help depth" cohort —
+// the exact inverse of the signal. Every reliance number reads from this column.
+describe("GET /api/study-arena-beta/assignments/:id/report — help depth", () => {
+  const assignmentId = "33333333-3333-4333-8333-333333333333";
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    delete process.env.STUDY_ARENA_BETA;
+    h.user = { id: 9, role: "teacher" };
+  });
+
+  it("counts hint events only, never attempts", async () => {
+    h.pgQuery.mockResolvedValue({ rows: [] });
+    await request(makeApp()).get(`/api/study-arena-beta/assignments/${assignmentId}/report`);
+
+    const reportSql = h.pgQuery.mock.calls
+      .map((call) => String(call[0]))
+      .find((sql) => sql.includes("AS help_depth"));
+    expect(reportSql).toBeDefined();
+    const helpDepthSubquery = /count\(\*\)[\s\S]*?AS help_depth/.exec(reportSql!)![0];
+    expect(helpDepthSubquery).toContain("event_kind = 'hint'");
+    expect(helpDepthSubquery).not.toContain("'attempt'");
+  });
+
+  it("puts a student with many unaided attempts outside the high-help cohort", async () => {
+    h.pgQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          student_id: 1,
+          student_name: "Unaided",
+          session_status: "completed",
+          next_action_index: 4,
+          assessment_correct: true,
+          assessment_submitted_at: new Date(),
+          help_depth: 0, // four attempts, zero hints
+          current_scene_id: "intro",
+          adaptive_path: [],
+          adaptive_decision: null,
+          adaptive_decision_version: null,
+          adaptive_rationale: null,
+        },
+      ],
+    });
+    const res = await request(makeApp()).get(
+      `/api/study-arena-beta/assignments/${assignmentId}/report`
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body.groups.find((g: any) => g.key === "high_help")).toBeUndefined();
+  });
+});
+
+describe("GET /api/study-arena-beta/reliance", () => {
+  const model = {
+    windowDays: 30,
+    students: [],
+    cohorts: [],
+    insufficientEvidence: [],
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    delete process.env.STUDY_ARENA_BETA;
+    h.user = { id: 9, role: "teacher" };
+    h.getRelianceCohorts.mockResolvedValue(model);
+  });
+
+  it("scopes the read to the caller's workspace", async () => {
+    const res = await request(makeApp()).get("/api/study-arena-beta/reliance");
+
+    expect(res.status).toBe(200);
+    expect(h.getRelianceCohorts).toHaveBeenCalledWith(42, expect.anything());
+    expect(res.body).toEqual(model);
+  });
+
+  it("never exposes another student's reliance to a student", async () => {
+    h.user = { id: 7, role: "student" };
+    const res = await request(makeApp()).get("/api/study-arena-beta/reliance");
+
+    expect(res.status).toBe(403);
+    expect(h.getRelianceCohorts).not.toHaveBeenCalled();
+  });
+
+  it("passes class and subject filters through", async () => {
+    await request(makeApp()).get("/api/study-arena-beta/reliance?classId=5&subject=maths");
+
+    expect(h.getRelianceCohorts).toHaveBeenCalledWith(42, {
+      classId: 5,
+      subject: "maths",
+      sinceDays: 30,
+    });
+  });
+
+  it("rejects a window wider than the cap rather than silently clamping it", async () => {
+    const res = await request(makeApp()).get("/api/study-arena-beta/reliance?sinceDays=3650");
+
+    expect(res.status).toBe(400);
+    expect(h.getRelianceCohorts).not.toHaveBeenCalled();
+  });
+
+  it("returns 409 when the request has no active workspace", async () => {
+    const app = express();
+    app.use(express.json());
+    app.use("/api/study-arena-beta", router);
+    const res = await request(app).get("/api/study-arena-beta/reliance");
+
+    expect(res.status).toBe(409);
+  });
+
+  it("does not leak the failure reason when the read model throws", async () => {
+    h.getRelianceCohorts.mockRejectedValue(new Error("relation does not exist"));
+    const res = await request(makeApp()).get("/api/study-arena-beta/reliance");
+
+    expect(res.status).toBe(500);
+    expect(JSON.stringify(res.body)).not.toContain("relation");
+    expect(logger.error).toHaveBeenCalled();
   });
 });

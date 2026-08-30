@@ -21,7 +21,6 @@ import onboardingRouter from "../routes/onboarding";
 import {
   pgFindInviteByToken,
   pgFindUserByEmail,
-  pgFindUserById,
   pgCreateUser,
   pgUpdateUser,
   pgFindSchoolById,
@@ -58,7 +57,7 @@ describe("POST /invite/accept sets schoolCode and className on the user record",
     (pgFindSchoolById as any).mockResolvedValue(SCHOOL);
     (pgFindSchoolClassById as any).mockResolvedValue(CLASS);
     (pgUpsertMembership as any).mockResolvedValue(undefined);
-    (pgAcceptInvite as any).mockResolvedValue(undefined);
+    (pgAcceptInvite as any).mockResolvedValue(true);
     (pgUpdateUserOnboardingComplete as any).mockResolvedValue(undefined);
   });
 
@@ -100,7 +99,14 @@ describe("POST /invite/accept sets schoolCode and className on the user record",
     );
   });
 
-  it("sets schoolCode and className when accepting re-triggers the update branch (pre-existing user row)", async () => {
+  // Previously this asserted that accepting an invite for an email that ALREADY
+  // had an account re-ran an update branch to set schoolCode/className on that
+  // row. That branch was removed: rebinding an existing account from an
+  // unauthenticated invite is how sibling records were corrupted (student
+  // invites are addressed to the parent's email) and how an invite could reset
+  // someone's password. Scoping on the create path is still covered by the two
+  // tests either side of this one.
+  it("refuses to rebind an email that already has an account, and writes nothing", async () => {
     (pgFindInviteByToken as any).mockResolvedValue({
       id: 2,
       email: "student2@example.com",
@@ -112,14 +118,6 @@ describe("POST /invite/accept sets schoolCode and className on the user record",
       expiresAt: new Date(Date.now() + 60 * 60 * 1000),
     });
     (pgFindUserByEmail as any).mockResolvedValue({ id: 88, email: "student2@example.com" });
-    (pgFindUserById as any).mockResolvedValue({
-      id: 88,
-      email: "student2@example.com",
-      authSubject: "student2@example.com",
-      role: "student",
-      schoolCode: SCHOOL.code,
-      className: CLASS.name,
-    });
 
     const res = await request(app).post("/api/onboarding/invite/accept").send({
       token: "22222222-2222-2222-2222-222222222222",
@@ -128,14 +126,10 @@ describe("POST /invite/accept sets schoolCode and className on the user record",
       password: "supersecret123",
     });
 
-    expect(res.status).toBe(201);
-    expect(pgUpdateUser).toHaveBeenCalledWith(
-      88,
-      expect.objectContaining({
-        schoolCode: SCHOOL.code,
-        className: CLASS.name,
-      })
-    );
+    expect(res.status).toBe(409);
+    expect(res.body.accountExists).toBe(true);
+    expect(pgUpdateUser).not.toHaveBeenCalled();
+    expect(pgCreateUser).not.toHaveBeenCalled();
   });
 
   it("sets schoolCode but leaves className null for a teacher invite (no classId)", async () => {

@@ -40,6 +40,7 @@ import Focus from "@/pages/focus";
 import AIClassroom from "@/pages/ai-classroom";
 import StudyArenaBeta from "@/pages/study-arena-beta";
 import StudyArenaReport from "@/pages/study-arena-report";
+import StudyArenaReliance from "@/pages/study-arena-reliance";
 import StudyArenaCreate from "@/pages/study-arena-create";
 import DynamicSIS from "@/pages/dynamic-sis";
 import DynamicSISBase from "@/pages/dynamic-sis-base";
@@ -222,6 +223,9 @@ const StudyArenaBetaRoute = withLayout(
 );
 const StudyArenaReportRoute = withLayout(
   protect(StudyArenaReport, ["teacher", "admin", "school_admin"])
+);
+const StudyArenaRelianceRoute = withLayout(
+  protect(StudyArenaReliance, ["teacher", "admin", "school_admin"])
 );
 const StudyArenaCreateRoute = withLayout(
   protect(StudyArenaCreate, ["teacher", "admin", "school_admin"])
@@ -420,6 +424,7 @@ function App() {
       <Route path="/ai-classroom" component={AIClassroomRoute} />
       <Route path="/study-arena-beta" component={StudyArenaBetaRoute} />
       <Route path="/study-arena-report" component={StudyArenaReportRoute} />
+      <Route path="/study-arena-reliance" component={StudyArenaRelianceRoute} />
       <Route path="/study-arena/create" component={StudyArenaCreateRoute} />
       <Route path="/dynamic-sis" component={DynamicSISRoute} />
       <Route path="/dynamic-sis/base/:id" component={DynamicSISBaseRoute} />

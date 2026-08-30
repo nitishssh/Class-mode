@@ -219,6 +219,17 @@ resource "azurerm_container_app" "main" {
         name  = "ENABLE_LOCAL_PASSWORD_AUTH"
         value = "true"
       }
+      # Both OAuth clients in GCP project 114646596478 (sign-in and Classroom)
+      # were deleted along with the project; Google answers the consent screen
+      # with "Error 401: deleted_client", which strands the user on Google's
+      # own error page instead of returning them to /login. Having the client
+      # id + secret set does not prove the client still exists, so this switch
+      # is what actually hides the button. Flip to "true" once a replacement
+      # OAuth client exists and GOOGLE_SIGNIN_CLIENT_ID/SECRET are rotated.
+      env {
+        name  = "ENABLE_GOOGLE_SIGNIN"
+        value = "false"
+      }
 
       volume_mounts {
         name = "uploads"

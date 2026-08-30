@@ -184,8 +184,9 @@ The Google sign-in flow is handled entirely server-side to avoid browser popup/r
   - Sets Name & Password
       │
       ▼
-[POST /api/invite/accept]
-  - Creates/Updates user record
+[POST /api/auth/workspace-invite/signup]
+  - Creates a user record (an email that already has an
+    account is refused with 409 accountExists)
   - Creates WorkspaceMembership
   - Sets emailVerified: true
   - Logs user in (Issues tokens)
@@ -254,7 +255,7 @@ The system uses a hybrid Cookie + JWT approach for maximum security.
 | Google OAuth Callback | `/api/auth/google/callback`      | GET    |
 | Invite Member         | `/api/workspaces/:id/invites`    | POST   |
 | Validate Invite       | `/api/invite/validate/:token`    | GET    |
-| Accept Invite         | `/api/invite/accept`             | POST   |
+| Accept Invite         | `/api/auth/workspace-invite/signup` | POST   |
 
 ---
 

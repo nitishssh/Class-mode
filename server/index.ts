@@ -150,12 +150,18 @@ app.use(
     // server/routes/auth.ts (signupLimiter, loginLimiter, etc.) still
     // give us per-action brute-force protection in dev.
     //
-    // /me and /refresh are exempt: they carry their own token-level
-    // protection, and a school's worth of mobile devices shares one NAT IP —
-    // 30 teachers cold-starting the app at 8:55am would trip a 10/min/IP
-    // limit on infrastructure, not abuse (W-1).
+    // /me, /refresh and /login are exempt: they carry their own protection,
+    // and a school's worth of mobile devices shares one NAT IP — 30 teachers
+    // cold-starting the app at 8:55am would trip a 10/min/IP limit on
+    // infrastructure, not abuse (W-1). /me and /refresh are token-level;
+    // /login is covered by loginLimiter (email+IP, brute force) and
+    // loginIpLimiter (per-IP, credential stuffing) in routes/auth.ts, both of
+    // which sit above a whole school signing in within the same minute.
     skip: (req) =>
-      process.env.NODE_ENV !== "production" || req.path === "/me" || req.path === "/refresh",
+      process.env.NODE_ENV !== "production" ||
+      req.path === "/me" ||
+      req.path === "/refresh" ||
+      req.path === "/login",
   })
 );
 
@@ -173,6 +179,28 @@ if (
   );
 }
 
+// storage.sessionStore is connect-pg-simple against POSTGRESQL_URL. That is
+// the wrong store for ENABLE_DEV_AUTH_WITHOUT_DB, whose entire purpose is to
+// run auth with no reachable database: login and signup both call
+// req.session.regenerate(), which would then block on a Postgres connection
+// that is never going to succeed, and the request hangs forever rather than
+// failing. Fall back to express-session's in-memory store, which is what
+// omitting `store` selects.
+//
+// Gated on NODE_ENV plus the explicit opt-in — the same two conditions
+// requireDb uses — so production can never reach it. Deliberately NOT gated on
+// isPgReady(): the pool has not finished its first connection attempt when
+// this middleware is registered. If the database turns out to be up after all,
+// the only consequence is that sessions live in process memory for this run.
+const useMemorySessionStore =
+  process.env.NODE_ENV !== "production" && process.env.ENABLE_DEV_AUTH_WITHOUT_DB === "true";
+if (useMemorySessionStore) {
+  logger.warn(
+    "[session] ENABLE_DEV_AUTH_WITHOUT_DB is set — using in-memory session store. " +
+      "Sessions will not survive a restart and are not shared between processes."
+  );
+}
+
 app.use(
   session({
     secret: SESSION_SECRET,
@@ -184,7 +212,7 @@ app.use(
       sameSite: "lax",
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
     },
-    store: storage.sessionStore,
+    ...(useMemorySessionStore ? {} : { store: storage.sessionStore }),
   })
 );
 
