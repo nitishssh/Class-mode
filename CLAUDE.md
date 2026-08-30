@@ -10,6 +10,17 @@
 - `npm test` - Run unit/integration tests
 - `npx playwright test` - Run E2E tests
 
+### Weekly adoption metrics
+
+- `npm run metrics:weekly` - Print this week's adoption numbers and persist a snapshot
+- `npm run report:weekly` - Same, plus scaffold `docs/dashboard/weekly/<week>.md`
+- `npx tsx scripts/metrics-weekly.ts --dry-run` - Print without persisting
+
+**Always use `--dry-run` against a QA or local database.** A persisted snapshot
+joins the trend permanently, and afterwards there is no way to tell which rows
+produced it. The measurement rules are frozen and versioned in
+`docs/METRIC-SEMANTICS.md` — changing one requires bumping `METRIC_VERSION`.
+
 ### Pilot School & Testing
 
 - `npx tsx server/scripts/seed-pilot.ts` - Seed pilot school data
