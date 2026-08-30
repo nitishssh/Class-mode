@@ -43,3 +43,7 @@ playwright-report/
 
 # Runtime user uploads (may contain student PII)
 public/uploads/
+
+# local env backups (never commit)
+.env.bak.*
+.env.*.bak
