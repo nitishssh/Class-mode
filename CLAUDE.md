@@ -52,3 +52,28 @@ Key routing rules:
 - Deploy trigger: automatic on push to main
 - Deploy status: poll production URL
 - Health check: https://classmode.inmodel.in
+
+## Design System
+
+The visual system is "Ruled Paper", specified at `OpenMAIC-main/DESIGN.md` (the
+Class Mode Studio repo). It governs this app and Studio together: one system,
+two surfaces. Read it before any visual or UI decision.
+
+Palette tokens live in `client/src/index.css` and are mirrored by hand in
+Studio's `app/globals.css`. Change one, change the other.
+
+Three rules are load-bearing, not preferences:
+
+1. **`--energy` #f0a500 (marigold)** means exactly one thing in Studio: the lesson
+   has stopped and the student owns the next move. Do not spend it on badges or
+   decoration here, or it stops meaning anything there.
+2. **`--accent` #cc785c (terracotta)** is the student's colour: their answers,
+   marks and progress. Never lesson decoration.
+3. **True red is for institutional facts only** (absent, fees overdue). An
+   unfinished thought is not an error; it uses `--not-yet`.
+
+This app inherits the paper, margin rule and mono numerals. It does NOT inherit
+Studio's slate gate inversion.
+
+**Not yet ported:** the Literata + Anek typeface stack. Changing typefaces on a
+live school product deserves its own verified change, not a drive-by.
