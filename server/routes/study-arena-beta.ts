@@ -29,6 +29,11 @@ import { getStudyArenaConcept } from "../services/study-arena/concept-registry";
 import { commitLearnerUpdate, getLearnerSnapshot } from "../lib/ai/learner-model";
 import { logger } from "../lib/logger";
 import {
+  getRelianceCohorts,
+  DEFAULT_WINDOW_DAYS,
+  MAX_WINDOW_DAYS,
+} from "../services/study-arena/reliance-model";
+import {
   checkAssignedAction,
   getAssignedNextSegment,
   issueAssignedAssessment,
@@ -813,7 +818,7 @@ router.get(
                 CASE WHEN s.director_decision_version > 0 THEN s.director_decision->>'rationale' ELSE NULL END AS adaptive_rationale,
                 assessment.correct AS assessment_correct, assessment.submitted_at AS assessment_submitted_at,
                 COALESCE((SELECT count(*) FROM study_arena_evidence_events evidence
-                  WHERE evidence.attempt_session_id = s.id AND evidence.event_kind IN ('attempt', 'hint')), 0)::int AS help_depth
+                  WHERE evidence.attempt_session_id = s.id AND evidence.event_kind = 'hint'), 0)::int AS help_depth
            FROM study_arena_assignments a
            JOIN study_arena_assignment_enrollments e ON e.assignment_id = a.id
            JOIN users u ON u.id = e.student_id
@@ -874,6 +879,42 @@ router.get(
     }
   }
 );
+
+const relianceQuerySchema = z.object({
+  classId: z.coerce.number().int().positive().optional(),
+  subject: z.string().trim().min(1).max(80).optional(),
+  sinceDays: z.coerce.number().int().min(1).max(MAX_WINDOW_DAYS).optional(),
+});
+
+/**
+ * Cross-assignment reliance: which students reach for a hint before they try.
+ * The per-assignment report is a snapshot; this is the pattern over a window.
+ * Follow-up still writes through the existing interventions endpoint.
+ */
+router.get("/reliance", requireFlag, authenticateToken, async (req: Request, res: Response) => {
+  if (!AUTHORING_ROLES.has(req.user?.role ?? "")) {
+    return res.status(403).json({ message: "Only teachers can view reliance" });
+  }
+  const workspaceId = (req as any).workspace?.id as number | undefined;
+  if (!workspaceId) return res.status(409).json({ message: "No active workspace" });
+  const filters = relianceQuerySchema.safeParse(req.query);
+  if (!filters.success) return res.status(400).json({ message: "Invalid reliance filters" });
+  if (!isPgReady()) return res.status(503).json({ message: "Reliance is temporarily unavailable" });
+  try {
+    const model = await getRelianceCohorts(workspaceId, {
+      classId: filters.data.classId ?? null,
+      subject: filters.data.subject ?? null,
+      sinceDays: filters.data.sinceDays ?? DEFAULT_WINDOW_DAYS,
+    });
+    return res.json(model);
+  } catch (error) {
+    if (String(error).includes("database_unavailable")) {
+      return res.status(503).json({ message: "Reliance is temporarily unavailable" });
+    }
+    logger.error("[study-arena-beta] reliance query failed", { error: String(error), workspaceId });
+    return res.status(500).json({ message: "Could not load reliance" });
+  }
+});
 
 router.post(
   "/assignments/:assignmentId/interventions",

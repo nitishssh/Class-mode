@@ -396,9 +396,12 @@ async function persistNextDirectorDecision(
   }
 ): Promise<{ nextActionIndex: number; decision: SceneDirectorDecision & { version: number } }> {
   const helpResult = await client.query(
+    // Help depth is hints only. Counting 'attempt' here too made an unaided
+    // student who simply tried several times look maximally reliant, which is
+    // the inverse of what the adaptive policy's helpDepth >= 3 branch means.
     `SELECT count(*)::int AS help_depth
        FROM study_arena_evidence_events
-      WHERE attempt_session_id = $1 AND event_kind IN ('attempt', 'hint')`,
+      WHERE attempt_session_id = $1 AND event_kind = 'hint'`,
     [input.attemptSessionId]
   );
   const masteryResult = await client.query(
@@ -808,7 +811,7 @@ export async function submitAssignedAssessment(input: {
     const [mastery, schedule, attempts] = await Promise.all([
       client.query<{ p_mastery: number; confidence: number }>(`SELECT p_mastery, confidence FROM learner_mastery WHERE student_id = $1 AND concept = $2`, [input.studentId, concept]),
       client.query<{ sm2_ef: number; interval_days: number; repetitions: number }>(`SELECT sm2_ef, interval_days, repetitions FROM review_schedule WHERE student_id = $1 AND concept = $2`, [input.studentId, concept]),
-      client.query<{ count: string }>(`SELECT count(*) FROM study_arena_evidence_events WHERE attempt_session_id = $1 AND event_kind IN ('attempt','hint')`, [input.attemptSessionId]),
+      client.query<{ count: string }>(`SELECT count(*) FROM study_arena_evidence_events WHERE attempt_session_id = $1 AND event_kind = 'hint'`, [input.attemptSessionId]),
     ]);
     const previousMastery = mastery.rows[0]?.p_mastery ?? DEFAULT_BKT.pInit;
     const pMastery = bktUpdate(Number(previousMastery), correct);

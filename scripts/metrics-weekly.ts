@@ -103,6 +103,18 @@ interface Snapshot {
     pilotCostPerCompletedLessonInr?: number | null;
     pilotCostRowsMissing?: number | null;
   };
+  // Over-reliance signal (docs/over-reliance-dashboard-plan.md). The claim our
+  // pedagogy rests on is that these lessons make students attempt rather than
+  // offload; the number that would falsify it belongs in the weekly instrument,
+  // not only in a page a teacher has to remember to open. A "hint-first" gate is
+  // one where a hint was taken BEFORE any attempt at that gate.
+  reliance: {
+    gates: number;
+    hintFirstGates: number;
+    hintFirstRate: number | null; // null = no gates this week; never 0-as-unknown
+    studentsWithEvidence: number;
+    studentsHintFirstMajority: number;
+  };
 }
 
 // Week arithmetic lives in ./metric-semantics — frozen and versioned.
@@ -246,6 +258,9 @@ async function collect(
   const ARENA_SCHOOL_JOIN = PILOT_SCHOOL_CODE
     ? `JOIN users _u ON _u.id = il.student_id AND _u.school_code = '${PILOT_SCHOOL_CODE}'`
     : "";
+  const RELIANCE_SCHOOL_JOIN = PILOT_SCHOOL_CODE
+    ? `JOIN users _ru ON _ru.id = ev.student_id AND _ru.school_code = '${PILOT_SCHOOL_CODE}'`
+    : "";
   const ARENA_SCHOOL_JOIN_COST = PILOT_SCHOOL_CODE
     ? `JOIN users _u ON _u.id = l.user_id AND _u.school_code = '${PILOT_SCHOOL_CODE}'`
     : "";
@@ -282,6 +297,39 @@ async function collect(
             )::int AS students_completed
        FROM lessons`,
     [weekStartInstant, weekEndInstant]
+  );
+
+  // Reliance: hint-before-attempt at gate granularity. Preview sessions are
+  // excluded for the same reason the dashboard excludes them — a teacher walking
+  // their own lesson is not a learner. This mirrors the definition in
+  // server/services/study-arena/reliance-model.ts; change both together.
+  const [reliance] = await q(
+    `WITH gates AS (
+        SELECT ev.student_id, ev.attempt_session_id, ev.action_index,
+               (MIN(ev.created_at) FILTER (WHERE ev.event_kind = 'hint') IS NOT NULL
+                AND (MIN(ev.created_at) FILTER (WHERE ev.event_kind = 'attempt') IS NULL
+                     OR MIN(ev.created_at) FILTER (WHERE ev.event_kind = 'hint')
+                        < MIN(ev.created_at) FILTER (WHERE ev.event_kind = 'attempt'))) AS hint_first
+          FROM study_arena_evidence_events ev
+          JOIN study_arena_attempt_sessions s
+            ON s.id = ev.attempt_session_id AND s.is_preview = false
+          ${RELIANCE_SCHOOL_JOIN}
+         WHERE ev.event_kind IN ('attempt', 'hint')
+           AND ev.created_at >= $1 AND ev.created_at < $2
+         GROUP BY ev.student_id, ev.attempt_session_id, ev.action_index
+     ),
+     per_student AS (
+        SELECT student_id,
+               COUNT(*)::int AS gates,
+               COUNT(*) FILTER (WHERE hint_first)::int AS hint_first_gates
+          FROM gates GROUP BY student_id
+     )
+     SELECT COALESCE(SUM(gates), 0)::int                        AS gates,
+            COALESCE(SUM(hint_first_gates), 0)::int             AS hint_first_gates,
+            COUNT(*)::int                                       AS students_with_evidence,
+            COUNT(*) FILTER (WHERE hint_first_gates * 2 > gates)::int AS students_hint_first_majority
+       FROM per_student`,
+    [weekStart, weekEnd]
   );
 
   // The adoption decision is anchored to the explicit pilot-enable timestamp,
@@ -405,6 +453,15 @@ async function collect(
       pilotCostPerCompletedLessonInr,
       pilotCostRowsMissing,
     },
+    reliance: {
+      gates: reliance?.gates ?? 0,
+      hintFirstGates: reliance?.hint_first_gates ?? 0,
+      // No gates means unknown, not "nobody offloaded". Rendering 0% on a week
+      // when nobody used the feature would read as a pedagogy win.
+      hintFirstRate: (reliance?.gates ?? 0) > 0 ? reliance.hint_first_gates / reliance.gates : null,
+      studentsWithEvidence: reliance?.students_with_evidence ?? 0,
+      studentsHintFirstMajority: reliance?.students_hint_first_majority ?? 0,
+    },
   };
 }
 
@@ -415,6 +472,18 @@ function loadPriorSnapshots(dir: string): Snapshot[] {
     .filter((f) => f.endsWith(".json"))
     .sort()
     .map((f) => JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")) as Snapshot);
+}
+
+/**
+ * A rate that is small but real must not render as "0%" — on this instrument a
+ * zero is a claim ("nobody offloaded this week"), and rounding one into
+ * existence is the same dishonesty as substituting a blank for an error.
+ */
+function formatRate(rate: number): string {
+  const pct = rate * 100;
+  if (pct === 0) return "0%";
+  if (pct < 1) return "<1%";
+  return `${pct.toFixed(0)}%`;
 }
 
 function renderTable(s: Snapshot, prior: Snapshot[], week: IsoWeek, tz: string): string {
@@ -467,7 +536,17 @@ function renderTable(s: Snapshot, prior: Snapshot[], week: IsoWeek, tz: string):
     `| Study Arena: lessons completed / started | ${s.studyArena.completedLessons} / ${s.studyArena.lessonsStarted} | ${delta(s.studyArena.completedLessons, prev?.studyArena?.completedLessons)} | — |`
   );
   lines.push(
-    `| Study Arena: distinct students completing | ${s.studyArena.studentsCompleted} | — | — |`
+    `| Study Arena: distinct students completing | ${s.studyArena.studentsCompleted} | — | — |`,
+    `| Study Arena: hint-first gates | ${
+      s.reliance.hintFirstRate === null
+        ? "no gates this week"
+        : `${formatRate(s.reliance.hintFirstRate)} (${s.reliance.hintFirstGates}/${s.reliance.gates})`
+    } | ${
+      prev?.reliance?.hintFirstRate == null || s.reliance.hintFirstRate === null
+        ? "—"
+        : `${((s.reliance.hintFirstRate - prev.reliance.hintFirstRate) * 100).toFixed(0)}pp`
+    } | lower is better |`,
+    `| Study Arena: students mostly hint-first | ${s.reliance.studentsHintFirstMajority} / ${s.reliance.studentsWithEvidence} | — | — |`
   );
   lines.push("");
 
