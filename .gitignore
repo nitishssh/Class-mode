@@ -46,3 +46,7 @@ public/uploads/
 
 # Machine-local path to an OpenMAIC checkout (optional; see .openmaic-repo.example)
 .openmaic-repo
+
+# local env backups (never commit)
+.env.bak.*
+.env.*.bak
