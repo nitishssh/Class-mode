@@ -1,4 +1,4 @@
-import confetti from "canvas-confetti";
+import confetti from "@/lib/confetti";
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
