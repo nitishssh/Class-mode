@@ -24,6 +24,12 @@ All notable changes to this project will be documented in this file.
 
 - The `POST /api/invite/accept` and `POST /api/invites/:token/accept` endpoints. Use `POST /api/auth/workspace-invite/signup` for workspace invitations and `POST /api/onboarding/invite/accept` for school invitations.
 
+## [1.9.5.3] - 2026-08-19
+
+### Fixed
+
+- **A console error on every page with a celebration animation is gone.** The confetti library tried to run itself in a background worker built from a blob, which the site's security policy blocks, so it logged a failure and quietly fell back to the main thread. It no longer asks for the worker, and the security policy now states its position on workers explicitly instead of leaving it to a fallback. Confetti looks and behaves the same as before.
+
 ## [1.9.5.2] - 2026-08-19
 
 ### Changed

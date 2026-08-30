@@ -2,7 +2,7 @@ import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { X, Share2 } from "lucide-react";
-import confetti from "canvas-confetti";
+import confetti from "@/lib/confetti";
 
 interface Badge {
   name: string;

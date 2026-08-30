@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import confetti from "canvas-confetti";
+import confetti from "@/lib/confetti";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
