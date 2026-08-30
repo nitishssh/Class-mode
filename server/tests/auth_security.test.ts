@@ -50,6 +50,8 @@ import {
   pgUpdateUser,
   pgFindWorkspaceInviteByTokenHash,
   pgAcceptWorkspaceInvite,
+  pgFindInviteByToken,
+  pgAcceptInvite,
   pgUpsertWorkspaceMembership,
   pgFindFirstWorkspaceMembership,
   pgFindWorkspaceBySlug,
@@ -78,24 +80,39 @@ describe("Authentication Security and Hardening", () => {
     app.use("/api/auth", authRouter);
     app.use("/api", authRouter);
     app.use("/api", onboardingRouter);
+    app.use("/api/onboarding", onboardingRouter);
   });
 
-  describe("Password corruption on workspace invite acceptance", () => {
-    it("should preserve original password and NOT update passwordHash when pre-existing user accepts invite", async () => {
-      const existingUser = {
-        id: 42,
-        email: "existing_member@example.com",
-        authProvider: "local",
-        authSubject: "existing_member@example.com",
-        passwordHash: "$2a$12$securepasswordhashhere",
-        displayName: "Original Name",
-        name: "Original Name",
-        role: "teacher",
-        status: "active",
-        emailVerified: true,
-      };
+  describe("Invite acceptance cannot authenticate as an existing account", () => {
+    // Regression for the unauthenticated invite-accept bypass.
+    //
+    // POST /invite/accept and POST /invites/:token/accept used to be mounted on
+    // the auth router WITHOUT authenticateToken. When the invited email already
+    // had an account the handler looked that user up by email, never verified
+    // the submitted password, and called createLoginSession — so possession of
+    // an invite link alone granted a full session as that account. Both routes
+    // and their handler are gone; the safe path is /workspace-invite/signup.
+    it.each([
+      ["/api/auth/invite/accept"],
+      ["/api/auth/invites/some_invite_token/accept"],
+    ])("%s is no longer mounted on the auth router", async (path) => {
+      const res = await request(app).post(path).send({
+        token: "some_invite_token",
+        password: "attacker-chosen-password",
+        displayName: "Attacker",
+      });
 
-      const invite = {
+      expect(res.status).toBe(404);
+      // The bypass was not just "wrong status" — nothing may be written or
+      // granted on these paths.
+      expect(pgUpdateUser).not.toHaveBeenCalled();
+      expect(pgCreateUser).not.toHaveBeenCalled();
+      expect(pgUpsertWorkspaceMembership).not.toHaveBeenCalled();
+      expect(pgAcceptWorkspaceInvite).not.toHaveBeenCalled();
+    });
+
+    it("workspace-invite/signup refuses an email that already has an account and issues no session", async () => {
+      (pgFindWorkspaceInviteByTokenHash as any).mockResolvedValue({
         id: 100,
         workspaceId: 10,
         email: "existing_member@example.com",
@@ -104,33 +121,35 @@ describe("Authentication Security and Hardening", () => {
         kind: "business_member",
         status: "pending",
         expiresAt: new Date(Date.now() + 100000),
-      };
-
-      (pgFindWorkspaceInviteByTokenHash as any).mockResolvedValue(invite);
-      (pgFindUserByEmail as any).mockResolvedValue(existingUser);
-      (pgFindUserById as any).mockResolvedValue(existingUser);
-      (pgFindFirstWorkspaceMembership as any).mockResolvedValue(null);
-
-      const res = await request(app).post("/api/invites/some_invite_token/accept").send({
-        password: "newpassword123",
-        displayName: "New Profile Name",
+      });
+      (pgFindUserByEmail as any).mockResolvedValue({
+        id: 42,
+        email: "existing_member@example.com",
+        passwordHash: "$2a$12$securepasswordhashhere",
+        displayName: "Original Name",
+        role: "teacher",
+        status: "active",
       });
 
-      expect(res.status).toBe(201);
-      expect(pgUpdateUser).toHaveBeenCalledWith(
-        42,
-        expect.not.objectContaining({ passwordHash: expect.any(String) })
-      );
-      expect(pgUpdateUser).toHaveBeenCalledWith(
-        42,
-        expect.objectContaining({ displayName: "New Profile Name", emailVerified: true })
-      );
+      const res = await request(app).post("/api/auth/workspace-invite/signup").send({
+        token: "valid_invite_token_here",
+        displayName: "Attacker Chosen Name",
+        password: "attacker-chosen-password1",
+      });
+
+      expect(res.status).toBe(409);
+      expect(res.body.accountExists).toBe(true);
+      expect(res.body.token).toBeUndefined();
+      // The existing account is untouched: no password reset, no profile edit,
+      // no membership granted, and the invite stays pending.
+      expect(pgUpdateUser).not.toHaveBeenCalled();
       expect(pgCreateUser).not.toHaveBeenCalled();
-      expect(pgAcceptWorkspaceInvite).toHaveBeenCalledWith(100);
+      expect(pgUpsertWorkspaceMembership).not.toHaveBeenCalled();
+      expect(pgAcceptWorkspaceInvite).not.toHaveBeenCalled();
     });
 
-    it("should hash the password and create a new user when non-existing user accepts invite", async () => {
-      const invite = {
+    it("workspace-invite/signup creates the account when the email is new", async () => {
+      (pgFindWorkspaceInviteByTokenHash as any).mockResolvedValue({
         id: 101,
         workspaceId: 11,
         email: "brand_new_user@example.com",
@@ -140,31 +159,24 @@ describe("Authentication Security and Hardening", () => {
         status: "pending",
         studentMeta: { grade: "10th", className: "A" },
         expiresAt: new Date(Date.now() + 100000),
-      };
-
-      (pgFindWorkspaceInviteByTokenHash as any).mockResolvedValue(invite);
+      });
       (pgFindUserByEmail as any).mockResolvedValue(null);
-
       const createdUser = {
         id: 43,
         email: "brand_new_user@example.com",
-        authProvider: "local",
-        authSubject: "brand_new_user@example.com",
         displayName: "Brand New",
         name: "Brand New",
         role: "student",
         status: "active",
-        emailVerified: true,
       };
-
       (pgCreateUser as any).mockResolvedValue(createdUser);
       (pgFindUserById as any).mockResolvedValue(createdUser);
       (pgFindFirstWorkspaceMembership as any).mockResolvedValue(null);
 
-      const res = await request(app).post("/api/invite/accept").send({
+      const res = await request(app).post("/api/auth/workspace-invite/signup").send({
         token: "valid_invite_token_here",
-        password: "supersecurepassword123",
         displayName: "Brand New",
+        password: "supersecurepassword123",
       });
 
       expect(res.status).toBe(201);
@@ -174,8 +186,6 @@ describe("Authentication Security and Hardening", () => {
           authProvider: "local",
           role: "student",
           passwordHash: expect.any(String),
-          grade: "10th",
-          className: "A",
         })
       );
       expect(pgUpdateUser).not.toHaveBeenCalled();
@@ -290,16 +300,21 @@ describe("Authentication Security and Hardening", () => {
     });
 
     it("should trigger sendWelcomeEmail on onboarding invitation acceptance", async () => {
-      const invite = {
+      // This test previously POSTed to /api/invite/accept while mocking the
+      // WORKSPACE invite lookup. That path resolved to the auth router's
+      // now-removed bypass handler, so the test never exercised onboarding at
+      // all despite its name. It now hits the onboarding route explicitly and
+      // mocks the school-invite query the handler actually calls.
+      (pgFindInviteByToken as any).mockResolvedValue({
         id: 70,
         email: "onboarded_teacher@example.com",
         name: "Onboarded Teacher",
         role: "teacher",
-        workspaceId: 12,
-        kind: "business_member",
+        schoolId: null,
+        classId: null,
         status: "pending",
         expiresAt: new Date(Date.now() + 100000),
-      };
+      });
 
       const newUser = {
         id: 62,
@@ -312,16 +327,13 @@ describe("Authentication Security and Hardening", () => {
         status: "active",
       };
 
-      (pgFindWorkspaceInviteByTokenHash as any).mockResolvedValue(invite);
       (pgFindUserByEmail as any).mockResolvedValue(null);
       (pgCreateUser as any).mockResolvedValue(newUser);
       (pgFindUserById as any).mockResolvedValue(newUser);
-      (pgFindFirstWorkspaceMembership as any).mockResolvedValue(null);
-      (pgAcceptWorkspaceInvite as any).mockResolvedValue(undefined);
-      (pgUpsertWorkspaceMembership as any).mockResolvedValue({ id: 5 });
+      (pgAcceptInvite as any).mockResolvedValue(undefined);
 
-      const res = await request(app).post("/api/invite/accept").send({
-        token: "invite-token-uuid-123",
+      const res = await request(app).post("/api/onboarding/invite/accept").send({
+        token: "6f1c8b3a-0f4e-4c2a-9c1b-2d3e4f5a6b7c",
         email: "onboarded_teacher@example.com",
         displayName: "Onboarded Teacher",
         password: "securepassword456",

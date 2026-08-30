@@ -394,28 +394,32 @@ router.post("/invite/accept", async (req: Request, res: Response) => {
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
   let pgUser = await pgFindUserByEmail(invite.email);
   if (pgUser) {
-    // Accepting an invite overwrites the account's password and role — so an
-    // invite addressed (maliciously or by typo) at a privileged account's
-    // email must never be able to reset that account and demote it. Lateral
-    // or upward moves (e.g. an existing student accepting a student invite,
-    // or a staff invite for a principal) remain allowed.
-    const PRIVILEGED_ROLES = new Set(["admin", "principal", "school_admin"]);
-    if (PRIVILEGED_ROLES.has(pgUser.role) && !PRIVILEGED_ROLES.has(invite.role)) {
-      return res.status(409).json({
-        message:
-          "An account with elevated access already uses this email. Sign in with that account instead.",
-      });
-    }
-    await pgUpdateUser(pgUser.id, {
-      passwordHash,
-      displayName: parsed.data.displayName,
-      role: invite.role,
-      status: "active",
-      emailVerified: true,
-      schoolCode: school?.code ?? null,
-      className: cls?.name ?? null,
+    // SECURITY (#invite-accept-auth-bypass): accepting an invite must NEVER
+    // mutate an account that already exists. This used to overwrite
+    // passwordHash, role, schoolCode and className for any non-privileged
+    // account, which produced two distinct failures:
+    //
+    //   1. Credential injection — whoever controlled an invite for an address
+    //      that already had an account could reset that account's password and
+    //      rebind it to their school.
+    //   2. Sibling corruption — student invites are addressed to the PARENT's
+    //      email (see POST /invite/student), so inviting a second child to the
+    //      same parent email resolved to the first child's account and
+    //      overwrote displayName/className. Attendance is unique per
+    //      (student_id, date), so the first child's history stayed attached to
+    //      a row that now described their sibling.
+    //
+    // Matching /api/auth/workspace-invite/signup, an existing email is now a
+    // dead end with an explicit signal rather than a destructive write. The
+    // authenticated "link account" flow that lets an existing user genuinely
+    // accept an invite is tracked separately; refusing is strictly better than
+    // corrupting while it does not exist.
+    return res.status(409).json({
+      message:
+        "An account already uses this email. Sign in with that account instead: " +
+        "accepting this invite would overwrite it.",
+      accountExists: true,
     });
-    pgUser = (await pgFindUserById(pgUser.id)) ?? pgUser;
   } else {
     pgUser = await pgCreateUser({
       authProvider: "local",

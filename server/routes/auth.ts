@@ -1174,82 +1174,25 @@ router.get("/invite/validate/:token", async (req: Request, res: Response) => {
   });
 });
 
-const acceptInviteSchema = z.object({
-  token: z.string().min(10),
-  name: z.string().min(1).optional(),
-  displayName: z.string().min(1).optional(),
-  password: passwordSchema,
-});
-
-async function acceptWorkspaceInvite(req: Request, res: Response) {
-  const parsed = acceptInviteSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ errors: parsed.error.flatten().fieldErrors });
-  const invite = await pgFindWorkspaceInviteByTokenHash(tokenHash(parsed.data.token));
-  if (!invite) return res.status(404).json({ message: "Invalid invite link" });
-  if (invite.status !== "pending") return res.status(409).json({ message: "Invite already used" });
-  if (invite.expiresAt < new Date())
-    return res.status(410).json({ message: "This invite has expired" });
-
-  const displayName =
-    parsed.data.name || parsed.data.displayName || invite.name || invite.email.split("@")[0];
-  let user = await pgFindUserByEmail(invite.email);
-  if (!user) {
-    user = await pgCreateUser({
-      authProvider: "local",
-      authSubject: invite.email,
-      email: invite.email,
-      username: `${invite.email.split("@")[0]}_${Date.now()}`,
-      passwordHash: await bcrypt.hash(parsed.data.password, 12),
-      name: displayName,
-      displayName,
-      // invite.role is a WORKSPACE role (owner/admin/member). A workspace
-      // "admin" maps to the tenant-level user role "school_admin" — never the
-      // platform "admin" super-role, which is granted only via the
-      // platform-admin invite flow.
-      role:
-        invite.kind === "student"
-          ? "student"
-          : invite.role === "admin"
-            ? "school_admin"
-            : "teacher",
-      status: "active",
-      emailVerified: true,
-      grade: invite.studentMeta?.grade ?? null,
-      className: invite.studentMeta?.className ?? null,
-    });
-    sendWelcomeEmail(user.email, user.displayName || user.name).catch((e) =>
-      logger.warn("[invite/accept] Failed to send welcome email", { error: String(e) })
-    );
-  } else {
-    // Keep original password hash to prevent corruption when accepting new workspace invites
-    await pgUpdateUser(user.id, {
-      displayName,
-      emailVerified: true,
-    });
-  }
-
-  await pgUpsertWorkspaceMembership({
-    workspaceId: invite.workspaceId,
-    userId: user.id,
-    role: invite.role,
-  });
-  await pgAcceptWorkspaceInvite(invite.id);
-  const { accessToken } = await createLoginSession(req, res, user.id);
-
-  recordAuditEvent({
-    targetUserId: user.id,
-    eventType: AUDIT_EVENTS.INVITE_ACCEPTED,
-    payload: { workspaceId: invite.workspaceId, kind: invite.kind, workspaceRole: invite.role },
-  });
-
-  return res.status(201).json({ token: accessToken, ...(await currentAuthPayload(user.id)) });
-}
-
-router.post("/invites/:token/accept", (req, res) => {
-  req.body = { ...req.body, token: req.params.token };
-  return acceptWorkspaceInvite(req, res);
-});
-router.post("/invite/accept", acceptWorkspaceInvite);
+// SECURITY (#invite-accept-auth-bypass): `acceptWorkspaceInvite` and its two
+// mounts — POST /invite/accept and POST /invites/:token/accept — were removed.
+// Both were mounted WITHOUT authenticateToken. When the invited email already
+// had an account, the handler looked the user up by email, skipped any password
+// check, and called createLoginSession — so possession of an invite link granted
+// a full session as that existing account. Nothing called these routes: the web
+// client uses /api/auth/workspace-invite/signup (below) for workspace invites and
+// /api/onboarding/invite/accept for school invites, and the mobile app has no
+// invite flow at all.
+//
+// The correct behaviour already lives in /workspace-invite/signup: an invite for
+// an email that already has an account returns 409 { accountExists: true } and
+// tells the person to sign in, instead of minting a session for whoever holds
+// the link.
+//
+// Known gap, deliberately not closed here: an existing user still has no way to
+// accept a workspace invite (they get the 409 dead-end). That needs an
+// authenticated, email-matched "link account" endpoint — tracked separately.
+// Restoring an unauthenticated accept path is not the fix.
 
 router.post("/register", (_req: Request, res: Response) => {
   return res.status(403).json({
