@@ -28,7 +28,7 @@ export default function Settings() {
 
   const [isSaving, setIsSaving] = useState(false);
   const [profileData, setProfileData] = useState({
-    name: (currentUser.profile as any)?.name || currentUser.user?.displayName || "Class Mode User",
+    name: (currentUser.profile as any)?.name || currentUser.user?.displayName || "ClassMode User",
     email: currentUser.user?.email || "",
   });
 
@@ -212,7 +212,7 @@ export default function Settings() {
             <Card className="overflow-hidden border-border/50 shadow-sm">
               <CardHeader className="border-b border-border/50 bg-muted/20 pb-4">
                 <CardTitle className="text-xl">Appearance Settings</CardTitle>
-                <CardDescription>Customize how Class Mode looks on your device.</CardDescription>
+                <CardDescription>Customize how ClassMode looks on your device.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6 pt-6">
                 <div className="space-y-4">

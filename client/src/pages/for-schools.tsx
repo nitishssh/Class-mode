@@ -58,7 +58,7 @@ const features: AudienceFeature[] = [
     name: "At-risk Student Flags",
     headline: "Catch struggling and disengaging students before they slip.",
     description:
-      "Class Mode surfaces students whose attendance or performance is trending the wrong way, turning intervention from reactive to proactive.",
+      "ClassMode surfaces students whose attendance or performance is trending the wrong way, turning intervention from reactive to proactive.",
     bullets: [
       "Early flags on falling attendance or scores",
       "A shortlist for counsellors and mentors",
@@ -167,7 +167,7 @@ const features: AudienceFeature[] = [
     name: "Tenant Isolation & Data Security",
     headline: "Your school's data is walled off from every other school's.",
     description:
-      "Class Mode enforces strict tenant boundaries so no one outside your institution can see your data — security your board can sign off on.",
+      "ClassMode enforces strict tenant boundaries so no one outside your institution can see your data — security your board can sign off on.",
     bullets: [
       "Strict per-school data isolation",
       "Role-based access to sensitive records",
@@ -181,12 +181,12 @@ const ForSchools = () => (
     eyebrow="✨ For Principals, Admins & Boards"
     title="Run the whole institution from"
     titleAccent="one live command center."
-    intro="Class Mode replaces the spreadsheets, separate LMS, and messaging apps with a single platform — giving leadership real-time visibility, giving teachers their hours back, and giving boards the reports they need. Here's what every feature means at the institution level."
+    intro="ClassMode replaces the spreadsheets, separate LMS, and messaging apps with a single platform — giving leadership real-time visibility, giving teachers their hours back, and giving boards the reports they need. Here's what every feature means at the institution level."
     crosslink={{ label: "See it for Parents →", href: "/for-parents" }}
     outcomes={outcomes}
     featuresHeading="Every feature, from a leadership point of view"
     features={features}
-    ctaHeading="Bring Class Mode to your institution"
+    ctaHeading="Bring ClassMode to your institution"
     ctaSub="Request a pilot and we'll walk your leadership team through the platform with your school's context in mind."
   />
 );

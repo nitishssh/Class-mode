@@ -185,7 +185,7 @@ export default function StudyArenaCreate() {
   return (
     <div className="mx-auto max-w-3xl space-y-6 pb-16">
       <div>
-        <p className="text-xs font-bold uppercase tracking-widest text-accent">Study Arena</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-accent">ClassMode Learning</p>
         <h1 className="mt-1 font-display text-3xl text-foreground">Create a lesson</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Source and objective → approve outline → preview → publish to students.

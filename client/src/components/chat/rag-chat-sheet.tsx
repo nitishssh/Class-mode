@@ -184,7 +184,7 @@ export function RagChatSheet({
             </div>
             <div>
               <h3 className="font-display text-sm text-foreground">
-                {conceptName ? `${conceptName} • ` : t("chat.tutorTitle", "Class Mode Tutor • ")}
+                {conceptName ? `${conceptName} • ` : t("chat.tutorTitle", "ClassMode Tutor • ")}
                 {subjectName}
               </h3>
               <div className="mt-0.5 flex items-center gap-1.5">

@@ -134,7 +134,7 @@ export const Journey = () => (
           Getting there is three steps. Not a project.
         </h2>
         <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-          Class Mode was built inside a real school — teachers with thirty students and four
+          ClassMode was built inside a real school — teachers with thirty students and four
           periods, an office with one register. It runs on the phones your staff already carry. No
           server room, no consultant, no training day.
         </p>

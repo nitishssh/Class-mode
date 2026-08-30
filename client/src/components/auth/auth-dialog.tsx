@@ -219,7 +219,7 @@ const IllustrationPanel = () => {
         {t("auth.easierOrganized", "Make your learning easier and organized")}
         <br />
         {t("auth.simplifyWorkflow", "Simplify your workflow and boost your productivity with")}{" "}
-        <span className="font-bold">{t("auth.classMode", "Class Mode")}</span>
+        <span className="font-bold">{t("auth.classMode", "ClassMode")}</span>
       </p>
     </div>
   );
@@ -399,7 +399,7 @@ export function AuthDialog() {
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
             {t("auth.simplifyWorkflow", "Simplify your workflow and boost your productivity with")}{" "}
             <span className="font-semibold text-foreground">
-              {t("auth.classMode", "Class Mode")}
+              {t("auth.classMode", "ClassMode")}
             </span>
             .{" "}
             {authTab === "login"

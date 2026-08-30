@@ -402,7 +402,7 @@ function App() {
       <Route path="/messages" component={MessagesRoute} />
       <Route path="/test/:id" component={TestPageRoute} />
       <Route path="/resources" component={ResourcesRoute} />
-      {/* Retired: the mock Study Arena chat duplicated Messages. */}
+      {/* Retired: the mock ClassMode Learning chat duplicated Messages. */}
       <Route path="/study-arena">
         <Redirect to="/messages" />
       </Route>

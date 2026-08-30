@@ -60,6 +60,7 @@ export const sceneActionSchema = z.discriminatedUnion("type", [
     prompt: z.string().min(1).max(2000),
     expects: z.enum(["freeText", "choice"]),
     choices: z.array(z.string().min(1)).optional(),
+    answerKey: z.string().optional(),
     // The gate: playback MUST stop here until the student responds.
     gate: z.literal(true),
     a11y: sceneActionA11ySchema.optional(),

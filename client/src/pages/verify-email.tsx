@@ -179,7 +179,7 @@ export default function VerifyEmailPage() {
 
       toast({
         title: "Email Verified! 🎉",
-        description: "Your account is now fully activated. Welcome to Class Mode!",
+        description: "Your account is now fully activated. Welcome to ClassMode!",
       });
 
       setLocation("/dashboard");

@@ -12,6 +12,8 @@ import { getPgPool, isPgReady } from "../../db-pg";
 import { logger } from "../../lib/logger";
 import { generateLessonScript, ensureScriptA11y, type LessonScript } from "./lesson-script";
 import { getStudyArenaConcept } from "./concept-registry";
+import { ClassModeAIClient } from "../study-arena-client";
+import { adaptClassModeAIDraft } from "./classmode-ai-adapter";
 
 export type CompilerJobStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
 
@@ -203,6 +205,54 @@ async function createDraftLessonFromScript(input: {
   return result.rows[0].id;
 }
 
+function classModeAICompilerEnabled(): boolean {
+  return process.env.CLASSMODE_AI_COMPILER_ENABLED === "true";
+}
+
+async function generateWithClassModeAI(job: CompilerJobRow): Promise<LessonScript> {
+  const baseUrl = process.env.CLASSMODE_AI_BASE_URL?.trim();
+  if (!baseUrl) throw new Error("CLASSMODE_AI_BASE_URL is required when the ClassMode AI compiler is enabled");
+  const client = new ClassModeAIClient({
+    baseUrl,
+    serviceSecret: process.env.CLASSMODE_AI_SERVICE_SECRET,
+    timeoutMs: Number(process.env.CLASSMODE_AI_TIMEOUT_MS || 15_000),
+  });
+  const upstream = await client.createGenerationJob(String(job.workspaceId), {
+    requirement: [job.objective, `Subject: ${job.subject}`, job.gradeLevel ? `Grade: ${job.gradeLevel}` : ""]
+      .filter(Boolean)
+      .join("\n"),
+    sourceText: job.sourceText,
+  });
+  await updateJobProgress(job.id, {
+    stage: "classmode-ai",
+    percent: 20,
+    upstreamJobId: upstream.id,
+    upstreamStatus: upstream.status,
+  }, "running");
+
+  const deadline = Date.now() + Number(process.env.CLASSMODE_AI_GENERATION_TIMEOUT_MS || 180_000);
+  let current = upstream;
+  while (current.status === "queued" || current.status === "running") {
+    if (Date.now() >= deadline) throw new Error("ClassMode AI generation timed out");
+    const local = await fetchJob(job.id);
+    if (!local || local.status === "cancelled") throw new Error("Compilation cancelled");
+    await new Promise((resolve) => setTimeout(resolve, 750));
+    current = await client.getGenerationJob(String(job.workspaceId), upstream.id);
+    await updateJobProgress(job.id, {
+      stage: "classmode-ai",
+      percent: Math.max(20, Math.min(70, current.progress)),
+      upstreamJobId: upstream.id,
+      upstreamStatus: current.status,
+      upstreamStep: current.step,
+    }, "running");
+  }
+  if (current.status !== "succeeded") {
+    throw new Error(current.error || "ClassMode AI generation failed");
+  }
+  const draft = await client.getLessonDraft(String(job.workspaceId), upstream.id);
+  return adaptClassModeAIDraft({ draft, objective: job.objective, subject: job.subject });
+}
+
 async function runCompile(jobId: string): Promise<void> {
   const job = await fetchJob(jobId);
   if (!job) return;
@@ -224,7 +274,21 @@ async function runCompile(jobId: string): Promise<void> {
 
   const topic = `${job.objective}\n\nSource material:\n${job.sourceText}`.slice(0, 4000);
   try {
-    const rawScript = await generateLessonScript(topic, { sceneCount: 3 });
+    let rawScript: LessonScript;
+    if (classModeAICompilerEnabled()) {
+      try {
+        rawScript = await generateWithClassModeAI(job);
+      } catch (error) {
+        if (process.env.CLASSMODE_AI_COMPILER_FALLBACK !== "true") throw error;
+        logger.warn("[StudyArena/compiler] ClassMode AI failed; using explicit native fallback", {
+          jobId,
+          message: error instanceof Error ? error.message : String(error),
+        });
+        rawScript = await generateLessonScript(topic, { sceneCount: 3 });
+      }
+    } else {
+      rawScript = await generateLessonScript(topic, { sceneCount: 3 });
+    }
     const script = ensureScriptA11y(rawScript);
 
     const afterGenerate = await fetchJob(jobId);

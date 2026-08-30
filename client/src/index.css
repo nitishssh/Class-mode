@@ -7,7 +7,7 @@
 @layer base {
   /* ── Palette source of truth ──────────────────────────────────────────────
      Governed by the "Ruled Paper" design system. The canonical spec lives at
-     OpenMAIC-main/DESIGN.md; these tokens are MIRRORED in Class Mode Studio at
+     OpenMAIC-main/DESIGN.md; these tokens are MIRRORED in ClassMode Studio at
      OpenMAIC-main/app/globals.css, which converts the HSL triplets below into
      complete hsl() values because it runs Tailwind v4, where tokens are consumed
      as whole colors rather than through hsl(var(--x)). Change a brand color here
@@ -26,7 +26,7 @@
                          --not-yet instead.
 
      This app inherits the paper, the margin rule and the mono numerals. It does
-     NOT inherit Studio's slate gate inversion. That reservation is what lets one
+     does NOT inherit Studio's slate gate inversion. That reservation is what lets one
      system cover both an authoring tool and an attendance register. */
   :root {
     /* ── Base ── */

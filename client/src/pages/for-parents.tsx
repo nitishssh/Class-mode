@@ -68,7 +68,7 @@ const features: AudienceFeature[] = [
     name: "AI Study Plans",
     headline: "A personalised roadmap so your child always knows what to study next.",
     description:
-      "Class Mode builds a daily and weekly plan around your child's goals and weak spots, turning “I don't know where to start” into a clear path.",
+      "ClassMode builds a daily and weekly plan around your child's goals and weak spots, turning “I don't know where to start” into a clear path.",
     bullets: [
       "Personalised daily & weekly schedule",
       "Focuses time on weaker topics",
@@ -104,7 +104,7 @@ const features: AudienceFeature[] = [
     name: "Direct Messaging with Teachers",
     headline: "Reach the right teacher without chasing phone numbers.",
     description:
-      "Message your child's teachers directly inside Class Mode, with a record of the conversation you can refer back to.",
+      "Message your child's teachers directly inside ClassMode, with a record of the conversation you can refer back to.",
     bullets: [
       "One place to talk to every teacher",
       "No lost notes in schoolbags",
@@ -164,7 +164,7 @@ const features: AudienceFeature[] = [
     name: "Privacy & Safety",
     headline: "Your family's data stays your family's.",
     description:
-      "Class Mode is built with data protection in mind — you can see how information is used, and it's never sold.",
+      "ClassMode is built with data protection in mind — you can see how information is used, and it's never sold.",
     bullets: [
       "Clear, privacy-first data handling",
       "Your data is never sold",
@@ -178,12 +178,12 @@ const ForParents = () => (
     eyebrow="✨ For Parents"
     title="Everything your child's school does,"
     titleAccent="finally visible to you."
-    intro="Class Mode brings your child's learning, attendance, homework, results, and fees into one place — with alerts, direct lines to teachers, and an AI tutor on call. Here's what every feature means for you as a parent."
+    intro="ClassMode brings your child's learning, attendance, homework, results, and fees into one place — with alerts, direct lines to teachers, and an AI tutor on call. Here's what every feature means for you as a parent."
     crosslink={{ label: "See it for Principals & Boards →", href: "/for-schools" }}
     outcomes={outcomes}
     featuresHeading="Every feature, from a parent's point of view"
     features={features}
-    ctaHeading="Want Class Mode at your child's school?"
+    ctaHeading="Want ClassMode at your child's school?"
     ctaSub="Tell us your school's name and we'll reach out — or share this with the principal to get the conversation started."
   />
 );

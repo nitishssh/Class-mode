@@ -3,7 +3,7 @@ import "dotenv/config";
 import fs from "fs";
 import path from "path";
 import axios from "axios";
-import { generateFullClassroom } from "../server/services/study-arena/generator";
+import { generateFullClassroom } from "../server/services/study-arena/generation";
 import { gradeSubmission } from "../server/services/gradingService";
 import { connectPostgres, isPgReady } from "../server/db-pg";
 

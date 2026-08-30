@@ -1,6 +1,6 @@
 import { Queue, Worker, Job } from "bullmq";
 import { newRedisConnection, isRedisConfigured, BULLMQ_PREFIX } from "../../lib/db/redis";
-import { generateFullClassroom } from "./generator";
+import { generateFullClassroom } from "./generation";
 import {
   pgCreateAIClassroom,
   pgFindAIClassroomByJobId,

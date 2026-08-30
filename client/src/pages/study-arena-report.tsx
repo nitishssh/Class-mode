@@ -97,7 +97,7 @@ export default function StudyArenaReport() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-accent">
-            Study Arena evidence
+            ClassMode Learning evidence
           </p>
           <h1 className="mt-1 font-display text-3xl text-foreground">Assignment progress</h1>
         </div>

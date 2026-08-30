@@ -297,7 +297,7 @@ export function Sidebar({ className }: SidebarProps) {
           {!isCollapsed ? (
             <div className="flex flex-col">
               <h1 className="font-display text-2xl leading-tight text-foreground">
-                {t("sidebar.classMode", "Class Mode")}
+                {t("sidebar.classMode", "ClassMode")}
               </h1>
               <p className="mt-0.5 font-body text-[10px] uppercase tracking-widest text-muted-foreground">
                 {t("sidebar.learningPlatform", "Learning Platform")}
