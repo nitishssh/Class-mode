@@ -109,9 +109,14 @@ This document provides comprehensive API documentation for the workspace-based l
 
 ### 3. Accept Invite
 
-- **Path**: `POST /api/invite/accept`
-- **Body**: `{ "token": "...", "password": "...", "name": "..." }`
-- **Action**: Creates a user (if needed) and joins them to the workspace.
+- **Path**: `POST /api/auth/workspace-invite/signup`
+- **Body**: `{ "token": "...", "password": "...", "displayName": "..." }`
+- **Action**: Creates a user and joins them to the workspace. An email that
+  already has an account is refused with `409 { accountExists: true }` and must
+  sign in instead.
+- **Note**: the former `POST /api/invite/accept` was removed. It was
+  unauthenticated and issued a session for an existing account without checking
+  the password, so invite possession alone was enough to sign in as that user.
 
 ---
 

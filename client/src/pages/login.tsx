@@ -11,6 +11,10 @@ const GOOGLE_OAUTH_ERROR_COPY: Record<string, string> = {
   google_oauth_csrf: "Google sign-in security check failed. Please try again.",
   google_oauth_exchange: "Couldn't complete sign-in with Google. Please try again.",
   google_signin_failed: "Sign-in failed. Please try again or use email + password.",
+  // Set by /api/auth/google/start when the flag is off — reachable from a
+  // stale tab or a bookmarked link after the button has been hidden.
+  google_signin_disabled:
+    "Google sign-in is currently unavailable. Please sign in with email + password.",
   account_inactive: "Your account is suspended. Please contact support.",
 };
 

@@ -2,19 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.9.6.0] - 2026-08-20
+## [1.9.6.0] - 2026-08-30
 
 ### Changed
 
 - **The weekly adoption numbers now follow written, versioned rules.** Six choices decide every figure the pilot is judged on — which schools count, which timezone, where a week starts and ends, which week is the baseline, whether two compared weeks are actually adjacent, and what happens to a week that hasn't finished. Those rules are now fixed in one place and stamped onto every weekly snapshot, so a change to any of them has to be declared instead of quietly rewriting the comparison against earlier weeks. The rules are written out in `docs/METRIC-SEMANTICS.md`.
+- **Accepting an invitation never alters an existing account.** Previously it could reset that account's password and change its role and school. If the email already has an account, acceptance stops and asks you to sign in with it. Note: linking an invitation to an existing account is not yet supported, so people who already have an account cannot accept one until that flow ships.
 
 ### Fixed
 
+- **An invite link could sign you in as someone else.** If an invitation was sent to an email address that already had an account, accepting it logged the sender straight into that account without ever checking a password. Anyone who got hold of the link, including a forwarded email or a shared family inbox, became that user. Invite links can no longer produce a session for an existing account.
+- **A second child's invitation no longer overwrites the first.** Student invitations are addressed to the parent, so inviting a second child to the same email used to land on the first child's record and rewrite their name and class, leaving that child's attendance history filed under their sibling. An invitation for an address that already has an account is now refused instead.
+- **Invite acceptance no longer reports success when it failed.** If the invitation could not be marked as accepted, the app still replied "account created". It now says what happened and tells you to ask your school to resend.
 - **Monday mornings were being counted as the previous week.** Week boundaries were measured in UTC while the schools are on IST, so every mark made before 5:30am IST on a Monday — the start of the school day — landed in the week that had just ended. This understated Mondays and inflated the prior week, on the exact number the September adoption gate reads.
 - **A half-finished week can no longer become the baseline.** Running the report mid-week saved that partial week as if it were whole. Because the alert threshold is set at half the baseline, a partial baseline set the bar permanently too low and the alert could never fire. Partial weeks are still recorded, but are now excluded from the baseline and from the two-week check until re-run after the week closes.
 - **The two-week alert no longer compares weeks that aren't consecutive.** It previously compared against whatever the most recent saved week happened to be, which could be months earlier, and reported that as two consecutive weeks below target. When there's no adjacent complete week, the check now says it isn't running rather than reporting a breach that never happened.
 - **The report now distinguishes "no adoption yet" from "we never finished measuring".** Excluding half-finished weeks from the baseline fixed one silent failure but created another: someone who only ever runs the report mid-week produces nothing complete, so the alert can never arm, and the output looks identical to a pilot that simply has not started. The report now names the unfinished weeks that are holding the baseline back and says a re-run will clear them.
 - **A mistyped pilot school code stops the report instead of reading as failure.** Scoping the report to a school that doesn't exist made every number come back zero, which looks identical to a school that did nothing at all.
+
+### Removed
+
+- The `POST /api/invite/accept` and `POST /api/invites/:token/accept` endpoints. Use `POST /api/auth/workspace-invite/signup` for workspace invitations and `POST /api/onboarding/invite/accept` for school invitations.
 
 ## [1.9.5.2] - 2026-08-19
 
