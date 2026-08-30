@@ -24,6 +24,7 @@ import parentRoutes from "./parent";
 import gradingRoutes from "./grading";
 import aiClassroomRoutes from "./ai-classroom";
 import studyArenaBetaRoutes from "./study-arena-beta";
+import classModeAIRoutes from "./classmode-ai";
 import { liveRouter } from "./live";
 import messageRoutes from "../message/routes";
 
@@ -63,6 +64,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/live", ...verifiedAuth, liveRouter);
   app.use("/api/ai-classroom", aiClassroomRoutes);
   app.use("/api/study-arena-beta", studyArenaBetaRoutes);
+  app.use("/api/classmode-ai", ...verifiedAuth, classModeAIRoutes);
   app.use("/api/grading", ...verifiedAuth, gradingRoutes);
   app.use("/api/educator", ...verifiedAuth, educatorRoutes);
   app.use("/api/resources", ...verifiedAuth, resourcesRoutes);

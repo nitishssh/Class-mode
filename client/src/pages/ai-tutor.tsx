@@ -74,7 +74,7 @@ export default function AiTutor({ initialTopic }: AiTutorProps = {}) {
             .
           </h1>
           <p className="max-w-2xl font-body text-lg leading-relaxed text-muted-foreground">
-            Your personalized learning journey is evolving. Ask Class Mode to clarify complex
+            Your personalized learning journey is evolving. Ask ClassMode to clarify complex
             theories or generate practice paths tailored to your recent progress.
           </p>
         </div>
@@ -84,7 +84,7 @@ export default function AiTutor({ initialTopic }: AiTutorProps = {}) {
       <section className="animate-fade-in-up" style={{ animationDelay: "100ms" }}>
         <BentoHeroCard
           title="Start a Learning Session"
-          description="Ask Class Mode anything — clarify a concept, work through practice problems, or get a step-by-step explanation tailored to your level."
+          description="Ask ClassMode anything — clarify a concept, work through practice problems, or get a step-by-step explanation tailored to your level."
           ctaText="Start Learning Session"
           visual={
             <div className="group relative">

@@ -1,0 +1,33 @@
+# Watches the OpenMAIC files that server/services/study-arena/ was hand-ported
+# from (MIT — docs/OpenMAIC-ATTRIBUTION.md).
+#
+# The port is not a generated copy, so there is nothing to re-sync automatically.
+# A failure here means upstream moved and a human should read the diff, then
+# either port the change or record that we deliberately diverge — and re-baseline
+# with `npm run check:study-arena-drift -- --update`.
+#
+# No token needed: OpenMAIC is public and the check fetches raw file contents.
+name: Study Arena Upstream Drift
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "41 3 * * 1"
+
+jobs:
+  check-upstream:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check OpenMAIC upstream drift
+        run: npm run check:study-arena-drift

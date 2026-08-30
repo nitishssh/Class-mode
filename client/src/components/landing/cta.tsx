@@ -271,12 +271,12 @@ export const DemoWidget = () => {
           </h2>
           <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
             No complex dashboards or new apps for students to install. They chat with their school's
-            Class Mode AI tutor, review class notes, translate, and solve equations.
+            ClassMode AI tutor, review class notes, translate, and solve equations.
           </p>
         </motion.div>
 
         <div className="relative z-10 grid gap-8 md:grid-cols-2">
-          {/* Study Arena Topics list */}
+          {/* ClassMode Learning Topics list */}
           <div>
             <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               <Brain size={14} className="text-primary" /> Select a study topic
@@ -291,7 +291,7 @@ export const DemoWidget = () => {
               <div className="flex items-center justify-between border-b border-zinc-100 px-5 py-4 dark:border-zinc-800">
                 <div>
                   <p className="flex items-center gap-1.5 text-[15px] font-semibold text-zinc-900 dark:text-zinc-50">
-                    Class Mode Learn Hub
+                    ClassMode Learn Hub
                   </p>
                   <p className="text-xs text-zinc-500 dark:text-zinc-400">
                     Interactive WhatsApp Tutor Simulator

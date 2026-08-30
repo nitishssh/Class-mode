@@ -146,7 +146,7 @@ export const MarketingFooter = () => (
       </div>
 
       <div className="mt-10 border-t border-border pt-6 text-center text-xs text-muted-foreground">
-        © 2026 Class Mode. All rights reserved. Built with 💛 for learners everywhere.
+        © 2026 ClassMode. All rights reserved. Built with 💛 for learners everywhere.
       </div>
     </div>
   </footer>
@@ -284,7 +284,7 @@ export const AudiencePage: ComponentType<AudiencePageProps> = ({
             <motion.div {...fadeUp} className="mb-14 text-center">
               <h2 className="text-3xl font-extrabold md:text-4xl">{featuresHeading}</h2>
               <p className="mx-auto mt-3 max-w-2xl text-lg text-muted-foreground">
-                Every part of Class Mode, explained in terms of what it does for you.
+                Every part of ClassMode, explained in terms of what it does for you.
               </p>
             </motion.div>
 

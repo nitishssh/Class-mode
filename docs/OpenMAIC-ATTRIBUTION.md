@@ -18,6 +18,33 @@ are substantial portions of OpenMAIC and are covered by this notice.
 of the attempt-first pedagogy (gated `ask` actions); it is inspired by, not ported from,
 OpenMAIC.
 
+## Staying aware of upstream (drift check)
+
+The ported files are **not** a generated copy — the port was deliberately simplified and
+re-pedagogised, so a byte-diff against upstream is meaningless. What is worth knowing is
+whether the OpenMAIC file a port came from has **changed since we last looked**. Without
+that signal a hand port becomes a silent fork: upstream fixes and re-architectures land
+invisibly.
+
+```
+npm run check:study-arena-drift              # check against the pinned ref
+npm run check:study-arena-drift -- --update  # re-baseline after reviewing
+```
+
+- Baseline: `server/services/study-arena/UPSTREAM.lock.json` (16 upstream files, each
+  mapped to the Class-mode file derived from it).
+- Source: `raw.githubusercontent.com` at the lockfile's `ref`. Set `$OPENMAIC_REPO` or
+  create `.openmaic-repo` (gitignored, see `.openmaic-repo.example`) to run against a
+  local checkout offline instead.
+- CI: `.github/workflows/study-arena-upstream-drift.yml`, weekly. No token — OpenMAIC is
+  public.
+
+A `CHANGED` result is a prompt to read the upstream diff and make a decision — port it, or
+record that we diverge on purpose. Either way, re-baseline so the next run is quiet.
+
+`lesson-script.ts` is deliberately **not** tracked: it is an independent implementation of
+the attempt-first pedagogy, not a port, so upstream movement does not bear on it.
+
 ## Required upstream license notice (MIT)
 
 The MIT license **requires** that the original copyright and permission notice be retained

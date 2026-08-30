@@ -100,7 +100,12 @@ export function WorkspaceSwitcher({ isCollapsed = false }: { isCollapsed?: boole
           <WorkspaceAvatar workspace={activeWorkspace} size="sm" />
           {!isCollapsed && (
             <>
-              <span className="flex-1 truncate text-left">{activeWorkspace.name}</span>
+              <span
+                data-testid="workspace-switcher-name"
+                className="flex-1 truncate text-left"
+              >
+                {activeWorkspace.name}
+              </span>
               <ChevronsUpDown className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
             </>
           )}
@@ -112,7 +117,12 @@ export function WorkspaceSwitcher({ isCollapsed = false }: { isCollapsed?: boole
           </div>
           {!isCollapsed && (
             <>
-              <span className="flex-1 truncate text-left text-muted-foreground">No workspace</span>
+              <span
+                data-testid="workspace-switcher-empty"
+                className="flex-1 truncate text-left text-muted-foreground"
+              >
+                No workspace
+              </span>
               <ChevronsUpDown className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
             </>
           )}

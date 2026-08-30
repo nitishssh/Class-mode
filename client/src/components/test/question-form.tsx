@@ -275,7 +275,7 @@ export function QuestionForm({ testId, order, onSuccess }: QuestionFormProps) {
                     AI Question Generator
                   </h3>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    Let Class Mode draft questions based on your test subject
+                    Let ClassMode draft questions based on your test subject
                   </p>
                 </div>
               </div>

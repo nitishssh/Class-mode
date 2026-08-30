@@ -5,6 +5,29 @@
 @tailwind utilities;
 
 @layer base {
+  /* ── Palette source of truth ──────────────────────────────────────────────
+     Governed by the "Ruled Paper" design system. The canonical spec lives at
+     OpenMAIC-main/DESIGN.md; these tokens are MIRRORED in ClassMode Studio at
+     OpenMAIC-main/app/globals.css, which converts the HSL triplets below into
+     complete hsl() values because it runs Tailwind v4, where tokens are consumed
+     as whole colors rather than through hsl(var(--x)). Change a brand color here
+     and change it there, or the two surfaces drift apart visually.
+
+     Three semantic rules are load-bearing, not preferences:
+
+       --energy #f0a500  MARIGOLD. In Studio this means exactly one thing: the
+                         lesson has stopped and the student owns the next move.
+                         Do not spend it on badges, charts or decoration here,
+                         or it stops meaning anything there.
+       --accent #cc785c  TERRACOTTA is the student's colour: their answers, their
+                         marks, their progress. Never lesson decoration.
+       --destructive     True red is for institutional facts only (absent, fees
+                         overdue). An unfinished thought is NOT an error and uses
+                         --not-yet instead.
+
+     This app inherits the paper, the margin rule and the mono numerals. It does
+     does NOT inherit Studio's slate gate inversion. That reservation is what lets one
+     system cover both an authoring tool and an attendance register. */
   :root {
     /* ── Base ── */
     --cream-50: #fdfaf5;
@@ -30,6 +53,7 @@
     --energy-dark: #c87e00;
 
     /* ── NEW: Progress Color ── */
+    --not-yet: #b8654a; /* an unfinished thought is not an error */
     --progress: #4a7c59;
     --progress-soft: #ebf3ee;
 
@@ -143,6 +167,7 @@
     --energy-soft: #4a4543;
     --energy-dark: #c87e00;
 
+    --not-yet: #b8654a; /* an unfinished thought is not an error */
     --progress: #4a7c59;
     --progress-soft: #4a4543;
 

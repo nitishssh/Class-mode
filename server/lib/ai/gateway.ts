@@ -27,17 +27,23 @@
  * It delegates to the EXISTING server/lib/openai.ts and server/lib/gemini.ts
  * code paths — it does not reimplement provider calls.
  *
- * ── MIGRATION TODO (do this incrementally, one call site per PR) ───────────
- *   Route the four scattered entrypoints through this gateway:
- *     [ ] server/lib/openai.ts        → callers use generate({ model: "orchestrator", ... })
- *     [ ] server/lib/gemini.ts        → callers use generate({ model: "fast", ... })
- *     [ ] AI-classroom generator      → generate({ model: "fast" | "orchestrator", ... })
- *     [ ] study-arena director        → generate({ model: "orchestrator", ... })
- *   Once migrated, central caching / cost metering / tracing can be added in
- *   ONE place (the generate/streamGenerate/embed bodies below).
+ * ── MIGRATION STATUS ───────────────────────────────────────────────────────
+ *   The four scattered entrypoints are now routed through this gateway:
+ *     [x] server/lib/ai/openai.ts     → no external callers; provider detail only
+ *     [x] server/lib/ai/gemini.ts     → no external callers; provider detail only
+ *     [x] AI-classroom generator      → study-arena/generator.ts imports generate()
+ *     [x] study-arena director        → {ai-sdk,gemini}-adapter.ts import generate()
+ *   Verified by grep: nothing outside server/lib/ai/ imports the provider modules
+ *   or their symbols directly. `openai.ts` still EXPORTS legacy helpers (aiChat,
+ *   streamAIChat, generateStudyPlan, analyzeTestPerformance) that no longer have
+ *   callers — dead surface, safe to delete in a separate cleanup PR.
+ *
+ *   Central caching / cost metering / tracing now has ONE place to live: the
+ *   generate/streamGenerate/embed bodies below (logAiCall is the seam).
  */
 
 import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 import { logger } from "../logger";
 import { geminiChat, streamGeminiChat, generateContentFromPdf, verifyGeminiAccess } from "./gemini";
 import { evaluateSubjectiveAnswer } from "./openai";
@@ -94,14 +100,16 @@ export interface ModelMapping {
 //   grader       → gemini / gemini-2.0-flash        (today's grading/eval path)
 //   embed        → openai / text-embedding-3-small  (1536-dim, see embed())
 //
-// To adopt the multi-model Claude architecture from
-// docs/second-tutor-research-report.md, flip the mappings below to Anthropic
-// and wire the adapter (see `TODO: anthropic adapter`). The research report
-// proposes — but this gateway does NOT force — the following:
+// The Anthropic adapter IS now wired, so adopting the multi-model Claude
+// architecture from docs/second-tutor-research-report.md is a config change
+// here — no code change at any call site. The research report proposes — but
+// this gateway does NOT force — the following:
 //
-//   orchestrator → { provider: "anthropic", model: "claude-opus-4-8" }
-//   fast         → { provider: "anthropic", model: "claude-haiku-4-5-20251001" }
-//   grader       → { provider: "anthropic", model: "claude-sonnet-4-6" }
+//   orchestrator → { provider: "anthropic", model: "claude-opus-5" }
+//   fast         → { provider: "anthropic", model: "claude-haiku-4-5" }
+//   grader       → { provider: "anthropic", model: "claude-sonnet-5" }
+//
+// Flipping any of these requires ANTHROPIC_API_KEY in the environment.
 //
 // (embed stays on OpenAI — keep dimensions at 1536 to match content_chunks.)
 export const MODEL_REGISTRY: Record<ModelAlias, ModelMapping> = {
@@ -130,6 +138,74 @@ function getOpenAI(): OpenAI {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+
+// ── Anthropic client (same lazy/init pattern as getOpenAI above) ─────────────
+let _anthropic: Anthropic | null = null;
+function getAnthropic(): Anthropic {
+  if (!_anthropic) {
+    const key =
+      process.env.ANTHROPIC_API_KEY || (process.env.NODE_ENV === "test" ? "dummy-key" : undefined);
+    if (!key) throw new Error("ANTHROPIC_API_KEY is not set");
+    _anthropic = new Anthropic({ apiKey: key });
+  }
+  return _anthropic;
+}
+
+/**
+ * Anthropic models that REJECT sampling params (`temperature`/`top_p`/`top_k`)
+ * with a 400. Passing a caller's `temperature` straight through would hard-fail
+ * every request on these, so the adapter drops it instead. Older models
+ * (Opus/Sonnet 4.6, Haiku 4.5) still accept sampling and keep the value.
+ */
+const ANTHROPIC_SAMPLING_REJECTED = [
+  "claude-fable-5",
+  "claude-mythos-5",
+  "claude-opus-5",
+  "claude-opus-4-8",
+  "claude-opus-4-7",
+  "claude-sonnet-5",
+];
+
+function anthropicAcceptsSampling(model: string): boolean {
+  return !ANTHROPIC_SAMPLING_REJECTED.some((prefix) => model.startsWith(prefix));
+}
+
+/**
+ * Anthropic takes the system prompt as a top-level param, never as a message.
+ *
+ * `jsonMode` has no native switch on the Messages API. Assistant prefill — the
+ * old trick for forcing an opening brace — returns a 400 on every current
+ * model, so JSON mode is expressed as a system-prompt instruction instead.
+ * That is a WEAKER guarantee than OpenAI's `response_format: json_object`:
+ * callers must keep parsing defensively (parseDirectorDecision already does).
+ */
+function buildAnthropicSystem(opts: GenerateOptions): string {
+  const base = extractSystemPrompt(opts);
+  if (!opts.jsonMode) return base;
+  const instruction =
+    "Respond with a single valid JSON object and nothing else. " +
+    "Do not wrap it in markdown fences and do not add commentary.";
+  return base ? `${base}\n\n${instruction}` : instruction;
+}
+
+/**
+ * Anthropic's `messages` array accepts only user/assistant turns, must be
+ * non-empty, and must open on a user turn. Violations are 400s from the API,
+ * so they are caught here with a message that names the actual problem.
+ */
+function toAnthropicMessages(messages: ChatMessage[]): Anthropic.MessageParam[] {
+  const turns = messages
+    .filter((m) => m.role !== "system")
+    .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+
+  if (turns.length === 0) {
+    throw new Error("AI gateway: Anthropic requires at least one user/assistant message.");
+  }
+  if (turns[0].role !== "user") {
+    throw new Error("AI gateway: Anthropic requires the first message to have role \"user\".");
+  }
+  return turns;
+}
 
 function resolveModel(alias: ModelAlias): ModelMapping {
   const mapping = MODEL_REGISTRY[alias];
@@ -164,8 +240,8 @@ function buildOpenAIMessages(opts: GenerateOptions): ChatMessage[] {
 
 /**
  * Generate a single completion for the given logical model role.
- * Resolves the alias via MODEL_REGISTRY, then delegates to the existing
- * OpenAI / Gemini code paths. Anthropic is not yet wired.
+ * Resolves the alias via MODEL_REGISTRY, then delegates to the OpenAI, Gemini,
+ * or Anthropic code path for that provider.
  */
 export async function generate(opts: GenerateOptions): Promise<string> {
   const started = Date.now();
@@ -245,14 +321,34 @@ async function dispatchGenerate(alias: ModelAlias, opts: GenerateOptions): Promi
     }
 
     case "anthropic": {
-      // TODO: anthropic adapter — wire an Anthropic client here (claude-opus-4-8,
-      // claude-sonnet-4-6, claude-haiku-4-5-20251001) and delegate, mirroring the
-      // openai/gemini branches. Until then, fail loudly so misconfiguration is obvious.
-      throw new Error(
-        `AI gateway: provider "anthropic" (model "${model}") is not yet wired. ` +
-          `Implement the anthropic adapter in server/lib/ai/gateway.ts before mapping ` +
-          `any alias to Anthropic in MODEL_REGISTRY.`
+      // `thinking` is deliberately omitted. On Claude Opus 5 that means adaptive
+      // thinking (its default); on Opus 4.8/4.7 it means thinking off. Both are
+      // sane defaults for a shared gateway — a role that wants a specific depth
+      // should set it here rather than every call site guessing.
+      const system = buildAnthropicSystem(opts);
+      const response = await getAnthropic().messages.create(
+        {
+          model,
+          max_tokens: opts.maxTokens ?? 4096,
+          ...(system ? { system } : {}),
+          messages: toAnthropicMessages(opts.messages),
+          ...(opts.temperature !== undefined && anthropicAcceptsSampling(model)
+            ? { temperature: opts.temperature }
+            : {}),
+        },
+        opts.signal ? { signal: opts.signal } : undefined
       );
+
+      if (response.stop_reason === "refusal") {
+        throw new Error(
+          `Model refused request: ${response.stop_details?.explanation ?? "no explanation given"}`
+        );
+      }
+
+      return response.content
+        .filter((block): block is Anthropic.TextBlock => block.type === "text")
+        .map((block) => block.text)
+        .join("");
     }
 
     default: {
@@ -302,11 +398,31 @@ export async function* streamGenerate(opts: GenerateOptions): AsyncIterable<stri
     }
 
     case "anthropic": {
-      // TODO: anthropic adapter — see generate(). Stream via the Anthropic SDK here.
-      throw new Error(
-        `AI gateway: streaming provider "anthropic" (model "${model}") is not yet wired. ` +
-          `Implement the anthropic adapter in server/lib/ai/gateway.ts.`
+      const system = buildAnthropicSystem(opts);
+      const stream = await getAnthropic().messages.create(
+        {
+          model,
+          max_tokens: opts.maxTokens ?? 4096,
+          ...(system ? { system } : {}),
+          messages: toAnthropicMessages(opts.messages),
+          ...(opts.temperature !== undefined && anthropicAcceptsSampling(model)
+            ? { temperature: opts.temperature }
+            : {}),
+          stream: true,
+        },
+        opts.signal ? { signal: opts.signal } : undefined
       );
+
+      for await (const event of stream) {
+        if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+          yield event.delta.text;
+        }
+        // A mid-stream refusal arrives as a message_delta stop_reason, not a throw.
+        if (event.type === "message_delta" && event.delta.stop_reason === "refusal") {
+          throw new Error("Model refused request during streaming.");
+        }
+      }
+      return;
     }
 
     default: {

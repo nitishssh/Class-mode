@@ -27,7 +27,7 @@ export function ControlBar({
     <div className="z-10 flex h-20 w-full shrink-0 items-center justify-between border-t border-zinc-800 bg-zinc-950 px-6">
       <div className="flex flex-1 items-center gap-4">
         <span className="hidden text-sm font-medium text-zinc-400 md:inline-block">
-          {t("live.title", "Class Mode Live")}
+          {t("live.title", "ClassMode Live")}
         </span>
       </div>
 

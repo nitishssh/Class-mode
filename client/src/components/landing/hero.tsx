@@ -62,7 +62,7 @@ export const Hero = () => {
           </div>
 
           <p className="max-w-xl text-lg leading-relaxed text-muted-foreground md:text-xl">
-            Your teacher taps the morning register once. Class Mode does the rest — the day's
+            Your teacher taps the morning register once. ClassMode does the rest — the day's
             absentee call list, the WhatsApp alert to the parent, the fee reminder, and the live
             dashboard on the principal's desk. AI tutoring for every student, built-in.
           </p>
@@ -250,7 +250,7 @@ export const Hero = () => {
                   🏫
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[10px] font-bold leading-tight">Class Mode Alerts</p>
+                  <p className="truncate text-[10px] font-bold leading-tight">ClassMode Alerts</p>
                   <p className="text-[7px] text-emerald-100 opacity-90">Online</p>
                 </div>
                 <div className="flex h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
@@ -281,7 +281,7 @@ export const Hero = () => {
                         className="max-w-[88%] self-start rounded-lg rounded-tl-none border border-black/5 bg-white p-2 text-[#111b21] shadow-sm dark:border-white/5 dark:bg-[#202c33] dark:text-[#e9edef]"
                       >
                         <p className="leading-snug">
-                          🔔 <strong>Class Mode Alert:</strong> Riya was marked{" "}
+                          🔔 <strong>ClassMode Alert:</strong> Riya was marked{" "}
                           <strong>ABSENT</strong> from morning registration (8:02 AM). Please
                           verify.
                         </p>

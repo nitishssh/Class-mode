@@ -1,3 +1,5 @@
+import confetti from "canvas-confetti";
+
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -446,7 +448,7 @@ export default function StudyArenaBeta() {
             <Sparkles className="h-5 w-5 text-accent" />
           </div>
           <div>
-            <h1 className="font-display text-lg text-foreground">Study Arena</h1>
+            <h1 className="font-display text-lg text-foreground">ClassMode Learning</h1>
             <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">
               Attempt-first · Beta
             </p>
@@ -777,7 +779,7 @@ function AssessmentCard({
           "/api/study-arena-beta/assignment-assessment-instance",
           { attemptSessionId, actionIndex }
         );
-        const response = await postJson<{ correct: boolean }>(
+        const response = await postJson<{ correct: boolean; status?: string }>(
           "/api/study-arena-beta/assignment-assessment-submit",
           {
             attemptSessionId,
@@ -787,6 +789,24 @@ function AssessmentCard({
             idempotencyKey: crypto.randomUUID(),
           }
         );
+        
+        if (response.status === "invalid") {
+           setError("Attempt rejected (invalid answer key format).");
+           return;
+        }
+
+        if (response.correct) {
+          confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        } else {
+          // Trigger shake by toggling a class
+          const el = document.getElementById(`assessment-card-${actionIndex}`);
+          if (el) {
+            el.classList.remove("animate-shake");
+            void el.offsetWidth; // trigger reflow
+            el.classList.add("animate-shake");
+          }
+        }
+
         setResult({
           correct: response.correct,
           feedback: response.correct
@@ -813,6 +833,7 @@ function AssessmentCard({
 
   return (
     <div
+      id={`assessment-card-${actionIndex}`}
       className="rounded-2xl border-2 border-sky-300 bg-sky-50 p-5 shadow-soft"
       role="group"
       aria-label={action.a11y?.name ?? "Independent assessment"}

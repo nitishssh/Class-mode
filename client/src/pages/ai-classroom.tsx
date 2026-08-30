@@ -1254,7 +1254,7 @@ export default function StudyArenaPage({
             <div className="mt-4 w-full max-w-xs space-y-2">
               <Progress value={45} className="h-2" />
               <p className="text-center text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                {t("classroom.connecting", "Connecting to Study Arena Engine")}
+                {t("classroom.connecting", "Connecting to ClassMode Learning Engine")}
               </p>
             </div>
           </CardContent>
@@ -1279,7 +1279,7 @@ export default function StudyArenaPage({
           </Button>
           <div>
             <h1 className="text-4xl font-extrabold tracking-tight text-gray-900">
-              {t("classroom.studyArena", "Study Arena")}
+              {t("classroom.studyArena", "ClassMode Learning")}
             </h1>
             <p className="text-lg text-muted-foreground">
               {t(

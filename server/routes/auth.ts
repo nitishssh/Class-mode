@@ -112,9 +112,33 @@ const signupLimiter = rateLimit({
   skip: () => process.env.NODE_ENV !== "production",
 });
 
+// Both email-verification routes identify the user from the access-token
+// cookie, and neither request carries an email — /email/verify sends only the
+// code and /email/verify/request sends no body at all. So emailIpKey would
+// resolve to "|<ip>" here and express-rate-limit's default key is the address
+// on its own: either way these collapse to one shared bucket per IP.
+//
+// A school is one NAT address. That made the sixth person to confirm their
+// email inside ten minutes fail on their FIRST attempt, and then told them to
+// request a new code — which cannot help, because the limit was never on the
+// code. Verified: a freshly signed-up account with a valid session got 429
+// before it had made a single attempt.
+//
+// The brute-force surface is guessing one account's 4-digit code, so the
+// account is the right key. The per-OTP attempt counter in the handler stays
+// the primary defence; this is the coarse second layer.
+const accountRateLimitKey = (req: Request) => {
+  const token = req.cookies?.access_token || req.headers.authorization?.split(" ")[1];
+  const userId = verifyAccessToken(token)?.userId;
+  // Unauthenticated callers are rejected by the handler anyway; fall back to
+  // the address so an anonymous flood still meets a limit.
+  return userId ? `user:${userId}` : ipKeyGenerator(req.ip ?? "");
+};
+
 const verifyLimiter = rateLimit({
   windowMs: 10 * 60_000,
   max: 5,
+  keyGenerator: accountRateLimitKey,
   message: tooMany("Too many verification attempts. Please request a new code."),
   standardHeaders: true,
   legacyHeaders: false,
@@ -123,6 +147,7 @@ const verifyLimiter = rateLimit({
 const verifyRequestLimiter = rateLimit({
   windowMs: 10 * 60_000,
   max: 3,
+  keyGenerator: accountRateLimitKey,
   message: tooMany("Please wait before requesting another verification code."),
   standardHeaders: true,
   legacyHeaders: false,

@@ -187,7 +187,7 @@ export const WhatSchoolGains = () => {
           className="mt-10 flex flex-col items-center gap-4 text-center"
         >
           <p className="text-lg font-medium text-muted-foreground">
-            Ready to bring Class Mode to your school?
+            Ready to bring ClassMode to your school?
           </p>
           <a
             href="#contact"

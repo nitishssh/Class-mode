@@ -42,7 +42,7 @@ export default function PricingPage() {
     <div className="min-h-screen bg-background p-8">
       <div className="mb-12 text-center">
         <h1 className="text-4xl font-bold">Choose Your Plan</h1>
-        <p className="mt-2 text-muted-foreground">Unlock the full potential of Class Mode</p>
+        <p className="mt-2 text-muted-foreground">Unlock the full potential of ClassMode</p>
       </div>
       <div className="mx-auto grid max-w-6xl gap-6 md:grid-cols-4">
         {TIERS.map((tier) => (

@@ -652,7 +652,7 @@ export default function OnboardingV2() {
                 <StepHeader
                   eyebrow="First benchmark"
                   title="Set the cohort scale."
-                  description="This lets Class Mode compare completion, test volume, and performance against the right class size."
+                  description="This lets ClassMode compare completion, test volume, and performance against the right class size."
                 />
                 <div className="mb-6 rounded-xl border border-border bg-background p-4">
                   <Label className="mb-3 block">Grades offered</Label>

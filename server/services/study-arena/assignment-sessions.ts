@@ -1,3 +1,4 @@
+import { redactAnswersFromLearnerScene, validateLearnerAttempt } from "./lesson-adapter";
 import { getPgPool, isPgReady } from "../../db-pg";
 import { createHash, randomUUID } from "crypto";
 import { lessonScriptSchema, type LessonScript } from "./lesson-script";
@@ -21,7 +22,7 @@ export type AssignmentSessionAccess =
 export type AssignedEvidenceResult =
   | { status: "recorded"; nextActionIndex: number }
   | { status: "replayed"; nextActionIndex: number }
-  | { status: "forbidden" | "inactive" | "out_of_sequence" | "database_unavailable" };
+  | { status: "forbidden" | "inactive" | "out_of_sequence" | "database_unavailable" | "invalid" };
 
 export type AssignedActionCheck =
   | { status: "ok" }
@@ -373,7 +374,7 @@ export async function getAssignedNextSegment(input: {
       return { status: "unavailable" };
     }
     await client.query("COMMIT");
-    return { status: "ready", attemptSessionId: input.attemptSessionId, scene, gateIndex: session.next_action_index, decision };
+    return { status: "ready", attemptSessionId: input.attemptSessionId, scene: redactAnswersFromLearnerScene(scene), gateIndex: session.next_action_index, decision };
   } catch {
     await client.query("ROLLBACK").catch(() => {});
     throw new Error("Could not load the next Study Arena segment");
@@ -465,6 +466,10 @@ export async function recordAssignedEvidence(input: {
   evidence: Record<string, unknown>;
 }): Promise<AssignedEvidenceResult> {
   if (!isPgReady()) return { status: "database_unavailable" };
+
+  if (!validateLearnerAttempt(JSON.stringify(input.evidence))) {
+    return { status: "invalid" };
+  }
 
   const pool = getPgPool();
   const client = await pool.connect();
@@ -739,6 +744,11 @@ export async function submitAssignedAssessment(input: {
   idempotencyKey: string;
 }): Promise<AssignedAssessmentSubmission> {
   if (!isPgReady()) return { status: "database_unavailable" };
+  
+  if (!validateLearnerAttempt(input.answer)) {
+    return { status: "invalid" };
+  }
+
   const client = await getPgPool().connect();
   try {
     await client.query("BEGIN");
