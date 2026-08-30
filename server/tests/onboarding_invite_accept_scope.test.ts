@@ -57,7 +57,7 @@ describe("POST /invite/accept sets schoolCode and className on the user record",
     (pgFindSchoolById as any).mockResolvedValue(SCHOOL);
     (pgFindSchoolClassById as any).mockResolvedValue(CLASS);
     (pgUpsertMembership as any).mockResolvedValue(undefined);
-    (pgAcceptInvite as any).mockResolvedValue(undefined);
+    (pgAcceptInvite as any).mockResolvedValue(true);
     (pgUpdateUserOnboardingComplete as any).mockResolvedValue(undefined);
   });
 

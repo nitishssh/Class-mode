@@ -111,6 +111,31 @@ describe("Authentication Security and Hardening", () => {
       expect(pgAcceptWorkspaceInvite).not.toHaveBeenCalled();
     });
 
+    // server/routes/index.ts mounts authRouter at BOTH /api/auth and /api, so the
+    // removed routes have a second production path. The shared `app` above also
+    // mounts onboardingRouter at /api, which would answer /api/invite/accept and
+    // mask the check — this app replicates production mounting exactly.
+    it.each([["/api/invite/accept"], ["/api/invites/some_invite_token/accept"]])(
+      "%s is gone under production route mounting too",
+      async (path) => {
+        const prodApp = express();
+        prodApp.use(express.json());
+        prodApp.use("/api/auth", authRouter);
+        prodApp.use("/api", authRouter);
+        prodApp.use("/api/onboarding", onboardingRouter);
+
+        const res = await request(prodApp).post(path).send({
+          token: "some_invite_token",
+          password: "attacker-chosen-password1",
+          displayName: "Attacker",
+        });
+
+        expect(res.status).toBe(404);
+        expect(pgUpdateUser).not.toHaveBeenCalled();
+        expect(pgUpsertWorkspaceMembership).not.toHaveBeenCalled();
+      }
+    );
+
     it("workspace-invite/signup refuses an email that already has an account and issues no session", async () => {
       (pgFindWorkspaceInviteByTokenHash as any).mockResolvedValue({
         id: 100,
@@ -330,7 +355,7 @@ describe("Authentication Security and Hardening", () => {
       (pgFindUserByEmail as any).mockResolvedValue(null);
       (pgCreateUser as any).mockResolvedValue(newUser);
       (pgFindUserById as any).mockResolvedValue(newUser);
-      (pgAcceptInvite as any).mockResolvedValue(undefined);
+      (pgAcceptInvite as any).mockResolvedValue(true);
 
       const res = await request(app).post("/api/onboarding/invite/accept").send({
         token: "6f1c8b3a-0f4e-4c2a-9c1b-2d3e4f5a6b7c",

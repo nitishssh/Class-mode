@@ -53,7 +53,7 @@ describe("Onboarding invite accept creates a local-password account", () => {
       authSubject: "student@example.com",
       role: "student",
     });
-    (pgAcceptInvite as any).mockResolvedValue(undefined);
+    (pgAcceptInvite as any).mockResolvedValue(true);
   });
 
   it("creates a local PG user with a bcrypt password and emailVerified: true", async () => {
@@ -79,6 +79,23 @@ describe("Onboarding invite accept creates a local-password account", () => {
     const createArgs = (pgCreateUser as any).mock.calls[0][0];
     expect(createArgs.passwordHash).not.toBe("firebase_managed");
     expect(await bcrypt.compare("supersecret123", createArgs.passwordHash)).toBe(true);
+  });
+
+  it("reports failure instead of 201 when the invite claim does not land", async () => {
+    // pgAcceptInvite swallows DB errors and returns false. This used to be
+    // ignored, so the route answered 201 while the invite stayed pending — and
+    // with existing accounts now refused, the retry would hit 409 forever.
+    (pgAcceptInvite as any).mockResolvedValue(false);
+
+    const res = await request(app).post("/api/onboarding/invite/accept").send({
+      token: "11111111-1111-1111-1111-111111111111",
+      email: "student@example.com",
+      displayName: "Riya",
+      password: "supersecret123",
+    });
+
+    expect(res.status).toBe(500);
+    expect(res.body.inviteClaimFailed).toBe(true);
   });
 });
 

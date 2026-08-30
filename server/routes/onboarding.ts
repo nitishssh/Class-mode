@@ -391,7 +391,11 @@ router.post("/invite/accept", async (req: Request, res: Response) => {
   // previously this minted a Firebase user with the PG passwordHash set to the
   // literal "firebase_managed", which made local login impossible. Email
   // ownership is already proven by clicking the invite link, so mark verified.
-  const passwordHash = await bcrypt.hash(parsed.data.password, 12);
+  // The existing-account check runs BEFORE hashing: the 409 below leaves the
+  // invite pending, so hashing first would let anyone holding a valid invite
+  // replay this route and burn cost-12 bcrypt indefinitely. /api/onboarding has
+  // no rate limiter (the global one only covers /api/auth), so the cheap
+  // lookup goes first and the hash happens only on the create path.
   let pgUser = await pgFindUserByEmail(invite.email);
   if (pgUser) {
     // SECURITY (#invite-accept-auth-bypass): accepting an invite must NEVER
@@ -421,6 +425,7 @@ router.post("/invite/accept", async (req: Request, res: Response) => {
       accountExists: true,
     });
   } else {
+    const passwordHash = await bcrypt.hash(parsed.data.password, 12);
     pgUser = await pgCreateUser({
       authProvider: "local",
       authSubject: invite.email,
@@ -451,7 +456,26 @@ router.post("/invite/accept", async (req: Request, res: Response) => {
     });
   }
 
-  await pgAcceptInvite(parsed.data.token);
+  // pgAcceptInvite catches its own DB errors and returns false, and this call
+  // used to ignore that — so the route could answer 201 while the invite was
+  // still pending. Now that an existing account is refused with 409, a retry no
+  // longer papers over that: the account exists, so the person would be stuck
+  // on 409 forever believing they had already signed up. Report the truth
+  // instead. The whole claim is still not transactional; that is S2's job.
+  const inviteClaimed = await pgAcceptInvite(parsed.data.token);
+  if (!inviteClaimed) {
+    logger.error("[invite/accept] account created but invite claim failed", {
+      inviteId: invite.id,
+      userId: pgUser.id,
+      role: invite.role,
+    });
+    return res.status(500).json({
+      message:
+        "Your account was created but the invite could not be completed. " +
+        "Ask your school to resend the invite before signing in.",
+      inviteClaimFailed: true,
+    });
+  }
 
   const onboardingComplete = invite.role === "student";
   if (onboardingComplete) await pgUpdateUserOnboardingComplete(pgUser.id);
