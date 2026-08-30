@@ -44,6 +44,7 @@ import { DiscussionCard } from "@/components/ai-classroom/DiscussionCard";
 import { SpotlightOverlay } from "@/components/ai-classroom/SpotlightOverlay";
 import { WhiteboardCanvas } from "@/components/ai-classroom/WhiteboardCanvas";
 import { WidgetRenderer } from "@/components/ai-classroom/WidgetRenderer";
+import { StudioGenerationPanel } from "@/components/ai-classroom/StudioGenerationPanel";
 import { VideoPlayer } from "@/components/ai-classroom/VideoPlayer";
 import { cacheClassroom, getCachedClassroom } from "@/lib/classroom-db";
 import {
@@ -1496,6 +1497,12 @@ export default function StudyArenaPage({
               )}
             </div>
           </ScrollArea>
+        </div>
+
+        {/* Studio-backed generation (/api/classmode-ai). Independent of the
+            in-process generator above — neither path can break the other. */}
+        <div className="md:col-span-12">
+          <StudioGenerationPanel />
         </div>
       </div>
     </div>

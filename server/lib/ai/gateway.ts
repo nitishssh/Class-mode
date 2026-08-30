@@ -47,6 +47,26 @@ import Anthropic from "@anthropic-ai/sdk";
 import { logger } from "../logger";
 import { geminiChat, streamGeminiChat, generateContentFromPdf, verifyGeminiAccess } from "./gemini";
 import { evaluateSubjectiveAnswer } from "./openai";
+import {
+  sarvamChat,
+  streamSarvamChat,
+  sarvamTranslate,
+  sarvamTextToSpeech,
+  sarvamSpeechToText,
+  sarvamTransliterate,
+  sarvamDetectLanguage,
+  isSarvamConfigured,
+  verifySarvamAccess,
+  SARVAM_DEFAULT_CHAT_MODEL,
+} from "./sarvam";
+import type {
+  SarvamLanguageCode,
+  SarvamSttMode,
+  SarvamSttOptions,
+  SarvamTranscript,
+  SarvamTranslateOptions,
+  SarvamTtsOptions,
+} from "./sarvam";
 
 // ── Public types ───────────────────────────────────────────────────────────
 
@@ -78,7 +98,7 @@ export interface GenerateOptions {
 }
 
 /** Concrete providers the gateway knows how to dispatch to. */
-export type Provider = "openai" | "gemini" | "anthropic";
+export type Provider = "openai" | "gemini" | "anthropic" | "sarvam";
 
 /**
  * Logical model roles. Call sites pick a ROLE; the registry below decides
@@ -110,6 +130,16 @@ export interface ModelMapping {
 //   grader       → { provider: "anthropic", model: "claude-sonnet-5" }
 //
 // Flipping any of these requires ANTHROPIC_API_KEY in the environment.
+//
+// Sarvam is also wired as a provider, for Indic-language work:
+//
+//   orchestrator → { provider: "sarvam", model: "sarvam-105b" }
+//
+// Flipping a role to Sarvam requires SARVAM_API_KEY. Sarvam serves NO embedding
+// model, so the "embed" alias must stay on OpenAI. Sarvam's real value here is
+// the Indic tool surface below (translate / TTS / STT / transliterate / LID),
+// which has no equivalent on the other three providers and is reached through
+// the dedicated functions rather than through a model role.
 //
 // (embed stays on OpenAI — keep dimensions at 1536 to match content_chunks.)
 export const MODEL_REGISTRY: Record<ModelAlias, ModelMapping> = {
@@ -351,6 +381,16 @@ async function dispatchGenerate(alias: ModelAlias, opts: GenerateOptions): Promi
         .join("");
     }
 
+    case "sarvam": {
+      // OpenAI-shaped body, so the same system-prompt hoisting applies.
+      return sarvamChat(extractSystemPrompt(opts), opts.messages, model, {
+        temperature: opts.temperature,
+        maxTokens: opts.maxTokens,
+        jsonMode: opts.jsonMode,
+        signal: opts.signal,
+      });
+    }
+
     default: {
       const _exhaustive: never = provider;
       throw new Error(`Unsupported provider: ${_exhaustive}`);
@@ -422,6 +462,15 @@ export async function* streamGenerate(opts: GenerateOptions): AsyncIterable<stri
           throw new Error("Model refused request during streaming.");
         }
       }
+      return;
+    }
+
+    case "sarvam": {
+      yield* streamSarvamChat(extractSystemPrompt(opts), opts.messages, model, {
+        temperature: opts.temperature,
+        maxTokens: opts.maxTokens,
+        signal: opts.signal,
+      });
       return;
     }
 
@@ -503,12 +552,14 @@ export async function generateFromPdf(
 }
 
 /**
- * Startup health check for the default text-model provider (Gemini today).
- * Delegates to the existing verifier, routed through the gateway so the app
- * has no direct provider imports outside this module. Fire-and-forget.
+ * Startup health check for the default text-model provider (Gemini today),
+ * plus Sarvam when a key is present. Delegates to the existing verifiers,
+ * routed through the gateway so the app has no direct provider imports outside
+ * this module. Fire-and-forget: both verifiers swallow their own errors, and
+ * `allSettled` keeps one provider's failure from hiding the other's result.
  */
 export async function healthcheck(): Promise<void> {
-  return verifyGeminiAccess();
+  await Promise.allSettled([verifyGeminiAccess(), verifySarvamAccess()]);
 }
 
 export async function embed(texts: string[]): Promise<number[][]> {
@@ -538,3 +589,136 @@ export async function embed(texts: string[]): Promise<number[][]> {
     throw error;
   }
 }
+
+// ── Indic language tools (Sarvam) ────────────────────────────────────────────
+//
+// Translation, speech synthesis, transcription, transliteration and language
+// ID are NOT text-generation roles, so they are not in MODEL_REGISTRY and take
+// no ModelAlias. They are exposed here rather than imported from ./sarvam
+// directly so that the "nothing outside server/lib/ai imports a provider"
+// property holds, and so they land in the same structured logs as completions.
+//
+// Every one of these degrades to a thrown error, never to a silent no-op: a
+// lesson that quietly ships untranslated to a Kannada-medium classroom is
+// worse than one that fails loudly at generation time.
+
+/** Observability seam for the non-completion Sarvam tools. Mirrors logAiCall. */
+function logIndicCall(
+  feature: string,
+  tool: string,
+  model: string,
+  startedMs: number,
+  ok: boolean
+): void {
+  logger.info("[ai] indic", {
+    feature,
+    tool,
+    provider: "sarvam" satisfies Provider,
+    model,
+    ms: Date.now() - startedMs,
+    ok,
+  });
+}
+
+async function withIndicLogging<T>(
+  feature: string,
+  tool: string,
+  model: string,
+  run: () => Promise<T>
+): Promise<T> {
+  const started = Date.now();
+  try {
+    const out = await run();
+    logIndicCall(feature, tool, model, started, true);
+    return out;
+  } catch (err) {
+    logIndicCall(feature, tool, model, started, false);
+    throw err;
+  }
+}
+
+/** True when Indic tools are usable. Call sites should branch on this rather
+ *  than catching the "SARVAM_API_KEY is not set" throw. */
+export function indicToolsAvailable(): boolean {
+  return isSarvamConfigured();
+}
+
+/**
+ * Translate text between English and the 22 scheduled Indian languages.
+ * Input longer than the model limit is chunked at sentence boundaries and
+ * rejoined — no truncation.
+ */
+export async function translateText(
+  input: string,
+  opts: SarvamTranslateOptions & { feature?: string }
+): Promise<string> {
+  return withIndicLogging(
+    opts.feature ?? "translation",
+    "translate",
+    opts.model ?? "sarvam-translate:v1",
+    () => sarvamTranslate(input, opts)
+  );
+}
+
+/**
+ * Synthesize speech in an Indian language. Returns decoded audio buffers.
+ * Throws rather than truncating when the text exceeds the model's limit.
+ */
+export async function textToSpeech(
+  text: string,
+  opts: SarvamTtsOptions & { feature?: string }
+): Promise<Buffer[]> {
+  return withIndicLogging(
+    opts.feature ?? "text_to_speech",
+    "text-to-speech",
+    opts.model ?? "bulbul:v3",
+    () => sarvamTextToSpeech(text, opts)
+  );
+}
+
+/** Transcribe audio. `mode: "translate"` returns English for any input language. */
+export async function speechToText(
+  audio: Buffer,
+  opts: SarvamSttOptions & { feature?: string } = {}
+): Promise<SarvamTranscript> {
+  return withIndicLogging(
+    opts.feature ?? "speech_to_text",
+    "speech-to-text",
+    opts.model ?? "saaras:v3",
+    () => sarvamSpeechToText(audio, opts)
+  );
+}
+
+/** Convert script without translating meaning (e.g. Devanagari → Latin). */
+export async function transliterateText(
+  input: string,
+  opts: {
+    sourceLanguageCode?: string;
+    targetLanguageCode: string;
+    signal?: AbortSignal;
+    feature?: string;
+  }
+): Promise<string> {
+  return withIndicLogging(opts.feature ?? "transliteration", "transliterate", "sarvam", () =>
+    sarvamTransliterate(input, opts)
+  );
+}
+
+/** Identify which supported language and script a string is written in. */
+export async function detectLanguage(
+  input: string,
+  opts: { signal?: AbortSignal; feature?: string } = {}
+): Promise<{ languageCode: string | null; scriptCode: string | null }> {
+  return withIndicLogging(opts.feature ?? "language_id", "text-lid", "sarvam", () =>
+    sarvamDetectLanguage(input, opts)
+  );
+}
+
+export type {
+  SarvamLanguageCode,
+  SarvamSttMode,
+  SarvamTranscript,
+  SarvamTranslateOptions,
+  SarvamTtsOptions,
+};
+export { SARVAM_DEFAULT_CHAT_MODEL };

@@ -51,6 +51,10 @@ router.get("/", (_req, res) => {
       jwtSecretConfigured: !!process.env.JWT_SECRET,
       refreshSecretConfigured: !!process.env.REFRESH_SECRET,
       googleApiKeyConfigured: !!process.env.GOOGLE_API_KEY,
+      // Gates the Indic tools (translate / TTS / STT). Absent is not
+      // unhealthy — those features are optional — but it is the one way to
+      // confirm the key actually reached the container after a deploy.
+      sarvamApiKeyConfigured: !!process.env.SARVAM_API_KEY,
     },
   });
 });
@@ -115,6 +119,10 @@ router.get("/detailed", authenticateToken, async (_req, res) => {
       jwtSecretConfigured: !!process.env.JWT_SECRET,
       refreshSecretConfigured: !!process.env.REFRESH_SECRET,
       googleApiKeyConfigured: !!process.env.GOOGLE_API_KEY,
+      // Gates the Indic tools (translate / TTS / STT). Absent is not
+      // unhealthy — those features are optional — but it is the one way to
+      // confirm the key actually reached the container after a deploy.
+      sarvamApiKeyConfigured: !!process.env.SARVAM_API_KEY,
     },
     memory: {
       heapUsedMb: Math.round(mem.heapUsed / 1_048_576),
