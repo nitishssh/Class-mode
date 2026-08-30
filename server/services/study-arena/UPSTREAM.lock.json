@@ -1,0 +1,104 @@
+{
+  "upstream": "https://github.com/THU-MAIC/OpenMAIC",
+  "ref": "main",
+  "reviewedAt": "2026-08-29",
+  "note": "Baseline hashes for the OpenMAIC files that server/services/study-arena/ was hand-ported from (MIT — see docs/OpenMAIC-ATTRIBUTION.md). These are NOT expected to match our files byte-for-byte; the port was deliberately simplified. A CHANGED entry means upstream moved and someone should read the diff. lesson-script.ts is intentionally absent: it is an independent implementation, not a port.",
+  "files": {
+    "lib/orchestration/director-graph.ts": {
+      "sha256": "b6f6c30b501707b008af984a22dea42826cafd3873e5f78a11a783c6bd20ad84",
+      "portedTo": [
+        "server/services/study-arena/director-graph.ts"
+      ]
+    },
+    "lib/orchestration/director-prompt.ts": {
+      "sha256": "883cad990e46698103b29c81d7abd1d63f71082d3c9f6599ed5d61e66df79b34",
+      "portedTo": [
+        "server/services/study-arena/director-prompt.ts"
+      ]
+    },
+    "lib/orchestration/prompt-builder.ts": {
+      "sha256": "29d1be2c4b92ed0650eea0b672eb45d7407612aa2c83c72e056368a28b9e4f3f",
+      "portedTo": [
+        "server/services/study-arena/prompt-builder.ts"
+      ]
+    },
+    "lib/orchestration/stateless-generate.ts": {
+      "sha256": "de481dd05439c3cb5224be318e74282759bf79b91ad29574de8efa9df80426fb",
+      "portedTo": [
+        "server/services/study-arena/orchestrator.ts"
+      ]
+    },
+    "lib/orchestration/types.ts": {
+      "sha256": "59a5f2ed35960d406c30fd0b5f50191ef5962e2074e596feb0b09091cd48eaae",
+      "portedTo": [
+        "server/services/study-arena/types.ts"
+      ]
+    },
+    "lib/orchestration/ai-sdk-adapter.ts": {
+      "sha256": "bdc25bb912a56c4252dc777425e7737a59d04cdd92897b4832be3fa0431b778b",
+      "portedTo": [
+        "server/services/study-arena/ai-sdk-adapter.ts"
+      ]
+    },
+    "lib/orchestration/registry/store.ts": {
+      "sha256": "51f63e0c57d466788231c479ce29a28a044d354bd18627b68e514f2fe4a2b116",
+      "portedTo": [
+        "server/services/study-arena/generator.ts"
+      ]
+    },
+    "lib/orchestration/registry/types.ts": {
+      "sha256": "669adab5a2611a3a2c0ed83422622571ebfb2abf7dce1c8984f09d569728e568",
+      "portedTo": [
+        "server/services/study-arena/generator.ts"
+      ]
+    },
+    "lib/orchestration/registry/agent-selection.ts": {
+      "sha256": "d26b2358fe977d5146797f7a1c31243deb3f1b047e88276c27aa15710fcc1c23",
+      "portedTo": [
+        "server/services/study-arena/generator.ts"
+      ]
+    },
+    "lib/server/classroom-generation.ts": {
+      "sha256": "9d03a155b0bb642d252c7d3ec61e1f9c7ed049c933bda2f4da4d5059bc203c1a",
+      "portedTo": [
+        "server/services/study-arena/generator.ts"
+      ]
+    },
+    "lib/server/classroom-job-runner.ts": {
+      "sha256": "2c9c516ea00b54a12b48579624da467429c28af294e8d5b82ad78c4e2346b457",
+      "portedTo": [
+        "server/services/study-arena/internal-service.ts"
+      ]
+    },
+    "lib/server/classroom-job-store.ts": {
+      "sha256": "66fced404d6b6f2e396be9e90c92e765f57c78631959a4842f0f345988c748da",
+      "portedTo": [
+        "server/services/study-arena/internal-service.ts"
+      ]
+    },
+    "packages/@openmaic/generation/src/json-repair.ts": {
+      "sha256": "dd0cfb6b1224e28c0e96ac5437e06074f5159ab5ec2cb93d4c81784bafcbedff",
+      "portedTo": [
+        "server/services/study-arena/generator.ts"
+      ]
+    },
+    "packages/@openmaic/generation/src/outline-generator.ts": {
+      "sha256": "d16c83ed3ff768fc0202170f3de0f82d42a6639a89dce5f98cbdc10f9d671926",
+      "portedTo": [
+        "server/services/study-arena/generator.ts"
+      ]
+    },
+    "packages/@openmaic/generation/src/scene-generator.ts": {
+      "sha256": "84ddefe7e5c012a4b84c1d2278f209afc4b43cfbf98e4d66bf400a614ad916ef",
+      "portedTo": [
+        "server/services/study-arena/generator.ts"
+      ]
+    },
+    "packages/@openmaic/generation/src/interactive-post-processor.ts": {
+      "sha256": "715a2df198eea3fb970c36ebcfdbb7f3cb5480cae3e288ef67d58cef0d3f7341",
+      "portedTo": [
+        "server/services/study-arena/generator.ts"
+      ]
+    }
+  }
+}

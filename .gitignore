@@ -43,3 +43,6 @@ playwright-report/
 
 # Runtime user uploads (may contain student PII)
 public/uploads/
+
+# Machine-local path to an OpenMAIC checkout (optional; see .openmaic-repo.example)
+.openmaic-repo

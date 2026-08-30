@@ -5,6 +5,13 @@
 @tailwind utilities;
 
 @layer base {
+  /* ── Palette source of truth ──────────────────────────────────────────────
+     These tokens are MIRRORED in Class Mode Studio (the AI classroom surface,
+     OpenMAIC-derived) at OpenMAIC-main/app/globals.css. That file converts the
+     HSL triplets below into complete hsl() values because it runs Tailwind v4,
+     where tokens are consumed as whole colors rather than through hsl(var(--x)).
+     Change a brand color here and change it there, or the two surfaces drift
+     apart visually. Studio also mirrors the cream/ink/energy/progress scales. */
   :root {
     /* ── Base ── */
     --cream-50: #fdfaf5;

@@ -1,0 +1,11 @@
+# Optional. Machine-local path to an OpenMAIC checkout, used by
+# `npm run check:study-arena-drift` INSTEAD of fetching from GitHub.
+#
+# You do not need this file — without it the check fetches the pinned ref from
+# raw.githubusercontent.com, which is what CI does. Set it when you want to run
+# the check offline, or diff against a specific local revision.
+#
+# Copy to `.openmaic-repo` (gitignored) and edit. One line, no quotes.
+# The directory must contain lib/orchestration/ or the check aborts.
+#
+# /Users/you/Development/OpenMAIC
