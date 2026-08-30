@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.6.0] - 2026-08-30
+
+### Fixed
+
+- **An invite link could sign you in as someone else.** If an invitation was sent to an email address that already had an account, accepting it logged the sender straight into that account without ever checking a password. Anyone who got hold of the link, including a forwarded email or a shared family inbox, became that user. Invite links can no longer produce a session for an existing account.
+- **A second child's invitation no longer overwrites the first.** Student invitations are addressed to the parent, so inviting a second child to the same email used to land on the first child's record and rewrite their name and class, leaving that child's attendance history filed under their sibling. An invitation for an address that already has an account is now refused instead.
+- **Invite acceptance no longer reports success when it failed.** If the invitation could not be marked as accepted, the app still replied "account created". It now says what happened and tells you to ask your school to resend.
+
+### Changed
+
+- **Accepting an invitation never alters an existing account.** Previously it could reset that account's password and change its role and school. If the email already has an account, acceptance stops and asks you to sign in with it. Note: linking an invitation to an existing account is not yet supported, so people who already have an account cannot accept one until that flow ships.
+
+### Removed
+
+- The `POST /api/invite/accept` and `POST /api/invites/:token/accept` endpoints. Use `POST /api/auth/workspace-invite/signup` for workspace invitations and `POST /api/onboarding/invite/accept` for school invitations.
+
+
 ## [1.9.5.2] - 2026-08-19
 
 ### Changed
