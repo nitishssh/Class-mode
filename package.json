@@ -85,7 +85,7 @@
     "jsonrepair": "^3.14.0",
     "jsonwebtoken": "^9.0.3",
     "jspdf": "^4.2.1",
-    "katex": "^0.16.46",
+    "katex": "^0.18.4",
     "lucide-react": "^0.453.0",
     "memorystore": "^1.6.7",
     "mitt": "^3.0.1",
