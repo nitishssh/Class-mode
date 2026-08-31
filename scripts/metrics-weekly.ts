@@ -222,16 +222,27 @@ async function collect(
     marking_days: number;
     weekdays: string[];
   }>(
+    // Autoplan T11: count the SCHOOL DAY the mark was about (subject_date), not
+    // the day the request arrived. A teacher offline for three school days who
+    // flushes on one reconnect used to score ONE marking day; three stale no-op
+    // saves on three separate days used to score THREE. Both were wrong, in
+    // opposite directions, in the number the Sep-30 gate is judged on.
+    //
+    // COALESCE for rows written before the column existed — for those,
+    // created_at remains the only date we have, and that is honest about the
+    // limit rather than dropping them.
     `WITH marks AS (
-        SELECT user_id, (created_at AT TIME ZONE $3)::date AS d,
-               to_char(created_at AT TIME ZONE $3, 'Dy')   AS wd
+        SELECT user_id,
+               COALESCE(subject_date, (created_at AT TIME ZONE $3)::date) AS d,
+               to_char(COALESCE(subject_date, (created_at AT TIME ZONE $3)::date), 'Dy') AS wd
           FROM feature_usage
          WHERE feature = 'attendance'
            AND created_at >= $1::timestamptz AND created_at < $2::timestamptz
            AND ${REAL_SCHOOL_SQL}
            AND ${notAdminSql("user_id")}
-         GROUP BY user_id, (created_at AT TIME ZONE $3)::date,
-                  to_char(created_at AT TIME ZONE $3, 'Dy')
+         GROUP BY user_id,
+                  COALESCE(subject_date, (created_at AT TIME ZONE $3)::date),
+                  to_char(COALESCE(subject_date, (created_at AT TIME ZONE $3)::date), 'Dy')
      )
      SELECT m.user_id, u.name,
             COUNT(DISTINCT m.d)::int  AS marking_days,

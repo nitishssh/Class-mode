@@ -56,6 +56,18 @@ vi.mock("../services/whatsapp", () => ({
 
 import attendanceRoutes from "../routes/attendance";
 
+/**
+ * Autoplan T6/T10: pgMarkAttendance now reports WHICH rows landed, not just how
+ * many. Default mock behaviour is "the upsert applied every mark in the request",
+ * which is what every test here except the stale-replay one is exercising.
+ */
+const allApplied = async (p: { marks: { studentId: number }[] }) => ({
+  written: p.marks.length,
+  appliedIds: p.marks.map((m) => m.studentId),
+  skippedIds: [] as number[],
+});
+
+
 function makeApp() {
   const app = express();
   app.use(express.json());
@@ -74,7 +86,7 @@ describe("Regression #336: admin attendance writes must resolve school_code (nev
     // Platform admin: role=admin, no school of its own — the pre-fix code
     // stamped writes with this account's (null) school_code.
     h.currentUser = { id: 1, role: "admin", school_code: null };
-    h.mockMark.mockResolvedValue(1);
+    h.mockMark.mockImplementation(allApplied);
   });
 
   afterEach(() => {

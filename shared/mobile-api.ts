@@ -112,6 +112,15 @@ export const markAttendanceResponseSchema = z
   .object({
     success: z.boolean(),
     written: z.number().int(),
+    // Autoplan T6/T10/T14: WHICH students the upsert applied, and which it
+    // refused because a newer mark already exists. `written` alone told an
+    // offline client "0 of 50 landed" without saying whether that was a
+    // transient failure to retry or a permanent, correct refusal — so the
+    // client retried a save the server had already, rightly, decided against,
+    // forever. Optional: a server older than this field omits them, and the
+    // client must fall back to the count-only behaviour.
+    applied: z.array(z.number().int()).optional(),
+    skipped: z.array(z.number().int()).optional(),
     notified: z.number().int().optional(),
     alerts: z
       .object({
@@ -166,6 +175,13 @@ export const markAttendanceRequestSchema = z.object({
   className: z.string().min(1),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   markedAt: z.string().datetime().optional(),
+  // Autoplan T14: idempotency key, stable across every retry of ONE save. The
+  // server claims it before running side effects, so a replayed offline save
+  // cannot re-message a parent or double-count adoption. Mobile omitted this
+  // entirely, which made the server's claim path dead code for that client.
+  // Optional: items queued before this field existed have none, and the server
+  // treats a missing opId as "always run" — the pre-existing behaviour.
+  opId: z.string().min(1).max(128).optional(),
   marks: z
     .array(
       z.object({

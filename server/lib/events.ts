@@ -33,6 +33,61 @@ const STREAM_PREFIX = "events:";
 /** Cap per-topic history; ~ is approximate trimming (cheap). */
 const MAX_STREAM_LENGTH = 10_000;
 
+/** Dead-letter stream for entries that exhausted their delivery budget. */
+const DEAD_PREFIX = "events:dead:";
+
+/**
+ * Autoplan T13: how many times one entry may be delivered before it is parked.
+ *
+ * A handler that throws leaves its entry pending, and XAUTOCLAIM reclaims it
+ * every ~60s — forever, with no cap. For a consumer that does I/O that is a
+ * poison pill: a single bad payload, or a DB blip mid-handler, re-runs the
+ * handler once a minute indefinitely. For notifications-consumer specifically
+ * that means every parent whose message ALREADY sent gets it again, once a
+ * minute, for a product whose written promise is that it does not message
+ * parents at all.
+ *
+ * Five attempts is generous for transient faults (five minutes of retries) and
+ * short enough that a genuine poison pill stops hurting quickly.
+ */
+export const MAX_DELIVERY_ATTEMPTS = 5;
+
+/**
+ * Should this reclaimed entry be parked instead of retried? Pure so the policy
+ * is testable without Redis.
+ *
+ * `deliveryCount` is Redis's own counter (from XPENDING), so it survives
+ * process restarts — an in-memory tally would reset on every deploy and let a
+ * poison pill live forever across restarts.
+ */
+export function shouldDeadLetter(deliveryCount: number, max = MAX_DELIVERY_ATTEMPTS): boolean {
+  return deliveryCount >= max;
+}
+
+/** The record parked in the dead-letter stream. Shaped for a human reading it later. */
+export function deadLetterFields(params: {
+  topic: string;
+  id: string;
+  raw: string;
+  deliveries: number;
+  reason: string;
+}): string[] {
+  return [
+    "event",
+    params.raw,
+    "topic",
+    params.topic,
+    "originalId",
+    params.id,
+    "deliveries",
+    String(params.deliveries),
+    "reason",
+    params.reason,
+    "deadLetteredAt",
+    new Date().toISOString(),
+  ];
+}
+
 /**
  * Append an event to its topic stream. Fire-and-forget by design — callers
  * must not fail their request path on event-bus errors.
@@ -53,6 +108,28 @@ export function publishEvent<T>(
     "event",
     JSON.stringify(full)
   ).catch((err) => logger.warn(`[events] publish failed for ${topic}`, { err: String(err) }));
+}
+
+/**
+ * Redis's delivery counter for one pending entry, or null when it cannot be
+ * read. Null means "do not park" — a probe failure must never discard an event,
+ * so the entry is retried as before.
+ */
+async function deliveryCountOf(
+  conn: NonNullable<ReturnType<typeof newRedisConnection>>,
+  stream: string,
+  group: string,
+  id: string
+): Promise<number | null> {
+  try {
+    const rows = (await conn.xpending(stream, group, id, id, 1)) as
+      | [string, string, number, number][]
+      | null;
+    const count = rows?.[0]?.[3];
+    return typeof count === "number" ? count : null;
+  } catch {
+    return null;
+  }
 }
 
 export interface SubscribeOptions<T> {
@@ -118,9 +195,47 @@ export function subscribe<T>(opts: SubscribeOptions<T>): boolean {
             ">"
           )) as [string, [string, string[]][]][] | null;
 
+          // Reclaimed entries have failed at least once. Check Redis's own
+          // delivery counter BEFORE running the handler again: past the cap the
+          // entry is parked, not retried (T13).
+          const pendingIds = new Set(pending.map(([id]) => id));
           const entries = [...pending, ...(fresh?.[0]?.[1] ?? [])];
           for (const [id, fields] of entries) {
             const raw = fields[fields.indexOf("event") + 1];
+
+            if (pendingIds.has(id)) {
+              const deliveries = await deliveryCountOf(conn, stream, opts.group, id);
+              if (deliveries !== null && shouldDeadLetter(deliveries)) {
+                try {
+                  await conn.xadd(
+                    DEAD_PREFIX + opts.topic,
+                    "MAXLEN",
+                    "~",
+                    String(MAX_STREAM_LENGTH),
+                    "*",
+                    ...deadLetterFields({
+                      topic: opts.topic,
+                      id,
+                      raw,
+                      deliveries,
+                      reason: "delivery budget exhausted",
+                    })
+                  );
+                  await conn.xack(stream, opts.group, id);
+                  logger.error(
+                    `[events] ${opts.topic}#${id} dead-lettered after ${deliveries} deliveries`,
+                    { stream: DEAD_PREFIX + opts.topic }
+                  );
+                } catch (err) {
+                  // Parking failed — leave it pending rather than dropping it.
+                  logger.error(`[events] dead-letter failed for ${opts.topic}#${id}`, {
+                    err: String(err),
+                  });
+                }
+                continue;
+              }
+            }
+
             try {
               await opts.handler(JSON.parse(raw) as DomainEvent<T>);
               await conn.xack(stream, opts.group, id);

@@ -537,6 +537,13 @@ CREATE TABLE IF NOT EXISTS feature_usage (
   school_code  text,
   created_at   timestamptz  NOT NULL DEFAULT now()
 );
+-- Autoplan T11: the date the usage was ABOUT, distinct from created_at (when the
+-- request arrived). Attendance marked offline for three school days and flushed
+-- on one reconnect produced three rows sharing one created_at date, scoring as a
+-- single marking day in the Sep-30 adoption gate. Nullable: features with no
+-- subject date leave it NULL, and historical rows predate the column, so readers
+-- must COALESCE back to created_at.
+ALTER TABLE feature_usage ADD COLUMN IF NOT EXISTS subject_date date;
 
 -- Idempotency keys for attendance saves (eng review T4). The attendance row
 -- upsert is already replay-safe, but its side effects (feature_usage tracking,
@@ -556,6 +563,58 @@ CREATE TABLE IF NOT EXISTS processed_operations (
 );
 CREATE INDEX IF NOT EXISTS idx_processed_operations_created_at
   ON processed_operations (created_at);
+
+-- ─── Event Outbox ────────────────────────────────────────────────────────────
+-- Autoplan T12. The attendance route claimed its idempotency key and THEN
+-- fire-and-forget published to Redis. If that publish was lost (Redis blip,
+-- crash between the two), the key was already claimed: every retry of that save
+-- was treated as a replay, so the parent alert was suppressed permanently and
+-- silently. Claim-then-publish cannot be made safe by ordering alone.
+--
+-- The row is written in the SAME transaction as the attendance upsert and the
+-- key claim, so either all three exist or none do. A dispatcher publishes rows
+-- to the stream afterwards and stamps dispatched_at. Redelivery is at-least-once
+-- by design; the consumer's own idempotency handles duplicates.
+CREATE TABLE IF NOT EXISTS event_outbox (
+  id            bigserial    PRIMARY KEY,
+  topic         text         NOT NULL,
+  payload       jsonb        NOT NULL,
+  school_code   text,
+  user_id       bigint,
+  created_at    timestamptz  NOT NULL DEFAULT now(),
+  dispatched_at timestamptz
+);
+-- Partial index: the dispatcher only ever scans undispatched rows, and this
+-- keeps that scan O(backlog) rather than O(history).
+CREATE INDEX IF NOT EXISTS idx_event_outbox_undispatched
+  ON event_outbox (created_at) WHERE dispatched_at IS NULL;
+
+-- ─── Notification Delivery Failures ──────────────────────────────────────────
+-- Autoplan T5. The absence-alert consumer logged individual send failures and
+-- acked the event anyway (correct for redelivery — a WhatsApp outage must not
+-- re-message every parent whose send SUCCEEDED). The gap was that the failure
+-- then existed only in a log line: a parent silently never contacted, with
+-- nothing anyone could query.
+--
+-- Deliberately NOT a copy of the message: no parent phone number and no
+-- rendered body. A row is a pointer (which student, which school day, which
+-- provider error), not a second store of children's names beside their
+-- parents' numbers. Reads are school-scoped and admin-only; rows expire on the
+-- same retention job as processed_operations.
+CREATE TABLE IF NOT EXISTS notification_failures (
+  id           bigserial    PRIMARY KEY,
+  student_id   bigint       REFERENCES users(id) ON DELETE CASCADE,
+  school_code  text,
+  class_name   text,
+  date         date         NOT NULL,
+  channel      text         NOT NULL,
+  error_code   text,
+  created_at   timestamptz  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_notification_failures_school_date
+  ON notification_failures (school_code, date DESC);
+CREATE INDEX IF NOT EXISTS idx_notification_failures_created_at
+  ON notification_failures (created_at);
 
 -- ─── Attendance ──────────────────────────────────────────────────────────────
 -- Daily attendance is the operational-lock-in loop (teachers mark it every

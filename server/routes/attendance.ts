@@ -4,7 +4,7 @@ import { authenticateToken, requireRole } from "../middleware";
 import { resolveTenantScope } from "../lib/auth/tenant";
 import {
   pgMarkAttendance,
-  pgClaimOperation,
+  type MarkAttendanceResult,
   pgGetAttendanceByClassDate,
   pgGetStudentAttendanceSummary,
   pgGetSchoolAttendanceSummary,
@@ -16,7 +16,6 @@ import {
   pgUpdateUser,
 } from "../lib/db/pg-queries";
 import { logger } from "../lib/logger";
-import { publishEvent } from "../lib/events";
 import { isRedisConfigured } from "../lib/db/redis";
 import {
   handleAttendanceMarked,
@@ -46,7 +45,11 @@ const MarkSchema = z.object({
     .min(1),
 });
 
-const MAX_BACKFILL_DAYS = 3;
+// Exported so the processed_operations retention window can be DERIVED from it
+// rather than duplicating the number: purging an op_id while a client could
+// still replay that save would make the replay look new, re-firing parent
+// alerts and adoption tracking. See services/processed-operations-retention.ts.
+export const MAX_BACKFILL_DAYS = 3;
 const HOUR_MS = 3_600_000;
 const DAY_MS = 24 * HOUR_MS;
 
@@ -147,11 +150,22 @@ router.post(
     } else {
       schoolCode = t.scope.schoolCode!;
     }
+    // Computed before the write because the outbox payload is built inside the
+    // write's transaction (T12) and must know whether an event is wanted at all.
+    //
+    // WHATSAPP_ALERTS_ENABLED gate (#335 follow-up): the automated pipe is a
+    // deliberately paused product decision, and every UI/offer surface says
+    // "we do not auto-send WhatsApp messages today". Configuring Meta
+    // credentials alone must NOT silently turn undisclosed automated messages
+    // to real parents back on — flipping this flag is the explicit act.
+    const alertsEnabled =
+      process.env.WHATSAPP_ALERTS_ENABLED === "true" && whatsappService.isConfigured();
+
     // W-2a: a failed write must be a failed response. pgMarkAttendance now
     // throws on DB errors (it used to swallow them and return 0, which made
     // the route reply success:true for a save that never happened — an
     // offline client would dequeue and lose the day's marking).
-    let written: number;
+    let mark: MarkAttendanceResult;
     try {
       // Clamp client clocks to now + a little skew: markedAt becomes the
       // row's updated_at, and the upsert skips rows whose stored updated_at
@@ -162,13 +176,45 @@ router.post(
       if (markedAt && new Date(markedAt).getTime() > Date.now() + MAX_CLOCK_SKEW_MS) {
         markedAt = new Date().toISOString();
       }
-      written = await pgMarkAttendance({
+      // Autoplan T12: the idempotency claim and the outbox row now commit in
+      // the SAME transaction as the marks. Previously the claim was a separate
+      // statement followed by a fire-and-forget publish — a lost publish left
+      // the key claimed, so every retry read as a replay and the parent alert
+      // was suppressed permanently and silently.
+      mark = await pgMarkAttendance({
         schoolCode,
         className: parsed.data.className,
         date: parsed.data.date,
         markedAt,
         markedBy: user.id,
         marks: parsed.data.marks,
+        opId: parsed.data.opId ?? null,
+        outbox: alertsEnabled && isRedisConfigured()
+          ? {
+              topic: "attendance.marked",
+              // Built from APPLIED ids inside the transaction (T10 + T12): the
+              // event describes what landed, and it exists only if the marks do.
+              payloadFor: (appliedIds: number[]) => {
+                const applied = new Set(appliedIds);
+                const absentees = roster
+                  .filter(
+                    (s) =>
+                      s.parentPhone &&
+                      applied.has(s.id) &&
+                      parsed.data.marks.some(
+                        (m) => m.studentId === s.id && m.status === "absent"
+                      )
+                  )
+                  .map((s) => ({ id: s.id, name: s.name, parentPhone: s.parentPhone as string }));
+                if (absentees.length === 0) return null;
+                return {
+                  className: parsed.data.className,
+                  date: parsed.data.date,
+                  absentees,
+                } satisfies AttendanceMarkedPayload;
+              },
+            }
+          : null,
       });
     } catch (err) {
       logger.error("[attendance] mark write failed", {
@@ -180,26 +226,52 @@ router.post(
       return res.status(500).json({ message: "Attendance save failed — please retry" });
     }
 
-    // Eng review T4: side effects fire exactly once per save. An offline replay
-    // carries the same opId; the claim conflicts and we skip the effects so we
-    // do not double-count adoption or re-message a parent. Saves without an opId
-    // (online, legacy) always run — pgClaimOperation returns true.
-    const opId = parsed.data.opId;
-    const sideEffectsFresh = opId ? await pgClaimOperation(opId, user.id) : true;
-    if (!sideEffectsFresh) {
-      logger.info("[attendance] replay detected, skipping side effects", { userId: user.id, opId });
+    // Eng review T4 / autoplan T12: side effects fire exactly once per save. An
+    // offline replay carries the same opId; the claim conflicted inside the write
+    // transaction above, so no outbox row exists and we skip the rest here too.
+    if (!mark.sideEffectsFresh) {
+      logger.info("[attendance] replay detected, skipping side effects", {
+        userId: user.id,
+        opId: parsed.data.opId,
+      });
       return res.json({
         success: true,
-        written,
+        written: mark.written,
+        applied: mark.appliedIds,
+        skipped: mark.skippedIds,
         notified: 0,
         replay: true,
         alerts: { channel: "whatsapp", enabled: false, attempted: 0 },
       });
     }
 
-    pgTrackFeatureUsage({ feature: "attendance", userId: user.id, schoolCode });
-    if (req.headers["x-client"] === "mobile") {
-      pgTrackFeatureUsage({ feature: "attendance_mobile", userId: user.id, schoolCode });
+    // Autoplan T11: adoption is only real when a row actually landed. This used
+    // to fire on every 200 — including a stale replay that wrote nothing — which
+    // inflated the Sep-30 marking-day count. `subjectDate` records the school day
+    // being marked rather than the day the request arrived, so three offline days
+    // flushed on one reconnect score as three days, not one.
+    if (mark.appliedIds.length > 0) {
+      pgTrackFeatureUsage({
+        feature: "attendance",
+        userId: user.id,
+        schoolCode,
+        subjectDate: parsed.data.date,
+      });
+      if (req.headers["x-client"] === "mobile") {
+        pgTrackFeatureUsage({
+          feature: "attendance_mobile",
+          userId: user.id,
+          schoolCode,
+          subjectDate: parsed.data.date,
+        });
+      }
+    } else {
+      logger.info("[attendance] no rows applied — not counting adoption", {
+        userId: user.id,
+        className: parsed.data.className,
+        date: parsed.data.date,
+        skipped: mark.skippedIds.length,
+      });
     }
 
     // Close the parent loop: WhatsApp the parent of every student marked
@@ -213,10 +285,15 @@ router.post(
     // says "we do not auto-send WhatsApp messages today". Configuring Meta
     // credentials alone must NOT silently turn undisclosed automated messages
     // to real parents back on — flipping this flag is the explicit act.
-    const alertsEnabled =
-      process.env.WHATSAPP_ALERTS_ENABLED === "true" && whatsappService.isConfigured();
+    // Autoplan T10: intersect with the rows the upsert ACTUALLY wrote. Building
+    // this from the request alone meant a stale offline replay messaged the
+    // parent of a student whose absence was never recorded — and could
+    // contradict a newer correction that had already marked them present.
+    const applied = new Set(mark.appliedIds);
     const absentIds = new Set(
-      parsed.data.marks.filter((m) => m.status === "absent").map((m) => m.studentId)
+      parsed.data.marks
+        .filter((m) => m.status === "absent" && applied.has(m.studentId))
+        .map((m) => m.studentId)
     );
     let notified = 0;
     if (alertsEnabled && absentIds.size > 0) {
@@ -231,13 +308,12 @@ router.post(
           date: parsed.data.date,
           absentees,
         };
-        if (isRedisConfigured()) {
-          publishEvent<AttendanceMarkedPayload>("attendance.marked", {
-            schoolCode,
-            userId: user.id,
-            payload,
-          });
-        } else {
+        // Autoplan T12: with Redis on, the event was already committed to the
+        // outbox inside the write transaction above and the dispatcher
+        // publishes it — publishing again here would double-message. Without
+        // Redis there is no bus and no dispatcher, so the inline send remains
+        // the only path.
+        if (!isRedisConfigured()) {
           void handleAttendanceMarked({
             topic: "attendance.marked",
             at: new Date().toISOString(),
@@ -253,7 +329,12 @@ router.post(
 
     res.json({
       success: true,
-      written,
+      written: mark.written,
+      // Autoplan T6: `written` alone told a teacher that 3 of 50 marks were
+      // skipped, never which three. These name them, so the client can show the
+      // students whose newer mark won instead of a bare count mismatch.
+      applied: mark.appliedIds,
+      skipped: mark.skippedIds,
       notified,
       alerts: { channel: "whatsapp", enabled: alertsEnabled, attempted: notified },
     });

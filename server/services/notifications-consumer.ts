@@ -1,6 +1,7 @@
 import { subscribe, type DomainEvent } from "../lib/events";
 import { whatsappService } from "./whatsapp";
 import { logger } from "../lib/logger";
+import { pgRecordNotificationFailure } from "../lib/db/pg-queries";
 
 /**
  * Event consumers that turn domain events into outbound notifications.
@@ -56,13 +57,45 @@ export async function handleAttendanceMarked(
       })
     )
   );
-  const failed = results.filter(
-    (r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value.success)
-  ).length;
-  if (failed > 0) {
+
+  // Autoplan T5: a failed send used to exist only as a log line — a parent
+  // silently never contacted, with nothing anyone could query. Record a pointer
+  // per failure (which student, which day, which error), never the phone number
+  // or the message body.
+  //
+  // The whole block is best-effort by construction: the event is acked either
+  // way. Acking a partly-failed batch is deliberate (a WhatsApp outage must not
+  // re-message every parent whose send SUCCEEDED), and a failure to RECORD a
+  // failure must never become an unacked event that does exactly that.
+  const failures = results
+    .map((r, i) => ({ r, s: absentees[i] }))
+    .filter(({ r }) => r.status === "rejected" || (r.status === "fulfilled" && !r.value.success));
+
+  if (failures.length > 0) {
     logger.warn(
-      `[notifications] ${failed}/${results.length} absence alerts failed (${className} ${date})`
+      `[notifications] ${failures.length}/${results.length} absence alerts failed (${className} ${date})`
     );
+    try {
+      await Promise.allSettled(
+        failures.map(({ r, s }) =>
+          pgRecordNotificationFailure({
+            studentId: s.id,
+            schoolCode: event.schoolCode ?? null,
+            className,
+            date,
+            channel: "whatsapp",
+            errorCode:
+              r.status === "rejected"
+                ? "send_threw"
+                : (r.value.error ?? "send_unsuccessful"),
+          })
+        )
+      );
+    } catch (err) {
+      logger.error("[notifications] could not record absence-alert failures", {
+        err: String(err),
+      });
+    }
   }
 }
 

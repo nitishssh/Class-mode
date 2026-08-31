@@ -1,6 +1,9 @@
 import "dotenv/config";
 import dns from "node:dns";
 import { logger } from "./lib/logger";
+import { warnIfAutoSendContradictsOffer } from "./lib/whatsapp-promise";
+import { startProcessedOperationsRetention } from "./services/processed-operations-retention";
+import { startOutboxDispatcher } from "./services/outbox-dispatcher";
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -262,8 +265,22 @@ app.use(
   if (startNotificationConsumers()) {
     logger.info("[events] notification consumers started");
   }
+
+  // Runtime half of the WhatsApp promise invariant — scripts/check-whatsapp-promise.ts
+  // covers the repo half in CI but cannot see this process's env.
+  warnIfAutoSendContradictsOffer(process.env, logger);
   if (startExpoPushSender()) {
     logger.info("[expo-push] sender started");
+  }
+
+  // Autoplan T8: processed_operations is the attendance replay memory and had
+  // no purge — the created_at index existed as though one was planned.
+  startProcessedOperationsRetention();
+
+  // Autoplan T12: publishes events committed alongside their writes. Without
+  // this the outbox fills and no absence alert ever reaches the bus.
+  if (startOutboxDispatcher()) {
+    logger.info("[outbox] dispatcher started");
   }
 
   // Surface a missing/blocked Gemini key at boot with an actionable message

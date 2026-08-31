@@ -104,6 +104,11 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # Fails if the no-auto-send promise in docs/dashboard/pilot-offer.md and
+      # the two WHATSAPP_ALERTS_ENABLED gates that make it true drift apart.
+      - name: Check WhatsApp promise/gate invariant
+        run: npm run check:whatsapp-promise
+
       - name: Build project
         run: npm run build
 
@@ -155,6 +160,27 @@ jobs:
 
       - name: Seed fixed-credential E2E test accounts
         run: npx tsx scripts/seed-e2e-test-accounts.ts
+
+      # Autoplan T7. Before this, the runner was only ever exercised against a
+      # freshly-created database — the one scenario that cannot fail. Every real
+      # migration runs against a database that already holds objects AND rows.
+      # Re-running here, after the schema and the seed, covers: baseline
+      # adoption on a populated DB, idempotent re-application, the advisory
+      # lock, and the checksum guard.
+      - name: Re-apply migrations against a POPULATED database
+        run: npm run migrate
+
+      - name: Migrations are idempotent — a third run changes nothing
+        run: |
+          npm run migrate
+          npm run migrate -- --status
+
+      # Two migrators racing used to be survivable only because every statement
+      # was IF NOT EXISTS. With ordered one-shot migrations it is not, so the
+      # advisory lock is load-bearing and gets its own check.
+      - name: Concurrent migrators do not corrupt each other
+        run: |
+          npm run migrate & npm run migrate & wait
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium

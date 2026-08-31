@@ -2570,14 +2570,27 @@ export function pgTrackFeatureUsage(params: {
   feature: string;
   userId?: number | null;
   schoolCode?: string | null;
+  /**
+   * Autoplan T11: the date the usage was ABOUT, not the date the request
+   * arrived. Attendance is the case that matters: a teacher offline for three
+   * school days flushes three saves on one reconnect, and counting `created_at`
+   * scored that as ONE marking day. The Sep-30 adoption gate is measured off
+   * this table, so the difference decides a business question. Null for
+   * features with no subject date.
+   */
+  subjectDate?: string | null;
 }): void {
   if (!isPgReady()) return;
   getPgPool()
-    .query(`INSERT INTO feature_usage (feature, user_id, school_code) VALUES ($1, $2, $3)`, [
-      params.feature,
-      params.userId ?? null,
-      params.schoolCode ?? null,
-    ])
+    .query(
+      `INSERT INTO feature_usage (feature, user_id, school_code, subject_date) VALUES ($1, $2, $3, $4)`,
+      [
+        params.feature,
+        params.userId ?? null,
+        params.schoolCode ?? null,
+        params.subjectDate ?? null,
+      ]
+    )
     .catch((err) => logger.error("[pg] pgTrackFeatureUsage failed", { err: String(err) }));
 }
 
@@ -2661,6 +2674,24 @@ export interface SchoolAttendanceSummary {
 }
 
 /**
+ * What a mark actually did. `appliedIds` are the students whose row the upsert
+ * wrote; `skippedIds` are the ones Postgres refused because a newer mark already
+ * exists (the `updated_at <= EXCLUDED` guard). Callers must derive side effects
+ * — parent alerts, adoption tracking — from `appliedIds` only.
+ */
+export interface MarkAttendanceResult {
+  written: number;
+  appliedIds: number[];
+  skippedIds: number[];
+  /**
+   * False when this save's opId was already claimed — i.e. it is a replay, and
+   * its side effects (parent alerts, adoption tracking) must not run again.
+   * True when there was no opId (legacy/online saves always run).
+   */
+  sideEffectsFresh: boolean;
+}
+
+/**
  * Upsert attendance for a set of students on a given date (one row per
  * student/day). Scoped by schoolCode so a class's marks stay tenant-isolated.
  * Returns the number of rows written.
@@ -2672,8 +2703,25 @@ export async function pgMarkAttendance(params: {
   markedAt?: string;
   markedBy: number;
   marks: AttendanceMark[];
-}): Promise<number> {
-  if (!isPgReady() || params.marks.length === 0) return 0;
+  /**
+   * Autoplan T12: claimed inside the SAME transaction as the write. A claim in
+   * a separate statement could succeed while the write or the outbox insert
+   * rolled back, permanently suppressing the side effects of a save that never
+   * happened.
+   */
+  opId?: string | null;
+  /**
+   * Queued atomically with the write; published later by the outbox dispatcher.
+   *
+   * `payloadFor` receives the ids the upsert ACTUALLY applied, because the event
+   * must describe what landed, not what was requested (see T10). Return null to
+   * queue nothing — e.g. no absentee among the applied rows. It runs inside the
+   * transaction, so it must be pure and cheap: no I/O.
+   */
+  outbox?: { topic: string; payloadFor: (appliedIds: number[]) => unknown | null } | null;
+}): Promise<MarkAttendanceResult> {
+  if (!isPgReady() || params.marks.length === 0)
+    return { written: 0, appliedIds: [], skippedIds: [], sideEffectsFresh: true };
 
   // W-2a: one batched statement in one transaction, and failures PROPAGATE.
   // The old per-row loop swallowed errors and returned 0 while the route
@@ -2717,17 +2765,56 @@ export async function pgMarkAttendance(params: {
        DO UPDATE SET status = EXCLUDED.status,
                      note = COALESCE(EXCLUDED.note, attendance.note),
                      marked_by = EXCLUDED.marked_by, updated_at = EXCLUDED.updated_at
-       WHERE attendance.updated_at <= EXCLUDED.updated_at`,
+       WHERE attendance.updated_at <= EXCLUDED.updated_at
+       RETURNING student_id`,
       values
     );
-    await client.query("COMMIT");
-    // Honesty invariant (eng review T5): return the rows ACTUALLY written, not
+    // Honesty invariant (eng review T5): report the rows ACTUALLY written, not
     // deduped.length. A stale offline replay hits the `updated_at <= EXCLUDED`
     // guard and updates zero rows — Postgres omits it from rowCount. Returning
     // the input count would let the client show "50 students marked" when 0
-    // were applied. A skipped stale replay is still safely handled: it did not
-    // clobber a newer web/mobile correction, and the mobile queue may dequeue it.
-    return result.rowCount ?? 0;
+    // were applied.
+    //
+    // Autoplan T6/T10: a count alone was not enough. RETURNING student_id names
+    // WHICH rows landed, so callers can (a) tell the teacher which students were
+    // skipped rather than only how many, (b) fire parent alerts and adoption
+    // tracking from applied rows instead of from the request — a stale replay
+    // used to notify the parent of a student whose absence was never recorded,
+    // and could contradict a newer correction marking them present.
+    const appliedIds = result.rows.map((r) => Number(r.student_id));
+    const applied = new Set(appliedIds);
+    const skippedIds = deduped.map((m) => m.studentId).filter((id) => !applied.has(id));
+
+    // T12: claim and outbox share this transaction with the write above. A
+    // conflicting claim means a replay — no outbox row, so the parent is not
+    // messaged twice. A lost publish is now impossible to confuse with a
+    // replay: the row is either committed with the marks or not at all.
+    let sideEffectsFresh = true;
+    if (params.opId) {
+      const claim = await client.query(
+        `INSERT INTO processed_operations (op_id, user_id) VALUES ($1, $2)
+         ON CONFLICT (op_id, user_id) DO NOTHING`,
+        [params.opId, params.markedBy]
+      );
+      sideEffectsFresh = (claim.rowCount ?? 0) > 0;
+    }
+    if (sideEffectsFresh && params.outbox) {
+      const payload = params.outbox.payloadFor(appliedIds);
+      if (payload !== null && payload !== undefined) {
+        await client.query(
+          `INSERT INTO event_outbox (topic, payload, school_code, user_id) VALUES ($1, $2, $3, $4)`,
+          [params.outbox.topic, JSON.stringify(payload), params.schoolCode, params.markedBy]
+        );
+      }
+    }
+
+    await client.query("COMMIT");
+    return {
+      written: result.rowCount ?? appliedIds.length,
+      appliedIds,
+      skippedIds,
+      sideEffectsFresh,
+    };
   } catch (err) {
     await client.query("ROLLBACK").catch(() => undefined);
     logger.error("[pg] pgMarkAttendance failed", { err: String(err) });
@@ -2735,6 +2822,150 @@ export async function pgMarkAttendance(params: {
   } finally {
     client.release();
   }
+}
+
+export interface OutboxRow {
+  id: string;
+  topic: string;
+  payload: unknown;
+  schoolCode: string | null;
+  userId: number | null;
+}
+
+/** Autoplan T12: undispatched outbox rows, oldest first. */
+export async function pgFetchUndispatchedOutbox(limit = 100): Promise<OutboxRow[]> {
+  if (!isPgReady()) return [];
+  const { rows } = await getPgPool().query(
+    `SELECT id, topic, payload, school_code, user_id
+       FROM event_outbox
+      WHERE dispatched_at IS NULL
+      ORDER BY created_at ASC
+      LIMIT $1`,
+    [limit]
+  );
+  return rows.map((r: Record<string, unknown>) => ({
+    id: String(r.id),
+    topic: String(r.topic),
+    payload: r.payload,
+    schoolCode: (r.school_code as string | null) ?? null,
+    userId: r.user_id === null || r.user_id === undefined ? null : Number(r.user_id),
+  }));
+}
+
+/**
+ * Stamp rows as dispatched. Called only AFTER a successful publish — an
+ * unstamped row is re-published later, which is the at-least-once guarantee the
+ * consumer's own idempotency is built to absorb.
+ */
+export async function pgMarkOutboxDispatched(ids: string[]): Promise<number> {
+  if (!isPgReady() || ids.length === 0) return 0;
+  const result = await getPgPool().query(
+    `UPDATE event_outbox SET dispatched_at = now() WHERE id = ANY($1::bigint[])`,
+    [ids]
+  );
+  return result.rowCount ?? 0;
+}
+
+/** Delete dispatched outbox rows older than `retentionDays`. */
+export async function pgPurgeDispatchedOutbox(retentionDays: number): Promise<number> {
+  if (!isPgReady()) return 0;
+  const result = await getPgPool().query(
+    `DELETE FROM event_outbox
+      WHERE dispatched_at IS NOT NULL
+        AND dispatched_at < now() - ($1 || ' days')::interval`,
+    [String(retentionDays)]
+  );
+  return result.rowCount ?? 0;
+}
+
+/**
+ * Autoplan T5: record that a notification did not reach a parent.
+ *
+ * Stores a POINTER, never the message: no phone number, no rendered body. The
+ * consumer already holds children's names beside parents' numbers in memory;
+ * persisting that pairing to make a log line queryable would be a new PII store
+ * with a retention and access problem attached.
+ *
+ * Never throws — the caller runs inside a stream consumer, and a failure to
+ * RECORD a failure must not turn into an unacked event that re-messages every
+ * parent whose send succeeded.
+ */
+export async function pgRecordNotificationFailure(params: {
+  studentId: number;
+  schoolCode: string | null;
+  className: string | null;
+  date: string;
+  channel: string;
+  errorCode?: string | null;
+}): Promise<boolean> {
+  if (!isPgReady()) return false;
+  try {
+    await getPgPool().query(
+      `INSERT INTO notification_failures (student_id, school_code, class_name, date, channel, error_code)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [
+        params.studentId,
+        params.schoolCode,
+        params.className,
+        params.date,
+        params.channel,
+        params.errorCode ?? null,
+      ]
+    );
+    return true;
+  } catch (err) {
+    logger.error("[pg] pgRecordNotificationFailure failed", { err: String(err) });
+    return false;
+  }
+}
+
+/** Delete notification_failures older than `retentionDays`. Same job as T8. */
+export async function pgPurgeNotificationFailures(retentionDays: number): Promise<number> {
+  if (!isPgReady()) return 0;
+  const result = await getPgPool().query(
+    `DELETE FROM notification_failures WHERE created_at < now() - ($1 || ' days')::interval`,
+    [String(retentionDays)]
+  );
+  return result.rowCount ?? 0;
+}
+
+/**
+ * Autoplan T8: delete processed_operations rows older than `retentionDays`.
+ *
+ * The table is the ONLY replay memory: pgClaimOperation fails open, so a purged
+ * op_id is indistinguishable from one never seen. Purge a key while a client
+ * could still replay that save and the replay reads as new — re-firing the
+ * parent WhatsApp and re-counting adoption, the exact metric the Sep-30 gate
+ * is judged on. The window must therefore outlive any queued save; callers
+ * derive it from MAX_BACKFILL_DAYS rather than picking a number.
+ *
+ * Deletes in bounded batches so a long-neglected table cannot hold a single
+ * long transaction open against the live register.
+ */
+export async function pgPurgeProcessedOperations(params: {
+  retentionDays: number;
+  batchSize?: number;
+  maxBatches?: number;
+}): Promise<number> {
+  if (!isPgReady()) return 0;
+  const batchSize = params.batchSize ?? 1000;
+  const maxBatches = params.maxBatches ?? 50;
+  let deleted = 0;
+  for (let i = 0; i < maxBatches; i++) {
+    const result = await getPgPool().query(
+      `DELETE FROM processed_operations
+        WHERE ctid IN (
+          SELECT ctid FROM processed_operations
+           WHERE created_at < now() - ($1 || ' days')::interval
+           LIMIT $2
+        )`,
+      [String(params.retentionDays), batchSize]
+    );
+    const n = result.rowCount ?? 0;
+    deleted += n;
+    if (n < batchSize) break;
+  }
+  return deleted;
 }
 
 /**
