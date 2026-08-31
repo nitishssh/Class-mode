@@ -1,4 +1,6 @@
-# S1 Call Kit — book the visit (Fri 17 Jul)
+# S1 Call Kit — book the visit (Mon 31 Aug 2026)
+
+_Same-day kit: the date above is the day you use it. If it is stale, that is the finding._
 
 **Call window:** 8:30–9:30 AM (after assembly, before classes settle — the principal is findable). If no answer, retry at 10:30 and 12:30 before falling back to the WhatsApp message.
 
