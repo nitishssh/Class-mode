@@ -1,5 +1,3 @@
-import { nanoid } from "nanoid";
-import { logger } from "../../lib/logger";
 import { ClassModeAIClient } from "../study-arena-client";
 import { classModeAILessonDraftSchema } from "@shared/classmode-ai";
 import type { ClassroomGenerationProgress } from "./types";
