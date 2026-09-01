@@ -30,7 +30,11 @@ function sendError(res: any, error: unknown) {
       retryable: error.retryable,
     });
   }
-  return res.status(503).json({ message: "ClassMode AI is not configured", code: "SERVICE_UNAVAILABLE", retryable: true });
+  return res.status(503).json({
+    message: "ClassMode AI is not configured",
+    code: "SERVICE_UNAVAILABLE",
+    retryable: true,
+  });
 }
 
 router.get("/health", async (_req, res) => {
@@ -45,7 +49,10 @@ router.post("/generation-jobs", async (req, res) => {
   const scope = workspaceId(req);
   if (!scope) return res.status(409).json({ message: "No active workspace" });
   const parsed = classModeAIGenerationRequestSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ message: "Invalid generation request", issues: parsed.error.issues });
+  if (!parsed.success)
+    return res
+      .status(400)
+      .json({ message: "Invalid generation request", issues: parsed.error.issues });
   try {
     const job = await client().createGenerationJob(scope, parsed.data);
     return res.status(202).json({ job });

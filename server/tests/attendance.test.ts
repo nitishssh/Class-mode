@@ -68,7 +68,6 @@ const allApplied = async (p: { marks: { studentId: number }[] }) => ({
   sideEffectsFresh: true,
 });
 
-
 function makeApp() {
   const app = express();
   app.use(express.json());
@@ -303,7 +302,12 @@ describe("Attendance API", () => {
   it("passes through the honest written count from the write layer (T5)", async () => {
     // A stale offline replay updates zero rows; pgMarkAttendance returns the real
     // rowCount (0), and the route must report that, not the input length.
-    h.mockMark.mockResolvedValue({ written: 0, appliedIds: [], skippedIds: [1, 2], sideEffectsFresh: true });
+    h.mockMark.mockResolvedValue({
+      written: 0,
+      appliedIds: [],
+      skippedIds: [1, 2],
+      sideEffectsFresh: true,
+    });
     const res = await request(app)
       .post("/api/attendance")
       .send({
@@ -335,9 +339,7 @@ describe("Attendance API", () => {
     expect(first.body.notified).toBe(1);
     // T12: the opId now reaches the write layer, which claims it in the same
     // transaction as the marks.
-    expect(h.mockMark).toHaveBeenCalledWith(
-      expect.objectContaining({ opId: "op-abc-123" })
-    );
+    expect(h.mockMark).toHaveBeenCalledWith(expect.objectContaining({ opId: "op-abc-123" }));
     expect(h.mockSend).toHaveBeenCalledTimes(1);
     expect(h.mockTrack).toHaveBeenCalledWith(expect.objectContaining({ feature: "attendance" }));
 
@@ -458,7 +460,12 @@ describe("Attendance API", () => {
     // Postgres refuses the stale row. Building the alert set from the REQUEST
     // messaged Ravi's parent anyway — telling them their child was absent on a
     // day the school's own record says he was present.
-    h.mockMark.mockResolvedValue({ written: 1, appliedIds: [1], skippedIds: [2], sideEffectsFresh: true });
+    h.mockMark.mockResolvedValue({
+      written: 1,
+      appliedIds: [1],
+      skippedIds: [2],
+      sideEffectsFresh: true,
+    });
     h.mockFindUsers.mockResolvedValue([
       { id: 1, name: "Asha", parentPhone: "+919876543210" },
       { id: 2, name: "Ravi", parentPhone: "+919000000000" },
@@ -479,13 +486,9 @@ describe("Attendance API", () => {
     expect(res.status).toBe(200);
     expect(res.body.notified).toBe(1);
     expect(h.mockSend).toHaveBeenCalledTimes(1);
-    expect(h.mockSend).toHaveBeenCalledWith(
-      expect.objectContaining({ to: "+919876543210" })
-    );
+    expect(h.mockSend).toHaveBeenCalledWith(expect.objectContaining({ to: "+919876543210" }));
     // Ravi's parent must not hear from us.
-    expect(h.mockSend).not.toHaveBeenCalledWith(
-      expect.objectContaining({ to: "+919000000000" })
-    );
+    expect(h.mockSend).not.toHaveBeenCalledWith(expect.objectContaining({ to: "+919000000000" }));
     // And the teacher is told which student was skipped, not just a count.
     expect(res.body.skipped).toEqual([2]);
     expect(res.body.applied).toEqual([1]);
@@ -494,7 +497,12 @@ describe("Attendance API", () => {
   it("does NOT count adoption when the write applied nothing (T11)", async () => {
     // A stale replay used to fire feature_usage on every 200, inflating the
     // marking-day count the Sep-30 gate is judged on.
-    h.mockMark.mockResolvedValue({ written: 0, appliedIds: [], skippedIds: [1], sideEffectsFresh: true });
+    h.mockMark.mockResolvedValue({
+      written: 0,
+      appliedIds: [],
+      skippedIds: [1],
+      sideEffectsFresh: true,
+    });
     h.mockTrack.mockClear();
 
     const res = await request(app)

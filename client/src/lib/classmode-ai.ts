@@ -71,7 +71,9 @@ export class ClassModeAIError extends Error {
 
   /** True when no workspace is in scope, so nothing may be fetched or shown. */
   get isWorkspaceBlocked(): boolean {
-    return this.status === 409 || this.code === "WORKSPACE_REQUIRED" || this.code === "NO_WORKSPACE";
+    return (
+      this.status === 409 || this.code === "WORKSPACE_REQUIRED" || this.code === "NO_WORKSPACE"
+    );
   }
 }
 

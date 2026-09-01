@@ -92,24 +92,24 @@ describe("Authentication Security and Hardening", () => {
     // the submitted password, and called createLoginSession — so possession of
     // an invite link alone granted a full session as that account. Both routes
     // and their handler are gone; the safe path is /workspace-invite/signup.
-    it.each([
-      ["/api/auth/invite/accept"],
-      ["/api/auth/invites/some_invite_token/accept"],
-    ])("%s is no longer mounted on the auth router", async (path) => {
-      const res = await request(app).post(path).send({
-        token: "some_invite_token",
-        password: "attacker-chosen-password",
-        displayName: "Attacker",
-      });
+    it.each([["/api/auth/invite/accept"], ["/api/auth/invites/some_invite_token/accept"]])(
+      "%s is no longer mounted on the auth router",
+      async (path) => {
+        const res = await request(app).post(path).send({
+          token: "some_invite_token",
+          password: "attacker-chosen-password",
+          displayName: "Attacker",
+        });
 
-      expect(res.status).toBe(404);
-      // The bypass was not just "wrong status" — nothing may be written or
-      // granted on these paths.
-      expect(pgUpdateUser).not.toHaveBeenCalled();
-      expect(pgCreateUser).not.toHaveBeenCalled();
-      expect(pgUpsertWorkspaceMembership).not.toHaveBeenCalled();
-      expect(pgAcceptWorkspaceInvite).not.toHaveBeenCalled();
-    });
+        expect(res.status).toBe(404);
+        // The bypass was not just "wrong status" — nothing may be written or
+        // granted on these paths.
+        expect(pgUpdateUser).not.toHaveBeenCalled();
+        expect(pgCreateUser).not.toHaveBeenCalled();
+        expect(pgUpsertWorkspaceMembership).not.toHaveBeenCalled();
+        expect(pgAcceptWorkspaceInvite).not.toHaveBeenCalled();
+      }
+    );
 
     // server/routes/index.ts mounts authRouter at BOTH /api/auth and /api, so the
     // removed routes have a second production path. The shared `app` above also

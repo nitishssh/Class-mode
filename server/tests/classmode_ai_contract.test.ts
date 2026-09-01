@@ -25,7 +25,12 @@ describe("ClassMode AI contract", () => {
       ok: false,
       apiVersion: "v1",
       requestId: "req-2",
-      error: { code: "UPSTREAM_ERROR", message: "Provider unavailable", retryable: true, retryAfterMs: 5000 },
+      error: {
+        code: "UPSTREAM_ERROR",
+        message: "Provider unavailable",
+        retryable: true,
+        retryAfterMs: 5000,
+      },
     });
     expect(parsed.error.retryAfterMs).toBe(5000);
   });

@@ -153,7 +153,9 @@ export function StudioGenerationPanel() {
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Generation failed</AlertTitle>
-                <AlertDescription>{job.error || "Studio could not generate this lesson."}</AlertDescription>
+                <AlertDescription>
+                  {job.error || "Studio could not generate this lesson."}
+                </AlertDescription>
               </Alert>
             )}
 

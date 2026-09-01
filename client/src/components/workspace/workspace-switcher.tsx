@@ -100,10 +100,7 @@ export function WorkspaceSwitcher({ isCollapsed = false }: { isCollapsed?: boole
           <WorkspaceAvatar workspace={activeWorkspace} size="sm" />
           {!isCollapsed && (
             <>
-              <span
-                data-testid="workspace-switcher-name"
-                className="flex-1 truncate text-left"
-              >
+              <span data-testid="workspace-switcher-name" className="flex-1 truncate text-left">
                 {activeWorkspace.name}
               </span>
               <ChevronsUpDown className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />

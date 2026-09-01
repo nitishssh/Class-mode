@@ -789,10 +789,10 @@ function AssessmentCard({
             idempotencyKey: crypto.randomUUID(),
           }
         );
-        
+
         if (response.status === "invalid") {
-           setError("Attempt rejected (invalid answer key format).");
-           return;
+          setError("Attempt rejected (invalid answer key format).");
+          return;
         }
 
         if (response.correct) {

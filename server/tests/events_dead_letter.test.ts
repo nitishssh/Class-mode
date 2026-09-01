@@ -1,9 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  shouldDeadLetter,
-  deadLetterFields,
-  MAX_DELIVERY_ATTEMPTS,
-} from "../lib/events";
+import { shouldDeadLetter, deadLetterFields, MAX_DELIVERY_ATTEMPTS } from "../lib/events";
 
 // Autoplan T13: before this, a handler that threw left its entry pending and
 // XAUTOCLAIM reclaimed it every ~60s forever. For notifications-consumer that

@@ -67,7 +67,6 @@ const allApplied = async (p: { marks: { studentId: number }[] }) => ({
   skippedIds: [] as number[],
 });
 
-
 function makeApp() {
   const app = express();
   app.use(express.json());

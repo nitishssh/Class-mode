@@ -189,32 +189,31 @@ router.post(
         markedBy: user.id,
         marks: parsed.data.marks,
         opId: parsed.data.opId ?? null,
-        outbox: alertsEnabled && isRedisConfigured()
-          ? {
-              topic: "attendance.marked",
-              // Built from APPLIED ids inside the transaction (T10 + T12): the
-              // event describes what landed, and it exists only if the marks do.
-              payloadFor: (appliedIds: number[]) => {
-                const applied = new Set(appliedIds);
-                const absentees = roster
-                  .filter(
-                    (s) =>
-                      s.parentPhone &&
-                      applied.has(s.id) &&
-                      parsed.data.marks.some(
-                        (m) => m.studentId === s.id && m.status === "absent"
-                      )
-                  )
-                  .map((s) => ({ id: s.id, name: s.name, parentPhone: s.parentPhone as string }));
-                if (absentees.length === 0) return null;
-                return {
-                  className: parsed.data.className,
-                  date: parsed.data.date,
-                  absentees,
-                } satisfies AttendanceMarkedPayload;
-              },
-            }
-          : null,
+        outbox:
+          alertsEnabled && isRedisConfigured()
+            ? {
+                topic: "attendance.marked",
+                // Built from APPLIED ids inside the transaction (T10 + T12): the
+                // event describes what landed, and it exists only if the marks do.
+                payloadFor: (appliedIds: number[]) => {
+                  const applied = new Set(appliedIds);
+                  const absentees = roster
+                    .filter(
+                      (s) =>
+                        s.parentPhone &&
+                        applied.has(s.id) &&
+                        parsed.data.marks.some((m) => m.studentId === s.id && m.status === "absent")
+                    )
+                    .map((s) => ({ id: s.id, name: s.name, parentPhone: s.parentPhone as string }));
+                  if (absentees.length === 0) return null;
+                  return {
+                    className: parsed.data.className,
+                    date: parsed.data.date,
+                    absentees,
+                  } satisfies AttendanceMarkedPayload;
+                },
+              }
+            : null,
       });
     } catch (err) {
       logger.error("[attendance] mark write failed", {

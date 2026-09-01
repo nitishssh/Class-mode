@@ -199,23 +199,28 @@ function approvalsComplete(approvals: unknown): boolean {
 }
 
 /** Student inbox. Assignment ids only come from immutable server-side enrollment. */
-router.get("/my-assignments", requireFlag, authenticateToken, async (req: Request, res: Response) => {
-  if (req.user?.role !== "student") {
-    return res.status(403).json({ message: "Only students can view assigned lessons" });
-  }
-  const workspaceId = (req as any).workspace?.id as number | undefined;
-  if (!workspaceId) return res.status(409).json({ message: "No active workspace" });
-  if (!isPgReady()) return res.status(503).json({ message: "Assignments are temporarily unavailable" });
-  const studentId = (req.user?.id || req.session?.userId) as number;
-  const result = await getPgPool().query<{
-    id: string;
-    objective: string;
-    subject: string;
-    grade_level: string | null;
-    due_at: Date | null;
-    session_status: string | null;
-  }>(
-    `SELECT a.id, v.objective, v.subject, v.grade_level, a.due_at, s.status AS session_status
+router.get(
+  "/my-assignments",
+  requireFlag,
+  authenticateToken,
+  async (req: Request, res: Response) => {
+    if (req.user?.role !== "student") {
+      return res.status(403).json({ message: "Only students can view assigned lessons" });
+    }
+    const workspaceId = (req as any).workspace?.id as number | undefined;
+    if (!workspaceId) return res.status(409).json({ message: "No active workspace" });
+    if (!isPgReady())
+      return res.status(503).json({ message: "Assignments are temporarily unavailable" });
+    const studentId = (req.user?.id || req.session?.userId) as number;
+    const result = await getPgPool().query<{
+      id: string;
+      objective: string;
+      subject: string;
+      grade_level: string | null;
+      due_at: Date | null;
+      session_status: string | null;
+    }>(
+      `SELECT a.id, v.objective, v.subject, v.grade_level, a.due_at, s.status AS session_status
        FROM study_arena_assignment_enrollments e
        JOIN study_arena_assignments a ON a.id = e.assignment_id
        JOIN study_arena_lesson_versions v ON v.id = a.lesson_version_id
@@ -224,19 +229,25 @@ router.get("/my-assignments", requireFlag, authenticateToken, async (req: Reques
       WHERE e.student_id = $1 AND a.workspace_id = $2 AND a.status = 'published'
         AND a.available_at <= now() AND (a.due_at IS NULL OR a.due_at >= now())
       ORDER BY a.due_at ASC NULLS LAST, a.created_at DESC`,
-    [studentId, workspaceId]
-  );
-  return res.json({
-    assignments: result.rows.map((row) => ({
-      id: row.id,
-      objective: row.objective,
-      subject: row.subject,
-      gradeLevel: row.grade_level,
-      dueAt: row.due_at?.toISOString() ?? null,
-      status: row.session_status === "completed" ? "completed" : row.session_status === "active" ? "in_progress" : "not_started",
-    })),
-  });
-});
+      [studentId, workspaceId]
+    );
+    return res.json({
+      assignments: result.rows.map((row) => ({
+        id: row.id,
+        objective: row.objective,
+        subject: row.subject,
+        gradeLevel: row.grade_level,
+        dueAt: row.due_at?.toISOString() ?? null,
+        status:
+          row.session_status === "completed"
+            ? "completed"
+            : row.session_status === "active"
+              ? "in_progress"
+              : "not_started",
+      })),
+    });
+  }
+);
 
 /** Teacher-owned authoring: creates one immutable lesson version and assignment. */
 /** @deprecated Prefer draft → approve → publish. Kept for backward compatibility. */

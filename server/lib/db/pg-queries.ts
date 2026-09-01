@@ -2584,12 +2584,7 @@ export function pgTrackFeatureUsage(params: {
   getPgPool()
     .query(
       `INSERT INTO feature_usage (feature, user_id, school_code, subject_date) VALUES ($1, $2, $3, $4)`,
-      [
-        params.feature,
-        params.userId ?? null,
-        params.schoolCode ?? null,
-        params.subjectDate ?? null,
-      ]
+      [params.feature, params.userId ?? null, params.schoolCode ?? null, params.subjectDate ?? null]
     )
     .catch((err) => logger.error("[pg] pgTrackFeatureUsage failed", { err: String(err) }));
 }

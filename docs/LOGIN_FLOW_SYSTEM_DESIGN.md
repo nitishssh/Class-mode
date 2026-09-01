@@ -240,21 +240,21 @@ The system uses a hybrid Cookie + JWT approach for maximum security.
 
 ## 🔄 API Methods Reference
 
-| Action                | Endpoint                         | Method |
-| --------------------- | -------------------------------- | ------ |
-| Signup                | `/api/auth/signup`               | POST   |
-| Login                 | `/api/auth/login`                | POST   |
-| Logout                | `/api/auth/logout`               | POST   |
-| Refresh Token         | `/api/auth/refresh`              | POST   |
-| Current User          | `/api/auth/me`                   | GET    |
-| Forgot Password       | `/api/auth/password/forgot`      | POST   |
-| Reset Password        | `/api/auth/password/reset`       | POST   |
-| Verify Email Request  | `/api/auth/email/verify/request` | POST   |
-| Verify Email Confirm  | `/api/auth/email/verify`         | POST   |
-| Google OAuth Start    | `/api/auth/google/start`         | GET    |
-| Google OAuth Callback | `/api/auth/google/callback`      | GET    |
-| Invite Member         | `/api/workspaces/:id/invites`    | POST   |
-| Validate Invite       | `/api/invite/validate/:token`    | GET    |
+| Action                | Endpoint                            | Method |
+| --------------------- | ----------------------------------- | ------ |
+| Signup                | `/api/auth/signup`                  | POST   |
+| Login                 | `/api/auth/login`                   | POST   |
+| Logout                | `/api/auth/logout`                  | POST   |
+| Refresh Token         | `/api/auth/refresh`                 | POST   |
+| Current User          | `/api/auth/me`                      | GET    |
+| Forgot Password       | `/api/auth/password/forgot`         | POST   |
+| Reset Password        | `/api/auth/password/reset`          | POST   |
+| Verify Email Request  | `/api/auth/email/verify/request`    | POST   |
+| Verify Email Confirm  | `/api/auth/email/verify`            | POST   |
+| Google OAuth Start    | `/api/auth/google/start`            | GET    |
+| Google OAuth Callback | `/api/auth/google/callback`         | GET    |
+| Invite Member         | `/api/workspaces/:id/invites`       | POST   |
+| Validate Invite       | `/api/invite/validate/:token`       | GET    |
 | Accept Invite         | `/api/auth/workspace-invite/signup` | POST   |
 
 ---

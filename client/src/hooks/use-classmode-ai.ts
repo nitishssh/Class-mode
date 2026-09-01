@@ -95,9 +95,7 @@ export function useClassModeAIGeneration(): UseClassModeAIGeneration {
   }, [create, cancelMutation]);
 
   const error = (create.error ?? poll.error ?? cancelMutation.error ?? null) as
-    | ClassModeAIError
-    | Error
-    | null;
+    ClassModeAIError | Error | null;
 
   return {
     job: current ?? null,

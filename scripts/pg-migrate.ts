@@ -153,10 +153,10 @@ async function main(): Promise<void> {
       try {
         await client.query("BEGIN");
         await client.query(file.sql);
-        await client.query(
-          `INSERT INTO schema_migrations (id, checksum) VALUES ($1, $2)`,
-          [file.id, file.checksum]
-        );
+        await client.query(`INSERT INTO schema_migrations (id, checksum) VALUES ($1, $2)`, [
+          file.id,
+          file.checksum,
+        ]);
         await client.query("COMMIT");
         ran++;
         console.log(`[pg-migrate] applied ${file.id}`);
@@ -175,7 +175,9 @@ async function main(): Promise<void> {
     process.exitCode = 1;
   } finally {
     if (locked) {
-      await client.query("SELECT pg_advisory_unlock($1)", [ADVISORY_LOCK_KEY]).catch(() => undefined);
+      await client
+        .query("SELECT pg_advisory_unlock($1)", [ADVISORY_LOCK_KEY])
+        .catch(() => undefined);
     }
     client.release();
     await pool.end();

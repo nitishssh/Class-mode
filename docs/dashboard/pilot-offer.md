@@ -2,7 +2,7 @@
 
 **To:** The Principal, **\*\***\*\***\*\***\_\_**\*\***\*\***\*\*** (school name)
 **From:** Nitish Kumar, Class-mode · nitishkumar44470@gmail.com · classmode.inmodel.in
-**Date:** \_\_\_\_\_\_\_\_\_\_\_\_ 2026  _(fill on the day)_
+**Date:** \_\_\_\_\_\_\_\_\_\_\_\_ 2026 _(fill on the day)_
 
 ## What you get
 

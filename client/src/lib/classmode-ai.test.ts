@@ -48,9 +48,7 @@ describe("classmode-ai client", () => {
 
     await fetchGenerationJob("../../admin");
 
-    expect(fetchMock.mock.calls[0][0]).toBe(
-      "/api/classmode-ai/generation-jobs/..%2F..%2Fadmin"
-    );
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/classmode-ai/generation-jobs/..%2F..%2Fadmin");
   });
 
   it("cancels via DELETE", async () => {

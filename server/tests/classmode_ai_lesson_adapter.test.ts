@@ -8,13 +8,15 @@ describe("ClassMode AI lesson adapter", () => {
       objective: "Solve linear equations for x",
       draft: {
         classroomId: "room-1",
-        scenes: [{
-          id: "balance",
-          title: "Balance both sides",
-          kind: "slide",
-          textBlocks: ["Do the same operation on each side."],
-          questions: [],
-        }],
+        scenes: [
+          {
+            id: "balance",
+            title: "Balance both sides",
+            kind: "slide",
+            textBlocks: ["Do the same operation on each side."],
+            questions: [],
+          },
+        ],
       },
     });
     expect(script.primaryConceptId).toBe("linear-equations-isolation");
@@ -33,10 +35,14 @@ describe("ClassMode AI lesson adapter", () => {
       objective: "Compare two compositions",
       draft: {
         classroomId: "room-2",
-        scenes: [{ id: "compare", title: "Composition", kind: "slide", textBlocks: [], questions: [] }],
+        scenes: [
+          { id: "compare", title: "Composition", kind: "slide", textBlocks: [], questions: [] },
+        ],
       },
     });
     expect(script.conceptIds).toEqual([]);
-    expect(script.scenes.flatMap((scene) => scene.actions).some((action) => action.type === "assessment")).toBe(false);
+    expect(
+      script.scenes.flatMap((scene) => scene.actions).some((action) => action.type === "assessment")
+    ).toBe(false);
   });
 });

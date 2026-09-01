@@ -31,10 +31,7 @@ export const WHATSAPP_LIVE_WARNING =
  * Logs a loud warning when automated parent messaging is switched on.
  * Returns true when the warning fired, so callers and tests can assert on it.
  */
-export function warnIfAutoSendContradictsOffer(
-  env: NodeJS.ProcessEnv,
-  log: ErrorLogger
-): boolean {
+export function warnIfAutoSendContradictsOffer(env: NodeJS.ProcessEnv, log: ErrorLogger): boolean {
   if (env.WHATSAPP_ALERTS_ENABLED !== "true") return false;
   log.error(WHATSAPP_LIVE_WARNING);
   return true;

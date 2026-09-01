@@ -148,7 +148,9 @@ describe("AI gateway — Sarvam adapter", () => {
       text: async () => JSON.stringify({ error: { message: "invalid key" } }),
     });
 
-    await expect(detectLanguage("नमस्ते")).rejects.toThrow(/403.*check SARVAM_API_KEY.*invalid key/s);
+    await expect(detectLanguage("नमस्ते")).rejects.toThrow(
+      /403.*check SARVAM_API_KEY.*invalid key/s
+    );
   });
 
   it("reassembles SSE deltas split across network chunks", async () => {

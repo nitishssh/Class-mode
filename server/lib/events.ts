@@ -123,8 +123,7 @@ async function deliveryCountOf(
 ): Promise<number | null> {
   try {
     const rows = (await conn.xpending(stream, group, id, id, 1)) as
-      | [string, string, number, number][]
-      | null;
+      [string, string, number, number][] | null;
     const count = rows?.[0]?.[3];
     return typeof count === "number" ? count : null;
   } catch {

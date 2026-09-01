@@ -12,14 +12,14 @@ Legacy names remain only in attribution, database identifiers, compatibility imp
 
 ## Ownership boundary
 
-| Concern | Authority |
-| --- | --- |
-| Identity, roles, sessions, workspaces | ClassMode backend |
-| Classes, assignments, billing | ClassMode backend |
-| Attempts, assessments, evidence, mastery | ClassMode backend via `commitLearnerUpdate` |
-| Provider routing and generation jobs | ClassMode AI |
-| Materials, scenes, media, authoring sessions | ClassMode AI |
-| Web and mobile authorization | ClassMode backend |
+| Concern                                      | Authority                                   |
+| -------------------------------------------- | ------------------------------------------- |
+| Identity, roles, sessions, workspaces        | ClassMode backend                           |
+| Classes, assignments, billing                | ClassMode backend                           |
+| Attempts, assessments, evidence, mastery     | ClassMode backend via `commitLearnerUpdate` |
+| Provider routing and generation jobs         | ClassMode AI                                |
+| Materials, scenes, media, authoring sessions | ClassMode AI                                |
+| Web and mobile authorization                 | ClassMode backend                           |
 
 Web and mobile clients call `/api/classmode-ai/*` on the ClassMode backend. Only the backend calls ClassMode AI `/api/v1/*`, with `Authorization`, `x-classmode-workspace-id`, and `x-request-id` headers.
 

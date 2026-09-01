@@ -1,10 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import {
-  warnIfAutoSendContradictsOffer,
-  WHATSAPP_LIVE_WARNING,
-} from "../lib/whatsapp-promise";
+import { warnIfAutoSendContradictsOffer, WHATSAPP_LIVE_WARNING } from "../lib/whatsapp-promise";
 
 const ROOT = path.resolve(import.meta.dirname, "../..");
 
@@ -18,18 +15,14 @@ describe("warnIfAutoSendContradictsOffer", () => {
   it("stays silent for any value other than the exact string 'true'", () => {
     const log = { error: vi.fn() };
     for (const value of ["false", "TRUE", "1", "yes", ""]) {
-      expect(warnIfAutoSendContradictsOffer({ WHATSAPP_ALERTS_ENABLED: value }, log)).toBe(
-        false
-      );
+      expect(warnIfAutoSendContradictsOffer({ WHATSAPP_ALERTS_ENABLED: value }, log)).toBe(false);
     }
     expect(log.error).not.toHaveBeenCalled();
   });
 
   it("warns loudly when automated parent messaging is switched on", () => {
     const log = { error: vi.fn() };
-    expect(
-      warnIfAutoSendContradictsOffer({ WHATSAPP_ALERTS_ENABLED: "true" }, log)
-    ).toBe(true);
+    expect(warnIfAutoSendContradictsOffer({ WHATSAPP_ALERTS_ENABLED: "true" }, log)).toBe(true);
     expect(log.error).toHaveBeenCalledTimes(1);
     expect(log.error).toHaveBeenCalledWith(WHATSAPP_LIVE_WARNING);
   });
