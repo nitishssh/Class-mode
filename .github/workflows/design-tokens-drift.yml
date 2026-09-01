@@ -1,0 +1,62 @@
+# Watches this app's palette against ClassMode Studio's, the repo that owns
+# DESIGN.md and therefore owns the spec both stylesheets answer to.
+#
+# Unlike the Study Arena check, drift here is not "upstream moved and we should
+# look" — it is a defect. The two files are two copies of one palette, and the
+# manifest in scripts/check-design-tokens-drift.ts states exactly which tokens
+# must match and which this app deliberately does not inherit. A failure means
+# one side changed a colour the other still carries, so fix it rather than
+# re-baseline: there is no --update, on purpose.
+#
+# Runs on pull requests that touch the palette, and weekly to catch drift
+# introduced by a change on the Studio side, which this repo never sees.
+#
+# NEEDS A TOKEN: classmode-studio is private, so unlike the OpenMAIC check this
+# cannot read raw file contents anonymously. STUDIO_REPO_TOKEN must be a
+# repository secret with read access to it. Until that secret exists the job
+# reports "not configured" and is skipped — a missing credential is not drift,
+# and failing red for it would train people to ignore this check.
+name: Design Tokens Drift
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "client/src/index.css"
+      - "tailwind.config.ts"
+      - "scripts/check-design-tokens-drift.ts"
+  schedule:
+    - cron: "23 4 * * 1"
+
+jobs:
+  check-tokens:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check whether the Studio token is configured
+        id: token
+        env:
+          STUDIO_REPO_TOKEN: ${{ secrets.STUDIO_REPO_TOKEN }}
+        run: |
+          if [ -n "$STUDIO_REPO_TOKEN" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::STUDIO_REPO_TOKEN is not set, so the palette cannot be compared against ClassMode Studio. Add it as a repository secret to enable this check."
+          fi
+
+      - name: Check design-token drift against ClassMode Studio
+        if: steps.token.outputs.configured == 'true'
+        env:
+          STUDIO_REPO_TOKEN: ${{ secrets.STUDIO_REPO_TOKEN }}
+        run: npm run check:design-tokens-drift

@@ -50,3 +50,6 @@ public/uploads/
 # local env backups (never commit)
 .env.bak.*
 .env.*.bak
+
+# Machine-local path to a ClassMode Studio checkout (optional; see .classmode-studio-repo.example)
+.classmode-studio-repo

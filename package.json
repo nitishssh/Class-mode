@@ -23,6 +23,7 @@
     "report:weekly": "tsx scripts/metrics-weekly.ts --report",
     "jules": "node scripts/jules.mjs",
     "check:study-arena-drift": "tsx scripts/check-study-arena-drift.ts",
+    "check:design-tokens-drift": "tsx scripts/check-design-tokens-drift.ts",
     "check:whatsapp-promise": "tsx scripts/check-whatsapp-promise.ts"
   },
   "dependencies": {
