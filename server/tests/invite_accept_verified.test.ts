@@ -58,7 +58,7 @@ describe("Onboarding invite accept creates a local-password account", () => {
 
   it("creates a local PG user with a bcrypt password and emailVerified: true", async () => {
     const res = await request(app).post("/api/onboarding/invite/accept").send({
-      token: "11111111-1111-1111-1111-111111111111",
+      token: "11111111-1111-4111-8111-111111111111",
       email: "student@example.com",
       displayName: "Riya",
       password: "supersecret123",
@@ -88,7 +88,7 @@ describe("Onboarding invite accept creates a local-password account", () => {
     (pgAcceptInvite as any).mockResolvedValue(false);
 
     const res = await request(app).post("/api/onboarding/invite/accept").send({
-      token: "11111111-1111-1111-1111-111111111111",
+      token: "11111111-1111-4111-8111-111111111111",
       email: "student@example.com",
       displayName: "Riya",
       password: "supersecret123",
@@ -141,7 +141,7 @@ describe("Onboarding invite accept never mutates an account that already exists"
     (pgFindUserByEmail as any).mockResolvedValue(existingAccount);
 
     const res = await request(app).post("/api/onboarding/invite/accept").send({
-      token: "22222222-2222-2222-2222-222222222222",
+      token: "22222222-2222-4222-8222-222222222222",
       email: "parent@example.com",
       displayName: "Diya",
       password: "a-new-password",
@@ -172,7 +172,7 @@ describe("Onboarding invite accept never mutates an account that already exists"
     (pgFindUserByEmail as any).mockResolvedValue(existingAccount);
 
     const res = await request(app).post("/api/onboarding/invite/accept").send({
-      token: "33333333-3333-3333-3333-333333333333",
+      token: "33333333-3333-4333-8333-333333333333",
       email: "parent@example.com",
       displayName: "Attacker Chosen",
       password: "attacker-chosen-password",

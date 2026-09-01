@@ -83,7 +83,7 @@ describe("POST /invite/accept sets schoolCode and className on the user record",
     });
 
     const res = await request(app).post("/api/onboarding/invite/accept").send({
-      token: "11111111-1111-1111-1111-111111111111",
+      token: "11111111-1111-4111-8111-111111111111",
       email: "student@example.com",
       displayName: "Riya",
       password: "supersecret123",
@@ -120,7 +120,7 @@ describe("POST /invite/accept sets schoolCode and className on the user record",
     (pgFindUserByEmail as any).mockResolvedValue({ id: 88, email: "student2@example.com" });
 
     const res = await request(app).post("/api/onboarding/invite/accept").send({
-      token: "22222222-2222-2222-2222-222222222222",
+      token: "22222222-2222-4222-8222-222222222222",
       email: "student2@example.com",
       displayName: "Aman",
       password: "supersecret123",
@@ -153,7 +153,7 @@ describe("POST /invite/accept sets schoolCode and className on the user record",
     });
 
     const res = await request(app).post("/api/onboarding/invite/accept").send({
-      token: "33333333-3333-3333-3333-333333333333",
+      token: "33333333-3333-4333-8333-333333333333",
       email: "teacher@example.com",
       displayName: "Ms. Verma",
       password: "supersecret123",
