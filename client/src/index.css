@@ -6,9 +6,11 @@
 
 @layer base {
   /* ── Palette source of truth ──────────────────────────────────────────────
-     Governed by the "Ruled Paper" design system. The canonical spec lives at
-     OpenMAIC-main/DESIGN.md; these tokens are MIRRORED in ClassMode Studio at
-     OpenMAIC-main/app/globals.css, which converts the HSL triplets below into
+     Governed by the "Ruled Paper" design system. The canonical spec lives in the
+     ClassMode Studio repo at DESIGN.md
+     (github.com/NitishKumar-ai/classmode-studio, or a sibling checkout — see
+     .classmode-studio-repo.example); these tokens are MIRRORED there in
+     app/globals.css, which converts the HSL triplets below into
      complete hsl() values because it runs Tailwind v4, where tokens are consumed
      as whole colors rather than through hsl(var(--x)). Change a brand color here
      and change it there, or the two surfaces drift apart visually.
@@ -27,35 +29,65 @@
 
      This app inherits the paper, the margin rule and the mono numerals. It does
      does NOT inherit Studio's slate gate inversion. That reservation is what lets one
-     system cover both an authoring tool and an attendance register. */
+     system cover both an authoring tool and an attendance register.
+
+     TWO FORMATS LIVE HERE, on purpose:
+       ClassMode palette tokens are bare RGB CHANNELS ("240 165 0"), consumed as
+         rgb(var(--energy) / <alpha-value>) from tailwind.config.ts.
+       shadcn tokens stay HSL TRIPLETS ("38 29% 94%"), consumed as hsl(var(--x)).
+     Channels rather than hex because Tailwind needs to inject an alpha for
+     `bg-progress/10` to work at all, and RGB rather than HSL because HSL rounds:
+     #f0a500 round-trips through whole-percent HSL as #f0a400, and the marigold is
+     a load-bearing colour that must be exactly itself. Never write a hex here for
+     a palette token — the config would then hardcode a value that cannot follow
+     the theme, which is exactly the bug fixed on 2026-09-01. */
   :root {
     /* ── Base ── */
-    --cream-50: #fdfaf5;
-    --cream-100: #f5f0e8;
-    --cream-150: #f2f0eb;
-    --cream-200: #eeebe3;
-    --cream-300: #e8e4dc;
-    --cream-400: #e0dbd3;
+    --cream-50: 253 250 245;
+    --cream-100: 245 240 232;
+    --cream-150: 242 240 235;
+    --cream-200: 238 235 227;
+    --cream-300: 232 228 220;
+    --cream-400: 224 219 211;
 
     /* ── Text ── */
-    --ink-900: #1a1a1a;
-    --ink-600: #5c5c5c;
-    --ink-400: #9a9a9a;
+    /* Warmer than the neutral #1a1a1a it replaced: the system is warm paper and
+       warm ink, and a neutral near-black reads cold against it. 15.5:1 on paper. */
+    --ink-900: 36 32 30;
+    --ink-600: 92 92 92;
+    --ink-400: 154 154 154;
 
     /* ── Primary Accent ── */
-    --accent: #cc785c;
-    --accent-hover: #b8654a;
-    --accent-soft: #f2e8e3;
+    --accent: 204 120 92;
+    --accent-hover: 184 101 74;
+    --accent-soft: 242 232 227;
+    /* Terracotta for TEXT. #cc785c measures 3.15:1 on paper — below the 4.5:1
+       floor — so the student's identifying colour is darkened for type in light
+       mode only. Use --accent for rules and marks, --terracotta-ink for words. */
+    --terracotta-ink: 170 82 53;
 
     /* ── NEW: Energy Color ── */
-    --energy: #f0a500;
-    --energy-soft: #fef3d0;
-    --energy-dark: #c87e00;
+    --energy: 240 165 0;
+    --energy-soft: 254 243 208;
+    --energy-dark: 200 126 0;
 
     /* ── NEW: Progress Color ── */
-    --not-yet: #b8654a; /* an unfinished thought is not an error */
-    --progress: #4a7c59;
-    --progress-soft: #ebf3ee;
+    /* An unfinished thought is not an error — warm brown, never red, and never
+       --destructive. 5.04:1 on paper. Was #b8654a (4.04:1), below the text floor. */
+    --not-yet: 165 86 61;
+    /* DESIGN.md --verified value. 4.80:1 on paper; was #4a7c59 (4.67:1). */
+    --progress: 46 125 91;
+    --progress-soft: 235 243 238;
+
+    /* ── Institutional status (registers: attendance, fees) ──────────────────
+       DESIGN.md's Interaction States table specifies the register's error row in
+       --overdue, and its success row in --verified. Both were missing from this
+       file until 2026-09-01 even though the registers they govern live only in
+       this repo. --overdue is deliberately NOT --destructive: an institutional
+       fact (fees overdue) and a destructive action (delete) are the same family
+       of red with different meanings, and must be free to diverge. */
+    --verified: var(--progress);
+    --overdue: 179 38 30;
 
     /* ── Shadcn Defaults (Mapped to Palette) ── */
     --background: 38 29% 94%;
@@ -149,27 +181,38 @@
     --ring: 15 51% 58% / 0.3;
 
     /* Dark Mode specific variables */
-    --cream-50: #292524;
-    --cream-100: #1c1917;
-    --cream-200: #24201e;
-    --cream-300: #3c3836;
-    --cream-400: #4a4543;
+    --cream-50: 41 37 36;
+    --cream-100: 28 25 23;
+    --cream-150: 33 29 27;
+    --cream-200: 36 32 30;
+    --cream-300: 60 56 54;
+    --cream-400: 74 69 67;
 
-    --ink-900: #f5f0e8;
-    --ink-600: #e0dbd3;
-    --ink-400: #c8c3bb;
+    --ink-900: 245 240 232;
+    --ink-600: 224 219 211;
+    --ink-400: 200 195 187;
 
-    --accent: #cc785c;
-    --accent-hover: #b8654a;
-    --accent-soft: #4a4543;
+    --accent: 204 120 92;
+    --accent-hover: 184 101 74;
+    --accent-soft: 74 69 67;
+    /* 5.34:1 on dark paper: no darkening needed, this is the real terracotta. */
+    --terracotta-ink: var(--accent);
 
-    --energy: #f0a500;
-    --energy-soft: #4a4543;
-    --energy-dark: #c87e00;
+    --energy: 240 165 0;
+    --energy-soft: 74 69 67;
+    --energy-dark: 200 126 0;
 
-    --not-yet: #b8654a; /* an unfinished thought is not an error */
-    --progress: #4a7c59;
-    --progress-soft: #4a4543;
+    /* These two carried a single value across BOTH themes, which is the bug
+       Studio's 2026-08-30 accessibility pass fixed and this mirror missed:
+       #b8654a measured 3.61:1 and #4a7c59 measured 3.12:1 on dark paper, both
+       below the 4.5:1 text floor. Now 6.11:1 and 4.61:1. */
+    --not-yet: 217 148 120;
+    --progress: 58 159 115;
+    --progress-soft: 74 69 67;
+
+    --verified: var(--progress);
+    /* #b3261e measured 2.68:1 on dark paper. This is 4.56:1. */
+    --overdue: 228 101 93;
 
     --illustration-bg: 24 10% 10%;
     --ticker-bg: 24 10% 15%;

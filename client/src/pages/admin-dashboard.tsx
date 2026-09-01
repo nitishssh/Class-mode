@@ -938,8 +938,8 @@ export default function AdminDashboard() {
                         >
                           <defs>
                             <linearGradient id="colorLogins" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="hsl(var(--accent))" stopOpacity={0.3} />
-                              <stop offset="95%" stopColor="hsl(var(--accent))" stopOpacity={0} />
+                              <stop offset="5%" stopColor="rgb(var(--accent))" stopOpacity={0.3} />
+                              <stop offset="95%" stopColor="rgb(var(--accent))" stopOpacity={0} />
                             </linearGradient>
                             <linearGradient id="colorSubs" x1="0" y1="0" x2="0" y2="1">
                               <stop offset="5%" stopColor="hsl(217 91% 60%)" stopOpacity={0.25} />
@@ -982,7 +982,7 @@ export default function AdminDashboard() {
                             type="monotone"
                             dataKey="logins"
                             name="Logins"
-                            stroke="hsl(var(--accent))"
+                            stroke="rgb(var(--accent))"
                             fillOpacity={1}
                             fill="url(#colorLogins)"
                             strokeWidth={2}
@@ -1575,7 +1575,7 @@ export default function AdminDashboard() {
                         <Bar
                           dataKey="avgScore"
                           name="Average Score"
-                          fill="hsl(var(--accent))"
+                          fill="rgb(var(--accent))"
                           radius={[4, 4, 0, 0]}
                           barSize={40}
                         />

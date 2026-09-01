@@ -18,37 +18,62 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        // ── ClassMode palette ──────────────────────────────────────────────
+        // These read the CSS variables in client/src/index.css rather than
+        // repeating their values, so a colour follows the theme. Until
+        // 2026-09-01 they were literal hexes here, which meant `text-progress`
+        // rendered the light-mode green in dark mode too — 3.12:1, below the
+        // contrast floor — and no edit to index.css could reach it.
+        //
+        // rgb(...) not hsl(...): index.css stores these as RGB channels so the
+        // values survive the round-trip exactly. `/ <alpha-value>` is what makes
+        // `bg-progress/10` and `border-energy/30` work.
         cream: {
-          50: "#FDFAF5",
-          100: "#F5F0E8",
-          150: "#F2F0EB",
-          200: "#EEEBE3",
-          300: "#E8E4DC",
-          400: "#E0DBD3",
+          50: "rgb(var(--cream-50) / <alpha-value>)",
+          100: "rgb(var(--cream-100) / <alpha-value>)",
+          150: "rgb(var(--cream-150) / <alpha-value>)",
+          200: "rgb(var(--cream-200) / <alpha-value>)",
+          300: "rgb(var(--cream-300) / <alpha-value>)",
+          400: "rgb(var(--cream-400) / <alpha-value>)",
+          // No --cream-500 token; this is a config-only step on the ramp.
           500: "#C8C3BB",
         },
         accent: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
-          hover: "#B8654A",
-          soft: "#F2E8E3",
+          hover: "rgb(var(--accent-hover) / <alpha-value>)",
+          soft: "rgb(var(--accent-soft) / <alpha-value>)",
+        },
+        // Terracotta for TYPE. --accent measures 3.15:1 on light paper, below
+        // the text floor; this is the darkened variant DESIGN.md requires for
+        // words, and it resolves back to the true terracotta in dark mode.
+        terracotta: {
+          ink: "rgb(var(--terracotta-ink) / <alpha-value>)",
         },
         ink: {
-          900: "#1A1A1A",
-          600: "#5C5C5C",
-          400: "#9A9A9A",
+          900: "rgb(var(--ink-900) / <alpha-value>)",
+          600: "rgb(var(--ink-600) / <alpha-value>)",
+          400: "rgb(var(--ink-400) / <alpha-value>)",
+          // No tokens for these two; config-only steps on the ramp.
           300: "#B0B0B0",
           200: "#D1D1D1",
         },
         energy: {
-          DEFAULT: "#F0A500",
-          soft: "#FEF3D0",
-          dark: "#C87E00",
+          DEFAULT: "rgb(var(--energy) / <alpha-value>)",
+          soft: "rgb(var(--energy-soft) / <alpha-value>)",
+          dark: "rgb(var(--energy-dark) / <alpha-value>)",
         },
         progress: {
-          DEFAULT: "#4A7C59",
-          soft: "#EBF3EE",
+          DEFAULT: "rgb(var(--progress) / <alpha-value>)",
+          soft: "rgb(var(--progress-soft) / <alpha-value>)",
         },
+        // An unfinished thought is not an error: warm brown, never red, and
+        // never --destructive.
+        "not-yet": "rgb(var(--not-yet) / <alpha-value>)",
+        // Institutional status for the registers (attendance, fees). --overdue
+        // is deliberately distinct from --destructive: a fact, not an action.
+        verified: "rgb(var(--verified) / <alpha-value>)",
+        overdue: "rgb(var(--overdue) / <alpha-value>)",
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
@@ -66,7 +91,7 @@ export default {
           foreground: "hsl(var(--muted-foreground))",
         },
         eduaccent: {
-          DEFAULT: "hsl(var(--accent))",
+          DEFAULT: "rgb(var(--accent) / <alpha-value>)",
           foreground: "hsl(var(--accent-foreground))",
         },
         popover: {
