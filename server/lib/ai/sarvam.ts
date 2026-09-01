@@ -51,8 +51,17 @@ export const SARVAM_DEFAULT_STT_MODEL = "saaras:v3";
  * detection, so it is validated upstream rather than here.
  */
 export type SarvamLanguageCode =
-  | "bn-IN" | "en-IN" | "gu-IN" | "hi-IN" | "kn-IN" | "ml-IN"
-  | "mr-IN" | "od-IN" | "pa-IN" | "ta-IN" | "te-IN";
+  | "bn-IN"
+  | "en-IN"
+  | "gu-IN"
+  | "hi-IN"
+  | "kn-IN"
+  | "ml-IN"
+  | "mr-IN"
+  | "od-IN"
+  | "pa-IN"
+  | "ta-IN"
+  | "te-IN";
 
 /** Saaras v3 output modes. `transcribe` keeps the source language. */
 export type SarvamSttMode = "transcribe" | "translate" | "verbatim" | "translit" | "codemix";
@@ -101,7 +110,9 @@ async function readError(res: Response, endpoint: string): Promise<Error> {
       : res.status === 429
         ? " (rate limited or out of credits)"
         : "";
-  return new Error(`Sarvam ${endpoint} failed: ${res.status} ${res.statusText}${hint} — ${detail.slice(0, 500)}`);
+  return new Error(
+    `Sarvam ${endpoint} failed: ${res.status} ${res.statusText}${hint} — ${detail.slice(0, 500)}`
+  );
 }
 
 async function postJson<T>(path: string, body: unknown, signal?: AbortSignal): Promise<T> {
@@ -121,7 +132,16 @@ async function postJson<T>(path: string, body: unknown, signal?: AbortSignal): P
 // ── Chat ─────────────────────────────────────────────────────────────────────
 
 interface SarvamChatResponse {
-  choices?: Array<{ message?: { content?: string } }>;
+  choices?: Array<{
+    finish_reason?: string;
+    /**
+     * `sarvam-105b` is a REASONING model: the chain of thought lands in
+     * `reasoning_content` and only the final answer in `content`. When the
+     * token budget is spent reasoning, the API still answers 200 with
+     * `content: null` and `finish_reason: "length"`.
+     */
+    message?: { content?: string | null; reasoning_content?: string | null };
+  }>;
 }
 
 /**
@@ -133,7 +153,12 @@ export async function sarvamChat(
   systemPrompt: string,
   messages: ChatMessage[],
   model: string = SARVAM_DEFAULT_CHAT_MODEL,
-  options: { temperature?: number; maxTokens?: number; jsonMode?: boolean; signal?: AbortSignal } = {}
+  options: {
+    temperature?: number;
+    maxTokens?: number;
+    jsonMode?: boolean;
+    signal?: AbortSignal;
+  } = {}
 ): Promise<string> {
   const turns = messages.filter((m) => m.role !== "system");
   const payload = {
@@ -145,7 +170,21 @@ export async function sarvamChat(
   };
 
   const data = await postJson<SarvamChatResponse>(CHAT_PATH, payload, options.signal);
-  return data.choices?.[0]?.message?.content ?? "";
+  const choice = data.choices?.[0];
+  const content = choice?.message?.content ?? "";
+
+  // Fail loud on a truncated reasoning response. Returning "" here would hand
+  // a grader an empty answer to score, or persist an empty lesson — a silent
+  // wrong result is worse than a thrown one, and the gateway's `fallback`
+  // cannot engage on a value that never throws.
+  if (!content && choice?.finish_reason === "length") {
+    throw new Error(
+      `Sarvam ${model} hit the token limit before emitting an answer ` +
+        `(finish_reason=length, content empty). It is a reasoning model and spent ` +
+        `the budget on reasoning_content; raise maxTokens for this call.`
+    );
+  }
+  return content;
 }
 
 /**
@@ -453,7 +492,9 @@ export async function verifySarvamAccess(): Promise<void> {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (/\b403\b|unauthorized|invalid/i.test(msg)) {
-      logger.error(`[Sarvam] API key was rejected. Verify SARVAM_API_KEY. Underlying error: ${msg}`);
+      logger.error(
+        `[Sarvam] API key was rejected. Verify SARVAM_API_KEY. Underlying error: ${msg}`
+      );
     } else {
       logger.warn(`[Sarvam] Provider health check failed (non-fatal): ${msg}`);
     }
