@@ -6,7 +6,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: nitishkumar-ai/class-mode/personallearningpro
+  IMAGE_NAME: nitishssh/personallearningpro/personallearningpro
   AZURE_RESOURCE_GROUP: classmode-rg
   AZURE_CONTAINERAPP: classmode-app
 
