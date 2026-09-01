@@ -66,12 +66,23 @@ Key routing rules:
 
 ## Design System
 
-The visual system is "Ruled Paper", specified at `OpenMAIC-main/DESIGN.md` (the
-Class Mode Studio repo). It governs this app and Studio together: one system,
-two surfaces. Read it before any visual or UI decision.
+The visual system is "Ruled Paper". The canonical spec is `DESIGN.md` in the
+**ClassMode Studio** repo — <https://github.com/NitishKumar-ai/classmode-studio>,
+or a local sibling checkout (see `.classmode-studio-repo.example`). It governs
+this app and Studio together: one system, two surfaces. Read it before any
+visual or UI decision.
+
+> Until 2026-09-01 this section pointed at `OpenMAIC-main/DESIGN.md`, a path that
+> contains no `DESIGN.md`. Nobody working here could read the spec they were told
+> to follow, and the palette drifted for months as a result — this app's dark
+> `--progress` and `--not-yet` both sat below the contrast floor, and
+> `--verified` / `--overdue` were missing entirely although the registers that
+> need them live only in this repo. If this pointer ever breaks again, expect the
+> same outcome.
 
 Palette tokens live in `client/src/index.css` and are mirrored by hand in
-Studio's `app/globals.css`. Change one, change the other.
+Studio's `app/globals.css`. Change one, change the other — and run
+`npm run check:design-tokens-drift` to find out when someone did not.
 
 Three rules are load-bearing, not preferences:
 
