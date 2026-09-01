@@ -343,7 +343,7 @@ export const insertDynamicFieldSchema = z.object({
   tableId: z.number(),
   name: z.string().min(1),
   type: dynamicFieldTypeSchema,
-  config: z.record(z.any()).default({}),
+  config: z.record(z.string(), z.any()).default({}),
   ord: z.number().default(0),
   isPrimary: z.boolean().default(false),
   isHidden: z.boolean().default(false),
@@ -351,15 +351,15 @@ export const insertDynamicFieldSchema = z.object({
 
 export const insertDynamicRecordSchema = z.object({
   tableId: z.number(),
-  data: z.record(z.any()).default({}),
+  data: z.record(z.string(), z.any()).default({}),
 });
 
 export const insertDynamicViewSchema = z.object({
   tableId: z.number(),
   name: z.string().min(1),
   type: z.enum(["grid", "kanban", "calendar", "gallery"]).default("grid"),
-  config: z.record(z.any()).default({}),
-  filter: z.record(z.any()).default({}),
+  config: z.record(z.string(), z.any()).default({}),
+  filter: z.record(z.string(), z.any()).default({}),
   sort: z.array(z.any()).default([]),
   ord: z.number().default(0),
 });
@@ -443,7 +443,7 @@ export const insertStudentAchievementSchema = z.object({
   certificateUrl: z.string().optional().nullable(),
   verified: z.boolean().default(false),
   verifiedBy: z.number().optional().nullable(),
-  verificationMetadata: z.record(z.any()).default({}),
+  verificationMetadata: z.record(z.string(), z.any()).default({}),
 });
 
 export type Competency = z.infer<typeof insertCompetencySchema> & { id: number; createdAt: Date };
@@ -492,7 +492,7 @@ export const insertUsageLogSchema = z.object({
   workspaceId: z.number().optional().nullable(),
   feature: z.enum(["ai_classroom", "ai_tutor", "ocr"]),
   tokensUsed: z.number().optional().nullable(),
-  metadata: z.record(z.any()).default({}),
+  metadata: z.record(z.string(), z.any()).default({}),
 });
 
 export type UsageLog = z.infer<typeof insertUsageLogSchema> & {

@@ -206,7 +206,7 @@ router.post("/users", authenticateToken, async (req: Request, res: Response) => 
     const adminCreateUserSchema = insertUserSchema.omit({ password: true });
     const parsed = adminCreateUserSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ message: "Invalid request body", errors: parsed.error.errors });
+      return res.status(400).json({ message: "Invalid request body", errors: parsed.error.issues });
     }
 
     // Hash a random token so the account is locked until the user sets a password

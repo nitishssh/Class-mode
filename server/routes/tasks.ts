@@ -16,7 +16,7 @@ router.post("/tasks", authenticateToken, async (req: Request, res: Response) => 
     if (!parseResult.success) {
       return res
         .status(400)
-        .json({ message: "Invalid input data", errors: parseResult.error.errors });
+        .json({ message: "Invalid input data", errors: parseResult.error.issues });
     }
     const task = await storage.createTask(parseResult.data);
     return res.status(201).json(task);
@@ -50,7 +50,7 @@ router.patch("/tasks/:id", authenticateToken, async (req: Request, res: Response
     if (!parseResult.success) {
       return res
         .status(400)
-        .json({ message: "Invalid input data", errors: parseResult.error.errors });
+        .json({ message: "Invalid input data", errors: parseResult.error.issues });
     }
     const allUserTasks = await storage.getTasksByUser(req.session.userId);
     const ownedTask = allUserTasks.find((t) => t.id === taskId);
@@ -105,7 +105,7 @@ router.post("/focus-sessions", authenticateToken, async (req: Request, res: Resp
     if (!parseResult.success) {
       return res
         .status(400)
-        .json({ message: "Invalid input data", errors: parseResult.error.errors });
+        .json({ message: "Invalid input data", errors: parseResult.error.issues });
     }
     const session = await storage.createFocusSession(parseResult.data);
     return res.status(201).json(session);

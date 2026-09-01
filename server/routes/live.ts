@@ -83,7 +83,7 @@ liveRouter.post("/schedule", requireTeacher, async (req, res) => {
     res.status(201).json(liveClass);
   } catch (err) {
     if (err instanceof z.ZodError) {
-      return res.status(400).json({ message: "Validation failed", errors: err.errors });
+      return res.status(400).json({ message: "Validation failed", errors: err.issues });
     }
     console.error("Live schedule error:", err);
     res.status(500).json({ message: "Internal server error" });

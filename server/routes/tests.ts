@@ -40,7 +40,7 @@ router.post("/tests", authenticateToken, async (req: Request, res: Response) => 
     res.status(201).json(test);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ message: "Invalid input data", errors: error.errors });
+      return res.status(400).json({ message: "Invalid input data", errors: error.issues });
     }
     res.status(500).json({ message: "Failed to create test" });
   }
@@ -130,7 +130,7 @@ router.patch("/tests/:id", authenticateToken, async (req: Request, res: Response
     res.status(200).json(updatedTest);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ message: "Invalid input data", errors: error.errors });
+      return res.status(400).json({ message: "Invalid input data", errors: error.issues });
     }
     res.status(500).json({ message: "Failed to update test" });
   }
@@ -155,7 +155,7 @@ router.post("/questions", authenticateToken, async (req: Request, res: Response)
     res.status(201).json(question);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ message: "Invalid input data", errors: error.errors });
+      return res.status(400).json({ message: "Invalid input data", errors: error.issues });
     }
     res.status(500).json({ message: "Failed to create question" });
   }
@@ -226,7 +226,7 @@ router.post("/test-attempts", authenticateToken, async (req: Request, res: Respo
     res.status(201).json(attempt);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ message: "Invalid input data", errors: error.errors });
+      return res.status(400).json({ message: "Invalid input data", errors: error.issues });
     }
     res.status(500).json({ message: "Failed to create test attempt" });
   }
@@ -261,7 +261,7 @@ router.patch("/test-attempts/:id", authenticateToken, async (req: Request, res: 
     res.status(200).json(updatedAttempt);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ message: "Invalid input data", errors: error.errors });
+      return res.status(400).json({ message: "Invalid input data", errors: error.issues });
     }
     res.status(500).json({ message: "Failed to update test attempt" });
   }
@@ -296,7 +296,7 @@ router.post("/answers", authenticateToken, async (req: Request, res: Response) =
     res.status(201).json(answer);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ message: "Invalid input data", errors: error.errors });
+      return res.status(400).json({ message: "Invalid input data", errors: error.issues });
     }
     res.status(500).json({ message: "Failed to submit answer" });
   }

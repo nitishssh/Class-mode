@@ -38,7 +38,7 @@ router.post(
       if (!parseResult.success) {
         return res
           .status(400)
-          .json({ message: "Invalid messages array", errors: parseResult.error.errors });
+          .json({ message: "Invalid messages array", errors: parseResult.error.issues });
       }
 
       const { messages, subject, concept, hintLevel, gradedMode, language } = parseResult.data;
@@ -129,7 +129,7 @@ const webSearchSchema = z.object({
 router.post("/ai/web-search", authenticateToken, async (req: Request, res: Response) => {
   const parsed = webSearchSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ message: "Invalid query", errors: parsed.error.errors });
+    return res.status(400).json({ message: "Invalid query", errors: parsed.error.issues });
   }
   try {
     const result = await webSearch(parsed.data.query, parsed.data.maxResults);

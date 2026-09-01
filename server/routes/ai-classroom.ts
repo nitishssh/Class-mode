@@ -92,7 +92,7 @@ router.post("/create", await checkAIQuota("ai_classroom"), async (req: Request, 
     });
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: "Invalid input", issues: error.errors });
+      return res.status(400).json({ error: "Invalid input", issues: error.issues });
     }
     logger.error("Error creating classroom:", error);
     res.status(500).json({
@@ -271,14 +271,14 @@ const chatRequestSchema = z.object({
       content: z.string(),
     })
   ),
-  storeState: z.record(z.unknown()).optional(),
+  storeState: z.record(z.string(), z.unknown()).optional(),
   userProfile: z
     .object({
       nickname: z.string().optional(),
       bio: z.string().optional(),
     })
     .optional(),
-  directorState: z.record(z.unknown()).optional(),
+  directorState: z.record(z.string(), z.unknown()).optional(),
 });
 
 router.post("/chat", async (req, res) => {

@@ -48,7 +48,7 @@ router.post("/workspaces", authenticateToken, async (req: Request, res: Response
     return res.status(201).json(workspace);
   } catch (error) {
     if (error instanceof z.ZodError)
-      return res.status(400).json({ message: "Invalid input", errors: error.errors });
+      return res.status(400).json({ message: "Invalid input", errors: error.issues });
     return res.status(500).json({ message: "Failed to create workspace" });
   }
 });
@@ -217,7 +217,7 @@ router.post("/workspaces/:id/channels", authenticateToken, async (req: Request, 
     return res.status(201).json(channel);
   } catch (error) {
     if (error instanceof z.ZodError)
-      return res.status(400).json({ message: "Invalid input", errors: error.errors });
+      return res.status(400).json({ message: "Invalid input", errors: error.issues });
     return res.status(500).json({ message: "Failed to create channel" });
   }
 });
@@ -255,7 +255,7 @@ router.post("/channels", authenticateToken, async (req: Request, res: Response) 
     return res.status(201).json(channel);
   } catch (error) {
     if (error instanceof z.ZodError)
-      return res.status(400).json({ message: "Invalid input", errors: error.errors });
+      return res.status(400).json({ message: "Invalid input", errors: error.issues });
     return res.status(500).json({ message: "Failed to create channel" });
   }
 });
@@ -473,7 +473,7 @@ router.post("/messages", authenticateToken, async (req: Request, res: Response) 
     return res.status(201).json(message);
   } catch (error) {
     if (error instanceof z.ZodError)
-      return res.status(400).json({ message: "Invalid input", errors: error.errors });
+      return res.status(400).json({ message: "Invalid input", errors: error.issues });
     return res.status(500).json({ message: "Failed to create message" });
   }
 });

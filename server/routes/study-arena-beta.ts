@@ -254,7 +254,7 @@ router.get(
 router.post("/assignments", requireFlag, authenticateToken, async (req: Request, res: Response) => {
   const parsed = createAssignedLessonSchema.safeParse(req.body);
   if (!parsed.success)
-    return res.status(400).json({ message: "Invalid input", errors: parsed.error.errors });
+    return res.status(400).json({ message: "Invalid input", errors: parsed.error.issues });
   if (!AUTHORING_ROLES.has(req.user?.role ?? "")) {
     return res.status(403).json({ message: "Only teachers can assign Study Arena lessons" });
   }
@@ -378,7 +378,7 @@ router.post(
     if (teacherId === null) return;
     const parsed = lessonDraftSchema.safeParse(req.body);
     if (!parsed.success)
-      return res.status(400).json({ message: "Invalid input", errors: parsed.error.errors });
+      return res.status(400).json({ message: "Invalid input", errors: parsed.error.issues });
     const workspaceId = (req as any).workspace?.id as number | undefined;
     if (!workspaceId) return res.status(409).json({ message: "No active workspace" });
     if (!isPgReady())
@@ -714,7 +714,7 @@ router.post(
     if (teacherId === null) return;
     const parsed = compileEnqueueSchema.safeParse(req.body);
     if (!parsed.success)
-      return res.status(400).json({ message: "Invalid input", errors: parsed.error.errors });
+      return res.status(400).json({ message: "Invalid input", errors: parsed.error.issues });
     const workspaceId = (req as any).workspace?.id as number | undefined;
     if (!workspaceId) return res.status(409).json({ message: "No active workspace" });
 
@@ -1012,7 +1012,7 @@ router.post(
   async (req: Request, res: Response) => {
     const parsed = assignmentSessionSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ message: "Invalid input", errors: parsed.error.errors });
+      return res.status(400).json({ message: "Invalid input", errors: parsed.error.issues });
     }
     if (req.user?.role !== "student") {
       return res.status(403).json({ message: "Only assigned students can start a lesson" });
@@ -1056,7 +1056,7 @@ router.post(
   async (req: Request, res: Response) => {
     const parsed = nextSegmentSchema.safeParse(req.body);
     if (!parsed.success)
-      return res.status(400).json({ message: "Invalid input", errors: parsed.error.errors });
+      return res.status(400).json({ message: "Invalid input", errors: parsed.error.issues });
     if (!canUseAttemptSession(req)) {
       return res.status(403).json({
         message: "Only assigned students or previewing teachers can load a lesson segment",
@@ -1099,7 +1099,7 @@ router.post(
   async (req: Request, res: Response) => {
     const parsed = generateSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ message: "Invalid input", errors: parsed.error.errors });
+      return res.status(400).json({ message: "Invalid input", errors: parsed.error.issues });
     }
     try {
       const script = await generateLessonScript(parsed.data.topic, {
@@ -1148,7 +1148,7 @@ router.post(
   async (req: Request, res: Response) => {
     const parsed = sprintSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ message: "Invalid input", errors: parsed.error.errors });
+      return res.status(400).json({ message: "Invalid input", errors: parsed.error.issues });
     }
     if (parsed.data.phase === "delayed" && req.user?.role === "student") {
       const userId = (req.user?.id || req.session?.userId) as number;
@@ -1193,7 +1193,7 @@ router.post(
   async (req: Request, res: Response) => {
     const parsed = assignedAssessmentIssueSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ message: "Invalid input", errors: parsed.error.errors });
+      return res.status(400).json({ message: "Invalid input", errors: parsed.error.issues });
     }
     if (!canUseAttemptSession(req)) {
       return res
@@ -1231,7 +1231,7 @@ router.post(
 router.post("/assessment", requireFlag, authenticateToken, async (req: Request, res: Response) => {
   const parsed = assessmentSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ message: "Invalid input", errors: parsed.error.errors });
+    return res.status(400).json({ message: "Invalid input", errors: parsed.error.issues });
   }
 
   const correct = gradeLinearEquationsAssessment(parsed.data.assessmentId, parsed.data.answer);
@@ -1316,7 +1316,7 @@ router.post(
   async (req: Request, res: Response) => {
     const parsed = assignedAssessmentSubmitSchema.safeParse(req.body);
     if (!parsed.success)
-      return res.status(400).json({ message: "Invalid input", errors: parsed.error.errors });
+      return res.status(400).json({ message: "Invalid input", errors: parsed.error.issues });
     if (!canUseAttemptSession(req))
       return res.status(403).json({
         message: "Only assigned students or previewing teachers can submit an assessment",
@@ -1383,7 +1383,7 @@ router.post(
   async (req: Request, res: Response) => {
     const parsed = interactionSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ message: "Invalid input", errors: parsed.error.errors });
+      return res.status(400).json({ message: "Invalid input", errors: parsed.error.issues });
     }
     try {
       const userId = (req.user?.id || req.session?.userId) as number;
