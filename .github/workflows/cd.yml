@@ -3,6 +3,21 @@ name: Continuous Deployment
 on:
   push:
     branches: ["main"]
+    # Documentation cannot reach the deployed artifact: the runtime stage of
+    # docker/Dockerfile copies only dist/, package*.json and pg-schema.sql, so a
+    # markdown-only commit would rebuild the image and redeploy Azure to ship a
+    # byte-identical container. docs/** already has its own workflow
+    # (sync-docs-to-wiki), which still fires because paths-ignore here does not
+    # affect it.
+    #
+    # GitHub skips the run only when EVERY changed file matches. A commit that
+    # touches README.md and a route still deploys, which is the behaviour we
+    # want — this narrows the trigger, it does not let code changes through.
+    paths-ignore:
+      - "*.md"
+      - "**/*.md"
+      - "docs/**"
+      - "LICENSE"
 
 env:
   REGISTRY: ghcr.io
