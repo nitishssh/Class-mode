@@ -5,7 +5,7 @@
  *
  * Today AI calls are scattered across four+ entrypoints:
  *   - server/lib/openai.ts            (GPT-4o chat, evaluation, embeddings)
- *   - server/lib/gemini.ts            (gemini-2.0-flash chat/stream/pdf)
+ *   - server/lib/gemini.ts            (Gemini chat/stream/pdf; PDF path only now)
  *   - the AI-classroom generator      (server/.../ai-classroom*)
  *   - the study-arena director        (server/.../study-arena*)
  *
@@ -21,8 +21,8 @@
  * 4.6 / Haiku 4.5 as proposed in docs/second-tutor-research-report.md) is a
  * one-line config change here — NOT a code change at every call site.
  *
- * IMPORTANT: the registry DEFAULTS to the current stack so nothing breaks.
  * The gateway does not force any particular provider; provider is config.
+ * As of 2026-09-01 all three chat roles resolve to Sarvam; see MODEL_REGISTRY.
  *
  * It delegates to the EXISTING server/lib/openai.ts and server/lib/gemini.ts
  * code paths — it does not reimplement provider calls.
@@ -45,7 +45,13 @@
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import { logger } from "../logger";
-import { geminiChat, streamGeminiChat, generateContentFromPdf, verifyGeminiAccess } from "./gemini";
+import {
+  geminiChat,
+  streamGeminiChat,
+  generateContentFromPdf,
+  verifyGeminiAccess,
+  GEMINI_DEFAULT_MODEL,
+} from "./gemini";
 import { evaluateSubjectiveAnswer } from "./openai";
 import {
   sarvamChat,
@@ -113,12 +119,29 @@ export interface ModelMapping {
 
 // ── Model registry ──────────────────────────────────────────────────────────
 //
-// DEFAULTS to the CURRENT stack so migrating call sites is behaviour-preserving.
+// All three chat roles run on Sarvam (2026-09-01). Two things forced this:
 //
-//   orchestrator → openai / gpt-4o                  (today's GPT-4o chat path)
-//   fast         → gemini / gemini-2.0-flash        (today's Gemini path)
-//   grader       → gemini / gemini-2.0-flash        (today's grading/eval path)
+//   1. Sarvam is the chosen provider for AI workload.
+//   2. The previous `fast` and `grader` mapping pointed at gemini-2.0-flash,
+//      which Google REMOVED — the API answers 404 "no longer available". Six
+//      call sites pass no `fallback` and so threw outright, including all
+//      three grader sites (gradingService, grader-service, eval/pedagogy),
+//      which meant AI grading was dead in production. The other seven silently
+//      degraded to `orchestrator` on OpenAI: working, but paying GPT-4o prices
+//      for every call that was supposed to be the cheap path.
+//
+//   orchestrator → sarvam / sarvam-105b
+//   fast         → sarvam / sarvam-105b
+//   grader       → sarvam / sarvam-105b
 //   embed        → openai / text-embedding-3-small  (1536-dim, see embed())
+//
+// REQUIRES SARVAM_API_KEY in the environment. Without it every chat role
+// throws, including `orchestrator`, which used to work on OpenAI — so setting
+// that variable is a PRECONDITION of deploying this, not a follow-up.
+//
+// The model id comes from SARVAM_DEFAULT_CHAT_MODEL rather than a literal:
+// Sarvam has already retired one chat model (sarvam-m), and when the next one
+// goes the id should change in ./sarvam.ts alone.
 //
 // The Anthropic adapter IS now wired, so adopting the multi-model Claude
 // architecture from docs/second-tutor-research-report.md is a config change
@@ -131,21 +154,16 @@ export interface ModelMapping {
 //
 // Flipping any of these requires ANTHROPIC_API_KEY in the environment.
 //
-// Sarvam is also wired as a provider, for Indic-language work:
-//
-//   orchestrator → { provider: "sarvam", model: "sarvam-105b" }
-//
-// Flipping a role to Sarvam requires SARVAM_API_KEY. Sarvam serves NO embedding
-// model, so the "embed" alias must stay on OpenAI. Sarvam's real value here is
-// the Indic tool surface below (translate / TTS / STT / transliterate / LID),
-// which has no equivalent on the other three providers and is reached through
-// the dedicated functions rather than through a model role.
-//
-// (embed stays on OpenAI — keep dimensions at 1536 to match content_chunks.)
+// Beyond the chat roles, Sarvam also serves the Indic tool surface below
+// (translate / TTS / STT / transliterate / LID), which has no equivalent on
+// the other providers and is reached through dedicated functions rather than
+// through a model role.
 export const MODEL_REGISTRY: Record<ModelAlias, ModelMapping> = {
-  orchestrator: { provider: "openai", model: "gpt-4o" },
-  fast: { provider: "gemini", model: "gemini-2.0-flash" },
-  grader: { provider: "gemini", model: "gemini-2.0-flash" },
+  orchestrator: { provider: "sarvam", model: SARVAM_DEFAULT_CHAT_MODEL },
+  fast: { provider: "sarvam", model: SARVAM_DEFAULT_CHAT_MODEL },
+  grader: { provider: "sarvam", model: SARVAM_DEFAULT_CHAT_MODEL },
+  // Sarvam serves NO embedding model, so this alias CANNOT move with the
+  // others. It must also stay at 1536 dimensions to match content_chunks.
   embed: { provider: "openai", model: "text-embedding-3-small" },
 };
 
@@ -232,7 +250,7 @@ function toAnthropicMessages(messages: ChatMessage[]): Anthropic.MessageParam[] 
     throw new Error("AI gateway: Anthropic requires at least one user/assistant message.");
   }
   if (turns[0].role !== "user") {
-    throw new Error("AI gateway: Anthropic requires the first message to have role \"user\".");
+    throw new Error('AI gateway: Anthropic requires the first message to have role "user".');
   }
   return turns;
 }
@@ -535,7 +553,12 @@ export async function generateFromPdf(
   opts: { signal?: AbortSignal; feature?: string } = {}
 ): Promise<string> {
   const started = Date.now();
-  const { model } = resolveModel("fast"); // gemini-2.0-flash today
+  // PDF extraction is a GEMINI capability with no Sarvam equivalent, so it
+  // pins its own model instead of borrowing the `fast` role's. It used to read
+  // resolveModel("fast").model and hand that straight to a Gemini-only call,
+  // which was fine only while `fast` happened to BE Gemini — once that role
+  // moved to Sarvam it would have sent "sarvam-105b" to Google's API.
+  const model = GEMINI_DEFAULT_MODEL;
   const logOpts: GenerateOptions = {
     model: "fast",
     messages: [],

@@ -43,10 +43,15 @@ vi.mock("../lib/ai/openai", () => ({
   evaluateSubjectiveAnswer: vi.fn(),
 }));
 
+// Full replacement, so it must cover every export the gateway reads.
+// GEMINI_DEFAULT_MODEL is one: generateFromPdf pins the Gemini model itself
+// now that the `fast` role resolves to Sarvam and no longer implies Gemini.
 vi.mock("../lib/ai/gemini", () => ({
   generateContentFromPdf: mockGenerateContentFromPdf,
   geminiChat: vi.fn(),
   streamGeminiChat: vi.fn(),
+  verifyGeminiAccess: vi.fn(),
+  GEMINI_DEFAULT_MODEL: "gemini-3.6-flash",
 }));
 
 import jwt from "jsonwebtoken";

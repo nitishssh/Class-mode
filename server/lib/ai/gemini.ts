@@ -15,6 +15,21 @@ function getGenAI() {
   return genAI;
 }
 
+/**
+ * Default Gemini chat/vision model.
+ *
+ * Was `gemini-2.0-flash` until 2026-09-01, when Google removed it: the API
+ * answered 404 "This model models/gemini-2.0-flash is no longer available.
+ * Please update your code to use models/gemini-3.6-flash". That 404 was
+ * visible in the production boot log every restart, via verifyGeminiAccess.
+ *
+ * Declared once so the next retirement is a one-line change. Gemini is no
+ * longer on any MODEL_REGISTRY role (all three chat roles moved to Sarvam on
+ * 2026-09-01); it survives only for the PDF path, which is a Gemini-specific
+ * capability with no Sarvam equivalent.
+ */
+export const GEMINI_DEFAULT_MODEL = "gemini-3.6-flash";
+
 export function isGeminiConfigured(): boolean {
   return Boolean(process.env.GOOGLE_API_KEY);
 }
@@ -42,7 +57,7 @@ export async function verifyGeminiAccess(): Promise<void> {
     if (!ai) return;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000);
-    const model = ai.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = ai.getGenerativeModel({ model: GEMINI_DEFAULT_MODEL });
     await model.generateContent(
       { contents: [{ role: "user", parts: [{ text: "ping" }] }] },
       { signal: controller.signal }
@@ -71,7 +86,7 @@ export async function verifyGeminiAccess(): Promise<void> {
 export async function geminiChat(
   systemPrompt: string,
   userPrompt: string,
-  model: string = "gemini-2.0-flash",
+  model: string = GEMINI_DEFAULT_MODEL,
   options: { jsonMode?: boolean; signal?: AbortSignal } = {}
 ): Promise<string> {
   const ai = getGenAI();
@@ -93,7 +108,7 @@ export async function geminiChat(
 export async function* streamGeminiChat(
   systemPrompt: string,
   userPrompt: string,
-  model: string = "gemini-2.0-flash",
+  model: string = GEMINI_DEFAULT_MODEL,
   options: { signal?: AbortSignal } = {}
 ): AsyncGenerator<string> {
   const ai = getGenAI();
@@ -117,7 +132,7 @@ export async function* streamGeminiChat(
 export async function generateContentFromPdf(
   pdfBuffer: Buffer,
   prompt: string,
-  model: string = "gemini-2.0-flash",
+  model: string = GEMINI_DEFAULT_MODEL,
   options: { signal?: AbortSignal } = {}
 ): Promise<string> {
   const ai = getGenAI();
