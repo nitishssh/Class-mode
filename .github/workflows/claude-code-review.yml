@@ -1,0 +1,75 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+# One review per PR at a time; a new push cancels the in-flight review.
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    # Skip drafts and bot-authored PRs to avoid burning tokens.
+    if: >
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.user.type != 'Bot'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Review pull request
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          track_progress: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            Review this pull request. Read the diff first, then the surrounding
+            code for any file you intend to comment on — never review a hunk in
+            isolation.
+
+            Prioritise, in this order:
+
+            1. **Correctness** — logic errors, unhandled edge cases, off-by-one,
+               null/undefined paths, incorrect async handling, race conditions,
+               broken error propagation.
+            2. **Security** — unvalidated input, injection, authn/authz gaps,
+               secrets or credentials in code, unsafe deserialisation.
+            3. **Breaking changes** — altered public APIs, schema/contract
+               changes, migrations that are not backwards compatible.
+            4. **Tests** — new behaviour landing without coverage, or tests that
+               assert the implementation rather than the behaviour.
+            5. **Maintainability** — duplication that should be shared, dead
+               code, naming that misleads.
+
+            Rules:
+            - Comment only on the lines this PR changed.
+            - Every inline comment must name a concrete failure: the input or
+              state that triggers it, and the wrong result. If you cannot state
+              one, do not leave the comment.
+            - Do not comment on formatting, import order, or anything a linter
+              or formatter already enforces.
+            - Do not praise, do not summarise the diff back to the author, and
+              do not restate what the code plainly does.
+            - Match the conventions already in this repository rather than
+              importing outside style preferences.
+
+            Use inline comments for specific findings. Finish with one short
+            top-level comment: the single most important issue, or an explicit
+            statement that you found nothing blocking. If the PR is clean, say
+            so in one line.
+
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr checks:*)"
