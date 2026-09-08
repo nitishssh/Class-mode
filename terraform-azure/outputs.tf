@@ -44,3 +44,19 @@ output "subscription_id" {
 output "log_analytics_workspace_id" {
   value = azurerm_log_analytics_workspace.main.workspace_id
 }
+
+# ── ClassMode Studio ─────────────────────────────────────────────────────────
+
+output "studio_internal_fqdn" {
+  description = <<-DESC
+    Studio's INTERNAL hostname, reachable only from inside classmode-env.
+    This is the value for Class-mode's CLASSMODE_AI_BASE_URL — prefix it with
+    https:// . There is no public route to Studio by design; see studio.tf.
+  DESC
+  value       = azurerm_container_app.studio.ingress[0].fqdn
+}
+
+output "studio_database_name" {
+  description = "Studio's database on the shared Postgres flexible server."
+  value       = azurerm_postgresql_flexible_server_database.studio.name
+}
