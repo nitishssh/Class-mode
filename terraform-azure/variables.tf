@@ -35,8 +35,21 @@ variable "min_replicas" {
 }
 
 variable "max_replicas" {
-  type    = number
-  default = 3
+  description = <<-DESC
+    Ceiling for classmode-app. MATCHES LIVE (1) on purpose.
+
+    It defaulted to 3 while production ran 1, so any `terraform apply` — including
+    one whose intent was only to add Studio — silently raised the ceiling to 3.
+    That is three outbox dispatchers and three notification consumers on a live
+    school product, which nobody asked for. `ignore_changes` on the app covers
+    image/env/secret and does NOT cover this, so nothing shielded it either.
+
+    Raising it is a real decision (concurrency of the dispatcher and the
+    notification consumers), not a side effect of an unrelated apply. Change it
+    deliberately, with that analysis done.
+  DESC
+  type        = number
+  default     = 1
 }
 
 variable "pg_version" {
@@ -141,8 +154,21 @@ variable "studio_min_replicas" {
 }
 
 variable "studio_max_replicas" {
-  type    = number
-  default = 2
+  description = <<-DESC
+    Ceiling for Studio. PINNED TO 1 until its state stops being process-local.
+
+    lib/server/classroom-storage.ts resolves CLASSROOMS_DIR and
+    CLASSROOM_JOBS_DIR under process.cwd(), and classroom-job-store.ts guards
+    them with an in-process Map. Two replicas therefore do not share job state:
+    a status poll routed to the replica that did not create the job returns 404,
+    and the mutex protects nothing across processes.
+
+    The Azure Files mount added in studio.tf makes the DATA durable across
+    restarts, but it does NOT make the in-process mutex safe across replicas.
+    Raise this only after the job store moves to Postgres.
+  DESC
+  type        = number
+  default     = 1
 }
 
 variable "studio_database_name" {

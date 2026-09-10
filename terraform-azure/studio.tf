@@ -29,6 +29,27 @@ resource "azurerm_postgresql_flexible_server_database" "studio" {
   charset   = "utf8"
 }
 
+# Studio writes generated classrooms and job records to disk, not to a database:
+# lib/server/classroom-storage.ts resolves CLASSROOMS_DIR / CLASSROOM_JOBS_DIR
+# under process.cwd(). On a container that is ephemeral storage — every revision
+# restart or redeploy would delete every lesson a teacher had generated.
+#
+# Same Azure Files treatment classmode-app already gives its uploads.
+resource "azurerm_storage_share" "studio_data" {
+  name               = "studio-data"
+  storage_account_id = azurerm_storage_account.uploads.id
+  quota              = 5
+}
+
+resource "azurerm_container_app_environment_storage" "studio_data" {
+  name                         = "studio-data"
+  container_app_environment_id = azurerm_container_app_environment.main.id
+  account_name                 = azurerm_storage_account.uploads.name
+  share_name                   = azurerm_storage_share.studio_data.name
+  access_key                   = azurerm_storage_account.uploads.primary_access_key
+  access_mode                  = "ReadWrite"
+}
+
 resource "azurerm_container_app" "studio" {
   name                         = var.studio_app_name
   container_app_environment_id = azurerm_container_app_environment.main.id
@@ -72,9 +93,17 @@ resource "azurerm_container_app" "studio" {
       # block. This value only matters for the very first apply.
       image = var.studio_container_image
 
-      # Deliberately larger than classmode-app's 0.5/1Gi. Studio is a heavier
-      # Next.js app and generation is CPU-bound; the API's own routes declare a
-      # 300s maxDuration, which is not work that fits in half a core.
+      # Larger than classmode-app's 0.5/1Gi because Studio is a heavier Next.js
+      # app and generation is CPU-bound.
+      #
+      # NOT because of maxDuration: the deployed route declares
+      # `maxDuration = 30` (app/api/v1/generation/jobs/route.ts:14), and a
+      # self-hosted `next start` ignores the directive entirely — the repo says
+      # so itself in app/api/stages/[id]/freshness/route.ts:33. An earlier
+      # revision of this comment cited "300s" and was simply wrong.
+      #
+      # Treat 1/2Gi as a starting point to be replaced by a measurement from a
+      # real generation run, not as a derived number.
       cpu    = 1.0
       memory = "2Gi"
 
@@ -110,6 +139,21 @@ resource "azurerm_container_app" "studio" {
         path      = "/api/health"
         port      = var.studio_container_port
       }
+
+      # Must match process.cwd()/data — the Dockerfile sets WORKDIR /app, so the
+      # app writes /app/data/{classrooms,classroom-jobs}. The image creates and
+      # chowns that path to uid 1001 before dropping privileges; without the
+      # mount the directory exists but its contents die with the revision.
+      volume_mounts {
+        name = "studio-data"
+        path = "/app/data"
+      }
+    }
+
+    volume {
+      name         = "studio-data"
+      storage_name = azurerm_container_app_environment_storage.studio_data.name
+      storage_type = "AzureFile"
     }
   }
 
