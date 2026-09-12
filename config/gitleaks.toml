@@ -24,5 +24,12 @@ regexes = [
   # TF_VAR_ghcr_token and never written to a file). Anchored so it allowlists the
   # literal identifier only, not a real GHCR PAT, which is `ghp_`/`github_pat_`.
   # Already present at terraform-azure/main.tf:175; studio.tf is the second use.
-  '''^ghcr-token$''',
+  #
+  # The quotes are part of the captured secret, not decoration: gitleaks 8.24.3
+  # reports this finding with entropy 3.418296, which is Shannon entropy for the
+  # 12-character `"ghcr-token"` and not for the 10-character bare identifier
+  # (3.321928). An allowlist anchored on the bare form therefore never matches.
+  # Optional quotes keep the anchors, so this still cannot match a longer secret
+  # that merely contains the identifier.
+  '''^"?ghcr-token"?$''',
 ]
