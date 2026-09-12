@@ -17,4 +17,12 @@ regexes = [
   '''super_secret_jwt_key_learning_pro_123''',
   '''class-mode-secret-key''',
   '''sk_test_4eC39HqLyjWDarjtT1zdp7dc''',
+  # `hashicorp-tf-password` matches `password_secret_name = "ghcr-token"` in the
+  # Container App registry blocks. That attribute is the azurerm provider's
+  # pointer to a `secret` block by NAME — it cannot hold a value, by schema. The
+  # credential it points at is `var.ghcr_token` (sensitive = true, supplied via
+  # TF_VAR_ghcr_token and never written to a file). Anchored so it allowlists the
+  # literal identifier only, not a real GHCR PAT, which is `ghp_`/`github_pat_`.
+  # Already present at terraform-azure/main.tf:175; studio.tf is the second use.
+  '''^ghcr-token$''',
 ]
