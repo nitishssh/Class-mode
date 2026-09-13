@@ -36,3 +36,14 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
+    # A major provider bump is a state migration, not a dependency update, and
+    # merging one without running terraform breaks the directory silently: 5.x
+    # cannot decode 4.x state, and plan responds with an empty plan rather than
+    # an error. That is exactly what #411 did on 2026-08-19 — see the pin and
+    # the full explanation in terraform-azure/backend.tf.
+    #
+    # Minor and patch bumps still come through; only the major is held back, so
+    # this stops the silent-breakage path without freezing the provider.
+    ignore:
+      - dependency-name: "hashicorp/azurerm"
+        update-types: ["version-update:semver-major"]
