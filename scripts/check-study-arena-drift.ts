@@ -116,6 +116,31 @@ async function main() {
   }
   const lock: Lockfile = JSON.parse(fs.readFileSync(LOCK_PATH, "utf8"));
 
+  // Every portedTo target must still exist. Without this the lockfile rots
+  // silently in the one direction nobody watches: when a port is DELETED here,
+  // its upstream entries stay behind and keep reporting on a file we no longer
+  // carry. That is what happened to the eight entries pointing at
+  // study-arena/generator.ts — deleted in 08c13e5, still watched for weeks,
+  // until upstream touched one and the check asked for a port into a file that
+  // was not there. Drift in the tracked files is news; a target that has
+  // vanished is a bookkeeping error, so it fails separately and says so.
+  const orphaned = Object.entries(lock.files).flatMap(([relPath, entry]) =>
+    entry.portedTo
+      .filter((target) => !fs.existsSync(path.join(ROOT, target)))
+      .map((target) => `  ${relPath}\n    -> ${target}`)
+  );
+  if (orphaned.length > 0) {
+    console.error(
+      `::error::${orphaned.length} lockfile entr${orphaned.length === 1 ? "y names a portedTo target" : "ies name portedTo targets"} that no longer exist:`
+    );
+    console.error(orphaned.join("\n"));
+    console.error(
+      `\nThe port was moved or retired without updating the lockfile. Repoint the\n` +
+        `entry at its successor, or drop it if this repo no longer carries the port.`
+    );
+    process.exit(1);
+  }
+
   let fetcher: Fetcher;
   let sourceLabel: string;
   const local = resolveLocalRepo();

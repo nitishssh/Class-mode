@@ -143,9 +143,14 @@ resource "azurerm_postgresql_flexible_server_firewall_rule" "admin_workstation" 
 # ---------------------------------------------------------------------------
 
 resource "azurerm_container_app_environment" "main" {
-  name                       = "classmode-env"
-  location                   = azurerm_resource_group.main.location
-  resource_group_name        = azurerm_resource_group.main.name
+  name                = "classmode-env"
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
+
+  # azurerm 5.x requires logs_destination to be declared before it will accept
+  # log_analytics_workspace_id; setting the workspace alone is an error now.
+  # This is the behaviour that was already implicit, made explicit.
+  logs_destination           = "log-analytics"
   log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
 }
 
@@ -278,23 +283,21 @@ resource "azurerm_user_assigned_identity" "github_actions" {
 }
 
 resource "azurerm_federated_identity_credential" "github_main" {
-  name                = "github-main-branch"
-  resource_group_name = azurerm_resource_group.main.name
-  parent_id           = azurerm_user_assigned_identity.github_actions.id
-  audience            = ["api://AzureADTokenExchange"]
-  issuer              = "https://token.actions.githubusercontent.com"
-  subject             = "repo:${var.github_repo}:ref:refs/heads/main"
+  name                      = "github-main-branch"
+  user_assigned_identity_id = azurerm_user_assigned_identity.github_actions.id
+  audience                  = ["api://AzureADTokenExchange"]
+  issuer                    = "https://token.actions.githubusercontent.com"
+  subject                   = "repo:${var.github_repo}:ref:refs/heads/main"
 }
 
 # The deploy job runs in the `production` GitHub environment; Actions issues
 # environment-scoped subjects for those jobs.
 resource "azurerm_federated_identity_credential" "github_prod_env" {
-  name                = "github-production-environment"
-  resource_group_name = azurerm_resource_group.main.name
-  parent_id           = azurerm_user_assigned_identity.github_actions.id
-  audience            = ["api://AzureADTokenExchange"]
-  issuer              = "https://token.actions.githubusercontent.com"
-  subject             = "repo:${var.github_repo}:environment:production"
+  name                      = "github-production-environment"
+  user_assigned_identity_id = azurerm_user_assigned_identity.github_actions.id
+  audience                  = ["api://AzureADTokenExchange"]
+  issuer                    = "https://token.actions.githubusercontent.com"
+  subject                   = "repo:${var.github_repo}:environment:production"
 }
 
 resource "azurerm_role_assignment" "github_actions_contributor" {

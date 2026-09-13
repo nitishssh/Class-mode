@@ -19,7 +19,7 @@ variable "app_name" {
 variable "container_image" {
   description = "Initial container image. Day-to-day deploys are done by CI (az containerapp update); Terraform ignores drift on this."
   type        = string
-  default     = "ghcr.io/nitishkumar-ai/class-mode/personallearningpro:main"
+  default     = "ghcr.io/nitishssh/personallearningpro/personallearningpro:main"
 }
 
 variable "container_port" {
@@ -35,8 +35,21 @@ variable "min_replicas" {
 }
 
 variable "max_replicas" {
-  type    = number
-  default = 3
+  description = <<-DESC
+    Ceiling for classmode-app. MATCHES LIVE (1) on purpose.
+
+    It defaulted to 3 while production ran 1, so any `terraform apply` — including
+    one whose intent was only to add Studio — silently raised the ceiling to 3.
+    That is three outbox dispatchers and three notification consumers on a live
+    school product, which nobody asked for. `ignore_changes` on the app covers
+    image/env/secret and does NOT cover this, so nothing shielded it either.
+
+    Raising it is a real decision (concurrency of the dispatcher and the
+    notification consumers), not a side effect of an unrelated apply. Change it
+    deliberately, with that analysis done.
+  DESC
+  type        = number
+  default     = 1
 }
 
 variable "pg_version" {
@@ -72,9 +85,9 @@ variable "admin_client_ip" {
 }
 
 variable "ghcr_username" {
-  description = "GitHub username for GHCR image pulls"
+  description = "GitHub username for GHCR image pulls. Must be the package OWNER — the nitishkumar-ai namespace does not exist, and pointing here published to a package that could never be pulled."
   type        = string
-  default     = "nitishkumar-ai"
+  default     = "nitishssh"
 }
 
 variable "ghcr_token" {
@@ -83,10 +96,23 @@ variable "ghcr_token" {
   sensitive   = true
 }
 
+# GitHub issues IMMUTABLE OIDC subject claims: the `sub` embeds numeric ids as
+# `owner@ownerId/repo@repoId`, so renaming an account can no longer hand trust to
+# whoever claims the freed name. This variable is that identifier, NOT a slug — a
+# plain `owner/repo` here mints tokens Entra rejects.
+#
+# The account was renamed NitishKumar-ai -> nitishssh while the credential still
+# carried the old plain slug, so every production deploy since has failed at
+# `azure/login` with AADSTS700213. The claim the runner actually presented:
+#   repo:nitishssh@99980274/Class-mode@961982550:environment:production
+#
+# The ids survive renames and moves; re-derive them with:
+#   gh api user --jq '.id'                        # or /orgs/<org>
+#   gh api repos/<owner>/<repo> --jq '.id'
 variable "github_repo" {
-  description = "GitHub org/repo slug for the Actions OIDC federated credential"
+  description = "Immutable OIDC subject identifier for the Class-mode repo, as owner@ownerId/repo@repoId."
   type        = string
-  default     = "NitishKumar-ai/Class-mode"
+  default     = "nitishssh@99980274/Class-mode@961982550"
 }
 
 variable "alert_email" {
@@ -99,4 +125,63 @@ variable "custom_domain" {
   description = "Production hostname (bound to ACA at cutover via az CLI; kept here for reference/outputs)"
   type        = string
   default     = "classmode.inmodel.in"
+}
+
+# ── ClassMode Studio ─────────────────────────────────────────────────────────
+
+variable "studio_app_name" {
+  description = "Container App name for ClassMode Studio"
+  type        = string
+  default     = "classmode-studio"
+}
+
+variable "studio_container_image" {
+  description = "Initial Studio image. CI owns it thereafter; Terraform ignores drift."
+  type        = string
+  default     = "ghcr.io/nitishssh/classmode-studio:main"
+}
+
+variable "studio_container_port" {
+  description = "Port Studio binds. Its Dockerfile sets ENV PORT=3000 and EXPOSEs 3000."
+  type        = number
+  default     = 3000
+}
+
+variable "studio_min_replicas" {
+  description = "Keep >= 1. A cold Next.js standalone boot during lesson generation is a teacher watching a spinner."
+  type        = number
+  default     = 1
+}
+
+variable "studio_max_replicas" {
+  description = <<-DESC
+    Ceiling for Studio. PINNED TO 1 until its state stops being process-local.
+
+    lib/server/classroom-storage.ts resolves CLASSROOMS_DIR and
+    CLASSROOM_JOBS_DIR under process.cwd(), and classroom-job-store.ts guards
+    them with an in-process Map. Two replicas therefore do not share job state:
+    a status poll routed to the replica that did not create the job returns 404,
+    and the mutex protects nothing across processes.
+
+    The Azure Files mount added in studio.tf makes the DATA durable across
+    restarts, but it does NOT make the in-process mutex safe across replicas.
+    Raise this only after the job store moves to Postgres.
+  DESC
+  type        = number
+  default     = 1
+}
+
+variable "studio_database_name" {
+  description = "Studio's database on the shared flexible server (separate from Class-mode's `eduai`)."
+  type        = string
+  default     = "classmode_studio"
+}
+
+# Same immutable form as `github_repo` above. Studio is a separate repository, so
+# it presents a different subject and needs its own federated credential; see
+# studio.tf.
+variable "studio_github_repo" {
+  description = "Immutable OIDC subject identifier for the classmode-studio repo, as owner@ownerId/repo@repoId."
+  type        = string
+  default     = "nitishssh@99980274/classmode-studio@1351348662"
 }

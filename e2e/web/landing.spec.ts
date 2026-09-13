@@ -5,10 +5,12 @@ test.describe("Landing Page", () => {
     await page.goto("http://localhost:5001/");
   });
 
-  test("loads with buyer-focused title and hero headline", async ({ page }) => {
-    await expect(page).toHaveTitle(
-      "Class Mode — Attendance, fees & parent WhatsApp alerts for your school"
-    );
+  test("loads with the positioning title and hero headline", async ({ page }) => {
+    // 08c13e5 (2026-08-30) repositioned the landing page: title, description
+    // and both og: tags were rewritten together, from the attendance/fees
+    // buyer pitch to the attempt-first learning one. This assertion still
+    // pinned the old title, so it has been failing on main ever since.
+    await expect(page).toHaveTitle("ClassMode — Students think, not watch");
     await expect(page.locator("h1")).toContainText("Marked absent");
     // #324.6: the headline used to promise "by 8:03". Automatic parent
     // messaging is real but is switched on per school rather than running from

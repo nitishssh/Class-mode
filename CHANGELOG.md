@@ -2,19 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.10.0.0] - 2026-09-12
+
+### Added
+
+- **ClassMode Studio now has somewhere to run.** This backend already called Studio for AI lesson generation through `CLASSMODE_AI_BASE_URL`, but the service it was calling had no deployment of its own. Studio now runs as a second container app inside the existing `classmode-env`, beside the app that talks to it and in the region the database already sits in. Its ingress is internal only: there is no public route to the generation API, by design.
+- **Generated lessons survive a restart.** Studio kept generated classrooms and job records on local disk, so every revision restart discarded every lesson a teacher had made. They now live on a mounted Azure Files share, the same treatment uploads already get.
+- **`npm run check:design-tokens-drift`** — compares this app's palette against ClassMode Studio's, the repo that owns the design spec. It compares colours rather than text, so the two files may keep storing them in different formats, and it asserts that the colours this app deliberately does _not_ inherit (Studio's lesson-gate inversion) stay absent. Runs on pull requests that touch the palette, and weekly, since drift can arrive from a change in the other repo that this one never sees.
 
 ### Fixed
 
+- **An unrelated deploy could have tripled production.** The new infrastructure defaulted to a ceiling of three replicas while the live app runs one, so any apply — including one whose only purpose was to add Studio — would have raised production to three replicas, and with it three outbox dispatchers and three notification consumers on a product schools are using. The default now matches what is actually running; raising it becomes a deliberate decision rather than a side effect.
+- **CI could not authenticate as itself.** The OIDC trust configuration named the repository in a form GitHub does not mint tokens for, so the deploy workflow's credentials were rejected.
+- **A stale guard was watching a file that no longer exists.** The check that watches upstream OpenMAIC for changes worth porting still tracked the lesson generator this repo hand-ported — code deleted on 30 August, when generation moved to ClassMode AI over HTTP. Half its entries pointed at that deleted file, so the check went red asking for a port into somewhere that was not there. Those entries are gone, and the check now refuses to run at all if any entry names a file this repo no longer carries, so it cannot rot silently in that direction again.
 - **Two colours were unreadable in dark mode.** The green that marks progress and the brown that marks unfinished work both carried a single value across light and dark, so on a dark screen they measured 3.12:1 and 3.61:1 against the page — below the 4.5:1 minimum for text. ClassMode Studio fixed the same two colours in its own palette on 30 August; this app never received the fix, because the two palettes are maintained by hand and nothing checked them against each other. Both now clear the floor in both themes.
 - **The palette could not follow the theme at all.** Tailwind's config held its own copy of the brand colours as fixed values, so every `text-progress`, `bg-energy` and `bg-cream-50` on 60-odd elements rendered its light-mode colour on a dark screen no matter what the stylesheet said — and no edit to the stylesheet could reach them. The config now reads the live values, so a colour changes once and changes everywhere.
 - **Four charts on the admin dashboard drew in the wrong colour.** They asked for the brand terracotta in a format the value was not written in, which is not valid CSS, so the browser discarded it and fell back.
 - **The registers had no colour for their own statuses.** The design system assigns specific colours to "confirmed" and "overdue" — attendance and fees — and this is the only repo where those screens exist, but neither colour was defined here. Both are now present in both themes, so the register screens have something correct to adopt.
 - **Every reader was pointed at a design spec that does not exist.** `CLAUDE.md` sent anyone making a visual decision to `OpenMAIC-main/DESIGN.md`, a path containing no such file. That broken pointer is why the palette drifted for months without anyone noticing.
-
-### Added
-
-- **`npm run check:design-tokens-drift`** — compares this app's palette against ClassMode Studio's, the repo that owns the design spec. It compares colours rather than text, so the two files may keep storing them in different formats, and it asserts that the colours this app deliberately does _not_ inherit (Studio's lesson-gate inversion) stay absent. Runs on pull requests that touch the palette, and weekly, since drift can arrive from a change in the other repo that this one never sees.
 
 ## [1.9.6.0] - 2026-08-30
 
