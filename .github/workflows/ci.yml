@@ -242,7 +242,7 @@ jobs:
           ignore-unfixed: true
 
       - name: Upload Trivy results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28 # v4
+        uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
         # Don't fail CI if code scanning isn't enabled on the repo; this is a
         # best-effort reporting step. Mirrors cd.yml.
         continue-on-error: true
