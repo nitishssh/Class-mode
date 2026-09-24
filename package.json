@@ -180,6 +180,6 @@
     "@tootallnate/once": "^3.0.1",
     "picomatch": "^4.0.4",
     "uuid": ">=10.0.0",
-    "adm-zip": "^0.6.0"
+    "adm-zip": "^0.6.1"
   }
 }
