@@ -1,0 +1,39 @@
+name: Shared Types Drift
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * *"
+
+jobs:
+  check-shared-types:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout mobile app
+        uses: actions/checkout@v4
+        with:
+          path: classmode-mobile
+
+      - name: Checkout Class-mode source repo
+        uses: actions/checkout@v4
+        with:
+          repository: NitishKumar-ai/Class-mode
+          token: ${{ secrets.CLASSMODE_REPO_READ_TOKEN }}
+          path: Class-mode
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: classmode-mobile/package-lock.json
+
+      - name: Install dependencies
+        working-directory: classmode-mobile
+        run: npm ci
+
+      - name: Check shared type drift
+        working-directory: classmode-mobile
+        env:
+          CLASSMODE_REPO: ${{ github.workspace }}/Class-mode
+        run: npm run check-shared-drift

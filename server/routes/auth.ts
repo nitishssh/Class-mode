@@ -47,6 +47,13 @@ import {
   sendWelcomeEmail,
 } from "../lib/integrations/mailer";
 import { whatsappService } from "../services/whatsapp";
+import {
+  authenticationOptions,
+  passkeysEnabled,
+  registrationOptions,
+  verifyAuthentication,
+  verifyRegistration,
+} from "../lib/passkeys";
 
 const router = Router();
 
@@ -895,6 +902,75 @@ router.post("/workspace-invite/signup", signupLimiter, async (req: Request, res:
 });
 
 const loginSchema = z.object({ email: z.string().email(), password: z.string().min(1) });
+
+function passkeyUserId(req: Request): number | null {
+  const token = req.cookies?.access_token || req.headers.authorization?.split(" ")[1];
+  return verifyAccessToken(token)?.userId ?? null;
+}
+
+router.post("/passkey/register/options", async (req: Request, res: Response) => {
+  if (!passkeysEnabled()) return res.status(404).json({ message: "Passkeys are not enabled" });
+  const userId = passkeyUserId(req);
+  if (!userId) return res.status(401).json({ message: "Authentication required" });
+  const user = await pgFindUserById(userId);
+  if (!user) return res.status(401).json({ message: "Authentication required" });
+  try {
+    return res.status(200).json(await registrationOptions({ id: user.id, name: user.name, email: user.email }));
+  } catch (err) {
+    logger.error("[auth/passkey/register/options] Error", { error: String(err) });
+    return res.status(503).json({ message: "Passkey registration is temporarily unavailable" });
+  }
+});
+
+router.post("/passkey/register/verify", async (req: Request, res: Response) => {
+  if (!passkeysEnabled()) return res.status(404).json({ message: "Passkeys are not enabled" });
+  const userId = passkeyUserId(req);
+  if (!userId) return res.status(401).json({ message: "Authentication required" });
+  const parsed = z.object({ response: z.record(z.string(), z.unknown()) }).safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ message: "Passkey response is required" });
+  try {
+    await verifyRegistration(userId, parsed.data.response as any);
+    return res.status(201).json({ ok: true });
+  } catch (err) {
+    const code = err instanceof Error ? err.message : "PASSKEY_INVALID";
+    const status = code === "PASSKEY_CHALLENGE_EXPIRED" ? 401 : 400;
+    return res.status(status).json({ code, message: "Passkey registration could not be verified" });
+  }
+});
+
+router.post("/passkey/login/options", async (req: Request, res: Response) => {
+  if (!passkeysEnabled()) return res.status(404).json({ message: "Passkeys are not enabled" });
+  const requestedRole = z.string().optional().parse(req.body?.requestedRole);
+  try {
+    return res.status(200).json(await authenticationOptions(requestedRole));
+  } catch (err) {
+    logger.error("[auth/passkey/login/options] Error", { error: String(err) });
+    return res.status(503).json({ message: "Passkey login is temporarily unavailable" });
+  }
+});
+
+router.post("/passkey/login/verify", async (req: Request, res: Response) => {
+  if (!passkeysEnabled()) return res.status(404).json({ message: "Passkeys are not enabled" });
+  const parsed = z.object({ response: z.record(z.string(), z.unknown()) }).safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ message: "Passkey response is required" });
+  try {
+    const result = await verifyAuthentication({ response: parsed.data.response as any });
+    const user = await pgFindUserById(result.userId);
+    if (!user || ["suspended", "rejected"].includes(user.status)) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+    if (result.requestedRole && user.role !== result.requestedRole) {
+      return res.status(403).json({ code: "PASSKEY_ROLE_FORBIDDEN", message: "Role is not available" });
+    }
+    const tokens = await createLoginSession(req, res, user.id);
+    await pgSetUserLastLogin(user.id);
+    return res.status(200).json({ token: tokens.accessToken, ...mobileTokenFields(req, tokens), ...(await currentAuthPayload(user.id)) });
+  } catch (err) {
+    const code = err instanceof Error ? err.message : "PASSKEY_INVALID";
+    const status = code === "PASSKEY_CHALLENGE_EXPIRED" ? 401 : 401;
+    return res.status(status).json({ code, message: "Passkey authentication failed" });
+  }
+});
 
 router.post("/login", loginIpLimiter, loginLimiter, async (req: Request, res: Response) => {
   if (!isLocalPasswordAuthEnabled()) {
