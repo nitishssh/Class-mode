@@ -69,11 +69,11 @@ describe('fee mutations', () => {
   it('sends a reminder with the parent phone to the exact endpoint', async () => {
     fetchMock.mockResolvedValue(okJson({ success: true, message: 'ok' }));
 
-    await remindFee(77, '+10000000001');
+    await remindFee(77, 'test-parent-phone');
 
     expect(pathname(fetchMock.mock.calls[0][0])).toBe('/api/fees/77/remind');
     expect(JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string)).toEqual({
-      phone: '+10000000001',
+      phone: 'test-parent-phone',
     });
   });
 

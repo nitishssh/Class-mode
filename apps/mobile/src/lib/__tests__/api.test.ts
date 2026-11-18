@@ -175,7 +175,7 @@ describe('mobile API client', () => {
           id: 77,
           studentId: 9,
           studentName: 'Asha',
-          parentPhone: '+10000000001',
+          parentPhone: 'test-parent-phone',
           description: 'Term 1',
           amountCents: 500000,
           currency: 'INR',
@@ -222,13 +222,13 @@ describe('mobile API client', () => {
       onData: () => okJson({ success: true, studentId: 7 }),
     });
 
-    const res = await claimParentChild('CM-SCHOOL123-7', '+10000000001');
+    const res = await claimParentChild('CM-SCHOOL123-7', 'test-parent-phone');
 
     expect(res).toEqual({ success: true, studentId: 7 });
     expect(fetchMock.mock.calls[0][0]).toContain('/api/parent/claim');
     expect(fetchMock.mock.calls[0][1]).toMatchObject({
       method: 'POST',
-      body: JSON.stringify({ code: 'CM-SCHOOL123-7', parentPhone: '+10000000001' }),
+      body: JSON.stringify({ code: 'CM-SCHOOL123-7', parentPhone: 'test-parent-phone' }),
     });
   });
 
