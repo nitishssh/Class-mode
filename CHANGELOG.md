@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.11.0.0] - 2026-11-19
+
+### Added
+
+- Passkey registration and role-aware passkey login endpoints, backed by
+  PostgreSQL credential and challenge storage.
+- Universal Expo client migration groundwork with shared native design tokens,
+  NativeWind configuration, and mobile CI validation.
+- Student authentication and passkey architecture documentation.
+
+### Changed
+
+- Authentication retains password login as a fallback while passkeys are
+  feature-flagged with `ENABLE_PASSKEYS`.
+
 ## [1.10.0.0] - 2026-09-12
 
 ### Added

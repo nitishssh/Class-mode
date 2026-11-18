@@ -101,6 +101,9 @@ jobs:
       - name: Check Types
         run: npm run check
 
+      - name: Check native token output
+        run: npm run check:native-tokens
+
       - name: Lint
         run: npm run lint
 
