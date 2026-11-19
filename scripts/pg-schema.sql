@@ -171,6 +171,38 @@ CREATE TABLE IF NOT EXISTS sessions (
   expires_at          timestamptz  NOT NULL
 );
 
+-- ─── Passkeys (WebAuthn credentials and one-time challenges) ────────────────
+CREATE TABLE IF NOT EXISTS passkey_credentials (
+  id            bigserial    PRIMARY KEY,
+  user_id       bigint       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  credential_id text         NOT NULL UNIQUE,
+  public_key    text         NOT NULL,
+  counter       bigint       NOT NULL DEFAULT 0,
+  transports    text[]       NOT NULL DEFAULT '{}',
+  device_type   text,
+  backed_up     boolean      NOT NULL DEFAULT false,
+  label         text         NOT NULL DEFAULT 'Passkey',
+  created_at    timestamptz  NOT NULL DEFAULT now(),
+  last_used_at  timestamptz,
+  revoked_at    timestamptz
+);
+CREATE INDEX IF NOT EXISTS passkey_credentials_user_idx
+  ON passkey_credentials(user_id) WHERE revoked_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS passkey_challenges (
+  id             bigserial    PRIMARY KEY,
+  user_id        bigint       REFERENCES users(id) ON DELETE CASCADE,
+  challenge      text         NOT NULL UNIQUE,
+  purpose        text         NOT NULL CHECK (purpose IN ('registration','login')),
+  requested_role text,
+  rp_id          text         NOT NULL,
+  expires_at     timestamptz  NOT NULL,
+  consumed_at    timestamptz,
+  created_at     timestamptz  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS passkey_challenges_expiry_idx
+  ON passkey_challenges(expires_at);
+
 -- ─── OTPs ────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS otps (
   id          bigserial    PRIMARY KEY,

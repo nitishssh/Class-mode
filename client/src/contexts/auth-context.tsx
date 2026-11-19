@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { clearServerToken, queryClient, setServerToken } from "@/lib/queryClient";
 import { ownerToken, purgeOwner } from "@/lib/attendance-queue";
@@ -160,12 +160,13 @@ async function localPasswordSignup(args: {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<AuthUser>({ user: null, profile: null });
   const [isLoading, setIsLoading] = useState(true);
+  const didInitialRefresh = useRef(false);
   const { toast } = useToast();
 
   const refreshSession = async () => {
     let res = await fetch("/api/auth/me", { credentials: "include" });
     if (!res.ok) {
-      // Try to refresh access token using the refresh_token cookie
+      // Try to refresh access token using the refresh_token cookie.
       const refreshRes = await fetch("/api/auth/refresh", {
         method: "POST",
         credentials: "include",
@@ -190,6 +191,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    if (didInitialRefresh.current) return;
+    didInitialRefresh.current = true;
+    // Marketing and credential-entry pages do not need a session probe. Avoid
+    // making an unauthenticated visitor generate a 401 before they interact.
+    if (["/", "/for-parents", "/for-schools", "/login"].includes(window.location.pathname)) {
+      setIsLoading(false);
+      return;
+    }
     refreshSession().finally(() => setIsLoading(false));
   }, []);
 
