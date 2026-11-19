@@ -31,7 +31,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@dc73d59c2d7bd4f8194098a91219eeee6d8a1719 # v4
+        uses: github/codeql-action/init@e9c4b4b153701845b921f167180044d14fe89b94 # v4
         # Tolerate "code scanning is not enabled for this repository": until the
         # repo's Code Scanning setting is turned on (Settings → Code security),
         # CodeQL can't upload results and the job hard-fails on every PR. These
